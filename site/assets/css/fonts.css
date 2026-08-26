@@ -1,0 +1,36 @@
+/* Polices auto-hebergees — B3.4 / A16.2.
+   AUCUNE requete vers un tiers (pas de Google Fonts). Sous-ensembles latins,
+   format woff2, font-display: swap. Deposez les .woff2 dans assets/fonts/.
+   Tant que les fichiers ne sont pas presents, les replis systeme (site.css)
+   prennent le relais : le site reste lisible. */
+
+@font-face {
+  font-family: "Saira Condensed";
+  font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/saira-condensed-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/montserrat-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/montserrat-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal; font-weight: 900; font-display: swap;
+  src: url("../fonts/montserrat-900.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Roboto Slab";
+  font-style: normal; font-weight: 300; font-display: swap;
+  src: url("../fonts/roboto-slab-300.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Caveat";
+  font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/caveat-400.woff2") format("woff2");
+}

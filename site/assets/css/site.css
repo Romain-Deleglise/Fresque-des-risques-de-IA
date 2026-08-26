@@ -1,0 +1,232 @@
+/* ==========================================================================
+   Fresque des risques de l'IA — feuille de style du site vitrine
+   Charte Pause IA (A16). Polices auto-hebergees (B3.4), aucune requete tierce.
+   ========================================================================== */
+
+:root {
+  /* Couleurs — A16.1 */
+  --orange: #F7931D;
+  --orange-survol: #E67E00;
+  --orange-texte: #B45C00; /* orange lisible en petit texte sur blanc */
+  --fond: #FFFFFF;
+  --encre: #1C1B18;
+  --encre-douce: #5A554D;
+  --filet: #E7E3DC;
+
+  /* Typographies — A16.2 (avec replis systeme robustes) */
+  --f-titre: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-ui: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-texte: "Roboto Slab", Georgia, "Times New Roman", serif;
+  --f-craie: "Caveat", "Comic Sans MS", cursive;
+
+  --largeur-max: 68rem;
+  --rayon: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--f-texte);
+  font-weight: 300;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  font-family: var(--f-titre);
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0 0 .5em;
+}
+h1 { font-size: clamp(2.4rem, 6vw, 4rem); letter-spacing: .01em; }
+h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); }
+
+a { color: var(--orange-texte); }
+a:hover { color: var(--orange-survol); }
+
+img { max-width: 100%; height: auto; }
+
+/* --- Lien d'evitement (B10) --------------------------------------------- */
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--encre); color: #fff; padding: .6em 1em; z-index: 1000;
+  font-family: var(--f-ui);
+}
+.skip-link:focus { left: 0; }
+
+/* --- Focus visible partout (A17.1 / B10) -------------------------------- */
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Conteneur ---------------------------------------------------------- */
+.contenu { width: 100%; max-width: var(--largeur-max); margin: 0 auto; padding: 0 1.25rem; }
+
+/* --- En-tete / navigation ----------------------------------------------- */
+.site-entete {
+  border-bottom: 1px solid var(--filet);
+  position: sticky; top: 0; background: rgba(255,255,255,.94);
+  backdrop-filter: saturate(1.2) blur(4px);
+  z-index: 50;
+}
+.site-entete .contenu {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 4rem; gap: 1rem;
+}
+.marque {
+  font-family: var(--f-titre); font-weight: 700; font-size: 1.35rem;
+  color: var(--encre); text-decoration: none; line-height: 1.05;
+}
+.marque:hover { color: var(--encre); }
+.nav-principale ul { list-style: none; display: flex; gap: 1.25rem; margin: 0; padding: 0; }
+.nav-principale a {
+  font-family: var(--f-ui); font-weight: 700; font-size: .95rem;
+  text-decoration: none; color: var(--encre); padding: .35em 0;
+}
+.nav-principale a[aria-current="page"] { color: var(--orange-texte); box-shadow: inset 0 -2px 0 var(--orange); }
+.nav-principale a:hover { color: var(--orange-survol); }
+.nav-indispo { color: var(--encre-douce); }
+.nav-indispo .badge { font-size: .7rem; }
+
+.badge {
+  font-family: var(--f-ui); font-weight: 700; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .04em;
+  background: var(--filet); color: var(--encre-douce);
+  border-radius: 999px; padding: .1em .6em; margin-left: .35em; vertical-align: middle;
+}
+
+/* --- Sections ----------------------------------------------------------- */
+main { padding: 2.5rem 0 3rem; }
+.section { padding: 2rem 0; }
+.repere-chiffre {
+  font-family: var(--f-ui); font-weight: 900; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--orange-texte); font-size: 1.05rem; margin: 0 0 1rem;
+}
+.accroche { font-size: 1.15rem; max-width: 46rem; }
+.sur-titre { font-family: var(--f-ui); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color: var(--encre-douce); font-size:.8rem; }
+
+/* --- Boutons de telechargement (A4.2 / B3.3) ---------------------------- */
+.zone-telechargement {
+  display: flex; flex-wrap: wrap; gap: 1rem; align-items: stretch; margin: 1.75rem 0;
+}
+.btn {
+  font-family: var(--f-ui); font-weight: 700; text-decoration: none;
+  display: inline-flex; flex-direction: column; justify-content: center;
+  border-radius: var(--rayon); transition: transform .12s ease, background .12s ease;
+}
+.btn small { font-weight: 400; opacity: .9; font-size: .8em; margin-top: .15em; }
+
+/* Bouton principal — aplat orange, le plus grand (A4.2) */
+.btn-principal {
+  background: var(--orange); color: #fff;
+  padding: 1.15rem 1.8rem; font-size: 1.3rem;
+}
+.btn-principal:hover { background: var(--orange-survol); color:#fff; transform: translateY(-1px); }
+
+/* Bouton secondaire — contour, 85-90 % de la taille (A4.2) */
+.btn-secondaire {
+  background: #fff; color: var(--orange-texte);
+  border: 2px solid var(--orange);
+  padding: .95rem 1.5rem; font-size: 1.13rem; /* ~ 87 % */
+}
+.btn-secondaire:hover { background: #fff7ee; color: var(--orange-survol); transform: translateY(-1px); }
+
+/* Bouton indisponible — aria-disabled, pas un lien (B3.3) */
+.btn[aria-disabled="true"] {
+  background: var(--filet); color: var(--encre-douce);
+  border-color: var(--filet); cursor: not-allowed; transform: none;
+}
+
+/* --- Eventail de cartes (A4.3 / B3.2) ----------------------------------- */
+.eventail-legende { font-family: var(--f-ui); color: var(--encre-douce); font-size: .9rem; margin-top: 1.5rem; text-align:center; }
+.eventail {
+  position: relative; display: flex; justify-content: center;
+  min-height: 24rem; margin: 2.5rem auto 0; max-width: 40rem; perspective: 1200px;
+}
+.carte-ex {
+  position: relative; width: 12rem; aspect-ratio: 1 / 1.41; margin: 0 -2.2rem;
+  border: 0; padding: 0; background: transparent; cursor: pointer;
+  transition: transform .15s ease; transform-origin: bottom center;
+}
+.carte-ex:nth-child(1) { transform: rotate(-9deg); }
+.carte-ex:nth-child(2) { transform: rotate(0deg) translateY(-.6rem); z-index: 2; }
+.carte-ex:nth-child(3) { transform: rotate(9deg); }
+.carte-ex:hover, .carte-ex:focus-visible { transform: scale(1.05); z-index: 5; }
+.carte-ex:nth-child(2):hover, .carte-ex:nth-child(2):focus-visible { transform: translateY(-.6rem) scale(1.05); }
+
+.carte-ex .faces {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d; transition: transform .4s ease;
+}
+.carte-ex[aria-pressed="true"] .faces { transform: rotateY(180deg); }
+.carte-ex .face {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border-radius: var(--rayon); overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); background: #111;
+  display: flex; flex-direction: column;
+}
+.carte-ex .recto { background:#111; }
+.carte-ex .recto img { width:100%; height:100%; object-fit: cover; }
+.carte-ex .bandeau {
+  position:absolute; left:0; right:0; top:0; padding:.5rem .6rem;
+  background: linear-gradient(180deg, rgba(0,0,0,.72), rgba(0,0,0,0));
+  color:#fff; font-family: var(--f-titre); font-weight:700; font-size:1rem; line-height:1.05;
+  display:flex; gap:.4rem; align-items:baseline;
+}
+.carte-ex .num { color: var(--orange); font-size:1.1rem; }
+.carte-ex .verso {
+  transform: rotateY(180deg); background:#141B18; color:#EDE8DC;
+  padding: 1rem; overflow:auto; font-size:.9rem;
+}
+.carte-ex .verso h3 { color: var(--orange); font-size:1.15rem; margin-bottom:.4rem; }
+.carte-ex .verso p { margin:0 0 .5em; }
+
+/* --- Encart Fresque en ligne (A4.4) ------------------------------------- */
+.encart {
+  border: 1px solid var(--filet); border-radius: var(--rayon);
+  padding: 1.5rem; margin: 2.5rem 0; background: #fffdf9;
+}
+.encart h2 { margin-top: 0; }
+
+/* --- Pied de page (A6) -------------------------------------------------- */
+.site-pied {
+  border-top: 1px solid var(--filet); margin-top: 3rem;
+  font-family: var(--f-ui); font-size: .9rem; color: var(--encre-douce);
+}
+.site-pied .contenu { padding-top: 2rem; padding-bottom: 2.5rem; }
+.site-pied ul { list-style:none; padding:0; margin:0 0 1rem; display:flex; flex-wrap:wrap; gap:1.25rem; }
+.site-pied .licence { font-size:.85rem; }
+
+/* --- Page A propos ------------------------------------------------------ */
+.prose { max-width: 44rem; }
+.prose h2 { margin-top: 2rem; }
+.prose ul { padding-left: 1.2rem; }
+
+/* --- Bandeau indisponibilite (A17.5 / B3.6) ----------------------------- */
+.avis-indispo {
+  border: 1px solid var(--filet); border-left: 4px solid var(--orange);
+  background: #fffdf9; border-radius: var(--rayon); padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+}
+
+/* --- Reduced motion (A17.1) --------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  .carte-ex[aria-pressed="true"] .faces { transition: none; }
+}
+
+/* --- Mobile ------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .site-entete .contenu { flex-wrap: wrap; min-height: auto; padding-top:.6rem; padding-bottom:.6rem; }
+  .nav-principale ul { gap: 1rem; }
+  .eventail { flex-direction: column; align-items: center; min-height: auto; perspective: none; }
+  .carte-ex { margin: .6rem 0; transform: none !important; width: 14rem; }
+  .carte-ex:nth-child(2) { transform: none; }
+  .btn-principal, .btn-secondaire { width: 100%; }
+}
