@@ -22,11 +22,11 @@ service) :
 - [x] Site vitrine : accueil, à propos, Fresque en ligne (placeholder)
 - [x] `cartes.json` (source unique des contenus) + schéma + validation CI
 - [x] Éventail de cartes d'exemple (cartes 1, 4, 12) avec retournement au clic/clavier
-- [ ] **Textes de verso des cartes** à renseigner (`[A COMPLETER]` dans `cartes.json`)
-- [ ] **Images des cartes** à déposer et convertir en variantes web (voir ci-dessous)
-- [ ] **PDF** (cartes + guide) à déposer dans `site/telechargements/`
-- [ ] **Polices** `.woff2` à déposer dans `site/assets/fonts/`
-- [ ] Cartes **37 et 38** manquantes dans les sources (à fournir par Pause IA)
+- [x] **Contenus des 38 cartes** (titres, versos, lots) repris du PDF officiel
+- [x] **Visuels des cartes** générés en variantes web (WebP 560/900) + carte 0 (logo Pause IA)
+- [x] **PDF des cartes** (version libre de droits, ~4,9 Mo) branché sur le bouton principal
+- [ ] **Guide animateur** (PDF) à déposer dans `site/telechargements/` (bouton « bientôt » en attendant)
+- [ ] **Polices** `.woff2` à déposer dans `site/assets/fonts/` (replis système en attendant)
 - [ ] Service de sessions temps réel (`serveur/`)
 
 ## Lancer le site en local
