@@ -6,12 +6,12 @@
       "n": 0,
       "intro": true,
       "lot": null,
-      "titre": "Fresque de l'IA",
+      "titre": "Fresque des risques de l'IA",
       "verso": [
-        "Adaptée de la Fresque de la sécurité de l'IA du Centre pour la sécurité de l'IA (CeSIA), elle-même inspirée de la Fresque du Climat, la Fresque de l'IA par Pause IA est un atelier collaboratif pour comprendre ensemble les enjeux de l'IA, sans prérequis technique.",
+        "Adaptée de la Fresque de la sécurité de l'IA du Centre pour la sécurité de l'IA (CeSIA), elle-même inspirée de la Fresque du Climat, la Fresque des risques de l'IA par Pause IA est un atelier collaboratif pour comprendre ensemble les enjeux de l'IA, sans prérequis technique.",
         "Les participant·es relient les cartes pour dresser une vue d'ensemble : comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques et les solutions disponibles."
       ],
-      "image": null
+      "image": { "vignette": "assets/img/cartes/00-560.webp", "grand": "assets/img/cartes/00-900.webp" }
     },
     { "n": 1, "intro": false, "lot": 1, "titre": "Modèle d'Intelligence Artificielle (IA)", "verso": ["Un modèle d'IA est un programme informatique qui apprend à partir d'une grande quantité de données à atteindre un objectif fixé. Une fois entraîné, il peut produire des réponses, des contenus (images, vidéos, sons) ou prendre des décisions pour accomplir son objectif."], "image": { "vignette": "assets/img/cartes/01-560.webp", "grand": "assets/img/cartes/01-900.webp" } },
     { "n": 2, "intro": false, "lot": 1, "titre": "Données d'entraînement", "verso": ["Les modèles d'IA sont entraînés à partir d'immenses quantités de données, majoritairement collectées sur le web. Les IA apprennent en identifiant les motifs et les relations au sein de ces données, pour faire des prédictions ou prendre des décisions."], "image": { "vignette": "assets/img/cartes/02-560.webp", "grand": "assets/img/cartes/02-900.webp" } },
