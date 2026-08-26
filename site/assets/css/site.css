@@ -201,6 +201,22 @@ img { max-width: 100%; height: auto; display: block; }
 .pied-bas { border-top: 1px solid #38352f; margin-top: 2.5rem; padding-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; font-size: .85rem; color: #8f897f; }
 .licence-badge { display: inline-flex; align-items: center; gap: .4rem; }
 
+/* --- Newsletter ------------------------------------------------------------ */
+.newsletter-carte { max-width: 46rem; margin: 0 auto; text-align: center; background: var(--blanc); border: 1px solid var(--filet); border-radius: var(--rayon); padding: 2.6rem 2rem; box-shadow: var(--ombre); }
+.newsletter-carte h2 { margin-bottom: .4rem; }
+.newsletter-carte p.intro { color: var(--encre-douce); max-width: 34rem; margin: 0 auto 1.6rem; }
+.newsletter-form { display: flex; gap: .6rem; max-width: 30rem; margin: 0 auto; }
+.newsletter-form input[type="email"] { flex: 1; font-family: var(--f-ui); font-size: 1rem; padding: .85rem 1rem; border: 2px solid var(--filet); border-radius: var(--rayon-s); background: var(--creme); color: var(--encre); }
+.newsletter-form input[type="email"]:focus { outline: none; border-color: var(--orange); background: #fff; }
+.newsletter-form button { font-family: var(--f-ui); font-weight: 700; border: 0; border-radius: var(--rayon-s); background: var(--orange); color: #fff; padding: .85rem 1.4rem; cursor: pointer; white-space: nowrap; transition: background .12s ease; }
+.newsletter-form button:hover { background: var(--orange-fonce); }
+.newsletter-form button:disabled { opacity: .6; cursor: wait; }
+.newsletter-msg { min-height: 1.4rem; margin: .9rem 0 0; font-family: var(--f-ui); font-size: .92rem; }
+.newsletter-msg.ok { color: #2f7d4f; }
+.newsletter-msg.err { color: #c1444e; }
+.newsletter-petit { font-family: var(--f-ui); font-size: .78rem; color: var(--encre-douce); margin-top: 1rem; }
+@media (max-width: 560px){ .newsletter-form { flex-direction: column; } }
+
 /* --- Pour qui -------------------------------------------------------------- */
 .publics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
 .public { background: var(--blanc); border: 1px solid var(--filet); border-radius: var(--rayon); padding: 1.6rem 1.4rem; box-shadow: var(--ombre); }

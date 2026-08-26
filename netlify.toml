@@ -4,6 +4,13 @@
 [build]
   publish = "site"
   command = ""
+  functions = "netlify/functions"
+
+# Fonctions serverless (newsletter CiviCRM). Secrets via variables
+# d'environnement Netlify : CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY,
+# et éventuellement CIVICRM_NEWSLETTER_GROUP_ID (défaut 72).
+[functions]
+  node_bundler = "esbuild"
 
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.
