@@ -72,7 +72,7 @@ def main():
         except Exception as e:  # noqa: BLE001
             print(f"  ERREUR lecture {src.name} : {e}")
             continue
-        img = img.convert("RGB") if img.mode not in ("RGB", "RGBA") else img
+        img = img.convert("RGBA")
 
         for suffixe, largeur in VARIANTES.items():
             cible = img
@@ -80,7 +80,9 @@ def main():
                 hauteur = round(img.height * largeur / img.width)
                 cible = img.resize((largeur, hauteur), Image.LANCZOS)
             sortie = DST / f"{n:02d}-{suffixe}.webp"
-            fond = cible.convert("RGB") if cible.mode == "RGBA" else cible
+            # aplatir la transparence sur blanc (les visuels de cartes sont sur fond clair)
+            fond = Image.new("RGB", cible.size, (255, 255, 255))
+            fond.paste(cible, (0, 0), cible)
             fond.save(sortie, "WEBP", quality=QUALITE, method=6)
         generes += 1
         print(f"  ok carte {n:02d}  <-  {src.name}")

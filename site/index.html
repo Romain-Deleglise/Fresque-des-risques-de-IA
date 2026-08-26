@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>La Fresque des risques de l'IA</title>
   <meta name="description" content="Atelier collaboratif de 38 cartes, environ 2 heures, pour comprendre ensemble les enjeux de l'intelligence artificielle. Sans prérequis technique. Cartes et guide à télécharger gratuitement.">
-  <!-- TODO domaine : renseigner canonical et og:url une fois le domaine choisi. -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="La Fresque des risques de l'IA">
   <meta property="og:description" content="Atelier collaboratif de 38 cartes pour comprendre ensemble les enjeux de l'IA. Cartes et guide à télécharger.">
   <meta property="og:image" content="assets/img/social/partage.png">
-  <link rel="icon" href="assets/img/social/favicon.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/img/social/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/social/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/img/social/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/fonts.css">
   <link rel="stylesheet" href="assets/css/site.css">
 </head>
@@ -19,87 +20,178 @@
 
   <header class="site-entete">
     <div class="contenu">
-      <a class="marque" href="./">Fresque des risques de l'IA</a>
+      <a class="marque" href="./"><span class="puce" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><line x1="7" y1="8" x2="17" y2="7" stroke="#fff" stroke-width="1.7"/><line x1="7" y1="8" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><line x1="17" y1="7" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><circle cx="7" cy="8" r="2.5" fill="#fff"/><circle cx="17" cy="7" r="2.5" fill="#fff"/><circle cx="13" cy="17" r="2.5" fill="#fff"/></svg></span> Fresque des risques de l'IA</a>
       <nav class="nav-principale" aria-label="Navigation principale">
         <ul>
+          <li><a class="lien-apropos" href="a-propos/">À propos</a></li>
           <li><a href="en-ligne/">Fresque en ligne <span class="badge">bientôt</span></a></li>
-          <li><a href="a-propos/">À propos</a></li>
+          <li><a class="nav-cta" href="#telecharger">Télécharger</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="contenu-principal">
-    <div class="contenu">
 
-      <section class="section" aria-labelledby="titre-principal">
-        <h1 id="titre-principal">La Fresque des risques de l'IA</h1>
-        <p class="repere-chiffre">38 cartes · environ 2 heures</p>
-        <p class="accroche">
-          Un atelier collaboratif, <strong>sans prérequis technique</strong>,
-          pour comprendre ensemble les enjeux de l'intelligence artificielle.
-          En reliant les cartes, les participant·es dressent une vue d'ensemble :
-          comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques
-          et les solutions possibles. La Fresque est adaptée de la Fresque de la
-          sécurité de l'IA du <a href="https://www.securite-ia.fr/" rel="noopener">CeSIA</a>,
-          elle-même inspirée de la <a href="https://fresqueduclimat.org/" rel="noopener">Fresque du Climat</a>,
-          et portée par <a href="https://pauseia.fr/" rel="noopener">Pause IA</a>.
-        </p>
+    <!-- HERO -->
+    <section class="hero" id="telecharger" aria-labelledby="titre-principal">
+      <div class="contenu">
+        <div class="hero-texte">
+          <p class="chiffre-cle" aria-hidden="true">38 cartes · environ 2 heures</p>
+          <h1 id="titre-principal">Comprendre ensemble les <span class="accent">risques de l'IA</span></h1>
+          <p class="accroche">
+            Un atelier collaboratif, sans prérequis technique. En reliant les cartes,
+            un groupe dresse en deux heures une vue d'ensemble de l'intelligence
+            artificielle : son fonctionnement, ses capacités, ses impacts, ses risques
+            et les solutions possibles.
+          </p>
+          <div class="zone-telechargement">
+            <a class="btn btn-principal" href="telechargements/fresque-des-risques-de-l-ia-cartes.pdf" download="fresque-des-risques-de-l-ia-cartes.pdf">
+              Télécharger les cartes
+              <small>PDF · 4,9 Mo · les 39 cartes à imprimer</small>
+            </a>
+            <span class="btn btn-secondaire" aria-disabled="true">
+              Guide animateur
+              <small>bientôt disponible</small>
+            </span>
+          </div>
+          <p class="filiation">
+            Adaptée de la <strong>Fresque de la sécurité de l'IA</strong> du CeSIA,
+            inspirée de la <strong>Fresque du Climat</strong>, portée par <strong>Pause IA</strong>.
+          </p>
+        </div>
+        <div class="hero-cartes">
+          <div class="eventail" id="eventail" role="group" aria-label="Trois cartes d'exemple à retourner">
+            <noscript><p style="font-family:var(--f-ui);color:var(--encre-douce)">Téléchargez le PDF pour découvrir les cartes.</p></noscript>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <!-- Les deux PDF. Fonctionnent sans JavaScript. -->
+    <!-- STATS -->
+    <section class="stats" aria-label="Chiffres clés">
+      <div class="contenu">
+        <div class="stat"><div class="n">38</div><div class="l">cartes à relier</div></div>
+        <div class="stat"><div class="n">~2 h</div><div class="l">de durée</div></div>
+        <div class="stat"><div class="n">5</div><div class="l">grandes thématiques</div></div>
+        <div class="stat"><div class="n">0</div><div class="l">prérequis technique</div></div>
+      </div>
+    </section>
+
+    <!-- COMMENT CA MARCHE -->
+    <section class="section">
+      <div class="contenu">
+        <div class="section-titre">
+          <p class="sur-titre">L'atelier</p>
+          <h2>Comment se déroule une fresque</h2>
+          <p>Un déroulé simple, en petit groupe, animé par une personne qui distribue les cartes.</p>
+        </div>
+        <div class="etapes">
+          <div class="etape"><div class="no">1</div><h3>Téléchargez</h3><p>Imprimez le jeu de cartes et, bientôt, le guide d'animation. Rien à installer, aucun compte.</p></div>
+          <div class="etape"><div class="no">2</div><h3>Réunissez un groupe</h3><p>De quelques personnes à une salle entière, réparties en tables de travail avec un animateur.</p></div>
+          <div class="etape"><div class="no">3</div><h3>Reliez les cartes</h3><p>Les participant·es placent les cartes, tracent des liens de cause à effet et discutent.</p></div>
+          <div class="etape"><div class="no">4</div><h3>Prenez du recul</h3><p>Le groupe dégage une vue d'ensemble, des risques aux solutions, et repart avec des clés.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THEMATIQUES -->
+    <section class="section section--creme">
+      <div class="contenu">
+        <div class="section-titre">
+          <p class="sur-titre">Le parcours</p>
+          <h2>Cinq thématiques, une vue d'ensemble</h2>
+          <p>Les cartes s'enchaînent du fonctionnement de l'IA jusqu'aux réponses collectives.</p>
+        </div>
+        <div class="lots">
+          <div class="lot"><div class="n">1</div><h3>Comment ça marche</h3><p>Modèles, données, entraînement, autonomie, boîte noire.</p></div>
+          <div class="lot"><div class="n">2</div><h3>Capacités</h3><p>Génération d'images, de texte, robotique, recommandation.</p></div>
+          <div class="lot"><div class="n">3</div><h3>Risques actuels</h3><p>Deepfakes, biais, santé mentale, cyberattaques, environnement.</p></div>
+          <div class="lot"><div class="n">4</div><h3>Risques existentiels</h3><p>Mésalignement, perte de contrôle, superintelligence.</p></div>
+          <div class="lot"><div class="n">5</div><h3>Solutions</h3><p>Recherche en sécurité, lignes rouges, supervision démocratique.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALERIE -->
+    <section class="section">
+      <div class="contenu">
+        <div class="section-titre">
+          <p class="sur-titre">Le jeu</p>
+          <h2>Un aperçu des cartes</h2>
+          <p>Chaque carte porte une illustration au recto et une explication courte au verso.</p>
+        </div>
+        <div class="galerie" id="galerie" aria-label="Quelques cartes du jeu"></div>
+        <p class="galerie-note">39 cartes au total (dont la carte d'introduction). Cartes à découper, recto illustré, verso explicatif.</p>
+      </div>
+    </section>
+
+    <!-- FRESQUE EN LIGNE -->
+    <section class="section section--creme">
+      <div class="contenu">
+        <div class="encart-enligne">
+          <div>
+            <p class="sur-titre">Bientôt</p>
+            <h2>Animer à distance</h2>
+            <p>Une version en ligne de l'atelier se prépare : un animateur, jusqu'à huit participants
+            et un tableau noir partagé, directement dans le navigateur. Sans compte, sans installation.</p>
+            <p><a href="en-ligne/">En savoir plus sur la Fresque en ligne</a></p>
+          </div>
+          <div class="visu" aria-hidden="true">un tableau noir partagé pour construire la fresque ensemble</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="section cta">
+      <div class="contenu">
+        <p class="sur-titre" style="color:var(--orange)">Gratuit et libre</p>
+        <h2>Prêt à animer votre première fresque ?</h2>
+        <p>Téléchargez les cartes, réunissez un groupe, et lancez la discussion. Le matériel est
+        sous licence libre : à vous de l'utiliser, le partager et l'adapter.</p>
         <div class="zone-telechargement">
-          <a class="btn btn-principal"
-             href="telechargements/fresque-des-risques-de-l-ia-cartes.pdf"
-             download="fresque-des-risques-de-l-ia-cartes.pdf">
-            Fresque des risques de l'IA
-            <small>PDF · 4,9 Mo · les 39 cartes à imprimer</small>
+          <a class="btn btn-principal" href="telechargements/fresque-des-risques-de-l-ia-cartes.pdf" download="fresque-des-risques-de-l-ia-cartes.pdf">
+            Télécharger les cartes
+            <small>PDF · 4,9 Mo</small>
           </a>
-
-          <!-- Guide animateur : pas encore publié. Quand le PDF sera dans
-               site/telechargements/, remettre un <a href download> comme ci-dessus. -->
-          <span class="btn btn-secondaire" aria-disabled="true">
-            Guide animateur
-            <small>bientôt</small>
-          </span>
         </div>
-      </section>
+        <p class="manuscrit">à vous de jouer</p>
+      </div>
+    </section>
 
-      <section class="section" aria-labelledby="titre-exemples">
-        <h2 id="titre-exemples" class="sur-titre">Un aperçu du jeu</h2>
-        <div class="eventail" id="eventail">
-          <noscript>
-            <p class="eventail-legende">
-              Activez JavaScript pour feuilleter trois cartes d'exemple,
-              ou téléchargez le PDF ci-dessus pour les voir toutes.
-            </p>
-          </noscript>
-        </div>
-        <p class="eventail-legende">Cartes à découper, recto illustré, verso explicatif. Cliquez une carte pour la retourner.</p>
-      </section>
-
-      <section class="encart" aria-labelledby="titre-en-ligne">
-        <h2 id="titre-en-ligne">Animer à distance</h2>
-        <p>
-          Une version en ligne de l'atelier se prépare : un animateur, jusqu'à huit
-          participants, et un tableau noir partagé.
-          <a href="en-ligne/">Découvrir la Fresque en ligne</a>.
-        </p>
-      </section>
-
-    </div>
   </main>
 
   <footer class="site-pied">
     <div class="contenu">
-      <ul>
-        <li><a href="https://pauseia.fr/" rel="noopener">pauseia.fr</a></li>
-        <li><a href="https://github.com/romain-deleglise/fresque-des-risques-de-ia" rel="noopener">Code source (GitHub)</a></li>
-        <li><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></li>
-      </ul>
-      <p class="licence">Cartes et guide sous licence <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" rel="noopener">CC BY-SA 4.0</a>.</p>
+      <div class="pied-grille">
+        <div>
+          <span class="pied-marque"><span class="puce" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><line x1="7" y1="8" x2="17" y2="7" stroke="#fff" stroke-width="1.7"/><line x1="7" y1="8" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><line x1="17" y1="7" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><circle cx="7" cy="8" r="2.5" fill="#fff"/><circle cx="17" cy="7" r="2.5" fill="#fff"/><circle cx="13" cy="17" r="2.5" fill="#fff"/></svg></span> Fresque des risques de l'IA</span>
+          <p>Un atelier collaboratif pour comprendre ensemble les enjeux de l'intelligence artificielle. Porté par Pause IA.</p>
+        </div>
+        <div>
+          <h4>Le projet</h4>
+          <ul>
+            <li><a href="a-propos/">À propos</a></li>
+            <li><a href="en-ligne/">Fresque en ligne</a></li>
+            <li><a href="https://github.com/Romain-Deleglise/Fresque-des-risques-de-IA" rel="noopener">Code source (GitHub)</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Pause IA</h4>
+          <ul>
+            <li><a href="https://pauseia.fr/" rel="noopener">pauseia.fr</a></li>
+            <li><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></li>
+            <li><a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" rel="noopener">Licence CC BY-SA 4.0</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pied-bas">
+        <span>© Pause IA. Cartes et guide sous licence CC BY-SA 4.0.</span>
+        <span class="licence-badge">Adapté du CeSIA, inspiré de la Fresque du Climat.</span>
+      </div>
     </div>
   </footer>
 
-  <script src="assets/js/eventail.js" defer></script>
+  <script src="assets/js/cartes.js" defer></script>
 </body>
 </html>
