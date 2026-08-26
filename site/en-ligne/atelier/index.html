@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de la fresque (démo) · La Fresque des risques de l'IA</title>
+  <meta name="description" content="Prototype jouable en solo du tableau collaboratif de la Fresque des risques de l'IA.">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <a class="marque" href="../"><span class="puce" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><line x1="7" y1="8" x2="17" y2="7" stroke="#fff" stroke-width="1.8"/><line x1="7" y1="8" x2="13" y2="17" stroke="#fff" stroke-width="1.8"/><line x1="17" y1="7" x2="13" y2="17" stroke="#fff" stroke-width="1.8"/><circle cx="7" cy="8" r="2.6" fill="#fff"/><circle cx="17" cy="7" r="2.6" fill="#fff"/><circle cx="13" cy="17" r="2.6" fill="#fff"/></svg></span> Fresque des risques de l'IA</a>
+    <span class="demo">Démo solo</span>
+    <span class="spacer"></span>
+    <span class="pioche-info">Pioche : <strong id="pioche-n">38</strong></span>
+    <button class="btn orange" id="btn-piocher">Piocher une carte</button>
+    <button class="btn" id="btn-distribuer-tout" title="Poser rapidement plusieurs cartes">Semer 6 cartes</button>
+  </div>
+
+  <div class="carte0" id="carte0"><strong>Introduction —</strong> <span id="carte0-txt">…</span></div>
+
+  <div class="toolbar" role="toolbar" aria-label="Outils du tableau">
+    <button class="btn tool" data-outil="deplacer" aria-pressed="true">✋ Déplacer</button>
+    <button class="btn tool" data-outil="fleche" aria-pressed="false">→ Flèche</button>
+    <button class="btn tool" data-outil="fleche2" aria-pressed="false">↔ Flèche</button>
+    <button class="btn tool" data-outil="texte" aria-pressed="false">T Texte</button>
+    <span class="sep"></span>
+    <button class="btn" id="z-moins" aria-label="Dézoomer">−</button>
+    <span class="zoom-niv" id="z-niv">100 %</span>
+    <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
+    <button class="btn" id="z-tout">Tout voir</button>
+    <button class="btn tool" id="z-molette" aria-pressed="false" title="Zoom à la molette">Molette</button>
+    <span class="sep"></span>
+    <button class="btn" id="btn-plein">⛶ Plein écran</button>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="aide" id="aide"></div>
+    <div id="monde">
+      <div class="plan-bord"></div>
+      <svg id="fleches" viewBox="0 0 3200 2200"></svg>
+      <!-- cartes et textes injectés ici -->
+    </div>
+
+    <div class="pioche" id="main-zone"></div>
+
+    <details class="legende" id="legende" open>
+      <summary>Aide-mémoire</summary>
+      <div class="corps">
+        <div><b>Cartes :</b> Cliquez une carte de votre main pour la poser. Sur le tableau, glissez-la ; le bouton ⤢ l'ouvre en grand et permet de la retourner.</div>
+        <div><b>Flèches :</b> Choisissez l'outil Flèche, cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour écrire dessus ou le supprimer.</div>
+        <div><b>Textes :</b> Outil Texte puis un clic sur le tableau. Un texte se déplace en le glissant, et s'édite d'un clic. Une croix apparaît dessous pour le supprimer ; un texte laissé vide disparaît tout seul.</div>
+        <div><b>Zoom :</b> Activez « Molette » pour zoomer à la molette ; Ctrl + molette marche toujours, et en plein écran la molette zoome d'office. Dézoomez pour dégager de la place : cartes, flèches et textes suivent ensemble.</div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- Modal carte en grand -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
+  <div class="carte-grande" id="carte-grande">
+    <div class="barre">
+      <button class="btn" id="modal-flip">Retourner la carte</button>
+      <button class="btn" id="modal-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="faces">
+      <div class="face recto"><img class="vg" id="mg-img" alt=""><span class="num" id="mg-num"></span><div class="tit" id="mg-tit"></div></div>
+      <div class="face verso"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="board.js" defer></script>
+</body>
+</html>
