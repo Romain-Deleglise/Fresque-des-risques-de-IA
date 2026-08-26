@@ -26,8 +26,28 @@
     # (et wss:) quand la Fresque en ligne sera branchee (B3.6).
     Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
-# Cache long pour les assets versionnes (polices, images, css/js).
+# Cache avec revalidation. IMPORTANT : les fichiers gardent un nom stable
+# (site.css, cartes.js...) sans empreinte de version, donc on NE met PAS
+# "immutable" (sinon le navigateur garde une vieille version pendant un an).
+# ETag + must-revalidate : le navigateur revalide a chaque fois (304 si inchange).
 [[headers]]
-  for = "/assets/*"
+  for = "/assets/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Les polices et images changent rarement et peuvent etre mises en cache
+# (leur nom encode deja la variante), mais sans "immutable" par prudence.
+[[headers]]
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
