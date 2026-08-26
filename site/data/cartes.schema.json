@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cartes.json — Fresque des risques de l'IA",
+  "type": "object",
+  "required": ["version", "cartes"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "_commentaire": { "type": "string" },
+    "cartes": {
+      "type": "array",
+      "minItems": 39,
+      "maxItems": 39,
+      "items": {
+        "type": "object",
+        "required": ["n", "intro", "lot", "titre", "verso", "image"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 0, "maximum": 38 },
+          "intro": { "type": "boolean" },
+          "lot": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+          "titre": { "type": "string", "minLength": 1 },
+          "verso": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "image": {
+            "type": ["object", "null"],
+            "required": ["vignette", "grand"],
+            "properties": {
+              "vignette": { "type": "string" },
+              "grand": { "type": "string" }
+            }
+          },
+          "cadrage": {
+            "type": "object",
+            "properties": {
+              "mode": { "enum": ["sous-bandeau", "zone-libre", "naturel"] },
+              "ajustement": { "enum": ["contain", "cover"] },
+              "echelle": { "type": "number" },
+              "decalage": {
+                "type": "object",
+                "properties": { "x": { "type": "string" }, "y": { "type": "string" } }
+              },
+              "margeBas": { "type": "string" },
+              "fond": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

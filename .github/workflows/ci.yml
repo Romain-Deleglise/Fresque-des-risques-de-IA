@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  valider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Valider cartes.json (39 entrees, 0..38, une carte intro)
+        run: node scripts/valider-cartes.mjs
+      - name: Verifier l'absence de requete vers un domaine tiers dans le HTML
+        run: |
+          if grep -RniE 'https?://(fonts\.googleapis|fonts\.gstatic|cdn\.|ajax\.googleapis)' site/ ; then
+            echo "❌ Requete vers un domaine tiers detectee (B3.4)."; exit 1
+          fi
+          echo "✅ Aucune requete tierce evidente."

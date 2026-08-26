@@ -1,0 +1,7 @@
+{
+  "_commentaire": "Configuration du site lue au chargement (B3.6). L'adresse du service de sessions temps reel se change ici, sans recompiler le site. Laisser null tant que le service n'existe pas : la page /en-ligne/ affiche alors 'bientot'.",
+  "serviceSessions": {
+    "url": null,
+    "actif": false
+  }
+}

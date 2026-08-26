@@ -1,0 +1,26 @@
+# Configuration Netlify — Fresque des risques de l'IA
+# Site 100 % statique, aucune etape de build. Le contenu publie est le dossier site/.
+
+[build]
+  publish = "site"
+  command = ""
+
+# Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
+# Chaque PR recoit une URL de previsualisation isolee.
+
+# En-tetes de securite (B9.4 du cahier des charges).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    # CSP : interdit scripts et polices tiers, aucune requete externe.
+    # connect-src 'self' — a etendre a l'origine du service de sessions
+    # (et wss:) quand la Fresque en ligne sera branchee (B3.6).
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+# Cache long pour les assets versionnes (polices, images, css/js).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
