@@ -201,6 +201,34 @@ img { max-width: 100%; height: auto; display: block; }
 .pied-bas { border-top: 1px solid #38352f; margin-top: 2.5rem; padding-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; font-size: .85rem; color: #8f897f; }
 .licence-badge { display: inline-flex; align-items: center; gap: .4rem; }
 
+/* --- Pour qui -------------------------------------------------------------- */
+.publics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; }
+.public { background: var(--blanc); border: 1px solid var(--filet); border-radius: var(--rayon); padding: 1.6rem 1.4rem; box-shadow: var(--ombre); }
+.public .ic { width: 2.8rem; height: 2.8rem; border-radius: 10px; background: var(--orange-pale); color: var(--orange-texte); display: grid; place-items: center; margin-bottom: 1rem; }
+.public .ic svg { width: 1.5rem; height: 1.5rem; }
+.public h3 { font-size: 1.2rem; margin: 0 0 .35rem; }
+.public p { font-size: .93rem; color: var(--encre-douce); margin: 0; }
+
+/* --- Animer ---------------------------------------------------------------- */
+.animer { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+.animer ol { counter-reset: a; list-style: none; margin: 1.5rem 0 0; padding: 0; }
+.animer ol li { position: relative; padding-left: 3rem; margin-bottom: 1.3rem; }
+.animer ol li::before { counter-increment: a; content: counter(a); position: absolute; left: 0; top: -.1rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--orange); color: #fff; font-family: var(--f-titre); display: grid; place-items: center; }
+.animer ol li h3 { font-size: 1.15rem; margin: 0 0 .2rem; }
+.animer ol li p { font-size: .95rem; color: var(--encre-douce); margin: 0; }
+.animer-visuel { background: var(--orange-pale); border-radius: var(--rayon); padding: 2.5rem; text-align: center; }
+.animer-visuel .grand { font-family: var(--f-titre); font-size: 3.4rem; color: var(--orange-texte); line-height: 1; }
+.animer-visuel .manuscrit { font-family: var(--f-craie); font-size: 1.6rem; color: var(--orange-fonce); display: block; margin-top: .6rem; }
+
+/* --- FAQ ------------------------------------------------------------------- */
+.faq { max-width: 46rem; margin: 0 auto; }
+.faq details { border: 1px solid var(--filet); border-radius: var(--rayon-s); background: var(--blanc); margin-bottom: .8rem; box-shadow: 0 2px 8px rgba(28,27,24,.04); }
+.faq summary { cursor: pointer; padding: 1.1rem 1.3rem; font-family: var(--f-ui); font-weight: 700; font-size: 1.02rem; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--f-titre); font-size: 1.6rem; color: var(--orange); line-height: 1; transition: transform .2s ease; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 0; padding: 0 1.3rem 1.2rem; color: var(--encre-douce); }
+
 /* --- Contenu editorial (a-propos) ------------------------------------------ */
 .prose { max-width: 44rem; margin: 0 auto; }
 .prose h2 { margin-top: 2.4rem; font-size: 1.9rem; }
