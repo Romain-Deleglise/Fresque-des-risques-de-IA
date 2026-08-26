@@ -280,7 +280,7 @@
     });
     monde.appendChild(el);
     etat.textes.push(rec);
-    if (focus) editerTexte(rec);
+    if (focus) setTimeout(function () { editerTexte(rec); }, 0);
     return rec;
   }
   function editerTexte(rec) {
@@ -374,6 +374,7 @@
   scene.addEventListener("pointerdown", function (e) {
     if (e.target !== scene && e.target !== monde && !e.target.classList.contains("plan-bord") && e.target.id !== "fleches") return;
     if (etat.outil === "texte") {
+      e.preventDefault();
       var w = versMonde(e.clientX, e.clientY); creerTexte(w.x, w.y, true); return;
     }
     if (etat.outil === "fleche" || etat.outil === "fleche2") { annulerFlecheEnCours(); }
