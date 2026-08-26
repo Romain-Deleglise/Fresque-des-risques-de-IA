@@ -11,98 +11,85 @@
   <link rel="stylesheet" href="../assets/css/site.css">
 </head>
 <body>
-  <a class="skip-link" href="#contenu-principal">Aller au contenu</a>
+  <a class="skip" href="#contenu">Aller au contenu</a>
 
-  <header class="site-entete">
-    <div class="contenu">
-      <a class="marque" href="../"><span class="puce" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><line x1="7" y1="8" x2="17" y2="7" stroke="#fff" stroke-width="1.7"/><line x1="7" y1="8" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><line x1="17" y1="7" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><circle cx="7" cy="8" r="2.5" fill="#fff"/><circle cx="17" cy="7" r="2.5" fill="#fff"/><circle cx="13" cy="17" r="2.5" fill="#fff"/></svg></span> Fresque des risques de l'IA</a>
-      <nav class="nav-principale" aria-label="Navigation principale">
-        <ul>
-          <li><a href="../a-propos/">À propos</a></li>
-          <li><a href="./" aria-current="page">Fresque en ligne <span class="badge">bientôt</span></a></li>
-          <li><a class="nav-cta" href="../#telecharger">Télécharger</a></li>
-        </ul>
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg> Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a class="lien-ap" href="../a-propos/">À propos</a>
+        <a href="./" class="actif">Fresque en ligne<span class="bientot">bientôt</span></a>
+        <a href="../#telecharger">Télécharger</a>
       </nav>
     </div>
   </header>
 
-  <main id="contenu-principal">
-    <div class="page-titre">
-      <div class="contenu">
-        <p class="sur-titre">Fresque en ligne</p>
+  <main id="contenu">
+    <div class="page-tete">
+      <div class="wrap">
+        <p class="eyebrow">Fresque en ligne</p>
         <h1>Animer la fresque à distance</h1>
       </div>
     </div>
 
     <section class="section">
-      <div class="contenu prose">
-        <div class="avis-indispo" role="status">
-          <p style="margin-top:0"><strong>La Fresque en ligne n'est pas encore disponible.</strong></p>
-          <p style="margin-bottom:0">
-            L'outil qui permettra d'animer l'atelier à distance, avec un animateur,
-            jusqu'à huit participants et un tableau noir partagé, est en préparation.
-            En attendant, vous pouvez <a href="../#telecharger">télécharger les cartes</a>
-            pour animer la fresque en présentiel.
+      <div class="wrap">
+        <div class="prose">
+          <div class="avis" role="status">
+            <p><strong>La Fresque en ligne n'est pas encore disponible.</strong></p>
+            <p class="muted">
+              L'outil qui permettra d'animer l'atelier à distance, avec un animateur, jusqu'à huit
+              participants et un tableau noir partagé, est en préparation. En attendant, vous pouvez
+              <a href="../#telecharger">télécharger les cartes</a> pour animer la fresque en présentiel.
+            </p>
+          </div>
+
+          <h2 style="margin-top:2.4rem">Ce que permettra l'outil</h2>
+          <p>Une expérience pensée pour rester simple, sans compte ni installation :</p>
+          <ul>
+            <li>Ouvrir une session en un clic et partager un code court avec le groupe.</li>
+            <li>Distribuer les 38 cartes aux participants, une par une ou à chacun.</li>
+            <li>Construire ensemble la fresque sur un tableau partagé : poser les cartes, tracer des liens, écrire des textes.</li>
+            <li>Se parler via un salon vocal externe (Discord, Google Meet…), dont le lien s'affiche dans la session.</li>
+          </ul>
+
+          <h2 style="margin-top:2.4rem">En attendant</h2>
+          <p>
+            Le matériel imprimable est disponible dès maintenant :
+            <a href="../#telecharger">téléchargez les cartes</a> et réunissez un groupe en présentiel.
           </p>
         </div>
-
-        <h2>Ce que permettra l'outil</h2>
-        <ul>
-          <li>Ouvrir une session en un clic et partager un code court avec le groupe, sans compte ni installation.</li>
-          <li>Distribuer les 38 cartes aux participants, une par une ou à chacun.</li>
-          <li>Construire ensemble la fresque sur un tableau noir partagé : poser les cartes, tracer des flèches, écrire des textes.</li>
-          <li>Se parler via un salon vocal externe (Discord, Google Meet…), dont le lien s'affiche dans la session.</li>
-        </ul>
-
-        <h2>Essayer dès maintenant</h2>
-        <p>
-          Un aperçu du tableau collaboratif est déjà jouable en solo, directement dans le
-          navigateur : posez des cartes, tracez des flèches, écrivez des textes. Le mode
-          multi-participants viendra s'y greffer.
-        </p>
-        <p>
-          <a class="btn btn-principal" href="atelier/" style="display:inline-flex">
-            Essayer le tableau
-            <small>démo solo, sans inscription</small>
-          </a>
-        </p>
-
-        <h2>En attendant l'atelier à distance</h2>
-        <p>
-          Le matériel imprimable est disponible dès maintenant :
-          <a href="../#telecharger">téléchargez les cartes</a> et réunissez un groupe en présentiel.
-        </p>
       </div>
     </section>
   </main>
 
-  <footer class="site-pied">
-    <div class="contenu">
-      <div class="pied-grille">
-        <div>
-          <span class="pied-marque"><span class="puce" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><line x1="7" y1="8" x2="17" y2="7" stroke="#fff" stroke-width="1.7"/><line x1="7" y1="8" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><line x1="17" y1="7" x2="13" y2="17" stroke="#fff" stroke-width="1.7"/><circle cx="7" cy="8" r="2.5" fill="#fff"/><circle cx="17" cy="7" r="2.5" fill="#fff"/><circle cx="13" cy="17" r="2.5" fill="#fff"/></svg></span> Fresque des risques de l'IA</span>
-          <p>Un atelier collaboratif pour comprendre ensemble les enjeux de l'intelligence artificielle. Porté par Pause IA.</p>
-        </div>
-        <div>
-          <h4>Le projet</h4>
-          <ul>
-            <li><a href="../a-propos/">À propos</a></li>
-            <li><a href="./">Fresque en ligne</a></li>
-            <li><a href="https://github.com/Romain-Deleglise/Fresque-des-risques-de-IA" rel="noopener">Code source (GitHub)</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4>Pause IA</h4>
-          <ul>
-            <li><a href="https://pauseia.fr/" rel="noopener">pauseia.fr</a></li>
-            <li><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></li>
-            <li><a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" rel="noopener">Licence CC BY-SA 4.0</a></li>
-          </ul>
-        </div>
+  <footer class="pied">
+    <div class="wrap">
+      <div>
+        <a class="logo" href="../"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg> Fresque des risques de l'IA</a>
+        <p>Un atelier collaboratif pour comprendre ensemble les enjeux de l'intelligence artificielle. Porté par Pause IA.</p>
       </div>
-      <div class="pied-bas">
-        <span>© Pause IA. Cartes et guide sous licence CC BY-SA 4.0.</span>
-        <span class="licence-badge">Adapté du CeSIA, inspiré de la Fresque du Climat.</span>
+      <div>
+        <h4>Le projet</h4>
+        <ul>
+          <li><a href="../a-propos/">À propos</a></li>
+          <li><a href="./">Fresque en ligne</a></li>
+          <li><a href="https://github.com/Romain-Deleglise/Fresque-des-risques-de-IA" rel="noopener">Code source</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Pause IA</h4>
+        <ul>
+          <li><a href="https://pauseia.fr/" rel="noopener">pauseia.fr</a></li>
+          <li><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></li>
+          <li><a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" rel="noopener">Licence CC BY-SA 4.0</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · Cartes et guide sous licence CC BY-SA 4.0</span>
+        <span>Adapté du CeSIA, inspiré de la Fresque du Climat</span>
       </div>
     </div>
   </footer>

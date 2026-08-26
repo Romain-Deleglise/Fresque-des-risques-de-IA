@@ -10,7 +10,7 @@
 
   function afficher(texte, type) {
     msg.textContent = texte;
-    msg.className = "newsletter-msg " + (type || "");
+    msg.className = "msg " + (type || "");
   }
 
   form.addEventListener("submit", function (e) {
