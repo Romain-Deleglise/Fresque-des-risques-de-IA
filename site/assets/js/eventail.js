@@ -59,7 +59,7 @@
     verso.appendChild(h);
     (c.verso || []).forEach(function (p) {
       var el = document.createElement("p");
-      el.textContent = p;
+      el.textContent = /\[A COMPLETER\]/i.test(p) ? "Texte à venir." : p;
       verso.appendChild(el);
     });
 
