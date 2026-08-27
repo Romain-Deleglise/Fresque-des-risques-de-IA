@@ -82,7 +82,7 @@ exports.handler = async (event) => {
       if (r.erreur) return json(r.erreur.statut, { refus: r.erreur });
       if (r.out && r.out.refus) return json(200, { refus: r.out.refus });
       R.toucher(r.s, r.out.jeton);
-      return json(200, { jeton: r.out.jeton, role: r.out.role, etat: R.vue(r.s) });
+      return json(200, { jeton: r.out.jeton, role: r.out.role, moi: r.out.id || null, etat: R.vue(r.s) });
     }
 
     if (d.op === "etat") {

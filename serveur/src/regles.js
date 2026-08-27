@@ -61,7 +61,7 @@ function rejoindre(s, prenom, jeton) {
     var info = s.jetons[jeton];
     if (info.role === "animateur") { s.animateur.connecte = true; s.animateur.vuLe = Date.now(); return { role: "animateur", jeton: jeton }; }
     var p = s.participants.find(function (x) { return x.id === info.id; });
-    if (p) { p.connecte = true; p.vuLe = Date.now(); if (prenom) p.prenom = tronque(prenom, LEN_PRENOM); return { role: "participant", jeton: jeton }; }
+    if (p) { p.connecte = true; p.vuLe = Date.now(); if (prenom) p.prenom = tronque(prenom, LEN_PRENOM); return { role: "participant", jeton: jeton, id: p.id }; }
   }
   // nouvelle place
   if (participantsConnectes(s) >= MAX_PARTICIPANTS) {
@@ -73,7 +73,7 @@ function rejoindre(s, prenom, jeton) {
   var nj = jetonAleatoire();
   s.jetons[nj] = { role: "participant", id: id };
   bump(s);
-  return { role: "participant", jeton: nj };
+  return { role: "participant", jeton: nj, id: id };
 }
 
 function toucher(s, jeton) {

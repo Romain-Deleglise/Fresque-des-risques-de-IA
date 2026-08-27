@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Session · La Fresque des risques de l'IA</title>
+  <meta name="description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participants, un tableau partagé.">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="../atelier/board.css">
+  <link rel="stylesheet" href="session.css">
+</head>
+<body>
+
+<!-- LOBBY -->
+<div class="lobby" id="lobby">
+  <div class="lobby-carte">
+    <a class="marque" href="../">
+      <svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
+      La Fresque des risques de l'IA
+    </a>
+    <h1>Animer à distance</h1>
+    <p class="lobby-sous">Un animateur, jusqu'à huit participants, un tableau partagé. Aucun compte.</p>
+
+    <div class="lobby-cols">
+      <section>
+        <h2>Ouvrir une session</h2>
+        <label for="anim-prenom">Votre prénom</label>
+        <input id="anim-prenom" type="text" maxlength="24" placeholder="Prénom" autocomplete="given-name">
+        <button class="btn primaire large" id="btn-creer">Ouvrir la session</button>
+      </section>
+      <div class="lobby-sep" aria-hidden="true"><span>ou</span></div>
+      <section>
+        <h2>Rejoindre</h2>
+        <label for="join-code">Code de session</label>
+        <input id="join-code" type="text" maxlength="6" placeholder="Ex. H7KQ2M" autocomplete="off" style="text-transform:uppercase">
+        <label for="join-prenom">Votre prénom</label>
+        <input id="join-prenom" type="text" maxlength="24" placeholder="Prénom" autocomplete="given-name">
+        <button class="btn large" id="btn-rejoindre">Rejoindre</button>
+      </section>
+    </div>
+    <p class="lobby-msg" id="lobby-msg" role="status" aria-live="polite"></p>
+    <p class="lobby-retour"><a href="../">← Retour</a> · Le service est en préparation : premiers essais.</p>
+  </div>
+</div>
+
+<!-- APP (tableau) -->
+<div class="app" id="app" hidden>
+  <div class="topbar">
+    <a class="marque" href="../">
+      <svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
+      Fresque en ligne
+    </a>
+    <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">——</b> <span class="copier">copier</span></span>
+    <button class="btn" id="btn-partager">Copier le lien</button>
+    <span class="spacer"></span>
+    <span class="compte" id="pioche-info">Pioche : <b id="pioche-n">—</b></span>
+    <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
+    <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
+  </div>
+
+  <div class="carte0" id="carte0"><b>Introduction —</b> <span id="carte0-txt">…</span></div>
+
+  <div class="toolbar" role="toolbar" aria-label="Outils">
+    <div class="groupe anim-only" id="commandes-anim" role="group" aria-label="Distribution">
+      <button class="btn primaire" id="btn-distribuer">Distribuer</button>
+      <button class="btn" id="btn-passer" title="Avancer le tour sans distribuer">Passer</button>
+      <button class="btn" id="btn-distribuer-tous">À chacun</button>
+    </div>
+    <span class="sep-min anim-only"></span>
+    <div class="groupe" role="group" aria-label="Outil">
+      <button class="btn tool" data-outil="deplacer" aria-pressed="true">Déplacer</button>
+      <button class="btn tool" data-outil="fleche" aria-pressed="false">Lien →</button>
+      <button class="btn tool" data-outil="fleche2" aria-pressed="false">Lien ↔</button>
+      <button class="btn tool" data-outil="texte" aria-pressed="false">Note</button>
+    </div>
+    <span class="sep"></span>
+    <div class="groupe" role="group" aria-label="Zoom">
+      <button class="btn" id="z-moins" aria-label="Dézoomer">−</button>
+      <span class="zoom-niv" id="z-niv">100 %</span>
+      <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
+      <button class="btn" id="z-tout">Tout voir</button>
+    </div>
+    <button class="btn" id="btn-plein">Plein écran</button>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="aide" id="aide"></div>
+    <div id="monde">
+      <div class="plan-bord"></div>
+      <svg id="fleches" viewBox="0 0 3200 2200"></svg>
+    </div>
+    <div class="pioche" id="main-zone"></div>
+
+    <!-- Panneau participants -->
+    <aside class="panneau" id="panneau" hidden>
+      <div class="panneau-tete"><h3>Participants</h3><button class="btn" id="fermer-panneau" aria-label="Fermer">✕</button></div>
+      <div class="vocal anim-only">
+        <label for="vocal-url">Lien du salon vocal (Discord, Meet…)</label>
+        <div class="vocal-ligne"><input id="vocal-url" type="url" placeholder="https://…"><button class="btn" id="btn-vocal">OK</button></div>
+      </div>
+      <a class="vocal-lien" id="vocal-lien" href="#" target="_blank" rel="noopener" hidden>🎧 Rejoindre le salon vocal</a>
+      <ul class="liste-part" id="liste-part"></ul>
+    </aside>
+
+    <details class="legende" id="legende" open>
+      <summary>Comment ça marche</summary>
+      <div class="corps">
+        <div><b>Cartes :</b> l'animateur distribue ; posez votre carte, puis glissez-la. Le bouton ⤢ l'ouvre en grand.</div>
+        <div><b>Liens :</b> outil Lien, cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour l'annoter ou le supprimer.</div>
+        <div><b>Notes :</b> outil Note puis un clic sur le tableau ; glissez pour déplacer, videz pour supprimer.</div>
+        <div><b>Vue :</b> zoom et déplacement sont propres à chacun. « Tout voir » recadre l'ensemble.</div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- Modal carte -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
+  <div class="carte-grande" id="carte-grande">
+    <div class="barre">
+      <button class="btn" id="modal-flip">Retourner</button>
+      <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
+    </div>
+    <div class="faces">
+      <div class="face recto"><img class="vg" id="mg-img" alt=""><span class="num" id="mg-num"></span><div class="tit" id="mg-tit"></div></div>
+      <div class="face verso"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-avis"><div><h1>Sur ordinateur</h1><p>La Fresque en ligne se joue sur un écran d'ordinateur. <a href="../">Retour</a>.</p></div></div>
+
+<script src="session.js" defer></script>
+</body>
+</html>
