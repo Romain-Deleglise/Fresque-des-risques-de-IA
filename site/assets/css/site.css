@@ -72,11 +72,17 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .logo { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--f-titre); font-weight: 700; font-size: 1.15rem; color: var(--ink); }
 .logo:hover { color: var(--ink); text-decoration: none; }
 .logo .mk { width: 1.7rem; height: 1.7rem; }
-.nav { display: flex; align-items: center; gap: 1.9rem; }
-.nav a { font-family: var(--f-ui); font-weight: 500; font-size: .93rem; color: var(--ink); }
+.nav { display: flex; align-items: center; gap: 1.7rem; }
+.nav a { position: relative; font-family: var(--f-ui); font-weight: 500; font-size: .93rem; color: var(--ink); padding: .25rem 0; white-space: nowrap; }
 .nav a:hover { color: var(--accent-txt); text-decoration: none; }
 .nav .actif { color: var(--accent-txt); }
-.nav .bientot { font-family: var(--f-ui); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .45em; margin-left: .35em; }
+/* Soulignement animé (survol) et repère de page active, en plus de la couleur */
+.nav a:not(.btn-nav)::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent-txt); transform: scaleX(0); transform-origin: left; transition: transform .18s ease; }
+.nav a:not(.btn-nav):hover::after, .nav a.actif:not(.btn-nav)::after { transform: scaleX(1); }
+.nav .bientot { font-family: var(--f-ui); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .45em; margin-left: .35em; vertical-align: middle; }
+/* Appel à l'action de la barre : télécharger, en évidence */
+.nav .btn-nav { background: var(--accent-txt); color: #fff; font-weight: 600; padding: .5rem .95rem; border-radius: 8px; transition: background .15s; }
+.nav .btn-nav:hover { background: var(--accent-txt-fort); color: #fff; }
 
 /* --- Hero ----------------------------------------------------------------- */
 .hero { padding: clamp(3rem, 7vw, 6rem) 0 clamp(3rem, 6vw, 5rem); }
@@ -210,8 +216,14 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
   .pied .wrap { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {
-  .nav { gap: 1.1rem; }
-  .nav .lien-ap { display: none; }
+  .entete .wrap { padding: 0 1.1rem; }
+  .nav { gap: .8rem; }
+  .nav a { font-size: .86rem; }
+  .nav .btn-nav { padding: .45rem .7rem; }
+  .nav .bientot { display: none; } /* place limitée : badge décoratif masqué */
+  /* On garde le logo (mot-clé masqué), on conserve tous les liens */
+  .logo { font-size: 0; gap: 0; }
+  .logo .mk { width: 1.9rem; height: 1.9rem; }
   .hero .actions .btn, .appel .actions .btn { width: 100%; justify-content: center; }
   .galerie { grid-template-columns: repeat(2, 1fr); }
   .temps li { grid-template-columns: 1.6rem 1fr; }
