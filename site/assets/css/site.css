@@ -104,7 +104,7 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .pile .front .no { position: absolute; top: .6rem; left: .6rem; font-family: var(--f-titre); font-size: .82rem; color: #fff; background: rgba(0,0,0,.42); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; width: 1.55rem; height: 1.55rem; display: grid; place-items: center; }
 .pile .back { background: #fff; border: 1px solid var(--ligne); opacity: 0; padding: 1.2rem 1.1rem; text-align: left; display: flex; flex-direction: column; }
 .pile .back h3 { font-size: 1rem; color: var(--accent-txt); margin-bottom: .5rem; }
-.pile .back p { font-size: .78rem; line-height: 1.42; color: #35322c; margin: 0; overflow: auto; }
+.pile .back p { font-size: .78rem; line-height: 1.42; color: #35322c; margin: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 9; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
 .pile .carte[aria-pressed="true"] .back { opacity: 1; }
 
@@ -141,6 +141,12 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: #fff; background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
+
+/* --- Photo d'atelier ------------------------------------------------------ */
+.section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }
+.photo-atelier { margin: 0; }
+.photo-atelier img { width: 100%; max-height: 30rem; object-fit: cover; border-radius: 14px; box-shadow: 0 10px 30px rgba(27,26,23,.14); }
+.photo-atelier figcaption { margin-top: .8rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
 /* --- Bloc téléchargement / appel ------------------------------------------ */
 .appel { text-align: center; }

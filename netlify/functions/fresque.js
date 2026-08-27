@@ -11,6 +11,7 @@
 */
 const { getStore } = require("@netlify/blobs");
 const R = require("../../serveur/src/regles.js");
+const L = require("../../serveur/src/limites.js");
 
 const TTL_MS = 12 * 60 * 60 * 1000;     // 12 h d'existence (A9.4)
 const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
@@ -19,12 +20,6 @@ const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
 // comptées dans un magasin Blobs séparé. Les valeurs sont volontairement
 // généreuses : elles n'entravent pas un usage normal (un atelier = une création,
 // huit personnes qui rejoignent), mais coupent les abus automatisés.
-const LIM_CREATION = 10;        // sessions créées par IP et par heure
-const LIM_CREATION_MS = 60 * 60 * 1000;
-const LIM_ENTREE = 60;          // tentatives pour rejoindre, par IP et par minute
-const LIM_ENTREE_MS = 60 * 1000;
-const LIM_CODES_INCONNUS = 20;  // codes inconnus tolérés par IP et par minute
-const LIM_CODES_MS = 60 * 1000;
 
 // Balayage des sessions expirées (B9) : au plus une fois par cette période,
 // déclenché de façon opportuniste lors d'une création.
@@ -46,40 +41,33 @@ function ipClient(event) {
   return String(brut).split(",")[0].trim() || "inconnue";
 }
 
-// Compteur à fenêtre fixe : renvoie true si la limite est déjà atteinte (sans incrémenter).
-// Le compteur n'est pas critique : en cas d'erreur du magasin, on laisse passer.
-async function atteinte(seau, cleCompteur, limite, fenetreMs) {
-  const lim = limites();
+// Ces enveloppes appliquent la logique PURE de serveur/src/limites.js au magasin
+// Blobs. Le compteur n'est pas critique : en cas d'erreur du magasin, on laisse passer.
+async function atteinte(seau, cleCompteur) {
+  const s = L.SEUILS[seau];
   try {
-    const now = Date.now();
-    const k = seau + ":" + cleCompteur;
-    const res = await lim.getWithMetadata(k, { type: "json" });
-    const c = res && res.data;
-    if (!c || (now - c.debut) > fenetreMs) return false;
-    return c.n >= limite;
+    const res = await limites().getWithMetadata(seau + ":" + cleCompteur, { type: "json" });
+    return L.atteinte(res && res.data, Date.now(), s.limite, s.fenetreMs);
   } catch (e) {
     return false;
   }
 }
 
 // Incrémente le compteur de la fenêtre courante.
-async function incrementer(seau, cleCompteur, fenetreMs) {
+async function incrementer(seau, cleCompteur) {
+  const s = L.SEUILS[seau];
   const lim = limites();
   try {
-    const now = Date.now();
     const k = seau + ":" + cleCompteur;
     const res = await lim.getWithMetadata(k, { type: "json" });
-    let c = res && res.data;
-    if (!c || (now - c.debut) > fenetreMs) c = { debut: now, n: 0 };
-    c.n += 1;
-    await lim.setJSON(k, c);
+    await lim.setJSON(k, L.incrementer(res && res.data, Date.now(), s.fenetreMs));
   } catch (e) {}
 }
 
 // Vérifie puis incrémente (limite classique par fenêtre fixe).
-async function depasse(seau, cleCompteur, limite, fenetreMs) {
-  if (await atteinte(seau, cleCompteur, limite, fenetreMs)) return true;
-  await incrementer(seau, cleCompteur, fenetreMs);
+async function depasse(seau, cleCompteur) {
+  if (await atteinte(seau, cleCompteur)) return true;
+  await incrementer(seau, cleCompteur);
   return false;
 }
 
@@ -145,7 +133,7 @@ exports.handler = async (event) => {
 
   try {
     if (d.op === "creer") {
-      if (await depasse("creation", ip, LIM_CREATION, LIM_CREATION_MS)) {
+      if (await depasse("creation", ip)) {
         return json(429, { refus: { code: "trop_de_creations", message: "Trop de sessions créées depuis cette connexion. Réessayez dans un moment." } });
       }
       await balayer(st);
@@ -165,18 +153,18 @@ exports.handler = async (event) => {
 
     if (d.op === "rejoindre") {
       const code = String(d.code || "").toUpperCase();
-      if (await depasse("entree", ip, LIM_ENTREE, LIM_ENTREE_MS)) {
+      if (await depasse("entree", ip)) {
         return json(429, { refus: { code: "trop_de_tentatives", message: "Trop de tentatives depuis cette connexion. Patientez une minute." } });
       }
       // Compteur dédié aux codes inconnus : freine la recherche de codes par force brute
       // sans pénaliser une reprise légitime. On le vérifie avant, mais on ne l'incrémente
       // que si le code se révèle réellement inconnu (plus bas).
-      if (await atteinte("codes", ip, LIM_CODES_INCONNUS, LIM_CODES_MS)) {
+      if (await atteinte("codes", ip)) {
         return json(429, { refus: { code: "trop_de_codes", message: "Trop de codes erronés. Vérifiez le code et patientez une minute." } });
       }
       const r = await muter(st, code, (s) => R.rejoindre(s, d.prenom, d.jeton));
       if (r.erreur) {
-        if (r.erreur.code === "session_inconnue") await incrementer("codes", ip, LIM_CODES_MS);
+        if (r.erreur.code === "session_inconnue") await incrementer("codes", ip);
         return json(r.erreur.statut, { refus: r.erreur });
       }
       if (r.out && r.out.refus) return json(200, { refus: r.out.refus });

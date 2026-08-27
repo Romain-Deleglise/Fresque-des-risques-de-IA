@@ -17,9 +17,29 @@ jobs:
         run: node scripts/valider-cartes.mjs
       - name: Tester les regles du service de sessions
         run: node serveur/tests/regles.test.mjs
+      - name: Tester les garde-fous (limitation de debit)
+        run: node --test serveur/tests/limites.test.mjs
       - name: Verifier l'absence de requete vers un domaine tiers dans le HTML
         run: |
           if grep -RniE 'https?://(fonts\.googleapis|fonts\.gstatic|cdn\.|ajax\.googleapis)' site/ ; then
             echo "❌ Requete vers un domaine tiers detectee (B3.4)."; exit 1
           fi
           echo "✅ Aucune requete tierce evidente."
+
+  accessibilite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Installer axe + Playwright
+        run: npm install --no-save @axe-core/playwright axe-core playwright
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Servir le site
+        run: |
+          python3 -m http.server 8099 --directory site &
+          for i in $(seq 1 20); do curl -sf http://localhost:8099/ >/dev/null && break; sleep 0.5; done
+      - name: Audit d'accessibilite (WCAG 2.1 A/AA)
+        run: BASE=http://localhost:8099 node scripts/audit-a11y.mjs
