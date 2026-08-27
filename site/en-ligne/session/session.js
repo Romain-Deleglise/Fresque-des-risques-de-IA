@@ -5,6 +5,96 @@
 (function () {
   "use strict";
 
+  /* ---------- Langue (via ?lang=en) ---------- */
+  var LANG = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "fr";
+  document.documentElement.lang = LANG;
+  var EN = LANG === "en";
+  var S = EN ? {
+    prenomManquant: "Please enter your first name.", creation: "Creating…", echec: "Failed.",
+    indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
+    connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
+    partagezCode: function (c) { return "Share the code " + c + " with the participants."; },
+    attenteCarte: "Waiting for a card…", sessionTerminee: "Session ended.",
+    sessionClose: "The session was closed by the facilitator.",
+    cliquezArrivee: "Click the target card.",
+    flecheDepart: "Click the source card, then the target card.",
+    flecheDouble: "Double link: source then target.", texteClic: "Click the board to write.",
+    animateur: "facilitator", carteN: function (n) { return "card " + n; },
+    recues: function (k) { return k + " received"; },
+    poser: "Place", libelle: "label…", texteAVenir: "Text coming soon.",
+    copie: "copied ✓", lienCopie: "Link copied ✓"
+  } : {
+    prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
+    indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
+    connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
+    partagezCode: function (c) { return "Partagez le code " + c + " avec les participants."; },
+    attenteCarte: "En attente d'une carte…", sessionTerminee: "Session terminée.",
+    sessionClose: "La session a été close par l'animateur.",
+    cliquezArrivee: "Cliquez la carte d'arrivée.",
+    flecheDepart: "Cliquez la carte de départ, puis la carte d'arrivée.",
+    flecheDouble: "Lien double : départ puis arrivée.", texteClic: "Cliquez le tableau pour écrire.",
+    animateur: "animateur", carteN: function (n) { return "carte " + n; },
+    recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
+    poser: "Poser", libelle: "libellé…", texteAVenir: "Texte à venir.",
+    copie: "copié ✓", lienCopie: "Lien copié ✓"
+  };
+
+  function traduireStatique() {
+    if (!EN) return;
+    document.title = "Session · The AI Risks Collage";
+    var txt = {
+      "#lobby h1": "Facilitate remotely",
+      ".lobby-sous": "One facilitator, up to eight participants, a shared board. No account.",
+      "#lobby section:nth-of-type(1) h2": "Open a session",
+      'label[for="anim-prenom"]': "Your first name",
+      "#btn-creer": "Open the session",
+      ".lobby-sep span": "or",
+      "#lobby section:nth-of-type(2) h2": "Join",
+      'label[for="join-code"]': "Session code",
+      'label[for="join-prenom"]': "Your first name",
+      "#btn-rejoindre": "Join",
+      "#btn-partager": "Copy the link",
+      "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
+      '.tool[data-outil="deplacer"]': "Move", '.tool[data-outil="fleche"]': "Link →",
+      '.tool[data-outil="fleche2"]': "Link ↔", '.tool[data-outil="texte"]': "Note",
+      "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
+      "#panneau .panneau-tete h3": "Participants",
+      'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
+      "#vocal-lien": "🎧 Join the voice room",
+      "#legende > summary": "How it works",
+      "#modal-flip": "Flip", "#modal-close": "Close ✕",
+      ".mobile-avis h1": "On a computer"
+    };
+    Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
+    var attr = [
+      ["#code-chip", "title", "Copy the code"], ["#etat-conn", "title", "Connection"],
+      ["#btn-passer", "title", "Advance the turn without dealing"],
+      ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
+      ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
+      ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"]
+    ];
+    attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
+    document.querySelectorAll(".marque").forEach(function (m) {
+      m.childNodes[m.childNodes.length - 1].nodeValue = " The AI Risks Collage";
+    });
+    var setFirst = function (sel, v) { var el = document.querySelector(sel); if (el && el.firstChild) el.firstChild.nodeValue = v; };
+    setFirst("#code-chip", "Code ");            // « Code <b> »
+    setFirst("#pioche-info", "Deck: ");         // « Pioche : <b> »
+    setFirst("#btn-participants", "Participants (");
+    var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
+    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction —";
+    var ret = document.querySelector(".lobby-retour");
+    if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
+    var mp = document.querySelector(".mobile-avis p");
+    if (mp) mp.innerHTML = 'The online collage runs on a computer screen. <a href="../">Back</a>.';
+    var corps = document.querySelector("#legende .corps");
+    if (corps) corps.innerHTML =
+      '<div><b>Cards:</b> the facilitator deals; place your card, then drag it. The ⤢ button opens it large.</div>'
+      + '<div><b>Links:</b> Link tool, click the source card then the target. Click the line to annotate or delete it.</div>'
+      + '<div><b>Notes:</b> Note tool then click the board; drag to move, empty to delete.</div>'
+      + '<div><b>View:</b> zoom and panning are personal to each of you. "Fit all" reframes everything.</div>';
+  }
+
   var API = "/.netlify/functions/fresque";
   var BASE = "../../";
   var PLAN_W = 3200, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
@@ -19,6 +109,7 @@
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso"].forEach(function (id) {
     E[id] = document.getElementById(id);
   });
+  traduireStatique();
 
   var etat = {
     code: null, jeton: null, role: null,
@@ -45,13 +136,13 @@
 
   E["btn-creer"].addEventListener("click", function () {
     var prenom = (E["anim-prenom"].value || "").trim();
-    if (!prenom) { lobbyMsg("Indiquez votre prénom.", "err"); return; }
-    E["btn-creer"].disabled = true; lobbyMsg("Création…");
+    if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
+    E["btn-creer"].disabled = true; lobbyMsg(S.creation);
     api("creer", { prenom: prenom }).then(function (res) {
       E["btn-creer"].disabled = false;
       if (res.d && res.d.code) { stockerJeton(res.d.code, res.d.jeton); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
-      else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || "Échec.", "err");
-    }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg("Service indisponible pour le moment.", "err"); });
+      else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
+    }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
   });
 
   E["btn-rejoindre"].addEventListener("click", rejoindre);
@@ -59,14 +150,14 @@
   function rejoindre() {
     var code = (E["join-code"].value || "").trim().toUpperCase();
     var prenom = (E["join-prenom"].value || "").trim();
-    if (code.length !== 6) { lobbyMsg("Le code fait 6 caractères.", "err"); return; }
-    if (!prenom) { lobbyMsg("Indiquez votre prénom.", "err"); return; }
-    E["btn-rejoindre"].disabled = true; lobbyMsg("Connexion…");
+    if (code.length !== 6) { lobbyMsg(S.code6, "err"); return; }
+    if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
+    E["btn-rejoindre"].disabled = true; lobbyMsg(S.connexion);
     api("rejoindre", { code: code, prenom: prenom, jeton: jetonStocke(code) }).then(function (res) {
       E["btn-rejoindre"].disabled = false;
       if (res.d && res.d.jeton) { stockerJeton(code, res.d.jeton); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-      else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || "Code inconnu.", "err");
-    }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg("Service indisponible.", "err"); });
+      else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || S.codeInconnu, "err");
+    }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
 
   // reprise auto si ?s=CODE et jeton stocké
@@ -89,7 +180,7 @@
     E["code-val"].textContent = code;
     chargerCartes().then(function () {
       centrer(); appliquerEtat(vue); setOutil("deplacer");
-      flash(role === "animateur" ? "Partagez le code " + code + " avec les participants." : "En attente d'une carte…");
+      flash(role === "animateur" ? S.partagezCode(code) : S.attenteCarte);
       boucle();
     });
   }
@@ -106,7 +197,7 @@
     api("etat", { code: etat.code, jeton: etat.jeton, version: etat.version }).then(function (res) {
       marquerConnexion(true);
       if (res.d && res.d.etat) appliquerEtat(res.d.etat);
-      else if (res.d && res.d.refus) { flash(res.d.refus.message || "Session terminée."); }
+      else if (res.d && res.d.refus) { flash(res.d.refus.message || S.sessionTerminee); }
     }).catch(function () { marquerConnexion(false); }).finally(function () {
       pollTimer = setTimeout(boucle, POLL_MS);
     });
@@ -124,7 +215,7 @@
     rendreMain(vue);
     rendreVocal(vue);
     rendreTableau(vue.tableau);
-    if (vue.clos) { flash("La session a été close par l'animateur."); }
+    if (vue.clos) { flash(S.sessionClose); }
   }
 
   /* ---------- Participants / vocal / main ---------- */
@@ -137,11 +228,11 @@
   function rendreParticipants(vue) {
     var ul = E["liste-part"]; ul.innerHTML = "";
     var liA = document.createElement("li");
-    liA.innerHTML = '<span class="pastille' + (vue.animateur.connecte ? '' : ' hs') + '"></span><span class="nom">' + esc(vue.animateur.prenom) + '</span><span class="anim">animateur</span>';
+    liA.innerHTML = '<span class="pastille' + (vue.animateur.connecte ? '' : ' hs') + '"></span><span class="nom">' + esc(vue.animateur.prenom) + '</span><span class="anim">'+S.animateur+'</span>';
     ul.appendChild(liA);
     vue.participants.forEach(function (p) {
       var li = document.createElement("li");
-      var info = p.carteEnMain != null ? ("carte " + p.carteEnMain) : (p.recues ? (p.recues + " reçue" + (p.recues > 1 ? "s" : "")) : "");
+      var info = p.carteEnMain != null ? S.carteN(p.carteEnMain) : (p.recues ? S.recues(p.recues) : "");
       li.innerHTML = '<span class="pastille' + (p.connecte ? '' : ' hs') + '"></span><span class="nom">' + esc(p.prenom) + '</span><span class="info">' + info + '</span>';
       ul.appendChild(li);
     });
@@ -158,7 +249,7 @@
     var d = document.createElement("div"); d.className = "main-carte";
     d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
       + '<div class="tit">' + esc(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">Poser</button><button class="btn" data-a="voir">⤢</button></div>';
+      + '<div class="actions"><button class="btn primaire" data-a="poser">'+S.poser+'</button><button class="btn" data-a="voir">⤢</button></div>';
     d.querySelector('[data-a="poser"]').addEventListener("click", function () {
       var r = rectVisible();
       agir({ op: "poser", n: p.carteEnMain, rect: r });
@@ -232,7 +323,7 @@
 
   /* ---------- Flèches ---------- */
   function clicFleche(n, el) {
-    if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash("Cliquez la carte d'arrivée."); }
+    if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
     else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: etat.outil === "fleche2" }); annulerFleche(); }
   }
@@ -278,7 +369,7 @@
     deselect(); etat.sel = { type: "fleche", id: id }; dessinerFleches();
     var f = etat.vue.tableau.fleches.find(function (x) { return x.id === id; }); if (!f) return;
     editLib = document.createElement("input"); editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle || "";
-    editLib.placeholder = "libellé…";
+    editLib.placeholder = S.libelle;
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
     var envoi = null;
     editLib.addEventListener("input", function () { clearTimeout(envoi); var v = editLib.value; envoi = setTimeout(function () { agir({ op: "libellerFleche", id: id, libelle: v }); }, 400); });
@@ -367,7 +458,7 @@
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
     E.scene.classList.toggle("outil-fleche", o === "fleche" || o === "fleche2"); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
-    flash({ fleche: "Cliquez la carte de départ, puis la carte d'arrivée.", fleche2: "Lien double : départ puis arrivée.", texte: "Cliquez le tableau pour écrire." }[o] || ""); }
+    flash({ fleche: S.flecheDepart, fleche2: S.flecheDouble, texte: S.texteClic }[o] || ""); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(b.dataset.outil); }); });
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
@@ -382,8 +473,8 @@
   E["code-chip"].addEventListener("click", function () { copier(etat.code, E["code-chip"].querySelector(".copier")); });
   E["btn-partager"].addEventListener("click", function () { copier(location.origin + location.pathname + "?s=" + etat.code, null, E["btn-partager"]); });
   function copier(txt, badge, btn) { try { navigator.clipboard.writeText(txt); } catch (e) {}
-    if (badge) { var t = badge.textContent; badge.textContent = "copié ✓"; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
-    if (btn) { var b = btn.textContent; btn.textContent = "Lien copié ✓"; setTimeout(function () { btn.textContent = b; }, 1500); } }
+    if (badge) { var t = badge.textContent; badge.textContent = S.copie; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
+    if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal(); if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; } deselect(); annulerFleche(); }
@@ -400,7 +491,7 @@
   /* ---------- Modal ---------- */
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
     E["mg-img"].src = BASE + (c.image ? c.image.grand : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
-    E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? "Texte à venir." : p; E["mg-verso"].appendChild(el); });
+    E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; E["mg-verso"].appendChild(el); });
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
   E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });

@@ -5,6 +5,77 @@
 (function () {
   "use strict";
 
+  /* ---------- Langue (via ?lang=en) ---------- */
+  var LANG = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "fr";
+  document.documentElement.lang = LANG;
+  var S = LANG === "en" ? {
+    flecheDepart: "Click the source card, then the target card.",
+    flecheDouble: "Double arrow: click source then target.",
+    texteClic: "Click the board to write.",
+    posezDabord: "Place the card you're holding first.",
+    cliquezArrivee: "Now click the target card.",
+    poser: "Place",
+    libelle: "label…",
+    suppFleche: "Delete the arrow",
+    suppTexte: "Delete the note",
+    agrandir: "Enlarge", agrandirCarte: "Enlarge the card",
+    texteAVenir: "Text coming soon.",
+    initFlash: "Draw a card, then connect the cards together.",
+    erreurCartes: "Unable to load the cards."
+  } : {
+    flecheDepart: "Cliquez la carte de départ, puis la carte d'arrivée.",
+    flecheDouble: "Flèche double : cliquez départ puis arrivée.",
+    texteClic: "Cliquez le tableau pour écrire.",
+    posezDabord: "Posez d'abord la carte que vous tenez.",
+    cliquezArrivee: "Cliquez maintenant la carte d'arrivée.",
+    poser: "Poser",
+    libelle: "libellé…",
+    suppFleche: "Supprimer la flèche",
+    suppTexte: "Supprimer le texte",
+    agrandir: "Agrandir", agrandirCarte: "Agrandir la carte",
+    texteAVenir: "Texte à venir.",
+    initFlash: "Piochez une carte, puis reliez les cartes entre elles.",
+    erreurCartes: "Impossible de charger les cartes."
+  };
+
+  // Traduction du texte statique de la page (seulement en anglais).
+  function traduireStatique() {
+    if (LANG !== "en") return;
+    document.title = "Workshop board (demo) · The AI Risks Collage";
+    var t = [
+      [".marque", null, null], // logo texte géré à part
+      ["#btn-piocher", "Draw a card"], ["#btn-distribuer-tout", "Add 6 cards"],
+      ['.tool[data-outil="deplacer"]', "Move"], ['.tool[data-outil="fleche"]', "Link →"],
+      ['.tool[data-outil="fleche2"]', "Link ↔"], ['.tool[data-outil="texte"]', "Note"],
+      ["#z-tout", "Fit all"], ["#z-molette", "Wheel"],
+      ["#btn-plein", "Fullscreen"], ["#legende > summary", "How it works"],
+      ["#modal-flip", "Flip"], ["#modal-close", "Close ✕"]
+    ];
+    t.forEach(function (r) { if (!r[1]) return; var el = document.querySelector(r[0]); if (el) el.textContent = r[1]; });
+    var set = function (sel, attr, val) { var el = document.querySelector(sel); if (el) el.setAttribute(attr, val); };
+    set("#z-moins", "aria-label", "Zoom out"); set("#z-plus", "aria-label", "Zoom in");
+    set("#z-molette", "title", "Zoom with the wheel"); set("#modal-close", "aria-label", "Close");
+    // logo : garder le pictogramme, changer le libellé
+    var marque = document.querySelector(".marque");
+    if (marque) { marque.childNodes[marque.childNodes.length - 1].nodeValue = " The AI Risks Collage"; }
+    // compteur « Pioche : »
+    var compte = document.querySelector(".compte");
+    if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
+    // carte 0
+    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction —";
+    // légende (corps)
+    var corps = document.querySelector("#legende .corps");
+    if (corps) corps.innerHTML =
+      '<div><b>Cards:</b> "Draw a card" then "Place"; drag it on the board. The ⤢ button opens it large and lets you flip it.</div>'
+      + '<div><b>Links:</b> pick the Link tool, click the source card then the target. Click the line to write on it or delete it.</div>'
+      + '<div><b>Notes:</b> Note tool then click the board. Drag a note to move it, click to edit; empty, it disappears.</div>'
+      + '<div><b>Zoom:</b> + / − buttons or "Wheel". "Fit all" reframes everything. Drag an empty area to pan.</div>';
+    // avis mobile
+    var mh = document.querySelector("#mobile-avis h1"); if (mh) mh.textContent = "The board is designed for a computer";
+    var mp = document.querySelector("#mobile-avis p");
+    if (mp) mp.innerHTML = 'This interactive workshop is meant for a computer screen. Open it on a computer, or <a href="../">download the cards</a> to run it in person.';
+  }
+
   var BASE = "../../";
   var PLAN_W = 3200, PLAN_H = 2200;
   var ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
@@ -75,15 +146,14 @@
     scene.classList.toggle("outil-fleche", o === "fleche" || o === "fleche2");
     scene.classList.toggle("outil-texte", o === "texte");
     annulerFlecheEnCours();
-    var msg = { deplacer: "", fleche: "Cliquez la carte de départ, puis la carte d'arrivée.",
-      fleche2: "Flèche double : cliquez départ puis arrivée.", texte: "Cliquez le tableau pour écrire." };
+    var msg = { deplacer: "", fleche: S.flecheDepart, fleche2: S.flecheDouble, texte: S.texteClic };
     aide.textContent = msg[o] || "";
   }
 
   /* ---------- Pioche / main (solo) ---------- */
   function piocher() {
     if (!etat.pioche.length) return;
-    if (etat.main != null) { flash("Posez d'abord la carte que vous tenez."); return; }
+    if (etat.main != null) { flash(S.posezDabord); return; }
     etat.main = etat.pioche.shift();
     majPiocheInfo(); rendreMain();
   }
@@ -110,7 +180,7 @@
     d.className = "main-carte";
     d.innerHTML = '<div class="vis"><img alt="" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
       + '<div class="tit">' + echap(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn orange" data-a="poser">Poser</button><button class="btn" data-a="voir">⤢</button></div>';
+      + '<div class="actions"><button class="btn orange" data-a="poser">' + S.poser + '</button><button class="btn" data-a="voir">⤢</button></div>';
     d.querySelector('[data-a="poser"]').addEventListener("click", function () {
       var r = rectScene();
       poser(etat.main, (r.width / 2 - etat.panX) / etat.zoom, (r.height / 2 - etat.panY) / etat.zoom);
@@ -129,7 +199,7 @@
     el.className = "c-carte pose-anim";
     el.style.left = pos.x + "px"; el.style.top = pos.y + "px";
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span>'
-      + '<button class="agr" title="Agrandir" aria-label="Agrandir la carte">⤢</button></div>'
+      + '<button class="agr" title="'+S.agrandir+'" aria-label="'+S.agrandirCarte+'">⤢</button></div>'
       + '<div class="tit">' + echap(c.titre) + '</div>';
     var rec = { n: n, x: pos.x, y: pos.y, el: el };
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
@@ -197,7 +267,7 @@
   function clicFleche(rec) {
     if (!etat.flecheDepart) {
       etat.flecheDepart = rec; rec.el.classList.add("depart");
-      aide.textContent = "Cliquez maintenant la carte d'arrivée.";
+      aide.textContent = S.cliquezArrivee;
     } else if (etat.flecheDepart === rec) {
       annulerFlecheEnCours();
     } else {
@@ -332,12 +402,12 @@
   function construireEditeurFleche(f) {
     editLib = document.createElement("input");
     editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle;
-    editLib.placeholder = "libellé…";
+    editLib.placeholder = S.libelle;
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
     editLib.addEventListener("input", function () { f.libelle = editLib.value; dessinerFleches(); });
     scene.appendChild(editLib);
     croixFleche = document.createElement("button");
-    croixFleche.className = "fleche-croix"; croixFleche.textContent = "✕"; croixFleche.title = "Supprimer la flèche";
+    croixFleche.className = "fleche-croix"; croixFleche.textContent = "✕"; croixFleche.title = S.suppFleche;
     croixFleche.addEventListener("click", function () {
       etat.fleches = etat.fleches.filter(function (x) { return x !== f; }); deselect(); dessinerFleches();
     });
@@ -346,7 +416,7 @@
   }
   function construireCroixTexte(rec) {
     croixTexte = document.createElement("button");
-    croixTexte.className = "texte-croix"; croixTexte.textContent = "✕"; croixTexte.title = "Supprimer le texte";
+    croixTexte.className = "texte-croix"; croixTexte.textContent = "✕"; croixTexte.title = S.suppTexte;
     croixTexte.addEventListener("click", function () { supprimerTexte(rec); });
     scene.appendChild(croixTexte);
     positionnerEditeurs();
@@ -407,7 +477,7 @@
     document.getElementById("mg-tit").textContent = c.titre;
     document.getElementById("mg-vtit").textContent = c.titre;
     var v = document.getElementById("mg-verso"); v.innerHTML = "";
-    (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? "Texte à venir." : p; v.appendChild(el); });
+    (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; v.appendChild(el); });
     grande.classList.remove("flip"); modal.classList.add("on");
   }
   document.getElementById("modal-flip").addEventListener("click", function () { grande.classList.toggle("flip"); });
@@ -457,6 +527,7 @@
   function echap(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
 
   /* ---------- Init ---------- */
+  traduireStatique();
   fetch("../../data/cartes.json").then(function (r) { return r.json(); }).then(function (data) {
     data.cartes.forEach(function (c) { etat.cartesData[c.n] = c; });
     var c0 = etat.cartesData[0];
@@ -472,6 +543,6 @@
     // quelques cartes de depart, posees au centre visible
     semer(4);
     setOutil("deplacer");
-    flash("Piochez une carte, puis reliez les cartes entre elles.");
-  }).catch(function () { aide.textContent = "Impossible de charger les cartes."; });
+    flash(S.initFlash);
+  }).catch(function () { aide.textContent = S.erreurCartes; });
 })();
