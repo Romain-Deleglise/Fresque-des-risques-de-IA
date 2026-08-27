@@ -1,5 +1,5 @@
 /* ==========================================================================
-   La Fresque des risques de l'IA — design éditorial, sobre.
+   La Fresque des risques de l'IA - design éditorial, sobre.
    Charte Pause IA (A16) appliquée avec retenue. Zéro requête tierce.
    ========================================================================== */
 
@@ -153,6 +153,13 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: #fff; background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
+
+/* --- Deux cartes d'information (participer) -------------------------------- */
+.duo-cartes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.2rem 0 0; }
+.carte-info { border: 1px solid var(--ligne); border-radius: 12px; padding: 1.3rem 1.4rem; background: var(--bg-doux); }
+.carte-info h3 { margin-bottom: .5rem; }
+.carte-info p { margin: 0; color: var(--gris); font-size: .98rem; }
+@media (max-width: 640px) { .duo-cartes { grid-template-columns: 1fr; } }
 
 /* --- Photo d'atelier ------------------------------------------------------ */
 .section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }

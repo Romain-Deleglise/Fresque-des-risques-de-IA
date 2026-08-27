@@ -1,4 +1,4 @@
-/* Tableau de la Fresque des risques de l'IA — prototype JOUABLE EN SOLO.
+/* Tableau de la Fresque des risques de l'IA - prototype JOUABLE EN SOLO.
    Client uniquement, aucun serveur : c'est la base sur laquelle brancher plus
    tard le service de sessions temps reel. Parametres repris du cahier des
    charges (B7) : plan 3200x2200, zoom 0,20-1,60. */
@@ -62,7 +62,7 @@
     var compte = document.querySelector(".compte");
     if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
     // carte 0
-    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction —";
+    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction:";
     // légende (corps)
     var corps = document.querySelector("#legende .corps");
     if (corps) corps.innerHTML =

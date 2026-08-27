@@ -1,4 +1,4 @@
-/* Fresque en ligne — client de session (multi-participants).
+/* Fresque en ligne - client de session (multi-participants).
    Le serveur (fonction Netlify) est l'autorité. Le client applique ses actions
    de façon optimiste puis envoie une intention ; il interroge l'état toutes les
    ~2,5 s (tolérance 5-10 s du cahier des charges). Vue (zoom/pan) locale. */
@@ -82,7 +82,7 @@
     setFirst("#pioche-info", "Deck: ");         // « Pioche : <b> »
     setFirst("#btn-participants", "Participants (");
     var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
-    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction —";
+    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction:";
     var ret = document.querySelector(".lobby-retour");
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mp = document.querySelector(".mobile-avis p");

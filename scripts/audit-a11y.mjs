@@ -12,6 +12,7 @@ const PAGES = [
   ["Accueil", "/"],
   ["À propos", "/a-propos/"],
   ["Devenir animateur", "/devenir-animateur/"],
+  ["Demander un atelier", "/demander-un-atelier/"],
   ["Fresque en ligne", "/en-ligne/"],
   ["Mentions légales", "/mentions-legales/"],
   ["Atelier solo", "/en-ligne/atelier/"],
@@ -21,6 +22,7 @@ const PAGES = [
   ["EN About", "/en/about/"],
   ["EN Facilitate", "/en/facilitate/"],
   ["EN Online", "/en/online/"],
+  ["EN Request", "/en/request-a-workshop/"],
   ["EN Legal", "/en/legal/"],
 ];
 
