@@ -10,8 +10,10 @@
   --gris: #6b665e;
   --gris-clair: #9a948a;
   --ligne: #ece9e2;
-  --accent: #E8811C;          /* orange Pause IA, ton légèrement posé */
+  --accent: #E8811C;          /* orange Pause IA, usages décoratifs (aplats, points) */
   --accent-fort: #C4610A;
+  --accent-txt: #B0560A;      /* orange assombri pour texte/boutons : contraste AA (>=4.5:1) */
+  --accent-txt-fort: #8a4200; /* survol des boutons, contraste renforcé */
   --accent-doux: #fbf1e4;
 
   --f-titre: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -37,11 +39,13 @@ h1 { font-size: clamp(2.6rem, 5.2vw, 4rem); letter-spacing: .002em; }
 h2 { font-size: clamp(1.7rem, 3vw, 2.35rem); }
 h3 { font-size: 1.2rem; }
 p { margin: 0 0 1.1rem; }
-a { color: var(--accent-fort); text-decoration: none; }
-a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+a { color: var(--accent-txt); text-decoration: none; }
+a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underline-offset: 3px; }
+/* Liens au fil du texte : soulignés pour rester repérables sans dépendre de la couleur (WCAG 1.4.1) */
+.prose a, .avis a, .lobby-retour a, .fine a, .nl .fine a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 
 .wrap { width: 100%; max-width: var(--lg); margin: 0 auto; padding: 0 1.75rem; }
-.eyebrow { font-family: var(--f-ui); font-weight: 700; font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-fort); margin: 0 0 1.1rem; }
+.eyebrow { font-family: var(--f-ui); font-weight: 700; font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-txt); margin: 0 0 1.1rem; }
 .lede { font-size: 1.2rem; color: #35322c; max-width: var(--texte); }
 .muted { color: var(--gris); }
 
@@ -52,14 +56,14 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 /* --- Boutons : discrets, un seul plein ------------------------------------ */
 .btn { font-family: var(--f-ui); font-weight: 600; font-size: .98rem; display: inline-flex; align-items: center; gap: .55rem; padding: .85rem 1.4rem; border-radius: 8px; border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s; text-decoration: none; }
 .btn:hover { text-decoration: none; }
-.btn-1 { background: var(--accent); color: #fff; }
-.btn-1:hover { background: var(--accent-fort); color: #fff; }
+.btn-1 { background: var(--accent-txt); color: #fff; }
+.btn-1:hover { background: var(--accent-txt-fort); color: #fff; }
 .btn-2 { background: transparent; color: var(--ink); border-color: var(--ligne); }
 .btn-2:hover { border-color: var(--ink); color: var(--ink); }
-.btn small { display: block; font-weight: 400; font-size: .74rem; color: rgba(255,255,255,.85); }
+.btn small { display: block; font-weight: 400; font-size: .74rem; color: #fff; }
 .btn-2 small { color: var(--gris); }
-.btn.disabled { background: var(--bg-doux); color: var(--gris-clair); border-color: var(--ligne); cursor: default; }
-.btn.disabled small { color: var(--gris-clair); }
+.btn.disabled { background: var(--bg-doux); color: var(--gris); border-color: var(--ligne); cursor: default; }
+.btn.disabled small { color: var(--gris); }
 .lien-fleche { font-family: var(--f-ui); font-weight: 600; font-size: .95rem; }
 
 /* --- En-tête -------------------------------------------------------------- */
@@ -70,9 +74,9 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .logo .mk { width: 1.7rem; height: 1.7rem; }
 .nav { display: flex; align-items: center; gap: 1.9rem; }
 .nav a { font-family: var(--f-ui); font-weight: 500; font-size: .93rem; color: var(--ink); }
-.nav a:hover { color: var(--accent-fort); text-decoration: none; }
-.nav .actif { color: var(--accent-fort); }
-.nav .bientot { font-family: var(--f-ui); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris-clair); border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .45em; margin-left: .35em; }
+.nav a:hover { color: var(--accent-txt); text-decoration: none; }
+.nav .actif { color: var(--accent-txt); }
+.nav .bientot { font-family: var(--f-ui); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .45em; margin-left: .35em; }
 
 /* --- Hero ----------------------------------------------------------------- */
 .hero { padding: clamp(3rem, 7vw, 6rem) 0 clamp(3rem, 6vw, 5rem); }
@@ -99,7 +103,7 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .pile .front .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.4rem .8rem .75rem; background: linear-gradient(0deg, rgba(8,7,5,.95), rgba(8,7,5,.55) 55%, transparent); color: #fff; font-family: var(--f-titre); font-size: .98rem; line-height: 1.08; text-align: left; }
 .pile .front .no { position: absolute; top: .6rem; left: .6rem; font-family: var(--f-titre); font-size: .82rem; color: #fff; background: rgba(0,0,0,.42); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; width: 1.55rem; height: 1.55rem; display: grid; place-items: center; }
 .pile .back { background: #fff; border: 1px solid var(--ligne); opacity: 0; padding: 1.2rem 1.1rem; text-align: left; display: flex; flex-direction: column; }
-.pile .back h3 { font-size: 1rem; color: var(--accent-fort); margin-bottom: .5rem; }
+.pile .back h3 { font-size: 1rem; color: var(--accent-txt); margin-bottom: .5rem; }
 .pile .back p { font-size: .78rem; line-height: 1.42; color: #35322c; margin: 0; overflow: auto; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
 .pile .carte[aria-pressed="true"] .back { opacity: 1; }
@@ -134,7 +138,7 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .gc { position: relative; aspect-ratio: 1 / 1.41; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: #fff; background: var(--accent); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
+.gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: #fff; background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
@@ -158,25 +162,25 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .nl form { display: flex; gap: .6rem; margin-top: 1.4rem; }
 .nl input { flex: 1; font-family: var(--f-ui); font-size: 1rem; padding: .8rem .95rem; border: 1px solid var(--ligne); border-radius: 8px; background: #fff; color: var(--ink); }
 .nl input:focus { outline: none; border-color: var(--accent); }
-.nl button { font-family: var(--f-ui); font-weight: 600; border: 0; border-radius: 8px; background: var(--accent); color: #fff; padding: .8rem 1.3rem; cursor: pointer; }
-.nl button:hover { background: var(--accent-fort); }
+.nl button { font-family: var(--f-ui); font-weight: 600; border: 0; border-radius: 8px; background: var(--accent-txt); color: #fff; padding: .8rem 1.3rem; cursor: pointer; }
+.nl button:hover { background: var(--accent-txt-fort); }
 .nl button:disabled { opacity: .6; cursor: wait; }
 .nl .msg { min-height: 1.3rem; margin: .8rem 0 0; font-family: var(--f-ui); font-size: .9rem; }
 .nl .msg.ok { color: #2f7d4f; }
 .nl .msg.err { color: #c1444e; }
-.nl .fine { font-family: var(--f-ui); font-size: .78rem; color: var(--gris-clair); margin-top: .9rem; }
+.nl .fine { font-family: var(--f-ui); font-size: .78rem; color: var(--gris); margin-top: .9rem; }
 
 /* --- Pied de page : clair ------------------------------------------------- */
 .pied { border-top: 1px solid var(--ligne); }
 .pied .wrap { padding: 3rem 1.75rem; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2.5rem; }
 .pied .logo { margin-bottom: .8rem; }
 .pied p { color: var(--gris); font-size: .93rem; max-width: 22rem; }
-.pied h4 { font-family: var(--f-ui); font-weight: 700; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gris-clair); margin: 0 0 1rem; }
+.pied h4 { font-family: var(--f-ui); font-weight: 700; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gris); margin: 0 0 1rem; }
 .pied ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
 .pied ul a { font-family: var(--f-ui); font-size: .93rem; color: var(--ink); }
-.pied ul a:hover { color: var(--accent-fort); text-decoration: none; }
+.pied ul a:hover { color: var(--accent-txt); text-decoration: none; }
 .pied-bas { border-top: 1px solid var(--ligne); }
-.pied-bas .wrap { padding: 1.3rem 1.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .6rem; font-family: var(--f-ui); font-size: .82rem; color: var(--gris-clair); }
+.pied-bas .wrap { padding: 1.3rem 1.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .6rem; font-family: var(--f-ui); font-size: .82rem; color: var(--gris); }
 
 /* --- Page titre (à propos / en ligne) ------------------------------------- */
 .page-tete { padding: clamp(3rem, 6vw, 4.5rem) 0 1rem; }

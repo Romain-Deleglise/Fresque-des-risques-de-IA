@@ -16,18 +16,19 @@
 .lobby-cols input{width:100%;font-family:var(--f-ui);font-size:1rem;padding:.7rem .8rem;border:1px solid var(--ligne);border-radius:8px;background:#fff;color:var(--ink)}
 .lobby-cols input:focus{outline:none;border-color:var(--accent)}
 .btn.large{width:100%;justify-content:center;margin-top:1rem;padding:.75rem}
-.lobby-sep{display:flex;flex-direction:column;align-items:center;color:var(--gris-clair);font-family:var(--f-ui);font-size:.8rem}
+.lobby-sep{display:flex;flex-direction:column;align-items:center;color:var(--gris);font-family:var(--f-ui);font-size:.8rem}
 .lobby-sep::before,.lobby-sep::after{content:"";flex:1;width:1px;background:var(--ligne)}
 .lobby-sep span{padding:.5rem 0}
 .lobby-msg{min-height:1.3rem;margin:1.2rem 0 0;font-family:var(--f-ui);font-size:.92rem}
 .lobby-msg.err{color:#c1444e}.lobby-msg.ok{color:#2f7d4f}
-.lobby-retour{font-family:var(--f-ui);font-size:.82rem;color:var(--gris-clair);margin:1.4rem 0 0}
+.lobby-retour{font-family:var(--f-ui);font-size:.82rem;color:var(--gris);margin:1.4rem 0 0}
+.lobby-retour a{text-decoration:underline;text-underline-offset:2px}
 @media(max-width:640px){.lobby-cols{grid-template-columns:1fr}.lobby-sep{flex-direction:row}.lobby-sep::before,.lobby-sep::after{height:1px;width:auto}}
 
 /* Bandeau : code + connexion */
 .code-chip{font-family:var(--f-ui);font-size:.85rem;color:var(--gris);cursor:pointer;border:1px solid var(--ligne);border-radius:999px;padding:.25rem .7rem}
 .code-chip b{color:var(--ink);letter-spacing:.08em}
-.code-chip .copier{color:var(--accent-fort);font-size:.75rem;margin-left:.3rem}
+.code-chip .copier{color:var(--accent-txt);font-size:.75rem;margin-left:.3rem}
 .etat-conn{font-size:1.2rem;color:#2f7d4f;line-height:1}
 .etat-conn.hs{color:#c1444e}
 .sep-min{width:1px;height:1.6rem;background:var(--ligne)}
@@ -50,7 +51,7 @@ body.role-animateur .anim-only.vocal{display:block}
 .liste-part .pastille.hs{background:var(--gris-clair)}
 .liste-part .nom{flex:1;color:var(--ink)}
 .liste-part .info{font-size:.78rem;color:var(--gris)}
-.liste-part .anim{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-fort)}
+.liste-part .anim{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-txt)}
 
 /* bouton copier feedback */
 .copie-ok{color:#2f7d4f !important}

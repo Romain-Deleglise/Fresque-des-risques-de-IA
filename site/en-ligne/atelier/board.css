@@ -2,7 +2,7 @@
    Palette alignée sur le site : blanc, encre, un accent orange. */
 :root{
   --bg:#ffffff; --canvas:#f4f2ec; --ink:#1b1a17; --gris:#6b665e; --gris-clair:#9a948a;
-  --ligne:#e6e2da; --accent:#E8811C; --accent-fort:#C4610A; --accent-doux:#fbf1e4;
+  --ligne:#e6e2da; --accent:#E8811C; --accent-fort:#C4610A; --accent-txt:#B0560A; --accent-txt-fort:#8a4200; --accent-doux:#fbf1e4;
   --f-titre:"Saira Condensed","Arial Narrow",sans-serif;
   --f-ui:"Montserrat",system-ui,sans-serif;
   --f-texte:"Roboto Slab",Georgia,serif;
@@ -12,7 +12,7 @@
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-texte);overflow:hidden}
 button{font-family:var(--f-ui);cursor:pointer}
-a{color:var(--accent-fort);text-decoration:none}
+a{color:var(--accent-txt);text-decoration:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .app{display:flex;flex-direction:column;height:100vh}
@@ -27,13 +27,13 @@ a{color:var(--accent-fort);text-decoration:none}
 
 .btn{background:#fff;color:var(--ink);border:1px solid var(--ligne);border-radius:8px;padding:.5rem .8rem;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem}
 .btn:hover{border-color:var(--ink)}
-.btn.primaire{background:var(--accent);color:#fff;border-color:transparent}
-.btn.primaire:hover{background:var(--accent-fort)}
+.btn.primaire{background:var(--accent-txt);color:#fff;border-color:transparent}
+.btn.primaire:hover{background:var(--accent-txt-fort)}
 .btn:disabled{opacity:.5;cursor:not-allowed;border-color:var(--ligne)}
 
 /* Bandeau carte 0 */
 .carte0{flex:0 0 auto;background:var(--accent-doux);border-bottom:1px solid var(--ligne);padding:.55rem 1.1rem;font-size:.88rem;line-height:1.4;color:#3a352c;max-height:6rem;overflow:auto}
-.carte0 b{color:var(--accent-fort);font-family:var(--f-ui)}
+.carte0 b{color:var(--accent-txt);font-family:var(--f-ui)}
 
 /* Barre d'outils */
 .toolbar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne)}
@@ -96,7 +96,7 @@ a{color:var(--accent-fort);text-decoration:none}
 .legende summary::after{content:" ▾";color:var(--gris)}
 .legende[open] summary::after{content:" ▴"}
 .legende .corps{padding:0 .9rem .7rem;display:grid;grid-template-columns:1fr 1fr;gap:.35rem 1.4rem;line-height:1.4;color:#3a352c}
-.legende b{color:var(--accent-fort);font-family:var(--f-ui)}
+.legende b{color:var(--accent-txt);font-family:var(--f-ui)}
 @media(max-width:800px){.legende .corps{grid-template-columns:1fr}}
 
 .aide{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:16;font-family:var(--f-ui);font-size:.82rem;color:#fff;background:var(--ink);padding:.35rem .8rem;border-radius:999px;transition:opacity .2s;pointer-events:none}
@@ -115,7 +115,7 @@ a{color:var(--accent-fort);text-decoration:none}
 .modal .recto .num{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:1.3rem;z-index:2}
 .modal .recto .tit{margin-top:auto;position:relative;z-index:1;font-family:var(--f-titre);font-size:1.4rem;color:#fff;padding:1.2rem .9rem .8rem;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}
 .modal .verso{transform:rotateY(180deg);padding:1.6rem}
-.modal .verso h2{font-family:var(--f-titre);color:var(--accent-fort);margin:.2rem 0 .8rem}
+.modal .verso h2{font-family:var(--f-titre);color:var(--accent-txt);margin:.2rem 0 .8rem}
 .modal .verso p{font-size:.95rem;line-height:1.5;color:#35322c}
 .modal .barre{position:absolute;top:-3.2rem;right:0;display:flex;gap:.5rem}
 .modal .barre .btn{background:#fff}
