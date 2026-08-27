@@ -1,0 +1,13 @@
+{
+  "name": "fresque-des-risques-de-l-ia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site et outils de La Fresque des risques de l'IA.",
+  "license": "GPL-3.0",
+  "scripts": {
+    "test": "node serveur/tests/regles.test.mjs && node scripts/valider-cartes.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
