@@ -100,7 +100,7 @@ a{color:var(--accent-fort);text-decoration:none}
 @media(max-width:800px){.legende .corps{grid-template-columns:1fr}}
 
 .aide{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:16;font-family:var(--f-ui);font-size:.82rem;color:#fff;background:var(--ink);padding:.35rem .8rem;border-radius:999px;transition:opacity .2s;pointer-events:none}
-.aide:empty{opacity:0}
+.aide:empty{display:none}
 .aide:not(:empty){opacity:.92}
 
 /* Modal carte */
@@ -119,3 +119,12 @@ a{color:var(--accent-fort);text-decoration:none}
 .modal .verso p{font-size:.95rem;line-height:1.5;color:#35322c}
 .modal .barre{position:absolute;top:-3.2rem;right:0;display:flex;gap:.5rem}
 .modal .barre .btn{background:#fff}
+
+/* Message mobile (l'outil vise l'ordinateur, A17.2) */
+.mobile-avis{display:none}
+@media(max-width:760px){
+  .app{display:none}
+  .mobile-avis{display:grid;place-items:center;position:fixed;inset:0;background:var(--bg);padding:2rem;text-align:center;z-index:200}
+  .mobile-avis h1{font-family:var(--f-titre);font-size:1.8rem;margin:0 0 .6rem}
+  .mobile-avis p{font-family:var(--f-texte);color:var(--gris);max-width:22rem;margin:0 auto}
+}

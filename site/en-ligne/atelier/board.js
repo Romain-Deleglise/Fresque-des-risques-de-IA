@@ -333,7 +333,7 @@
     editLib = document.createElement("input");
     editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle;
     editLib.placeholder = "libellé…";
-    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-craie);font-size:1rem;border:1px solid #000;border-radius:6px;padding:.2rem .4rem;background:#1B2420;color:#EDE8DC;width:9rem";
+    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
     editLib.addEventListener("input", function () { f.libelle = editLib.value; dessinerFleches(); });
     scene.appendChild(editLib);
     croixFleche = document.createElement("button");
@@ -463,9 +463,15 @@
     if (c0) document.getElementById("carte0-txt").textContent = (c0.verso || []).join("  ");
     etat.pioche = data.cartes.filter(function (c) { return !c.intro; }).map(function (c) { return c.n; }).sort(function (a, b) { return a - b; });
     majPiocheInfo();
-    applyView();
-    // quelques cartes de depart pour la demo
-    semer(5);
+    // cadrer sur le centre du plan de travail
+    var r = rectScene();
+    etat.zoom = 1;
+    etat.panX = (r.width - PLAN_W) / 2;
+    etat.panY = (r.height - PLAN_H) / 2;
+    clampPan(); applyView();
+    // quelques cartes de depart, posees au centre visible
+    semer(4);
     setOutil("deplacer");
+    flash("Piochez une carte, puis reliez les cartes entre elles.");
   }).catch(function () { aide.textContent = "Impossible de charger les cartes."; });
 })();
