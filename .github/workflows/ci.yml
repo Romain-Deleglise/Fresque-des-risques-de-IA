@@ -15,6 +15,8 @@ jobs:
           node-version: "20"
       - name: Valider cartes.json (39 entrees, 0..38, une carte intro)
         run: node scripts/valider-cartes.mjs
+      - name: Tester les regles du service de sessions
+        run: node serveur/tests/regles.test.mjs
       - name: Verifier l'absence de requete vers un domaine tiers dans le HTML
         run: |
           if grep -RniE 'https?://(fonts\.googleapis|fonts\.gstatic|cdn\.|ajax\.googleapis)' site/ ; then
