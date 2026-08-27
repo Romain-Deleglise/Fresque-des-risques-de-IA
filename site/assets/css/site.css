@@ -92,12 +92,13 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .pile .slot:hover, .pile .slot:focus-within { z-index: 5; }
 .pile .carte { position: relative; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; transition: transform .18s ease; }
 .pile .slot:hover .carte, .pile .carte:focus-visible { transform: translateY(-8px); }
-.pile .face { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 18px 40px rgba(27,26,23,.18); transition: opacity .3s ease; }
+.pile .face { position: absolute; inset: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,26,23,.14), 0 16px 34px rgba(27,26,23,.16); transition: opacity .3s ease; }
 .pile .front { background: #14110d; opacity: 1; }
+.pile .front::after { content: ""; position: absolute; inset: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.10); pointer-events: none; }
 .pile .front img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.pile .front .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .8rem .7rem .7rem; background: linear-gradient(0deg, rgba(10,8,6,.9), rgba(10,8,6,0)); color: #fff; font-family: var(--f-titre); font-size: .95rem; line-height: 1.05; text-align: left; }
-.pile .front .no { position: absolute; top: .5rem; left: .55rem; font-family: var(--f-titre); font-size: .8rem; color: #fff; background: var(--accent); border-radius: 5px; width: 1.5rem; height: 1.5rem; display: grid; place-items: center; }
-.pile .back { background: var(--bg-doux); border: 1px solid var(--ligne); opacity: 0; padding: 1.1rem 1rem; text-align: left; display: flex; flex-direction: column; }
+.pile .front .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.4rem .8rem .75rem; background: linear-gradient(0deg, rgba(8,7,5,.95), rgba(8,7,5,.55) 55%, transparent); color: #fff; font-family: var(--f-titre); font-size: .98rem; line-height: 1.08; text-align: left; }
+.pile .front .no { position: absolute; top: .6rem; left: .6rem; font-family: var(--f-titre); font-size: .82rem; color: #fff; background: rgba(0,0,0,.42); border: 1px solid rgba(255,255,255,.25); border-radius: 6px; width: 1.55rem; height: 1.55rem; display: grid; place-items: center; }
+.pile .back { background: #fff; border: 1px solid var(--ligne); opacity: 0; padding: 1.2rem 1.1rem; text-align: left; display: flex; flex-direction: column; }
 .pile .back h3 { font-size: 1rem; color: var(--accent-fort); margin-bottom: .5rem; }
 .pile .back p { font-size: .78rem; line-height: 1.42; color: #35322c; margin: 0; overflow: auto; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
@@ -121,16 +122,15 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
 .flux h3 { margin-bottom: .25rem; }
 .flux p { margin: 0; color: var(--gris); font-size: .98rem; }
 
-/* --- Parcours en 5 temps : sobre, sans couleurs criardes ------------------ */
-.parcours { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-top: 1px solid var(--ink); }
-.parcours .etape { padding: 1.6rem 1.3rem 1.3rem 0; border-right: 1px solid var(--ligne); }
-.parcours .etape:last-child { border-right: 0; }
-.parcours .num { font-family: var(--f-titre); font-size: 1.05rem; color: var(--accent-fort); letter-spacing: .04em; }
-.parcours h3 { font-size: 1.12rem; margin: .5rem 0 .4rem; }
-.parcours p { margin: 0; font-size: .92rem; color: var(--gris); }
+/* --- Parcours : liste éditoriale, claire ---------------------------------- */
+.temps { list-style: none; margin: 1.5rem 0 0; padding: 0; border-top: 1px solid var(--ligne); }
+.temps li { display: grid; grid-template-columns: 2rem 13rem 1fr; gap: 1.4rem; align-items: baseline; padding: 1.15rem 0; border-bottom: 1px solid var(--ligne); }
+.temps .i { font-family: var(--f-titre); font-size: 1.25rem; color: var(--accent); line-height: 1; }
+.temps .t { font-family: var(--f-ui); font-weight: 600; font-size: 1.02rem; color: var(--ink); }
+.temps .d { color: var(--gris); font-size: .97rem; }
 
 /* --- Galerie de cartes : sobre -------------------------------------------- */
-.galerie { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.1rem; }
+.galerie { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
 .gc { position: relative; aspect-ratio: 1 / 1.41; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -194,8 +194,8 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
   .hero .wrap { grid-template-columns: 1fr; gap: 2.5rem; }
   .pile { order: -1; height: 20rem; }
   .duo { grid-template-columns: 1fr; gap: 2.2rem; }
-  .parcours { grid-template-columns: 1fr 1fr; border-top: 0; }
-  .parcours .etape { border-top: 1px solid var(--ligne); border-right: 0; padding: 1.3rem 0; }
+  .temps li { grid-template-columns: 2rem 1fr; }
+  .temps .d { grid-column: 2; }
   .galerie { grid-template-columns: repeat(3, 1fr); }
   .pied .wrap { grid-template-columns: 1fr 1fr; }
 }
@@ -204,7 +204,7 @@ a:hover { color: var(--accent); text-decoration: underline; text-underline-offse
   .nav .lien-ap { display: none; }
   .hero .actions .btn, .appel .actions .btn { width: 100%; justify-content: center; }
   .galerie { grid-template-columns: repeat(2, 1fr); }
-  .parcours { grid-template-columns: 1fr; }
+  .temps li { grid-template-columns: 1.6rem 1fr; }
   .nl form { flex-direction: column; }
   .pied .wrap { grid-template-columns: 1fr; }
 }

@@ -6,7 +6,7 @@
 
   var pile = document.getElementById("pile");
   var galerie = document.getElementById("galerie");
-  var GALERIE = [6, 14, 22, 28, 35]; // une rangée, images nettes et variées
+  var GALERIE = [6, 13, 17, 22, 31, 35]; // six images nettes et variees
 
   fetch("data/cartes.json")
     .then(function (r) { return r.json(); })
