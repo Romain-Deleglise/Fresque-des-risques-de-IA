@@ -11,10 +11,16 @@ const BASE = process.env.BASE || "http://localhost:8099";
 const PAGES = [
   ["Accueil", "/"],
   ["À propos", "/a-propos/"],
+  ["Devenir animateur", "/devenir-animateur/"],
   ["Fresque en ligne", "/en-ligne/"],
   ["Mentions légales", "/mentions-legales/"],
   ["Atelier solo", "/en-ligne/atelier/board.html"],
   ["Session (lobby)", "/en-ligne/session/"],
+  ["EN Home", "/en/"],
+  ["EN About", "/en/about/"],
+  ["EN Facilitate", "/en/facilitate/"],
+  ["EN Online", "/en/online/"],
+  ["EN Legal", "/en/legal/"],
 ];
 
 // En CI, Playwright installe son propre Chromium. En local, on peut pointer un

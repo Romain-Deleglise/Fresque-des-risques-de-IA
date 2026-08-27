@@ -72,7 +72,11 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .logo { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--f-titre); font-weight: 700; font-size: 1.15rem; color: var(--ink); }
 .logo:hover { color: var(--ink); text-decoration: none; }
 .logo .mk { width: 1.7rem; height: 1.7rem; }
-.nav { display: flex; align-items: center; gap: 1.7rem; }
+.nav { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; justify-content: flex-end; }
+/* Sélecteur de langue */
+.nav .lang { font-family: var(--f-ui); font-weight: 600; font-size: .8rem; letter-spacing: .04em; color: var(--gris); border: 1px solid var(--ligne); border-radius: 999px; padding: .2rem .55rem; }
+.nav .lang:hover { color: var(--accent-txt); border-color: var(--accent-txt); }
+.nav .lang::after { display: none; }
 .nav a { position: relative; font-family: var(--f-ui); font-weight: 500; font-size: .93rem; color: var(--ink); padding: .25rem 0; white-space: nowrap; }
 .nav a:hover { color: var(--accent-txt); text-decoration: none; }
 .nav .actif { color: var(--accent-txt); }

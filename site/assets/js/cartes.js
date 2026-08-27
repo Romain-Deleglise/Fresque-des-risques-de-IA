@@ -24,7 +24,7 @@
   if (!galerie) return;
   var GALERIE = [6, 13, 17, 22, 31, 35]; // six images nettes et variees
 
-  fetch("data/cartes.json")
+  fetch(window.CARTES_JSON || "data/cartes.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
       var parN = {};

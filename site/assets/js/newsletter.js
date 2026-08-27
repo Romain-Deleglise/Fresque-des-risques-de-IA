@@ -8,6 +8,21 @@
   var btn = document.getElementById("newsletter-btn");
   var msg = document.getElementById("newsletter-msg");
 
+  var en = (document.documentElement.lang || "fr").indexOf("en") === 0;
+  var T = en ? {
+    invalide: "Please enter a valid e-mail address.",
+    cours: "Signing you up…",
+    ok: "You're subscribed, thank you!",
+    echec: "Sign-up could not complete. Please try again later.",
+    indispo: "Service temporarily unavailable. Please try again later."
+  } : {
+    invalide: "Merci d'indiquer une adresse e-mail valide.",
+    cours: "Inscription en cours…",
+    ok: "Inscription confirmée, merci !",
+    echec: "L'inscription n'a pas pu aboutir. Réessayez plus tard.",
+    indispo: "Service momentanément indisponible. Réessayez plus tard."
+  };
+
   function afficher(texte, type) {
     msg.textContent = texte;
     msg.className = "msg " + (type || "");
@@ -17,12 +32,12 @@
     e.preventDefault();
     var email = (input.value || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      afficher("Merci d'indiquer une adresse e-mail valide.", "err");
+      afficher(T.invalide, "err");
       input.focus();
       return;
     }
     btn.disabled = true;
-    afficher("Inscription en cours…", "");
+    afficher(T.cours, "");
 
     fetch("/.netlify/functions/subscribe", {
       method: "POST",
@@ -32,14 +47,14 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (res.ok && res.d.success) {
-          afficher(res.d.message || "Inscription confirmée, merci !", "ok");
+          afficher(en ? T.ok : (res.d.message || T.ok), "ok");
           form.reset();
         } else {
-          afficher(res.d.error || "L'inscription n'a pas pu aboutir. Réessayez plus tard.", "err");
+          afficher(en ? T.echec : (res.d.error || T.echec), "err");
         }
       })
       .catch(function () {
-        afficher("Service momentanément indisponible. Réessayez plus tard.", "err");
+        afficher(T.indispo, "err");
       })
       .finally(function () { btn.disabled = false; });
   });
