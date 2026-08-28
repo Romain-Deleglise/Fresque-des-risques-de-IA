@@ -22,11 +22,11 @@ service) :
 - [x] Site vitrine : accueil, à propos, Fresque en ligne (placeholder)
 - [x] `cartes.json` (source unique des contenus) + schéma + validation CI
 - [x] Éventail de cartes d'exemple (cartes 1, 4, 12) avec retournement au clic/clavier
-- [ ] **Textes de verso des cartes** à renseigner (`[A COMPLETER]` dans `cartes.json`)
-- [ ] **Images des cartes** à déposer et convertir en variantes web (voir ci-dessous)
-- [ ] **PDF** (cartes + guide) à déposer dans `site/telechargements/`
-- [ ] **Polices** `.woff2` à déposer dans `site/assets/fonts/`
-- [ ] Cartes **37 et 38** manquantes dans les sources (à fournir par Pause IA)
+- [x] **Contenus des 38 cartes** (titres, versos, lots) repris du PDF officiel
+- [x] **Visuels des cartes** générés en variantes web (WebP 560/900) + carte 0 (logo Pause IA)
+- [x] **PDF des cartes** (version libre de droits, ~4,9 Mo) branché sur le bouton principal
+- [ ] **Guide animateur** (PDF) à déposer dans `site/telechargements/` (bouton « bientôt » en attendant)
+- [ ] **Polices** `.woff2` à déposer dans `site/assets/fonts/` (replis système en attendant)
 - [ ] Service de sessions temps réel (`serveur/`)
 
 ## Lancer le site en local
@@ -61,6 +61,32 @@ compilation. Le `verso` est un **tableau de paragraphes**.
 2. Générez les deux variantes web par carte (`560 px` et `900 px`, WebP) dans
    `site/assets/img/cartes/`, nommées `NN-560.webp` et `NN-900.webp` (B3.7).
    Tant qu'elles ne sont pas là, le site dégrade proprement (cadre + titre).
+
+## Newsletter (CiviCRM)
+
+L'inscription à la newsletter passe par une **fonction serverless Netlify**
+(`netlify/functions/subscribe.js`) qui parle à l'API CiviCRM v4, sur le modèle
+du site principal de Pause IA. Le formulaire de l'accueil poste vers
+`/.netlify/functions/subscribe` (même origine, aucune requête tierce).
+
+Configurez ces variables d'environnement dans Netlify (jamais dans le dépôt) :
+
+| Variable | Rôle |
+| --- | --- |
+| `CIVICRM_BASE_URL` | URL de base du CiviCRM (ex. `https://crm.pauseia.fr`) |
+| `CIVICRM_API_KEY` | clé d'API du contact de service |
+| `CIVICRM_SITE_KEY` | clé de site CiviCRM |
+| `CIVICRM_NEWSLETTER_GROUP_ID` | (optionnel) id du groupe, défaut **72** |
+
+Tant que ces variables ne sont pas définies, le formulaire répond proprement
+« service momentanément indisponible » sans casser la page.
+
+## Outil en ligne (prototype)
+
+Un prototype **jouable en solo** du tableau collaboratif est disponible sous
+`site/en-ligne/atelier/`. Il implémente le tableau (cartes, flèches liées,
+textes, zoom/pan, plein écran, carte 0, légende) côté client uniquement. Le
+**service de sessions temps réel** (multi-utilisateurs) reste à brancher dessus.
 
 ## Signaler un bug
 

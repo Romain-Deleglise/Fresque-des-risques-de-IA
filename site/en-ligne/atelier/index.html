@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de la fresque (démo) · La Fresque des risques de l'IA</title>
+  <meta name="description" content="Prototype du tableau collaboratif de La Fresque des risques de l'IA, jouable en solo.">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <a class="marque" href="../">
+      <svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
+      La Fresque des risques de l'IA
+    </a>
+    <span class="spacer"></span>
+    <span class="compte">Pioche : <b id="pioche-n">38</b></span>
+    <button class="btn primaire" id="btn-piocher">Piocher une carte</button>
+    <button class="btn" id="btn-distribuer-tout">Ajouter 6 cartes</button>
+  </div>
+
+  <div class="carte0" id="carte0"><b>Introduction :</b> <span id="carte0-txt">…</span></div>
+
+  <div class="toolbar" role="toolbar" aria-label="Outils">
+    <div class="groupe" role="group" aria-label="Outil actif">
+      <button class="btn tool" data-outil="deplacer" aria-pressed="true">Déplacer</button>
+      <button class="btn tool" data-outil="fleche" aria-pressed="false">Lien →</button>
+      <button class="btn tool" data-outil="fleche2" aria-pressed="false">Lien ↔</button>
+      <button class="btn tool" data-outil="texte" aria-pressed="false">Note</button>
+    </div>
+    <span class="sep"></span>
+    <div class="groupe" role="group" aria-label="Zoom">
+      <button class="btn" id="z-moins" aria-label="Dézoomer">−</button>
+      <span class="zoom-niv" id="z-niv">100 %</span>
+      <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
+      <button class="btn" id="z-tout">Tout voir</button>
+      <button class="btn tool" id="z-molette" aria-pressed="false" title="Zoomer à la molette">Molette</button>
+    </div>
+    <button class="btn" id="btn-plein">Plein écran</button>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="aide" id="aide"></div>
+    <div id="monde">
+      <div class="plan-bord"></div>
+      <svg id="fleches" viewBox="0 0 3200 2200"></svg>
+    </div>
+
+    <div class="pioche" id="main-zone"></div>
+
+    <details class="legende" id="legende" open>
+      <summary>Comment ça marche</summary>
+      <div class="corps">
+        <div><b>Cartes :</b> « Piocher une carte » puis « Poser » ; sur le tableau, glissez-la. Le bouton ⤢ l'ouvre en grand et permet de la retourner.</div>
+        <div><b>Liens :</b> choisissez l'outil Lien, cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour écrire dessus ou le supprimer.</div>
+        <div><b>Notes :</b> outil Note puis un clic sur le tableau. Une note se déplace en la glissant et s'édite d'un clic ; vide, elle disparaît.</div>
+        <div><b>Zoom :</b> boutons + / − ou « Molette ». « Tout voir » recadre l'ensemble. Glissez une zone vide pour vous déplacer.</div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
+  <div class="carte-grande" id="carte-grande">
+    <div class="barre">
+      <button class="btn" id="modal-flip">Retourner</button>
+      <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
+    </div>
+    <div class="faces">
+      <div class="face recto"><img class="vg" id="mg-img" alt=""><span class="num" id="mg-num"></span><div class="tit" id="mg-tit"></div></div>
+      <div class="face verso"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-avis" id="mobile-avis">
+  <div>
+    <svg class="mk" viewBox="0 0 32 32" aria-hidden="true" style="width:2.4rem;height:2.4rem;margin:0 auto 1rem"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
+    <h1>Le tableau se joue sur ordinateur</h1>
+    <p>Cet atelier interactif est prévu pour un écran d'ordinateur. Retrouvez-le depuis un ordinateur, ou <a href="../">téléchargez les cartes</a> pour animer en présentiel.</p>
+  </div>
+</div>
+
+<script src="board.js" defer></script>
+</body>
+</html>

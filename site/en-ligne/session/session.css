@@ -1,0 +1,60 @@
+/* Compléments propres à la page session (lobby + panneau participants).
+   Le reste du style vient de ../atelier/board.css. */
+
+/* Lobby */
+.lobby{position:fixed;inset:0;display:grid;place-items:center;background:
+  radial-gradient(900px 380px at 85% -8%, var(--accent-doux), transparent 60%),
+  linear-gradient(180deg,#fff,#faf8f4);padding:1.5rem;overflow:auto}
+.lobby-carte{width:100%;max-width:46rem;background:#fff;border:1px solid var(--ligne);border-radius:16px;box-shadow:var(--ombre);padding:2.4rem}
+.lobby .marque{font-family:var(--f-titre);font-weight:700;font-size:1.05rem;color:var(--ink);display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.4rem}
+.lobby .mk{width:1.6rem;height:1.6rem}
+.lobby h1{font-family:var(--f-titre);font-size:2.2rem;margin:0 0 .3rem}
+.lobby-sous{color:var(--gris);margin:0 0 1.8rem}
+.lobby-cols{display:grid;grid-template-columns:1fr auto 1fr;gap:1.6rem;align-items:stretch}
+.lobby-cols h2{font-family:var(--f-titre);font-size:1.25rem;margin:0 0 .8rem}
+.lobby-cols label{display:block;font-family:var(--f-ui);font-size:.8rem;color:var(--gris);margin:.6rem 0 .3rem}
+.lobby-cols input{width:100%;font-family:var(--f-ui);font-size:1rem;padding:.7rem .8rem;border:1px solid var(--ligne);border-radius:8px;background:#fff;color:var(--ink)}
+.lobby-cols input:focus{outline:none;border-color:var(--accent)}
+.btn.large{width:100%;justify-content:center;margin-top:1rem;padding:.75rem}
+.lobby-sep{display:flex;flex-direction:column;align-items:center;color:var(--gris);font-family:var(--f-ui);font-size:.8rem}
+.lobby-sep::before,.lobby-sep::after{content:"";flex:1;width:1px;background:var(--ligne)}
+.lobby-sep span{padding:.5rem 0}
+.lobby-msg{min-height:1.3rem;margin:1.2rem 0 0;font-family:var(--f-ui);font-size:.92rem}
+.lobby-msg.err{color:#c1444e}.lobby-msg.ok{color:#2f7d4f}
+.lobby-retour{font-family:var(--f-ui);font-size:.82rem;color:var(--gris);margin:1.4rem 0 0}
+.lobby-retour a{text-decoration:underline;text-underline-offset:2px}
+@media(max-width:640px){.lobby-cols{grid-template-columns:1fr}.lobby-sep{flex-direction:row}.lobby-sep::before,.lobby-sep::after{height:1px;width:auto}}
+
+/* Bandeau : code + connexion */
+.code-chip{font-family:var(--f-ui);font-size:.85rem;color:var(--gris);cursor:pointer;border:1px solid var(--ligne);border-radius:999px;padding:.25rem .7rem}
+.code-chip b{color:var(--ink);letter-spacing:.08em}
+.code-chip .copier{color:var(--accent-txt);font-size:.75rem;margin-left:.3rem}
+.etat-conn{font-size:1.2rem;color:#2f7d4f;line-height:1}
+.etat-conn.hs{color:#c1444e}
+.sep-min{width:1px;height:1.6rem;background:var(--ligne)}
+.anim-only{display:none}
+body.role-animateur .anim-only{display:flex}
+body.role-animateur .anim-only.vocal{display:block}
+
+/* Panneau participants */
+.panneau{position:absolute;top:.8rem;right:.8rem;width:19rem;max-height:calc(100% - 6rem);overflow:auto;background:#fff;border:1px solid var(--ligne);border-radius:12px;box-shadow:var(--ombre);z-index:25;padding:.9rem 1rem}
+.panneau-tete{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.panneau-tete h3{font-family:var(--f-titre);margin:0;font-size:1.1rem}
+.vocal{margin:.4rem 0 .8rem}
+.vocal label{font-family:var(--f-ui);font-size:.76rem;color:var(--gris);display:block;margin-bottom:.3rem}
+.vocal-ligne{display:flex;gap:.4rem}
+.vocal-ligne input{flex:1;font-family:var(--f-ui);font-size:.85rem;padding:.4rem .5rem;border:1px solid var(--ligne);border-radius:6px}
+.vocal-lien{display:block;font-family:var(--f-ui);font-weight:600;font-size:.9rem;margin:.2rem 0 .8rem}
+.liste-part{list-style:none;margin:0;padding:0}
+.liste-part li{display:flex;align-items:center;gap:.5rem;padding:.5rem 0;border-top:1px solid var(--ligne);font-family:var(--f-ui);font-size:.9rem}
+.liste-part .pastille{width:.6rem;height:.6rem;border-radius:50%;background:#2f7d4f;flex:0 0 auto}
+.liste-part .pastille.hs{background:var(--gris-clair)}
+.liste-part .nom{flex:1;color:var(--ink)}
+.liste-part .info{font-size:.78rem;color:var(--gris)}
+.liste-part .anim{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-txt)}
+
+/* bouton copier feedback */
+.copie-ok{color:#2f7d4f !important}
+
+/* Corriger la priorité de [hidden] sur .app{display:flex} */
+.app[hidden], .panneau[hidden], .lobby[hidden]{display:none !important}
