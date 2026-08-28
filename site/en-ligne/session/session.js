@@ -511,7 +511,7 @@
 
   /* ---------- Modal ---------- */
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
-    E["mg-img"].src = BASE + (c.image ? c.image.grand : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
+    E["mg-img"].src = BASE + (c.image ? (c.image.carte || c.image.grand) : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
     E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; E["mg-verso"].appendChild(el); });
     var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = (maCarte() !== n);
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }

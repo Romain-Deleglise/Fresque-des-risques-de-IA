@@ -209,6 +209,8 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .nl .msg { min-height: 1.3rem; margin: .8rem 0 0; font-family: var(--f-ui); font-size: .9rem; }
 .nl .msg.ok { color: #2f7d4f; }
 .nl .msg.err { color: #c1444e; }
+.nl .rs { font-family: var(--f-ui); font-size: .88rem; color: var(--gris); margin-top: 1.2rem; line-height: 1.9; }
+.nl .rs a { color: var(--accent-txt); font-weight: 600; }
 .nl .fine { font-family: var(--f-ui); font-size: .78rem; color: var(--gris); margin-top: .9rem; }
 
 /* --- Pied de page : clair ------------------------------------------------- */

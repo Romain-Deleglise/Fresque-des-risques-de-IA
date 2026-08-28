@@ -484,7 +484,7 @@
   var modal = document.getElementById("modal"), grande = document.getElementById("carte-grande");
   function ouvrirModal(n) {
     var c = etat.cartesData[n];
-    document.getElementById("mg-img").src = c.image ? BASE + c.image.grand : "";
+    document.getElementById("mg-img").src = c.image ? BASE + (c.image.carte || c.image.grand) : "";
     document.getElementById("mg-num").textContent = c.n;
     document.getElementById("mg-tit").textContent = c.titre;
     document.getElementById("mg-vtit").textContent = c.titre;
