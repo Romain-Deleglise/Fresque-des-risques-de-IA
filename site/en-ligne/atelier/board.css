@@ -107,8 +107,8 @@ a{color:var(--accent-txt);text-decoration:none}
 
 /* Modal carte */
 .modal{position:fixed;inset:0;background:rgba(27,26,23,.55);display:none;place-items:center;z-index:100;padding:1rem}
-.modal.on{display:grid}
-.modal .carte-grande{width:min(94vw,124vh,980px);aspect-ratio:1.414/1;perspective:1600px}
+.modal.on{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.modal .carte-grande{height:min(74vh,690px);aspect-ratio:1.414/1;width:auto;max-width:94vw;perspective:1600px}
 .modal .faces{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s}
 .modal .carte-grande.flip .faces{transform:rotateY(180deg)}
 .modal .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column;border:1px solid var(--ligne)}
@@ -120,7 +120,7 @@ a{color:var(--accent-txt);text-decoration:none}
 .modal .verso h2{font-family:var(--f-titre);color:var(--accent-txt);margin:.2rem 0 .8rem}
 .modal .verso p{font-size:1rem;line-height:1.55;color:#35322c}
 /* Barre d'actions sous la carte, toujours visible */
-.modal .barre{position:absolute;left:50%;bottom:-3.6rem;transform:translateX(-50%);display:flex;gap:.5rem;white-space:nowrap}
+.modal .barre{position:static;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
 .modal .barre .btn{background:#fff}
 .modal .barre .btn.primaire{background:var(--accent-txt);color:#fff;border-color:transparent}
 #modal-poser[hidden]{display:none}
