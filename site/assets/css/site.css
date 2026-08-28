@@ -72,7 +72,7 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .logo { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--f-titre); font-weight: 700; font-size: 1.15rem; color: var(--ink); }
 .logo:hover { color: var(--ink); text-decoration: none; }
 .logo .mk { width: 1.7rem; height: 1.7rem; }
-.nav { display: flex; align-items: center; gap: 1.5rem; }
+.nav { display: flex; align-items: center; gap: 1.35rem; }
 .entete .wrap { position: relative; }
 .nav-toggle { display: none; }
 /* Sélecteur de langue */
@@ -213,7 +213,8 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 
 /* --- Pied de page : clair ------------------------------------------------- */
 .pied { border-top: 1px solid var(--ligne); }
-.pied .wrap { padding: 3rem 1.75rem; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2.5rem; }
+.pied .wrap { padding: 3rem 1.75rem; display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr; gap: 2.2rem 2rem; }
+.pied-marque { max-width: 24rem; }
 .pied .logo { margin-bottom: .8rem; }
 .pied p { color: var(--gris); font-size: .93rem; max-width: 22rem; }
 .pied h4 { font-family: var(--f-ui); font-weight: 700; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gris); margin: 0 0 1rem; }
@@ -242,38 +243,49 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
   .temps li { grid-template-columns: 2rem 1fr; }
   .temps .d { grid-column: 2; }
   .galerie { grid-template-columns: repeat(3, 1fr); }
-  .pied .wrap { grid-template-columns: 1fr 1fr; }
+  .pied .wrap { grid-template-columns: 1fr 1fr 1fr; }
+  .pied-marque { grid-column: 1 / -1; max-width: none; }
 }
 /* --- Navigation mobile : bouton menu + panneau déroulant --------------- */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .entete.js-nav .nav-toggle {
-    display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
-    width: 2.5rem; height: 2.5rem; padding: 0; cursor: pointer;
-    border: 1px solid var(--ligne); border-radius: 8px; background: #fff;
+    display: inline-flex; flex-direction: column; justify-content: center; gap: 5px;
+    width: 2.6rem; height: 2.6rem; padding: 0; cursor: pointer;
+    border: 1px solid var(--ligne); border-radius: 10px; background: #fff;
+    transition: border-color .15s, background .15s;
   }
-  .entete.js-nav .nav-toggle span { display: block; width: 1.15rem; height: 2px; margin: 0 auto; background: var(--ink); border-radius: 2px; transition: transform .2s, opacity .2s; }
-  .entete.js-nav.open .nav-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .entete.js-nav .nav-toggle:hover { border-color: var(--accent-txt); }
+  .entete.js-nav .nav-toggle span { display: block; width: 1.2rem; height: 2px; margin: 0 auto; background: var(--ink); border-radius: 2px; transition: transform .2s, opacity .2s; }
+  .entete.js-nav.open .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .entete.js-nav.open .nav-toggle span:nth-child(2) { opacity: 0; }
-  .entete.js-nav.open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+  .entete.js-nav.open .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* Panneau : masqué mais animable (fondu + glissement) */
   .entete.js-nav .nav {
-    display: none; position: absolute; top: 100%; left: 0; right: 0;
-    flex-direction: column; align-items: stretch; gap: .1rem;
-    background: #fff; border-top: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne);
-    padding: .5rem 1.1rem 1rem; box-shadow: 0 14px 26px rgba(27,26,23,.10);
+    display: flex !important; position: absolute; top: calc(100% + 1px); left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 0;
+    background: #fff; border-top: 1px solid var(--ligne);
+    padding: .4rem .9rem 1rem; box-shadow: 0 18px 34px rgba(27,26,23,.12);
+    opacity: 0; visibility: hidden; transform: translateY(-10px);
+    transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    max-height: calc(100vh - 4.4rem); overflow-y: auto;
   }
-  .entete.js-nav.open .nav { display: flex; }
-  .entete.js-nav .nav a { padding: .7rem .2rem; font-size: 1rem; border-bottom: 1px solid var(--ligne); }
-  .entete.js-nav .nav a:last-child { border-bottom: 0; }
+  .entete.js-nav.open .nav { opacity: 1; visibility: visible; transform: none; }
+  .entete.js-nav .nav a { padding: .95rem .4rem; font-size: 1.02rem; border-bottom: 1px solid var(--ligne); border-radius: 0; }
+  .entete.js-nav .nav a:not(.btn-nav):hover { color: var(--accent-txt); background: var(--bg-doux); }
   .entete.js-nav .nav a:not(.btn-nav)::after { display: none; }
-  .entete.js-nav .nav .btn-nav { align-self: flex-start; margin-top: .6rem; border-bottom: 0; }
-  .entete.js-nav .nav .lang { align-self: flex-start; margin-top: .4rem; border-bottom: 0; }
+  .entete.js-nav .nav .actif { color: var(--accent-txt); box-shadow: inset 3px 0 0 var(--accent-txt); padding-left: .8rem; }
+  .entete.js-nav .nav .bientot { margin-left: .5em; }
+  /* Bloc d'actions en bas du panneau : CTA plein + langue */
+  .entete.js-nav .nav .btn-nav { order: 9; align-self: stretch; text-align: center; justify-content: center; margin-top: .9rem; border-bottom: 0; padding: .8rem; font-size: 1rem; }
+  .entete.js-nav .nav .lang { order: 10; align-self: center; margin-top: .8rem; border-bottom: 0; padding: .35rem .9rem; }
 }
 @media (max-width: 560px) {
   .hero .actions .btn, .appel .actions .btn { width: 100%; justify-content: center; }
   .galerie { grid-template-columns: repeat(2, 1fr); }
+  .pied .wrap { grid-template-columns: 1fr 1fr; }
   .temps li { grid-template-columns: 1.6rem 1fr; }
   .nl form { flex-direction: column; }
-  .pied .wrap { grid-template-columns: 1fr; }
 }
 
 /* --- Impression (génération du PDF du guide) ------------------------------ */
