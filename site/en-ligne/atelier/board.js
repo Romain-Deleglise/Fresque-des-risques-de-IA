@@ -5,6 +5,14 @@
 (function () {
   "use strict";
 
+  /* ---------- Theme clair / sombre ----------
+     Par defaut on suit la preference systeme (gere par la CSS). Si l'internaute
+     a choisi un theme sur le site (meme cle localStorage "theme"), on l'applique. */
+  try {
+    var pref = localStorage.getItem("theme");
+    if (pref === "dark" || pref === "light") document.documentElement.setAttribute("data-theme", pref);
+  } catch (e) {}
+
   /* ---------- Langue (via ?lang=en) ---------- */
   var LANG = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "fr";
   document.documentElement.lang = LANG;
