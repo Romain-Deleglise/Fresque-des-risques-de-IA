@@ -54,7 +54,8 @@
     <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">…</b> <span class="copier">copier</span></span>
     <button class="btn" id="btn-partager">Copier le lien</button>
     <span class="spacer"></span>
-    <span class="compte" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
+    <span class="compte anim-only" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
+    <button class="btn" id="btn-export" disabled title="Disponible une fois toutes les cartes placées">Télécharger l'image</button>
     <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
     <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
   </div>
@@ -81,6 +82,7 @@
       <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
       <button class="btn" id="z-tout">Tout voir</button>
     </div>
+    <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
     <button class="btn" id="btn-plein">Plein écran</button>
   </div>
 
@@ -119,7 +121,8 @@
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
   <div class="carte-grande" id="carte-grande">
     <div class="barre">
-      <button class="btn" id="modal-flip">Retourner</button>
+      <button class="btn primaire" id="modal-poser" hidden>Poser la carte</button>
+      <button class="btn" id="modal-flip">Retourner la carte</button>
       <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
     </div>
     <div class="faces">

@@ -247,15 +247,22 @@
     if (!p || p.carteEnMain == null) return;
     var c = etat.cartes[p.carteEnMain]; if (!c) return;
     var d = document.createElement("div"); d.className = "main-carte";
-    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
+    d.innerHTML = '<div class="vis" data-a="voir" title="Agrandir"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
       + '<div class="tit">' + esc(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">'+S.poser+'</button><button class="btn" data-a="voir">⤢</button></div>';
-    d.querySelector('[data-a="poser"]').addEventListener("click", function () {
-      var r = rectVisible();
-      agir({ op: "poser", n: p.carteEnMain, rect: r });
-    });
+      + '<div class="actions"><button class="btn primaire" data-a="poser">'+S.poser+'</button></div>';
+    d.querySelector('[data-a="poser"]').addEventListener("click", poserMain);
     d.querySelector('[data-a="voir"]').addEventListener("click", function () { ouvrirModal(p.carteEnMain); });
     mz.appendChild(d);
+  }
+  // Carte tenue par moi (participant), ou null.
+  function maCarte() {
+    if (etat.role !== "participant" || !etat.vue) return null;
+    var p = (etat.vue.participants || []).find(function (x) { return x.id === _idMoi; });
+    return p && p.carteEnMain != null ? p.carteEnMain : null;
+  }
+  function poserMain() {
+    var n = maCarte(); if (n == null) return;
+    agir({ op: "poser", n: n, rect: rectVisible() });
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
@@ -284,6 +291,8 @@
     Object.keys(etat.elTextes).forEach(function (id) { if (!vusT[id]) { etat.elTextes[id].remove(); delete etat.elTextes[id]; } });
 
     dessinerFleches();
+    var exp = document.getElementById("btn-export");
+    if (exp) exp.disabled = !(tab.cartes && tab.cartes.length >= 38);
   }
 
   function creerElCarte(n) {
@@ -340,8 +349,9 @@
     if (!etat.vue) return;
     var defs = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
       + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
-      + '<marker id="ahs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#8a857b"/></marker></defs>';
-    var html = defs, idx = {};
+      + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
+      + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
+    var html = defs, idx = {}, libs = [];
     (etat.vue.tableau.fleches || []).forEach(function (f) {
       var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
       var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
@@ -352,11 +362,16 @@
       var d = "M" + pa.x + "," + pa.y + " Q" + cxp + "," + cyp + " " + pb.x + "," + pb.y;
       var sel = etat.sel && etat.sel.type === "fleche" && etat.sel.id === f.id;
       html += '<path class="hit" data-id="' + f.id + '" d="' + d + '"/>';
-      html += '<path class="trait' + (sel ? ' sel' : '') + '" d="' + d + '" marker-end="url(#' + (sel ? 'aho' : 'ah') + ')"' + (f.bidir ? ' marker-start="url(#ahs)"' : '') + '/>';
-      if (f.libelle) html += '<text class="lib" x="' + (mx + nx * amp * 0.6) + '" y="' + (my + ny * amp * 0.6) + '" text-anchor="middle">' + esc(f.libelle) + '</text>';
+      html += '<path class="trait' + (f.bidir ? ' bidir' : '') + (sel ? ' sel' : '') + '" d="' + d + '" marker-end="url(#' + (sel ? 'aho' : (f.bidir ? 'ahb' : 'ah')) + ')"' + (f.bidir ? ' marker-start="url(#ahbs)"' : '') + '/>';
       f._mid = { x: cxp, y: cyp };
+      if (f.libelle) libs.push({ x: cxp, y: cyp, t: f.libelle });
     });
     E.fleches.innerHTML = html;
+    Array.prototype.forEach.call(E.monde.querySelectorAll(".fleche-lib"), function (n) { n.remove(); });
+    libs.forEach(function (l) {
+      var el = document.createElement("div"); el.className = "fleche-lib"; el.textContent = l.t;
+      el.style.left = l.x + "px"; el.style.top = l.y + "px"; E.monde.appendChild(el);
+    });
     E.fleches.querySelectorAll(".hit").forEach(function (h) {
       h.addEventListener("click", function (e) { e.stopPropagation(); selFleche(h.dataset.id); });
     });
@@ -464,6 +479,12 @@
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
   E["btn-plein"].addEventListener("click", function () { document.body.classList.toggle("plein"); setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 50); });
+  (function () {
+    var s = document.getElementById("btn-sombre");
+    if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
+    var e = document.getElementById("btn-export");
+    if (e) e.addEventListener("click", exporterImage);
+  })();
   E["btn-distribuer"].addEventListener("click", function () { agir({ op: "distribuer" }); });
   E["btn-passer"].addEventListener("click", function () { agir({ op: "passerAuSuivant" }); });
   E["btn-distribuer-tous"].addEventListener("click", function () { agir({ op: "distribuerATous" }); });
@@ -492,13 +513,104 @@
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
     E["mg-img"].src = BASE + (c.image ? c.image.grand : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
     E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; E["mg-verso"].appendChild(el); });
+    var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = (maCarte() !== n);
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
   E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });
   E["modal-close"].addEventListener("click", fermerModal);
+  (function () { var mpo = document.getElementById("modal-poser"); if (mpo) mpo.addEventListener("click", function () { poserMain(); fermerModal(); }); })();
   E.modal.addEventListener("click", function (e) { if (e.target === E.modal) fermerModal(); });
 
   /* ---------- utilitaires ---------- */
   function flash(m) { E.aide.textContent = m || ""; if (m) setTimeout(function () { if (E.aide.textContent === m) E.aide.textContent = ""; }, 3000); }
   function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
+
+  /* ---------- Export image du tableau (PNG) ---------- */
+  function coinRond(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function dessinerCover(ctx, img, x, y, w, h) {
+    var ir = img.naturalWidth / img.naturalHeight, dr = w / h, sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+    if (ir > dr) { sw = sh * dr; sx = (img.naturalWidth - sw) / 2; } else { sh = sw / dr; sy = (img.naturalHeight - sh) / 2; }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+  function texteMulti(ctx, txt, x, y, maxw, lh, maxLignes) {
+    var mots = String(txt).split(" "), ligne = "", n = 0;
+    for (var i = 0; i < mots.length; i++) {
+      var essai = ligne ? ligne + " " + mots[i] : mots[i];
+      if (ctx.measureText(essai).width > maxw && ligne) { ctx.fillText(ligne, x, y); ligne = mots[i]; y += lh; if (++n >= maxLignes - 1) { ctx.fillText(mots.slice(i).join(" "), x, y); return; } }
+      else ligne = essai;
+    }
+    ctx.fillText(ligne, x, y);
+  }
+  function teteFleche(ctx, fromx, fromy, tox, toy) {
+    var a = Math.atan2(toy - fromy, tox - fromx), s = 9;
+    ctx.beginPath(); ctx.moveTo(tox, toy);
+    ctx.lineTo(tox - s * Math.cos(a - 0.42), toy - s * Math.sin(a - 0.42));
+    ctx.lineTo(tox - s * Math.cos(a + 0.42), toy - s * Math.sin(a + 0.42));
+    ctx.closePath(); ctx.fill();
+  }
+  function exporterImage() {
+    if (!etat.vue || !etat.vue.tableau) return;
+    var tab = etat.vue.tableau, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
+    if (!cartes.length) return;
+    var pad = 70, minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+    function eng(x, y, w, h) { minx = Math.min(minx, x); miny = Math.min(miny, y); maxx = Math.max(maxx, x + w); maxy = Math.max(maxy, y + h); }
+    cartes.forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });
+    textes.forEach(function (t) { var el = etat.elTextes[t.id]; eng(t.x, t.y, el ? el.offsetWidth : 80, el ? el.offsetHeight : 30); });
+    minx -= pad; miny -= pad; maxx += pad; maxy += pad;
+    var W = maxx - minx, H = maxy - miny, scale = Math.max(0.5, Math.min(2, 2400 / W));
+    var cv = document.createElement("canvas"); cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+    var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
+    ctx.fillStyle = document.body.classList.contains("sombre") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
+
+    var idx = {};
+    fleches.forEach(function (f) {
+      var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
+      var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
+      var pa = bord(A, B.x, B.y), pb = bord(B, A.x, A.y);
+      var mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2, dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+      var amp = Math.min(20, len * 0.09) * (k % 2 === 0 ? 1 : -1) * (1 + Math.floor(k / 2));
+      var nx = -dy / len, ny = dx / len, cxp = mx + nx * amp, cyp = my + ny * amp;
+      ctx.strokeStyle = f.bidir ? "#F0A860" : "#8a857b"; ctx.lineWidth = 2.2; ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.quadraticCurveTo(cxp, cyp, pb.x, pb.y); ctx.stroke();
+      teteFleche(ctx, cxp, cyp, pb.x, pb.y); if (f.bidir) teteFleche(ctx, cxp, cyp, pa.x, pa.y);
+      if (f.libelle) {
+        ctx.font = "600 13px 'Montserrat',sans-serif"; var tw = ctx.measureText(f.libelle).width;
+        ctx.fillStyle = "#efece6"; coinRond(ctx, cxp - tw / 2 - 7, cyp - 11, tw + 14, 22, 7); ctx.fill();
+        ctx.strokeStyle = "#e6e2da"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = "#B0560A"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(f.libelle, cxp, cyp + 1);
+      }
+    });
+    cartes.forEach(function (cc) {
+      var c = etat.cartes[cc.n], el = etat.elCartes[cc.n], x = cc.x, y = cc.y, w = el ? el.offsetWidth : 150, h = el ? el.offsetHeight : 150, visH = Math.round(w / 1.6);
+      ctx.save(); coinRond(ctx, x, y, w, h, 10); ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.save(); coinRond(ctx, x, y, w, visH, 10); ctx.clip(); ctx.fillStyle = "#14110d"; ctx.fillRect(x, y, w, visH);
+      var img = el && el.querySelector("img");
+      if (img && img.complete && img.naturalWidth) dessinerCover(ctx, img, x, y, w, visH);
+      ctx.restore();
+      ctx.fillStyle = "#E8811C"; coinRond(ctx, x + 5, y + 5, 21, 21, 5); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.font = "700 13px 'Saira Condensed',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(cc.n, x + 15.5, y + 16.5);
+      ctx.fillStyle = "#1b1a17"; ctx.font = "700 13px 'Saira Condensed',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      texteMulti(ctx, c ? c.titre : "", x + 8, y + visH + 6, w - 16, 15, 3);
+      ctx.restore();
+      ctx.strokeStyle = "#e6e2da"; ctx.lineWidth = 1; coinRond(ctx, x, y, w, h, 10); ctx.stroke();
+    });
+    textes.forEach(function (t) {
+      if (!t.contenu) return;
+      var el = etat.elTextes[t.id], x = t.x, y = t.y, w = el ? el.offsetWidth : 80, h = el ? el.offsetHeight : 30;
+      ctx.fillStyle = "#fff7e6"; coinRond(ctx, x, y, w, h, 6); ctx.fill();
+      ctx.strokeStyle = "#f0dfbc"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = "#1b1a17"; ctx.font = "500 14px 'Montserrat',sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      texteMulti(ctx, t.contenu, x + 9, y + 7, w - 18, 17, 6);
+    });
+    cv.toBlob(function (blob) {
+      if (!blob) return;
+      var url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = "fresque-des-risques-de-l-ia.png"; document.body.appendChild(a); a.click();
+      setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1000);
+    }, "image/png");
+    flash(EN ? "Image downloaded." : "Image téléchargée.");
+  }
 })();
