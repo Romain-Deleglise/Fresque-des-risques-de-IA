@@ -292,6 +292,13 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 }
 /* --- Navigation mobile : bouton menu + panneau déroulant --------------- */
 @media (max-width: 900px) {
+  /* Barre vraiment fixe sur mobile : position:sticky peut se faire rogner
+     par la barre d'outils dynamique du navigateur. On fixe l'en-tête et on
+     compense avec un décalage du corps de page. */
+  .entete { position: fixed; left: 0; right: 0; top: 0; }
+  body { padding-top: 4.4rem; }
+  html { scroll-padding-top: 4.8rem; }
+
   .entete.js-nav .nav-toggle {
     display: inline-flex; flex-direction: column; justify-content: center; gap: 5px;
     width: 2.6rem; height: 2.6rem; padding: 0; cursor: pointer;
