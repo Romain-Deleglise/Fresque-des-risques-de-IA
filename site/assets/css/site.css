@@ -154,6 +154,17 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
+/* --- Choix du mode (Fresque en ligne) ------------------------------------- */
+.intro-modes { font-family: var(--f-ui); color: var(--gris); margin: 0 0 1rem; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.mode { display: flex; flex-direction: column; align-items: flex-start; border: 1px solid var(--ligne); border-radius: 14px; padding: 1.6rem 1.6rem 1.7rem; background: #fff; box-shadow: 0 1px 2px rgba(27,26,23,.04); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.mode:hover { border-color: var(--accent-txt); box-shadow: 0 12px 26px rgba(27,26,23,.08); transform: translateY(-2px); }
+.mode-tag { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .25em .7em; margin-bottom: .9rem; }
+.mode h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+.mode p { color: var(--gris); font-size: .98rem; margin: 0 0 1.3rem; }
+.mode .btn { margin-top: auto; }
+@media (max-width: 640px) { .modes { grid-template-columns: 1fr; } }
+
 /* --- Deux cartes d'information (participer) -------------------------------- */
 .duo-cartes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.2rem 0 0; }
 .carte-info { border: 1px solid var(--ligne); border-radius: 12px; padding: 1.3rem 1.4rem; background: var(--bg-doux); }
