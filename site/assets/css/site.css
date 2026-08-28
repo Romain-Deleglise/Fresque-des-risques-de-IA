@@ -209,6 +209,9 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .nl .msg { min-height: 1.3rem; margin: .8rem 0 0; font-family: var(--f-ui); font-size: .9rem; }
 .nl .msg.ok { color: #2f7d4f; }
 .nl .msg.err { color: #c1444e; }
+.nl-listes { border: 0; margin: .9rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; }
+.nl-listes label { font-family: var(--f-ui); font-size: .9rem; color: var(--ink); display: inline-flex; align-items: center; gap: .45rem; cursor: pointer; }
+.nl-listes input { accent-color: var(--accent-txt); width: 1rem; height: 1rem; }
 .nl .rs { font-family: var(--f-ui); font-size: .88rem; color: var(--gris); margin-top: 1.2rem; line-height: 1.9; }
 .nl .rs a { color: var(--accent-txt); font-weight: 600; }
 .nl .fine { font-family: var(--f-ui); font-size: .78rem; color: var(--gris); margin-top: .9rem; }

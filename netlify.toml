@@ -8,7 +8,9 @@
 
 # Fonctions serverless : newsletter CiviCRM (subscribe) et mesure d'audience
 # sans cookie (collect / stats, stockage Netlify Blobs). Variables d'environnement :
-#   - CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY, CIVICRM_NEWSLETTER_GROUP_ID (défaut 72)
+#   - CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY,
+#     CIVICRM_NEWSLETTER_GROUP_ID (défaut 72, liste Fresque),
+#     CIVICRM_PAUSEIA_GROUP_ID (défaut 3, newsletter Pause IA)
 #   - AUDIENCE_KEY (optionnel) : si défini, protège la lecture de /stats/ par cette clé.
 [functions]
   node_bundler = "esbuild"
