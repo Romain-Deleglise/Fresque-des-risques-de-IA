@@ -154,6 +154,11 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
+/* --- Guide de l'animateur ------------------------------------------------- */
+.guide-lots .cartes { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .12em .6em; margin-left: .5em; white-space: nowrap; vertical-align: middle; }
+.guide-lots h3 { margin-bottom: .4rem; }
+.guide-lots .astuce { color: var(--gris); font-size: .93rem; border-left: 3px solid var(--ligne); padding-left: .9rem; margin: .7rem 0 0; }
+
 /* --- Choix du mode (Fresque en ligne) ------------------------------------- */
 .intro-modes { font-family: var(--f-ui); color: var(--gris); margin: 0 0 1rem; }
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
@@ -270,3 +275,23 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
   .nl form { flex-direction: column; }
   .pied .wrap { grid-template-columns: 1fr; }
 }
+
+/* --- Impression (génération du PDF du guide) ------------------------------ */
+@media print {
+  @page { margin: 17mm 15mm; }
+  .entete, .pied, .skip, .no-print { display: none !important; }
+  body { font-size: 11pt; line-height: 1.5; color: #14110d; }
+  .page-tete { padding: 0 0 .4rem; }
+  .page-tete h1 { font-size: 24pt; }
+  .section { padding: 0; }
+  .wrap { max-width: none; padding: 0; }
+  .prose { max-width: none; }
+  h2 { font-size: 15pt; margin-top: 1.1rem; break-after: avoid; }
+  h3 { break-after: avoid; }
+  .guide-lots li, .avis, li { break-inside: avoid; }
+  a { color: #14110d; text-decoration: none; }
+  .avis { background: #faf8f4; border: 1px solid #e6e2da; }
+  .guide-lots .cartes, .mode-tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+.appel-note { margin-top: 1.1rem; }
