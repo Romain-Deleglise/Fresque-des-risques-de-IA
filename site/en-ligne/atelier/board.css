@@ -61,6 +61,29 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
 .c-carte .agr:hover{background:var(--accent);color:#fff}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
+/* --- Niveau de detail au dezoom (#monde.loin) ---------------------------
+   Sous ~55 % de zoom, le titre n'est plus lisible : on le masque et on
+   agrandit le numero (contre-mis a l'echelle via --iz pour rester lisible
+   a l'ecran), avec une couleur par lot pour garder les groupes visibles.
+   Le titre reapparait au survol / a la selection ; le clic agrandit. */
+#monde.loin .c-carte .tit{opacity:0;transition:opacity .12s}
+#monde.loin .c-carte:hover .tit,#monde.loin .c-carte.sel .tit{opacity:1}
+#monde.loin .c-carte .vis{opacity:.55;transition:opacity .12s}
+#monde.loin .c-carte:hover .vis,#monde.loin .c-carte.sel .vis{opacity:1}
+#monde.loin .c-carte .num{
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:calc(24px * var(--iz,1));height:calc(24px * var(--iz,1));
+  border-radius:calc(6px * var(--iz,1));
+  font-size:calc(.9rem * var(--iz,1));
+  box-shadow:0 0 0 calc(2px * var(--iz,1)) rgba(255,255,255,.85);
+  z-index:3;
+}
+#monde.loin .c-carte .agr{opacity:0;pointer-events:none}
+#monde.loin .c-carte[data-lot="1"] .num{background:#E8811C}
+#monde.loin .c-carte[data-lot="2"] .num{background:#3E7CB1}
+#monde.loin .c-carte[data-lot="3"] .num{background:#4C9A6A}
+#monde.loin .c-carte[data-lot="4"] .num{background:#B5546A}
+#monde.loin .c-carte[data-lot="5"] .num{background:#7E62A3}
 .c-carte.pose-anim{animation:pulse .7s ease}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,129,28,.5)}100%{box-shadow:0 0 0 18px rgba(232,129,28,0)}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}

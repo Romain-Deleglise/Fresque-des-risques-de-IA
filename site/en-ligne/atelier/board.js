@@ -108,6 +108,11 @@
   function rectScene() { return scene.getBoundingClientRect(); }
   function applyView() {
     monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
+    // Niveau de detail : quand on dezoome, les titres deviennent illisibles.
+    // On expose l'inverse du zoom (--iz) pour garder le numero a taille lisible
+    // a l'ecran, et on bascule en vue simplifiee (numero + couleur de lot).
+    monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3));
+    monde.classList.toggle("loin", etat.zoom < 0.55);
     zNiv.textContent = Math.round(etat.zoom * 100) + " %";
     zMoins.disabled = etat.zoom <= ZMIN + 0.0001;
     zPlus.disabled = etat.zoom >= ZMAX - 0.0001;
@@ -202,6 +207,7 @@
     var c = etat.cartesData[n];
     var el = document.createElement("div");
     el.className = "c-carte pose-anim";
+    if (c.lot != null) el.setAttribute("data-lot", c.lot);
     el.style.left = pos.x + "px"; el.style.top = pos.y + "px";
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span>'
       + '<button class="agr" title="'+S.agrandir+'" aria-label="'+S.agrandirCarte+'">⤢</button></div>'
