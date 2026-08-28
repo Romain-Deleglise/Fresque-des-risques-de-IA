@@ -24,6 +24,7 @@ const PAGES = [
   ["EN Online", "/en/online/"],
   ["EN Request", "/en/request-a-workshop/"],
   ["EN Legal", "/en/legal/"],
+  ["Stats (privé)", "/stats/"],
 ];
 
 // En CI, Playwright installe son propre Chromium. En local, on peut pointer un

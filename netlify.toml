@@ -6,9 +6,10 @@
   command = ""
   functions = "netlify/functions"
 
-# Fonctions serverless (newsletter CiviCRM). Secrets via variables
-# d'environnement Netlify : CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY,
-# et éventuellement CIVICRM_NEWSLETTER_GROUP_ID (défaut 72).
+# Fonctions serverless : newsletter CiviCRM (subscribe) et mesure d'audience
+# sans cookie (collect / stats, stockage Netlify Blobs). Variables d'environnement :
+#   - CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY, CIVICRM_NEWSLETTER_GROUP_ID (défaut 72)
+#   - AUDIENCE_KEY (optionnel) : si défini, protège la lecture de /stats/ par cette clé.
 [functions]
   node_bundler = "esbuild"
 

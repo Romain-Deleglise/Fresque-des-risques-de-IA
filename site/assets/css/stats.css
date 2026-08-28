@@ -1,0 +1,29 @@
+/* Tableau de bord d'audience (page privée /stats/). */
+.stats-form { margin: 0 0 2rem; }
+.stats-form label { display: block; font-family: var(--f-ui); font-size: .82rem; color: var(--gris); margin-bottom: .4rem; }
+.stats-form .ligne { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.stats-form input, .stats-form select { font-family: var(--f-ui); font-size: .95rem; border: 1px solid var(--ligne); border-radius: 8px; padding: .6rem .7rem; background: #fff; color: var(--ink); }
+.stats-form input { min-width: 12rem; }
+.stats-form .msg { font-family: var(--f-ui); font-size: .9rem; color: var(--gris); margin-top: .8rem; }
+
+.stats-cartes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 0 0 2.4rem; }
+.stat { border: 1px solid var(--ligne); border-radius: 12px; padding: 1.3rem 1.4rem; background: var(--bg-doux); }
+.stat .v { display: block; font-family: var(--f-titre); font-size: 2.3rem; line-height: 1; color: var(--ink); }
+.stat .l { display: block; font-family: var(--f-ui); font-size: .82rem; color: var(--gris); margin-top: .5rem; }
+
+.stats-h { font-size: 1.3rem; margin: 2rem 0 1rem; }
+.barres { display: flex; align-items: flex-end; gap: 3px; height: 140px; border-bottom: 1px solid var(--ligne); padding-bottom: 1px; }
+.barre { flex: 1; display: flex; align-items: flex-end; height: 100%; min-width: 3px; }
+.barre .fill { display: block; width: 100%; background: var(--accent-txt); border-radius: 3px 3px 0 0; min-height: 2px; }
+
+.stats-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem; }
+.stats-table { width: 100%; border-collapse: collapse; font-family: var(--f-ui); font-size: .92rem; }
+.stats-table td { padding: .5rem .3rem; border-bottom: 1px solid var(--ligne); color: var(--ink); }
+.stats-table td.n { text-align: right; color: var(--gris); width: 4rem; }
+.stats-table td.vide { color: var(--gris); text-align: center; }
+.stats-note { margin-top: 1.4rem; font-size: .85rem; }
+
+@media (max-width: 640px) {
+  .stats-cartes { grid-template-columns: 1fr; }
+  .stats-duo { grid-template-columns: 1fr; }
+}

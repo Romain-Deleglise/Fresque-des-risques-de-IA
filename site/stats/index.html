@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audience · La Fresque des risques de l'IA</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" sizes="64x64" href="../assets/img/social/favicon.png">
+  <link rel="stylesheet" href="../assets/css/fonts.css">
+  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="../assets/css/stats.css">
+</head>
+<body>
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg> Audience</a>
+      <nav class="nav" aria-label="Navigation"><a href="../">← Retour au site</a></nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete"><div class="wrap"><p class="eyebrow">Statistiques</p><h1>Fréquentation du site</h1></div></div>
+
+    <section class="section">
+      <div class="wrap">
+        <form id="stats-form" class="stats-form">
+          <label for="stats-cle">Clé d'accès (si demandée)</label>
+          <div class="ligne">
+            <input id="stats-cle" type="password" autocomplete="off" placeholder="clé">
+            <label for="stats-jours" class="skip">Nombre de jours</label>
+            <select id="stats-jours"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="90">90 jours</option></select>
+            <button type="submit" class="btn btn-1">Afficher</button>
+          </div>
+          <p class="msg" id="stats-msg" role="status" aria-live="polite"></p>
+        </form>
+
+        <div id="stats-resultat" hidden>
+          <div class="stats-cartes">
+            <div class="stat"><span class="v" id="s-vues">–</span><span class="l">Vues de page</span></div>
+            <div class="stat"><span class="v" id="s-uniques">–</span><span class="l">Visites (uniques par onglet)</span></div>
+            <div class="stat"><span class="v" id="s-langues">–</span><span class="l">Langues (FR / EN)</span></div>
+          </div>
+
+          <h2 class="stats-h">Par jour</h2>
+          <div class="barres" id="s-jours"></div>
+
+          <div class="stats-duo">
+            <div>
+              <h2 class="stats-h">Pages les plus vues</h2>
+              <table class="stats-table" id="s-pages"><tbody></tbody></table>
+            </div>
+            <div>
+              <h2 class="stats-h">Provenance</h2>
+              <table class="stats-table" id="s-refs"><tbody></tbody></table>
+            </div>
+          </div>
+          <p class="muted stats-note">Mesure anonyme, sans cookie. « direct » = accès direct ou provenance inconnue.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/js/stats.js" defer></script>
+</body>
+</html>
