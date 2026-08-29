@@ -185,8 +185,9 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .temps .d { color: var(--gris); font-size: .97rem; }
 
 /* --- Galerie de cartes : sobre -------------------------------------------- */
-.galerie { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
-.gc { position: relative; aspect-ratio: 1 / 1.41; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; }
+.galerie { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+/* Vraies cartes (format paysage) : ratio 1.414/1, image plein cadre. */
+.gc { position: relative; aspect-ratio: 1.414 / 1; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: var(--sur-accent); background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
@@ -286,7 +287,7 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
   .duo { grid-template-columns: 1fr; gap: 2.2rem; }
   .temps li { grid-template-columns: 2rem 1fr; }
   .temps .d { grid-column: 2; }
-  .galerie { grid-template-columns: repeat(3, 1fr); }
+  .galerie { grid-template-columns: repeat(2, 1fr); }
   .pied .wrap { grid-template-columns: 1fr 1fr 1fr; }
   .pied-marque { grid-column: 1 / -1; max-width: none; }
 }
@@ -334,7 +335,7 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 }
 @media (max-width: 560px) {
   .hero .actions .btn, .appel .actions .btn { width: 100%; justify-content: center; }
-  .galerie { grid-template-columns: repeat(2, 1fr); }
+  .galerie { grid-template-columns: 1fr; }
   .pied .wrap { grid-template-columns: 1fr 1fr; }
   .temps li { grid-template-columns: 1.6rem 1fr; }
   .nl form { flex-direction: column; }

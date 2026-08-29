@@ -35,11 +35,11 @@
         fig.className = "gc"; fig.style.margin = "0";
         if (c.image) {
           var img = document.createElement("img");
-          img.src = c.image.vignette; img.alt = "Illustration : " + c.titre; img.loading = "lazy";
+          // Vraie carte (format paysage) : elle porte deja son numero et son titre.
+          img.src = c.image.carte || c.image.grand || c.image.vignette;
+          img.alt = "Carte " + c.n + " : " + c.titre; img.loading = "lazy";
           fig.appendChild(img);
         }
-        fig.insertAdjacentHTML("beforeend", '<span class="no">' + c.n + '</span>');
-        fig.insertAdjacentHTML("beforeend", '<figcaption class="lbl">' + echap(c.titre) + '</figcaption>');
         galerie.appendChild(fig);
       });
     })
