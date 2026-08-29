@@ -73,7 +73,7 @@ p { margin: 0 0 1.1rem; }
 a { color: var(--accent-txt); text-decoration: none; }
 a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underline-offset: 3px; }
 /* Liens au fil du texte : soulignés pour rester repérables sans dépendre de la couleur (WCAG 1.4.1) */
-.prose a, .avis a, .lobby-retour a, .fine a, .nl .fine a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.prose a, .avis a, .lobby-retour a, .fine a, .nl .fine a, .appel-note a { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 
 .wrap { width: 100%; max-width: var(--lg); margin: 0 auto; padding: 0 1.75rem; }
 .eyebrow { font-family: var(--f-ui); font-weight: 700; font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-txt); margin: 0 0 1.1rem; }
