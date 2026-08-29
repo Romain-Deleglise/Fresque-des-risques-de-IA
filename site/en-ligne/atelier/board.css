@@ -56,7 +56,7 @@ a{color:var(--accent-txt);text-decoration:none}
 
 /* Bandeau carte 0 */
 .carte0{flex:0 0 auto;background:var(--accent-doux);border-bottom:1px solid var(--ligne);padding:.55rem 1.1rem;font-size:.88rem;line-height:1.4;color:var(--ink-doux);max-height:6rem;overflow:auto}
-.carte0 b{color:var(--accent-txt);font-family:var(--f-ui)}
+.carte0 b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
 .carte0>summary{cursor:pointer;list-style:none;display:inline;font-family:var(--f-ui)}
 .carte0>summary::-webkit-details-marker{display:none}
 .carte0>summary::after{content:" ▾";color:var(--accent-txt)}
@@ -68,7 +68,7 @@ a{color:var(--accent-txt);text-decoration:none}
 .toolbar .groupe{display:flex;gap:.3rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:9px;padding:.25rem}
 .toolbar .sep{flex:1}
 .tool{border:1px solid transparent;background:transparent}
-.tool[aria-pressed="true"]{background:var(--accent);color:var(--sur-accent)}
+.tool[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
 .zoom-niv{font-family:var(--f-ui);font-size:.82rem;min-width:3rem;text-align:center;color:var(--gris)}
 
 /* Scène (canvas clair) */
