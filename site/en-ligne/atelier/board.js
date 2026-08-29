@@ -120,7 +120,7 @@
     // On expose l'inverse du zoom (--iz) pour garder le numero a taille lisible
     // a l'ecran, et on bascule en vue simplifiee (numero + couleur de lot).
     monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3));
-    monde.classList.toggle("loin", etat.zoom < 0.55);
+    monde.classList.toggle("loin", etat.zoom < 0.5);
     zNiv.textContent = Math.round(etat.zoom * 100) + " %";
     zMoins.disabled = etat.zoom <= ZMIN + 0.0001;
     zPlus.disabled = etat.zoom >= ZMAX - 0.0001;
@@ -403,8 +403,8 @@
   function supprimerTexte(rec) {
     rec.el.remove();
     etat.textes = etat.textes.filter(function (t) { return t !== rec; });
-    if (etat.sel && etat.sel.ref === rec) etat.sel = null;
-    positionnerEditeurs();
+    // deselect() retire aussi la croix flottante (sinon elle reste a l'ecran).
+    if (etat.sel && etat.sel.ref === rec) deselect(); else positionnerEditeurs();
   }
 
   /* ---------- Selection + editeurs flottants (croix / libelle) ---------- */
@@ -551,10 +551,32 @@
   });
   document.getElementById("btn-piocher").addEventListener("click", piocher);
   document.getElementById("btn-distribuer-tout").addEventListener("click", function () { semer(6); });
-  document.getElementById("btn-sombre").addEventListener("click", function () {
-    var on = document.body.classList.toggle("sombre");
-    this.setAttribute("aria-pressed", on ? "true" : "false");
+  /* Couleur du tableau : bascule blanc <-> noir, quel que soit le theme. */
+  var btnSombre = document.getElementById("btn-sombre");
+  function themeSombre() {
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "dark") return true;
+    if (t === "light") return false;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function canvasSombre() {
+    if (document.body.classList.contains("canvas-noir")) return true;
+    if (document.body.classList.contains("canvas-blanc")) return false;
+    return themeSombre();
+  }
+  function majBtnSombre() {
+    var d = canvasSombre();
+    btnSombre.setAttribute("aria-pressed", d ? "true" : "false");
+    btnSombre.textContent = d ? (LANG === "en" ? "Light board" : "Fond blanc")
+                              : (LANG === "en" ? "Dark board" : "Fond noir");
+  }
+  btnSombre.addEventListener("click", function () {
+    var d = canvasSombre();
+    document.body.classList.remove("canvas-noir", "canvas-blanc");
+    document.body.classList.add(d ? "canvas-blanc" : "canvas-noir");
+    majBtnSombre();
   });
+  majBtnSombre();
   document.getElementById("btn-export").addEventListener("click", exporterImage);
   window.addEventListener("resize", function () { clampPan(); applyView(); dessinerFleches(); });
 
@@ -592,7 +614,7 @@
     var W = maxx - minx, H = maxy - miny, scale = Math.max(0.5, Math.min(2, 2400 / W));
     var cv = document.createElement("canvas"); cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
     var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
-    var dark = document.body.classList.contains("sombre");
+    var dark = canvasSombre();
     ctx.fillStyle = dark ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
 
     // Flèches (même géométrie que dessinerFleches)
