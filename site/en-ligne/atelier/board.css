@@ -176,10 +176,9 @@ a{color:var(--accent-txt);text-decoration:none}
   .mobile-avis p{font-family:var(--f-texte);color:var(--gris);max-width:22rem;margin:0 auto}
 }
 
-/* Plein écran : ne garder que le tableau et la barre d'outils */
-body.plein .topbar,
-body.plein .carte0,
-body.plein .legende{display:none}
+/* Plein écran : on garde TOUTES les commandes (barre du haut + outils).
+   On replie seulement le bandeau d'introduction pour gagner de la place. */
+body.plein .carte0{display:none}
 body.plein .app{height:100vh}
 
 /* Couleur du tableau (independante du theme) : le bouton bascule blanc <-> noir.

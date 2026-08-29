@@ -515,11 +515,33 @@
   modal.addEventListener("click", function (e) { if (e.target === modal) fermerModal(); });
   function fermerModal() { modal.classList.remove("on"); }
 
-  /* ---------- Plein ecran (classe CSS, B7.4) ---------- */
-  document.getElementById("btn-plein").addEventListener("click", function () {
-    document.body.classList.toggle("plein");
-    setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 50);
+  /* ---------- Plein ecran (API Fullscreen, toutes les commandes gardees) ---- */
+  var btnPlein = document.getElementById("btn-plein");
+  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 60); }
+  btnPlein.addEventListener("click", function () {
+    var fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fs) {
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) { var pr = req.call(el); if (pr && pr.catch) pr.catch(basculeClasse); }
+      else basculeClasse();
+    } else {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document); else basculeClasse();
+    }
   });
+  function basculeClasse() { document.body.classList.toggle("plein"); reflowPlein(); }
+  function syncPlein() {
+    var actif = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    // Si l'API est utilisee, la classe suit l'etat reel ; sinon basculeClasse la gere.
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled) {
+      document.body.classList.toggle("plein", actif);
+    }
+    btnPlein.setAttribute("aria-pressed", document.body.classList.contains("plein") ? "true" : "false");
+    reflowPlein();
+  }
+  document.addEventListener("fullscreenchange", syncPlein);
+  document.addEventListener("webkitfullscreenchange", syncPlein);
 
   /* ---------- Clavier ---------- */
   document.addEventListener("keydown", function (e) {
