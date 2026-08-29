@@ -22,7 +22,13 @@
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
     poser: "Place", libelle: "label…", texteAVenir: "Text coming soon.",
-    copie: "copied ✓", lienCopie: "Link copied ✓"
+    copie: "copied ✓", lienCopie: "Link copied ✓",
+    coachFermer: "Got it",
+    coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
+    coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
+    coachAttente: "Waiting for a card from the facilitator…",
+    coachPoser: "Click “Place” to put your card on the board.",
+    coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
@@ -36,7 +42,13 @@
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", libelle: "libellé…", texteAVenir: "Texte à venir.",
-    copie: "copié ✓", lienCopie: "Lien copié ✓"
+    copie: "copié ✓", lienCopie: "Lien copié ✓",
+    coachFermer: "Compris",
+    coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
+    coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
+    coachAttente: "En attente d'une carte de l'animateur…",
+    coachPoser: "Cliquez « Poser » pour placer votre carte sur le tableau.",
+    coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
   function traduireStatique() {
@@ -215,7 +227,47 @@
     rendreMain(vue);
     rendreVocal(vue);
     rendreTableau(vue.tableau);
+    majCoach();
     if (vue.clos) { flash(S.sessionClose); }
+  }
+
+  /* ---------- Coach pas a pas (clarte du parcours, adapte au role) -------- */
+  var coachOff = false;
+  try { coachOff = localStorage.getItem("coach-multi-off") === "1"; } catch (e) {}
+  var coach = null;
+  function assurerCoach() {
+    if (coach) return;
+    coach = document.createElement("div");
+    coach.className = "coach"; coach.hidden = true;
+    coach.innerHTML = '<span class="coach-txt"></span>' +
+      '<button type="button" class="coach-x">' + esc(S.coachFermer) + '</button>';
+    E.scene.appendChild(coach);
+    coach.querySelector(".coach-x").addEventListener("click", function () {
+      coachOff = true; try { localStorage.setItem("coach-multi-off", "1"); } catch (e) {}
+      majCoach();
+    });
+  }
+  function etapeCoach() {
+    var v = etat.vue; if (!v) return null;
+    var tab = v.tableau || {}, cartes = tab.cartes || [], fleches = tab.fleches || [];
+    if (fleches.length >= 1) return null; // un lien cree : le principe est saisi
+    if (etat.role === "animateur") {
+      if ((v.participants || []).length === 0) return S.coachPartager(etat.code);
+      if (cartes.length === 0) return S.coachDistribuer;
+      if (cartes.length >= 2) return S.coachRelier;
+      return null;
+    }
+    if (maCarte() != null) return S.coachPoser;
+    if (cartes.length === 0) return S.coachAttente;
+    if (cartes.length >= 2) return S.coachRelier;
+    return null;
+  }
+  function majCoach() {
+    assurerCoach();
+    var txt = coachOff ? null : etapeCoach();
+    if (!txt) { coach.hidden = true; return; }
+    coach.querySelector(".coach-txt").textContent = txt;
+    coach.hidden = false;
   }
 
   /* ---------- Participants / vocal / main ---------- */
@@ -449,6 +501,7 @@
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
+    E.monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3)); E.monde.classList.toggle("loin", etat.zoom < 0.5);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %"; E["z-moins"].disabled = etat.zoom <= ZMIN + 1e-4; E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
   function clampPan() { var r = rectScene(), pw = PLAN_W * etat.zoom, ph = PLAN_H * etat.zoom;
     etat.panX = pw <= r.width ? (r.width - pw) / 2 : Math.min(0, Math.max(r.width - pw, etat.panX));

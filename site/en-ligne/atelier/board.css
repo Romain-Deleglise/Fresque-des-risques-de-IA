@@ -149,13 +149,13 @@ a{color:var(--accent-txt);text-decoration:none}
 .coach{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:18;
   display:flex;align-items:center;gap:.7rem;max-width:min(92vw,640px);
   font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--sur-accent);
-  background:var(--accent-txt);border-radius:999px;padding:.5rem .6rem .5rem 1rem;
+  background:var(--accent-txt-fort);border-radius:999px;padding:.5rem .6rem .5rem 1rem;
   box-shadow:0 8px 24px rgba(27,26,23,.22)}
 .coach .coach-txt{line-height:1.25}
 .coach .coach-x{flex:0 0 auto;border:0;border-radius:999px;cursor:pointer;
   font-family:var(--f-ui);font-weight:700;font-size:.78rem;padding:.3rem .7rem;
-  background:rgba(255,255,255,.22);color:var(--sur-accent)}
-.coach .coach-x:hover{background:rgba(255,255,255,.34)}
+  background:rgba(0,0,0,.22);color:var(--sur-accent)}
+.coach .coach-x:hover{background:rgba(0,0,0,.34)}
 @media(max-width:760px){.coach{font-size:.82rem}}
 
 /* Carte en main a poser : mise en evidence discrete. */
