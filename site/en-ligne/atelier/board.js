@@ -62,7 +62,7 @@
     document.title = "Workshop board (demo) · The AI Risks Collage";
     var t = [
       [".marque", null, null], // logo texte géré à part
-      ["#btn-piocher", "Draw a card"], ["#btn-distribuer-tout", "Add 6 cards to the board"],
+      ["#btn-piocher", "Draw a card"], ["#btn-recommencer", "Restart"],
       ['.tool[data-outil="fleche"]', "Link"],
       ["#z-tout", "Fit all"],
       ["#btn-plein", "Fullscreen"], ["#aide-titre", "How to play"],
@@ -80,12 +80,12 @@
     if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
     // ecran d'accueil (objectif)
     var iT = document.getElementById("intro-titre"); if (iT) iT.textContent = "Rebuild the map of AI risks";
-    var iB = document.querySelector(".intro-but"); if (iB) iB.textContent = "The goal: connect the 38 cards to build, step by step, a big-picture view — how AI works, what it can do, its impacts, its risks, and the possible responses.";
+    var iB = document.querySelector(".intro-but"); if (iB) iB.textContent = "The goal: connect the 38 cards to build, step by step, a big-picture view — how AI works, what it can do, its risks, and the possible responses.";
     var iE = document.querySelector(".intro-etapes"); if (iE) iE.innerHTML =
-      '<li><b>Draw</b> a card ("Draw a card").</li>'
-      + '<li><b>Place</b> it on the board: the "Place" button, or drag it where you want.</li>'
-      + '<li><b>Link</b> the cards: the "Link" tool, then click a source card and a target card. An arrow means "this leads to that". These links tell the story.</li>';
-    var iN = document.querySelector(".intro-note"); if (iN) iN.textContent = 'Tip: start with the cards about how AI works, then follow the cause-and-effect chains. This workshop is usually run with a facilitator; the "?" at the top recalls the controls anytime.';
+      '<li><b>Draw</b> a card: they come in order, in lots (1 · how it works → 2 · capabilities → 3 · risks → 4 · major risks → 5 · responses).</li>'
+      + '<li><b>Place</b> it on the board (the "Place" button or drag), then draw the next one.</li>'
+      + '<li><b>Link</b> the cards: the "Link" tool, then click a source card and a target card. An arrow means "this leads to that".</li>';
+    var iN = document.querySelector(".intro-note"); if (iN) iN.textContent = 'There is no single "correct" collage: the point is to build links that make sense to you. Stuck? Enlarge a card (⤢) to read its explanation. This workshop is usually run with a facilitator; the "?" at the top recalls everything anytime.';
     var iOk = document.getElementById("intro-ok"); if (iOk) iOk.textContent = "Start";
     var iRe = document.getElementById("revoir-objectif"); if (iRe) iRe.textContent = "Review the goal";
     // panneau d'aide (liste)
@@ -130,6 +130,36 @@
     flecheDepart: null,
     seq: 1
   };
+
+  /* ---------- Lots (paliers) ---------- */
+  var LOTS = {
+    1: { fr: "Comment fonctionne l'IA", en: "How AI works" },
+    2: { fr: "Ce que l'IA sait faire", en: "What AI can do" },
+    3: { fr: "Les risques", en: "Risks" },
+    4: { fr: "Risques majeurs et perte de contrôle", en: "Major risks & loss of control" },
+    5: { fr: "Les réponses possibles", en: "Possible responses" }
+  };
+  function nomLot(l) { var e = LOTS[l]; return e ? (LANG === "en" ? e.en : e.fr) : ""; }
+  function lotCourant() {
+    if (etat.pioche.length) return etat.cartesData[etat.pioche[0]].lot;
+    if (etat.main != null) return etat.cartesData[etat.main].lot;
+    return 5;
+  }
+
+  /* ---------- Sauvegarde locale (reprise apres refresh) ---------- */
+  var CLE_SAUV = "fresque-solo";
+  function sauver() {
+    try {
+      localStorage.setItem(CLE_SAUV, JSON.stringify({
+        pioche: etat.pioche.slice(), main: etat.main, seq: etat.seq,
+        posees: etat.posees.map(function (p) { return { n: p.n, x: p.x, y: p.y }; }),
+        fleches: etat.fleches.map(function (f) { return { id: f.id, de: f.de, vers: f.vers, bidir: !!f.bidir, libelle: f.libelle || "" }; }),
+        textes: etat.textes.map(function (t) { return { id: t.id, x: t.x, y: t.y, contenu: t.contenu }; })
+      }));
+    } catch (e) {}
+  }
+  function chargerSauv() { try { return JSON.parse(localStorage.getItem(CLE_SAUV) || "null"); } catch (e) { return null; } }
+  function effacerSauv() { try { localStorage.removeItem(CLE_SAUV); } catch (e) {} }
 
   /* ---------- Vue / zoom / pan ---------- */
   function rectScene() { return scene.getBoundingClientRect(); }
@@ -185,7 +215,7 @@
     if (!etat.pioche.length) return;
     if (etat.main != null) { flash(S.posezDabord); return; }
     etat.main = etat.pioche.shift();
-    majPiocheInfo(); rendreMain(); majCoach();
+    majPiocheInfo(); rendreMain(); majCoach(); sauver();
   }
   function semer(k) {
     var r = rectScene();
@@ -198,9 +228,12 @@
     majPiocheInfo(); majCoach();
   }
   function majPiocheInfo() {
-    document.getElementById("pioche-n").textContent = etat.pioche.length;
-    document.getElementById("btn-piocher").disabled = etat.pioche.length === 0;
-    document.getElementById("btn-distribuer-tout").disabled = etat.pioche.length === 0;
+    var pio = document.getElementById("btn-piocher"); if (pio) pio.disabled = etat.pioche.length === 0;
+    var li = document.getElementById("lot-info");
+    if (li) {
+      if (etat.pioche.length === 0 && etat.main == null) li.textContent = LANG === "en" ? "All cards drawn" : "Toutes les cartes piochées";
+      else { var l = lotCourant(); li.textContent = (LANG === "en" ? "Lot " : "Lot ") + l + "/5 · " + nomLot(l); }
+    }
     var exp = document.getElementById("btn-export");
     if (exp) exp.hidden = !(etat.pioche.length === 0 && etat.main == null && etat.posees.length > 0);
   }
@@ -252,6 +285,14 @@
     poser(etat.main, (r.width / 2 - etat.panX) / etat.zoom, (r.height / 2 - etat.panY) / etat.zoom);
     etat.main = null; rendreMain(); majCoach();
   }
+  function recommencer() {
+    etat.posees.forEach(function (p) { p.el.remove(); });
+    etat.textes.forEach(function (t) { t.el.remove(); });
+    etat.posees = []; etat.fleches = []; etat.textes = []; etat.main = null; etat.sel = null; etat.seq = 1;
+    etat.pioche = Object.keys(etat.cartesData).map(Number).filter(function (n) { return !etat.cartesData[n].intro; }).sort(function (a, b) { return a - b; });
+    effacerSauv();
+    dessinerFleches(); rendreMain(); majPiocheInfo(); majCoach();
+  }
 
   /* ---------- Coach pas a pas : montre toujours l'action suivante --------- */
   var coachOff = false;
@@ -283,9 +324,9 @@
   }
 
   /* ---------- Cartes posees ---------- */
-  function poser(n, x, y) {
+  function poser(n, x, y, exact) {
     if (etat.posees.some(function (p) { return p.n === n; })) return;
-    var pos = placeLibre(x, y);
+    var pos = exact ? { x: x, y: y } : placeLibre(x, y);
     var c = etat.cartesData[n];
     var el = document.createElement("div");
     el.className = "c-carte pose-anim";
@@ -303,7 +344,7 @@
     monde.appendChild(el);
     etat.posees.push(rec);
     setTimeout(function () { el.classList.remove("pose-anim"); }, 750);
-    dessinerFleches(); majPiocheInfo(); majCoach();
+    dessinerFleches(); majPiocheInfo(); majCoach(); sauver();
   }
   function placeLibre(x, y) {
     var w = 160, h = 150, pas = 186;
@@ -351,7 +392,7 @@
       dessinerFleches();
     });
     el.addEventListener("pointerup", function (e) {
-      if (start) { el.style.cursor = "grab"; try { el.releasePointerCapture(e.pointerId); } catch (x) {} }
+      if (start) { el.style.cursor = "grab"; try { el.releasePointerCapture(e.pointerId); } catch (x) {} if (start.moved) sauver(); }
       start = null;
     });
   }
@@ -365,7 +406,7 @@
       annulerFlecheEnCours();
     } else {
       etat.fleches.push({ id: etat.seq++, de: etat.flecheDepart.n, vers: rec.n, bidir: false, libelle: "" });
-      annulerFlecheEnCours(); dessinerFleches(); majCoach();
+      annulerFlecheEnCours(); dessinerFleches(); majCoach(); sauver();
       setOutil("deplacer"); // on repasse en deplacement apres chaque lien
     }
   }
@@ -447,7 +488,7 @@
     el.addEventListener("blur", function () {
       rec.contenu = el.textContent.trim();
       el.removeAttribute("contenteditable");
-      if (!rec.contenu) supprimerTexte(rec);
+      if (!rec.contenu) supprimerTexte(rec); else sauver();
     });
     monde.appendChild(el);
     etat.textes.push(rec);
@@ -472,7 +513,7 @@
       rec.x = start.x + dx; rec.y = start.y + dy;
       el.style.left = rec.x + "px"; el.style.top = rec.y + "px"; positionnerEditeurs();
     }
-    function up(ev) { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); try { el.releasePointerCapture(ev.pointerId); } catch (x) {} }
+    function up(ev) { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); try { el.releasePointerCapture(ev.pointerId); } catch (x) {} sauver(); }
     el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up);
   }
   function supprimerTexte(rec) {
@@ -480,6 +521,7 @@
     etat.textes = etat.textes.filter(function (t) { return t !== rec; });
     // deselect() retire aussi la croix flottante (sinon elle reste a l'ecran).
     if (etat.sel && etat.sel.ref === rec) deselect(); else positionnerEditeurs();
+    sauver();
   }
 
   /* ---------- Selection + editeurs flottants (croix / libelle) ---------- */
@@ -505,12 +547,12 @@
     editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle;
     editLib.placeholder = S.libelle;
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
-    editLib.addEventListener("input", function () { f.libelle = editLib.value; dessinerFleches(); });
+    editLib.addEventListener("input", function () { f.libelle = editLib.value; dessinerFleches(); sauver(); });
     scene.appendChild(editLib);
     croixFleche = document.createElement("button");
     croixFleche.className = "fleche-croix"; croixFleche.textContent = "✕"; croixFleche.title = S.suppFleche;
     croixFleche.addEventListener("click", function () {
-      etat.fleches = etat.fleches.filter(function (x) { return x !== f; }); deselect(); dessinerFleches();
+      etat.fleches = etat.fleches.filter(function (x) { return x !== f; }); deselect(); dessinerFleches(); sauver();
     });
     scene.appendChild(croixFleche);
     // Bascule sens unique <-> double sens.
@@ -518,7 +560,7 @@
     bidirFleche.className = "fleche-bidir"; bidirFleche.textContent = "↔";
     bidirFleche.title = S.sensDouble; bidirFleche.setAttribute("aria-pressed", f.bidir ? "true" : "false");
     bidirFleche.addEventListener("click", function () {
-      f.bidir = !f.bidir; bidirFleche.setAttribute("aria-pressed", f.bidir ? "true" : "false"); dessinerFleches();
+      f.bidir = !f.bidir; bidirFleche.setAttribute("aria-pressed", f.bidir ? "true" : "false"); dessinerFleches(); sauver();
     });
     scene.appendChild(bidirFleche);
     positionnerEditeurs();
@@ -680,7 +722,10 @@
   zMoins.addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   document.getElementById("z-tout").addEventListener("click", toutVoir);
   document.getElementById("btn-piocher").addEventListener("click", piocher);
-  document.getElementById("btn-distribuer-tout").addEventListener("click", function () { semer(6); });
+  document.getElementById("btn-recommencer").addEventListener("click", function () {
+    if (etat.posees.length === 0 && etat.main == null) { recommencer(); return; }
+    if (window.confirm(LANG === "en" ? "Clear the board and start over?" : "Vider le tableau et tout recommencer ?")) recommencer();
+  });
   /* Couleur du tableau : bascule blanc <-> noir, quel que soit le theme. */
   var btnSombre = document.getElementById("btn-sombre");
   function themeSombre() {
@@ -817,6 +862,9 @@
     var c0 = etat.cartesData[0];
     if (c0) document.getElementById("carte0-txt").textContent = (c0.verso || []).join("  ");
     etat.pioche = data.cartes.filter(function (c) { return !c.intro; }).map(function (c) { return c.n; }).sort(function (a, b) { return a - b; });
+    // Reprise d'une fresque en cours (localStorage) si elle existe.
+    var sauv = chargerSauv();
+    if (sauv && ((sauv.posees && sauv.posees.length) || (sauv.textes && sauv.textes.length))) restaurer(sauv);
     majPiocheInfo(); majCoach();
     // cadrer sur le centre du plan de travail
     var r = rectScene();
@@ -824,8 +872,17 @@
     etat.panX = (r.width - PLAN_W) / 2;
     etat.panY = (r.height - PLAN_H) / 2;
     clampPan(); applyView();
-    // Plateau vide au demarrage : le coach guide Piocher -> Poser -> Relier.
     setOutil("deplacer");
     majCoach();
   }).catch(function () { aide.textContent = S.erreurCartes; });
+
+  function restaurer(d) {
+    if (Array.isArray(d.pioche)) etat.pioche = d.pioche.slice();
+    etat.seq = d.seq || etat.seq;
+    (d.posees || []).forEach(function (p) { poser(p.n, p.x, p.y, true); });
+    etat.fleches = (d.fleches || []).map(function (f) { return { id: f.id, de: f.de, vers: f.vers, bidir: !!f.bidir, libelle: f.libelle || "" }; });
+    dessinerFleches();
+    (d.textes || []).forEach(function (t) { var r = creerTexte(t.x, t.y, false); r.id = t.id; r.contenu = t.contenu; r.el.textContent = t.contenu; });
+    etat.main = (d.main != null) ? d.main : null; rendreMain();
+  }
 })();

@@ -18,9 +18,9 @@
       La Fresque des risques de l'IA
     </a>
     <span class="spacer"></span>
-    <span class="compte">Pioche : <b id="pioche-n">38</b></span>
-    <button class="btn primaire" id="btn-piocher" title="Tire une carte dans votre main, à poser sur le tableau">Piocher une carte</button>
-    <button class="btn" id="btn-distribuer-tout" title="Ajoute directement 6 cartes sur le tableau, sans passer par la main">Ajouter 6 cartes au tableau</button>
+    <span class="compte lot-info" id="lot-info" title="Les cartes arrivent dans l'ordre, par lots"></span>
+    <button class="btn primaire" id="btn-piocher" title="Tire la carte suivante (les cartes arrivent dans l'ordre, par lots)">Piocher une carte</button>
+    <button class="btn" id="btn-recommencer" title="Vider le tableau et recommencer">Recommencer</button>
     <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
     <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
   </div>
@@ -69,15 +69,14 @@
 
 <div class="intro-overlay" id="intro-overlay" hidden>
   <div class="intro-carte" role="dialog" aria-modal="true" aria-labelledby="intro-titre">
-    <svg class="mk" viewBox="0 0 32 32" aria-hidden="true" style="width:2.6rem;height:2.6rem;margin-bottom:.8rem"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
     <h1 id="intro-titre">Reconstituez la carte des risques de l'IA</h1>
-    <p class="intro-but">Le but du jeu : relier les 38 cartes pour dresser, petit à petit, une vue d'ensemble — comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques, et les réponses possibles.</p>
+    <p class="intro-but">Le but : relier les 38 cartes pour dresser, petit à petit, une vue d'ensemble — comment l'IA fonctionne, ce qu'elle sait faire, ses risques, et les réponses possibles.</p>
     <ol class="intro-etapes">
-      <li><b>Piochez</b> une carte (bouton « Piocher une carte »).</li>
-      <li><b>Placez-la</b> sur le tableau : bouton « Poser », ou glissez-la où vous voulez.</li>
-      <li><b>Reliez</b> les cartes entre elles : outil « Lien », puis cliquez une carte de départ et une carte d'arrivée. Une flèche = « ceci entraîne cela ». Ce sont ces liens qui racontent l'histoire.</li>
+      <li><b>Piochez</b> une carte : elles arrivent dans l'ordre, par lots (1 · fonctionnement → 2 · capacités → 3 · risques → 4 · risques majeurs → 5 · réponses).</li>
+      <li><b>Placez-la</b> sur le tableau (bouton « Poser » ou glisser), puis piochez la suivante.</li>
+      <li><b>Reliez</b> les cartes : outil « Lien », puis cliquez une carte de départ et une carte d'arrivée. Une flèche = « ceci entraîne / mène à cela ».</li>
     </ol>
-    <p class="intro-note">Astuce : commencez par les cartes du fonctionnement de l'IA, puis suivez les enchaînements de cause à effet. Cet atelier se vit d'habitude à plusieurs avec un animateur ; le « ? » en haut rappelle les commandes à tout moment.</p>
+    <p class="intro-note">Il n'y a pas une seule « bonne » fresque : le but est de construire des liens qui ont du sens pour vous. Bloqué·e ? Agrandissez une carte (⤢) pour lire son explication au dos. Cet atelier se vit d'habitude à plusieurs avec un animateur ; le « ? » en haut rappelle tout à tout moment.</p>
     <button class="btn primaire" id="intro-ok">Commencer</button>
   </div>
 </div>
