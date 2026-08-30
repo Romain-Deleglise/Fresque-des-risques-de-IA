@@ -56,6 +56,16 @@ a{color:var(--accent-txt);text-decoration:none}
 .btn:disabled{opacity:.5;cursor:not-allowed;border-color:var(--ligne)}
 
 /* Bandeau carte 0 */
+/* Ecran d'accueil : explique l'objectif du jeu */
+.intro-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:1.2rem;background:rgba(20,17,13,.55);backdrop-filter:blur(3px)}
+.intro-carte{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.4);max-width:36rem;width:100%;padding:2rem 2.1rem;max-height:92vh;overflow:auto}
+.intro-carte h1{font-family:var(--f-titre);font-size:1.9rem;line-height:1.05;color:var(--ink);margin:0 0 .8rem}
+.intro-but{font-size:1.02rem;line-height:1.5;color:var(--ink-doux);margin:0 0 1.1rem}
+.intro-etapes{margin:0 0 1.1rem;padding-left:1.2rem;display:grid;gap:.5rem;line-height:1.45;color:var(--ink-doux)}
+.intro-etapes b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
+.intro-note{font-family:var(--f-ui);font-size:.88rem;line-height:1.45;color:var(--gris);background:var(--doux);border-radius:10px;padding:.7rem .85rem;margin:0 0 1.3rem}
+.intro-carte .btn.primaire{font-size:1rem;padding:.7rem 1.6rem}
+
 /* Bouton d'aide rond (?) dans la barre du haut */
 .btn.rond{width:2.15rem;height:2.15rem;padding:0;justify-content:center;border-radius:999px;font-weight:700;font-size:1rem;line-height:1}
 .btn.rond[aria-expanded="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
@@ -143,8 +153,12 @@ a{color:var(--accent-txt);text-decoration:none}
 .main-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
 .main-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.8rem;color:var(--ink);padding:.35rem .45rem}
 .main-carte{cursor:grab}
+.main-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem;cursor:pointer}
+.main-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
+.main-carte .actions{display:flex;gap:.3rem;padding:.15rem .4rem .45rem}
+.main-carte .actions .btn{flex:1;justify-content:center;font-size:.8rem;padding:.4rem .3rem}
 .main-carte .pousser{font-family:var(--f-ui);font-weight:600;font-size:.72rem;text-align:center;color:var(--accent-txt);background:var(--doux);padding:.35rem .4rem;border-top:1px solid var(--ligne)}
-.main-carte.glisse{position:fixed;z-index:60;width:150px;pointer-events:none;cursor:grabbing;transform:rotate(-3deg);box-shadow:0 18px 40px rgba(27,26,23,.35);opacity:.96}
+.main-carte.glisse{position:fixed;z-index:60;width:150px;cursor:grabbing;transform:rotate(-3deg);box-shadow:0 18px 40px rgba(27,26,23,.35);opacity:.96}
 
 /* Aide / légende */
 

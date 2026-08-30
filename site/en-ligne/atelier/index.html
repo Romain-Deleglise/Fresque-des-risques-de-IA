@@ -63,7 +63,23 @@
       <li><b>Notes :</b> double-cliquez sur une zone vide du tableau. Glissez pour déplacer, cliquez pour éditer ; vide, elle disparaît.</li>
       <li><b>Zoom :</b> molette, boutons + / − ou « Tout voir » pour recadrer.</li>
     </ul>
+    <button class="btn" id="revoir-objectif" style="margin-top:.9rem;width:100%;justify-content:center">Revoir l'objectif du jeu</button>
   </aside>
+</div>
+
+<div class="intro-overlay" id="intro-overlay" hidden>
+  <div class="intro-carte" role="dialog" aria-modal="true" aria-labelledby="intro-titre">
+    <svg class="mk" viewBox="0 0 32 32" aria-hidden="true" style="width:2.6rem;height:2.6rem;margin-bottom:.8rem"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg>
+    <h1 id="intro-titre">Reconstituez la carte des risques de l'IA</h1>
+    <p class="intro-but">Le but du jeu : relier les 38 cartes pour dresser, petit à petit, une vue d'ensemble — comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques, et les réponses possibles.</p>
+    <ol class="intro-etapes">
+      <li><b>Piochez</b> une carte (bouton « Piocher une carte »).</li>
+      <li><b>Placez-la</b> sur le tableau : bouton « Poser », ou glissez-la où vous voulez.</li>
+      <li><b>Reliez</b> les cartes entre elles : outil « Lien », puis cliquez une carte de départ et une carte d'arrivée. Une flèche = « ceci entraîne cela ». Ce sont ces liens qui racontent l'histoire.</li>
+    </ol>
+    <p class="intro-note">Astuce : commencez par les cartes du fonctionnement de l'IA, puis suivez les enchaînements de cause à effet. Cet atelier se vit d'habitude à plusieurs avec un animateur ; le « ? » en haut rappelle les commandes à tout moment.</p>
+    <button class="btn primaire" id="intro-ok">Commencer</button>
+  </div>
 </div>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">

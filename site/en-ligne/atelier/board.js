@@ -32,7 +32,7 @@
     erreurCartes: "Unable to load the cards.",
     coachTitre: "How to play", coachFermer: "Got it",
     coachPiocher: "To start: click “Draw a card” to draw a card.",
-    coachPoser: "Drag the card (bottom left) onto the board to place it.",
+    coachPoser: "Click “Place” (or drag the card) to put it on the board.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another.",
     coachContinuer: "Keep going: draw more cards and connect them to build the fresco."
   } : {
@@ -51,7 +51,7 @@
     erreurCartes: "Impossible de charger les cartes.",
     coachTitre: "Comment jouer", coachFermer: "Compris",
     coachPiocher: "Pour commencer : cliquez « Piocher une carte » pour tirer une carte.",
-    coachPoser: "Glissez la carte (en bas à gauche) sur le tableau pour la placer.",
+    coachPoser: "Cliquez « Poser » (ou glissez la carte) pour la placer sur le tableau.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre.",
     coachContinuer: "Continuez : piochez d'autres cartes et reliez-les pour construire la fresque."
   };
@@ -78,6 +78,16 @@
     // compteur « Pioche : »
     var compte = document.querySelector(".compte");
     if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
+    // ecran d'accueil (objectif)
+    var iT = document.getElementById("intro-titre"); if (iT) iT.textContent = "Rebuild the map of AI risks";
+    var iB = document.querySelector(".intro-but"); if (iB) iB.textContent = "The goal: connect the 38 cards to build, step by step, a big-picture view — how AI works, what it can do, its impacts, its risks, and the possible responses.";
+    var iE = document.querySelector(".intro-etapes"); if (iE) iE.innerHTML =
+      '<li><b>Draw</b> a card ("Draw a card").</li>'
+      + '<li><b>Place</b> it on the board: the "Place" button, or drag it where you want.</li>'
+      + '<li><b>Link</b> the cards: the "Link" tool, then click a source card and a target card. An arrow means "this leads to that". These links tell the story.</li>';
+    var iN = document.querySelector(".intro-note"); if (iN) iN.textContent = 'Tip: start with the cards about how AI works, then follow the cause-and-effect chains. This workshop is usually run with a facilitator; the "?" at the top recalls the controls anytime.';
+    var iOk = document.getElementById("intro-ok"); if (iOk) iOk.textContent = "Start";
+    var iRe = document.getElementById("revoir-objectif"); if (iRe) iRe.textContent = "Review the goal";
     // panneau d'aide (liste)
     var aideBtn = document.querySelector("#btn-aide"); if (aideBtn) aideBtn.setAttribute("aria-label", "Help");
     var liste = document.querySelector("#aide-liste");
@@ -200,42 +210,39 @@
     var c = etat.cartesData[etat.main];
     var d = document.createElement("div");
     d.className = "main-carte a-poser";
-    d.innerHTML = '<div class="vis"><img alt="" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
+    d.innerHTML = '<div class="vis"><img alt="" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span>'
+      + '<button class="agr" data-a="voir" aria-label="' + S.agrandirCarte + '" title="' + S.agrandir + '">⤢</button></div>'
       + '<div class="tit">' + echap(c.titre) + '</div>'
-      + '<div class="pousser">' + S.glisserPoser + '</div>';
+      + '<div class="actions"><button class="btn primaire" data-a="poser">' + S.poser + '</button></div>';
+    d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); poserMain(); });
+    d.querySelector('[data-a="voir"]').addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(etat.main); });
     activerGlisserMain(d);
     mainZone.appendChild(d);
   }
-  // Glisser la carte tenue vers le tableau ; clic simple = agrandir.
+  // La carte tenue est glissable directement sur le tableau (en plus du bouton Poser).
+  // Ecoute au niveau document : le relachement est capte ou que soit le curseur.
   function activerGlisserMain(d) {
-    var drag = null;
     d.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0 || etat.main == null) return;
-      drag = { x0: e.clientX, y0: e.clientY, bougé: false };
-      try { d.setPointerCapture(e.pointerId); } catch (x) {}
-    });
-    d.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      if (!drag.bougé && Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) > 6) {
-        drag.bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
+      if (e.button !== 0 || etat.main == null || e.target.closest("button")) return;
+      var x0 = e.clientX, y0 = e.clientY, bougé = false;
+      function mv(ev) {
+        if (!bougé && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 6) {
+          bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
+        }
+        if (bougé) { d.style.left = (ev.clientX - d.offsetWidth / 2) + "px"; d.style.top = (ev.clientY - 24) + "px"; }
       }
-      if (drag.bougé) {
-        d.style.left = (e.clientX - d.offsetWidth / 2) + "px";
-        d.style.top = (e.clientY - 24) + "px";
+      function up(ev) {
+        document.removeEventListener("pointermove", mv, true);
+        document.removeEventListener("pointerup", up, true);
+        if (!bougé) return;                                 // simple clic : géré par les boutons
+        var r = rectScene();
+        if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+          var w = versMonde(ev.clientX, ev.clientY);
+          poser(etat.main, w.x, w.y); etat.main = null; rendreMain(); majCoach();
+        } else { rendreMain(); }                            // relâché hors du tableau : reste en main
       }
-    });
-    d.addEventListener("pointerup", function (e) {
-      if (!drag) return;
-      var bougé = drag.bougé; drag = null;
-      try { d.releasePointerCapture(e.pointerId); } catch (x) {}
-      if (!bougé) { ouvrirModal(etat.main); return; }        // clic simple : agrandir
-      var r = rectScene();
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-        var w = versMonde(e.clientX, e.clientY);
-        poser(etat.main, w.x, w.y); etat.main = null; rendreMain(); majCoach();
-      } else {
-        rendreMain(); // relâché hors du tableau : la carte reste en main
-      }
+      document.addEventListener("pointermove", mv, true);
+      document.addEventListener("pointerup", up, true);
     });
   }
   // Pose la carte tenue au centre visible (repli depuis la fenêtre agrandie).
@@ -633,6 +640,17 @@
   document.addEventListener("click", function (e) {
     if (!aidePop.hidden && !aidePop.contains(e.target) && e.target !== aideBtn) aideMaj(false);
   });
+
+  /* ---------- Ecran d'accueil : objectif du jeu ---------- */
+  var introOverlay = document.getElementById("intro-overlay");
+  function fermerIntro() { introOverlay.hidden = true; try { localStorage.setItem("fresque-intro-vu", "1"); } catch (e) {} }
+  function ouvrirIntro() { introOverlay.hidden = false; }
+  document.getElementById("intro-ok").addEventListener("click", fermerIntro);
+  var revoir = document.getElementById("revoir-objectif");
+  if (revoir) revoir.addEventListener("click", function () { aideMaj(false); ouvrirIntro(); });
+  var introVu = false;
+  try { introVu = localStorage.getItem("fresque-intro-vu") === "1"; } catch (e) {}
+  if (!introVu) ouvrirIntro();
 
   /* ---------- Clavier ---------- */
   document.addEventListener("keydown", function (e) {
