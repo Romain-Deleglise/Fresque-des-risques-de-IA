@@ -73,7 +73,7 @@
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
       "#vocal-lien": "🎧 Join the voice room",
-      "#legende > summary": "How it works",
+      "#aide-titre": "How to play",
       "#modal-flip": "Flip", "#modal-close": "Close ✕",
       ".mobile-avis h1": "On a computer"
     };
@@ -94,17 +94,16 @@
     setFirst("#pioche-info", "Deck: ");         // « Pioche : <b> »
     setFirst("#btn-participants", "Participants (");
     var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
-    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction:";
     var ret = document.querySelector(".lobby-retour");
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mp = document.querySelector(".mobile-avis p");
     if (mp) mp.innerHTML = 'The online collage runs on a computer screen. <a href="../">Back</a>.';
-    var corps = document.querySelector("#legende .corps");
-    if (corps) corps.innerHTML =
-      '<div><b>Cards:</b> the facilitator deals; place your card, then drag it. The ⤢ button opens it large.</div>'
-      + '<div><b>Links:</b> Link tool, click the source card then the target. Click the line to annotate or delete it.</div>'
-      + '<div><b>Notes:</b> Note tool then click the board; drag to move, empty to delete.</div>'
-      + '<div><b>View:</b> zoom and panning are personal to each of you. "Fit all" reframes everything.</div>';
+    var liste = document.querySelector("#aide-liste");
+    if (liste) liste.innerHTML =
+      '<li><b>Cards:</b> the facilitator deals; place your card, then drag it. The ⤢ button opens it large.</li>'
+      + '<li><b>Links:</b> Link tool, click the source card then the target. Click the line to annotate or delete it.</li>'
+      + '<li><b>Notes:</b> Note tool then click the board; drag to move, empty to delete.</li>'
+      + '<li><b>View:</b> zoom and panning are personal to each of you. "Fit all" reframes everything.</li>';
   }
 
   var API = "/.netlify/functions/fresque";
@@ -269,6 +268,18 @@
     coach.querySelector(".coach-txt").textContent = txt;
     coach.hidden = false;
   }
+
+  /* ---------- Panneau d'aide (bouton ?) ---------- */
+  (function () {
+    var pop = document.getElementById("aide-pop"), btn = document.getElementById("btn-aide");
+    if (!pop || !btn) return;
+    function maj(ouvert) { pop.hidden = !ouvert; btn.setAttribute("aria-expanded", ouvert ? "true" : "false"); }
+    btn.addEventListener("click", function (e) { e.stopPropagation(); maj(pop.hidden); });
+    document.getElementById("aide-fermer").addEventListener("click", function () { maj(false); });
+    document.addEventListener("click", function (e) {
+      if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) maj(false);
+    });
+  })();
 
   /* ---------- Participants / vocal / main ---------- */
   function moi() { if (etat.role !== "participant") return null; return (etat.vue.participants || []).find(function (p) { return p.id === idMoi(); }); }
@@ -521,7 +532,7 @@
   });
   E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
-  E.scene.addEventListener("wheel", function (e) { var plein = document.body.classList.contains("plein"); if (e.ctrlKey || e.metaKey || plein) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); } }, { passive: false });
+  E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });

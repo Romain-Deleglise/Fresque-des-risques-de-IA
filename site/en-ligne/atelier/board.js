@@ -62,32 +62,31 @@
     document.title = "Workshop board (demo) · The AI Risks Collage";
     var t = [
       [".marque", null, null], // logo texte géré à part
-      ["#btn-piocher", "Draw a card"], ["#btn-distribuer-tout", "Add 6 cards"],
+      ["#btn-piocher", "Draw a card"], ["#btn-distribuer-tout", "Add 6 cards to the board"],
       ['.tool[data-outil="deplacer"]', "Move"], ['.tool[data-outil="fleche"]', "Link →"],
       ['.tool[data-outil="fleche2"]', "Link ↔"], ['.tool[data-outil="texte"]', "Note"],
-      ["#z-tout", "Fit all"], ["#z-molette", "Wheel"],
-      ["#btn-plein", "Fullscreen"], ["#legende > summary", "How it works"],
+      ["#z-tout", "Fit all"],
+      ["#btn-plein", "Fullscreen"], ["#aide-titre", "How to play"],
       ["#modal-flip", "Flip"], ["#modal-close", "Close ✕"]
     ];
     t.forEach(function (r) { if (!r[1]) return; var el = document.querySelector(r[0]); if (el) el.textContent = r[1]; });
     var set = function (sel, attr, val) { var el = document.querySelector(sel); if (el) el.setAttribute(attr, val); };
     set("#z-moins", "aria-label", "Zoom out"); set("#z-plus", "aria-label", "Zoom in");
-    set("#z-molette", "title", "Zoom with the wheel"); set("#modal-close", "aria-label", "Close");
+    set("#modal-close", "aria-label", "Close");
     // logo : garder le pictogramme, changer le libellé
     var marque = document.querySelector(".marque");
     if (marque) { marque.childNodes[marque.childNodes.length - 1].nodeValue = " The AI Risks Collage"; }
     // compteur « Pioche : »
     var compte = document.querySelector(".compte");
     if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
-    // carte 0
-    var c0b = document.querySelector("#carte0 b"); if (c0b) c0b.textContent = "Introduction:";
-    // légende (corps)
-    var corps = document.querySelector("#legende .corps");
-    if (corps) corps.innerHTML =
-      '<div><b>Cards:</b> "Draw a card" then "Place"; drag it on the board. The ⤢ button opens it large and lets you flip it.</div>'
-      + '<div><b>Links:</b> pick the Link tool, click the source card then the target. Click the line to write on it or delete it.</div>'
-      + '<div><b>Notes:</b> Note tool then click the board. Drag a note to move it, click to edit; empty, it disappears.</div>'
-      + '<div><b>Zoom:</b> + / − buttons or "Wheel". "Fit all" reframes everything. Drag an empty area to pan.</div>';
+    // panneau d'aide (liste)
+    var aideBtn = document.querySelector("#btn-aide"); if (aideBtn) aideBtn.setAttribute("aria-label", "Help");
+    var liste = document.querySelector("#aide-liste");
+    if (liste) liste.innerHTML =
+      '<li><b>Cards:</b> "Draw a card" then "Place"; drag it on the board. The ⤢ button opens it large and lets you flip it.</li>'
+      + '<li><b>Links:</b> pick the Link tool, click the source card then the target. Click the line to write on it or delete it.</li>'
+      + '<li><b>Notes:</b> Note tool then click the board. Drag a note to move it, click to edit; empty, it disappears.</li>'
+      + '<li><b>Zoom:</b> + / − buttons or "Wheel". "Fit all" reframes everything. Drag an empty area to pan.</li>';
     // avis mobile
     var mh = document.querySelector("#mobile-avis h1"); if (mh) mh.textContent = "The board is designed for a computer";
     var mp = document.querySelector("#mobile-avis p");
@@ -524,13 +523,12 @@
     clampPan(); applyView(); dessinerFleches();
   });
   scene.addEventListener("pointerup", function (e) { panning = null; scene.classList.remove("grabbing"); try { scene.releasePointerCapture(e.pointerId); } catch (x) {} });
+  // Le tableau occupe tout l'ecran (pas de defilement de page) : la molette
+  // zoome toujours, directement, sans bouton a activer.
   scene.addEventListener("wheel", function (e) {
-    var plein = document.body.classList.contains("plein");
-    if (etat.molette || e.ctrlKey || e.metaKey || plein) {
-      e.preventDefault();
-      var r = rectScene();
-      zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top);
-    }
+    e.preventDefault();
+    var r = rectScene();
+    zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
 
   /* ---------- Modal ---------- */
@@ -582,6 +580,19 @@
   document.addEventListener("fullscreenchange", syncPlein);
   document.addEventListener("webkitfullscreenchange", syncPlein);
 
+  /* ---------- Panneau d'aide (bouton ?) ---------- */
+  var aidePop = document.getElementById("aide-pop");
+  var aideBtn = document.getElementById("btn-aide");
+  function aideMaj(ouvert) {
+    aidePop.hidden = !ouvert;
+    aideBtn.setAttribute("aria-expanded", ouvert ? "true" : "false");
+  }
+  aideBtn.addEventListener("click", function (e) { e.stopPropagation(); aideMaj(aidePop.hidden); });
+  document.getElementById("aide-fermer").addEventListener("click", function () { aideMaj(false); });
+  document.addEventListener("click", function (e) {
+    if (!aidePop.hidden && !aidePop.contains(e.target) && e.target !== aideBtn) aideMaj(false);
+  });
+
   /* ---------- Clavier ---------- */
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
@@ -607,9 +618,6 @@
   zPlus.addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   zMoins.addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   document.getElementById("z-tout").addEventListener("click", toutVoir);
-  document.getElementById("z-molette").addEventListener("click", function () {
-    etat.molette = !etat.molette; this.setAttribute("aria-pressed", etat.molette ? "true" : "false");
-  });
   document.getElementById("btn-piocher").addEventListener("click", piocher);
   document.getElementById("btn-distribuer-tout").addEventListener("click", function () { semer(6); });
   /* Couleur du tableau : bascule blanc <-> noir, quel que soit le theme. */
@@ -755,9 +763,8 @@
     etat.panX = (r.width - PLAN_W) / 2;
     etat.panY = (r.height - PLAN_H) / 2;
     clampPan(); applyView();
-    // quelques cartes de depart, posees au centre visible
-    semer(4);
+    // Plateau vide au demarrage : le coach guide Piocher -> Poser -> Relier.
     setOutil("deplacer");
-    flash(S.initFlash);
+    majCoach();
   }).catch(function () { aide.textContent = S.erreurCartes; });
 })();

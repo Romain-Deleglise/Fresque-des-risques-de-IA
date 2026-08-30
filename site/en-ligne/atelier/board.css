@@ -55,13 +55,22 @@ a{color:var(--accent-txt);text-decoration:none}
 .btn:disabled{opacity:.5;cursor:not-allowed;border-color:var(--ligne)}
 
 /* Bandeau carte 0 */
-.carte0{flex:0 0 auto;background:var(--accent-doux);border-bottom:1px solid var(--ligne);padding:.55rem 1.1rem;font-size:.88rem;line-height:1.4;color:var(--ink-doux);max-height:6rem;overflow:auto}
-.carte0 b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
-.carte0>summary{cursor:pointer;list-style:none;display:inline;font-family:var(--f-ui)}
-.carte0>summary::-webkit-details-marker{display:none}
-.carte0>summary::after{content:" ▾";color:var(--accent-txt)}
-.carte0[open]>summary::after{content:" ▴"}
-.carte0:not([open]){max-height:none;overflow:visible}
+/* Bouton d'aide rond (?) dans la barre du haut */
+.btn.rond{width:2.15rem;height:2.15rem;padding:0;justify-content:center;border-radius:999px;font-weight:700;font-size:1rem;line-height:1}
+.btn.rond[aria-expanded="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+
+/* Panneau d'aide (remplace le bandeau intro + la legende du bas) */
+.aide-pop{position:fixed;top:3.9rem;right:1rem;z-index:90;width:min(360px,92vw);
+  background:var(--surface);border:1px solid var(--ligne);border-radius:14px;
+  box-shadow:0 18px 44px rgba(27,26,23,.22);padding:1rem 1.1rem 1.1rem}
+.aide-pop[hidden]{display:none}
+.aide-pop-tete{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.5rem}
+.aide-pop-tete h2{font-family:var(--f-titre);font-size:1.15rem;color:var(--accent-txt-fort);margin:0}
+.aide-pop-x{border:0;background:transparent;cursor:pointer;font-size:1rem;color:var(--gris);border-radius:8px;padding:.2rem .4rem}
+.aide-pop-x:hover{color:var(--ink);background:var(--doux)}
+.aide-intro{font-size:.9rem;line-height:1.5;color:var(--ink-doux);margin:0 0 .8rem;padding-bottom:.8rem;border-bottom:1px solid var(--ligne)}
+.aide-liste{list-style:none;margin:0;padding:0;display:grid;gap:.55rem;font-size:.88rem;line-height:1.45;color:var(--ink-doux)}
+.aide-liste b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
 
 /* Barre d'outils */
 .toolbar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne)}
@@ -134,14 +143,6 @@ a{color:var(--accent-txt);text-decoration:none}
 .main-carte .actions button{flex:1;font-size:.74rem;padding:.32rem .2rem}
 
 /* Aide / légende */
-.legende{position:absolute;left:1rem;right:1rem;bottom:.7rem;z-index:15;background:var(--panel);border:1px solid var(--ligne);border-radius:10px;font-size:.82rem;box-shadow:var(--ombre)}
-.legende summary{cursor:pointer;padding:.5rem .85rem;font-family:var(--f-ui);font-weight:700;color:var(--ink);list-style:none}
-.legende summary::-webkit-details-marker{display:none}
-.legende summary::after{content:" ▾";color:var(--gris)}
-.legende[open] summary::after{content:" ▴"}
-.legende .corps{padding:0 .9rem .7rem;display:grid;grid-template-columns:1fr 1fr;gap:.35rem 1.4rem;line-height:1.4;color:var(--ink-doux)}
-.legende b{color:var(--accent-txt);font-family:var(--f-ui)}
-@media(max-width:800px){.legende .corps{grid-template-columns:1fr}}
 
 .aide{position:absolute;top:3.4rem;left:50%;transform:translateX(-50%);z-index:16;font-family:var(--f-ui);font-size:.82rem;color:var(--bg);background:var(--ink);padding:.35rem .8rem;border-radius:999px;transition:opacity .2s;pointer-events:none}
 
@@ -195,7 +196,6 @@ a{color:var(--accent-txt);text-decoration:none}
 
 /* Plein écran : on garde TOUTES les commandes (barre du haut + outils).
    On replie seulement le bandeau d'introduction pour gagner de la place. */
-body.plein .carte0{display:none}
 body.plein .app{height:100vh}
 
 /* Couleur du tableau (independante du theme) : le bouton bascule blanc <-> noir.
