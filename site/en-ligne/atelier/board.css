@@ -32,6 +32,7 @@
   --ombre:0 8px 24px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-texte);overflow:hidden}
 button{font-family:var(--f-ui);cursor:pointer}
@@ -125,6 +126,8 @@ a{color:var(--accent-txt);text-decoration:none}
 /* Étiquette de flèche : encadré arrondi gris, texte orange, au-dessus des traits */
 .fleche-lib{position:absolute;transform:translate(-50%,-50%);z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;color:var(--accent-txt);background:var(--doux);border:1px solid var(--ligne);border-radius:7px;padding:2px 7px;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px rgba(27,26,23,.10)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
+.fleche-bidir{position:absolute;width:22px;height:22px;background:var(--surface);color:var(--accent-txt);border:1px solid var(--ligne);border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;cursor:pointer;transform:translate(-50%,-50%);z-index:5}
+.fleche-bidir[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
 
 /* Notes texte */
 .c-texte{position:absolute;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:var(--note-bg);border:1px solid var(--note-bord);border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}

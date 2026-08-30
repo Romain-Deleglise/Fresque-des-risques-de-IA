@@ -185,6 +185,10 @@ function libellerFleche(s, id, libelle) {
   var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
   f.libelle = tronque(libelle, LEN_LIBELLE); bump(s); return { ok: true };
 }
+function bidirFleche(s, id) {
+  var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
+  f.bidir = !f.bidir; bump(s); return { ok: true };
+}
 function supprimerFleche(s, id) {
   s.tableau.fleches = s.tableau.fleches.filter(function (f) { return f.id !== id; }); bump(s); return { ok: true };
 }
@@ -237,6 +241,7 @@ function appliquer(s, jeton, intention) {
     case "deplacerCarte": return deplacerCarte(s, d.n, d.x, d.y);
     case "creerFleche": return creerFleche(s, d.de, d.vers, d.bidir);
     case "libellerFleche": return libellerFleche(s, d.id, d.libelle);
+    case "bidirFleche": return bidirFleche(s, d.id);
     case "supprimerFleche": return supprimerFleche(s, d.id);
     case "creerTexte": return creerTexte(s, d.x, d.y, d.contenu);
     case "modifierTexte": return modifierTexte(s, d.id, d.contenu);

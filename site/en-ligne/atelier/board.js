@@ -24,7 +24,7 @@
     cliquezArrivee: "Now click the target card.",
     poser: "Place",
     libelle: "label…",
-    suppFleche: "Delete the arrow",
+    suppFleche: "Delete the arrow", sensDouble: "Two-way link",
     suppTexte: "Delete the note",
     agrandir: "Enlarge", agrandirCarte: "Enlarge the card",
     texteAVenir: "Text coming soon.",
@@ -43,7 +43,7 @@
     cliquezArrivee: "Cliquez maintenant la carte d'arrivée.",
     poser: "Poser",
     libelle: "libellé…",
-    suppFleche: "Supprimer la flèche",
+    suppFleche: "Supprimer la flèche", sensDouble: "Lien à double sens",
     suppTexte: "Supprimer le texte",
     agrandir: "Agrandir", agrandirCarte: "Agrandir la carte",
     texteAVenir: "Texte à venir.",
@@ -63,8 +63,7 @@
     var t = [
       [".marque", null, null], // logo texte géré à part
       ["#btn-piocher", "Draw a card"], ["#btn-distribuer-tout", "Add 6 cards to the board"],
-      ['.tool[data-outil="deplacer"]', "Move"], ['.tool[data-outil="fleche"]', "Link →"],
-      ['.tool[data-outil="fleche2"]', "Link ↔"], ['.tool[data-outil="texte"]', "Note"],
+      ['.tool[data-outil="fleche"]', "Link"],
       ["#z-tout", "Fit all"],
       ["#btn-plein", "Fullscreen"], ["#aide-titre", "How to play"],
       ["#modal-flip", "Flip"], ["#modal-close", "Close ✕"]
@@ -83,10 +82,11 @@
     var aideBtn = document.querySelector("#btn-aide"); if (aideBtn) aideBtn.setAttribute("aria-label", "Help");
     var liste = document.querySelector("#aide-liste");
     if (liste) liste.innerHTML =
-      '<li><b>Cards:</b> "Draw a card" then "Place"; drag it on the board. The ⤢ button opens it large and lets you flip it.</li>'
-      + '<li><b>Links:</b> pick the Link tool, click the source card then the target. Click the line to write on it or delete it.</li>'
-      + '<li><b>Notes:</b> Note tool then click the board. Drag a note to move it, click to edit; empty, it disappears.</li>'
-      + '<li><b>Zoom:</b> + / − buttons or "Wheel". "Fit all" reframes everything. Drag an empty area to pan.</li>';
+      '<li><b>Move:</b> drag a card to move it; drag an empty area to pan the board.</li>'
+      + '<li><b>Cards:</b> "Draw a card" then "Place". The ⤢ button opens it large and lets you flip it.</li>'
+      + '<li><b>Links:</b> click "Link", then the source card and the target. Select an arrow to label it, delete it, or make it two-way (↔).</li>'
+      + '<li><b>Notes:</b> double-click an empty area of the board. Drag to move, click to edit; empty, it disappears.</li>'
+      + '<li><b>Zoom:</b> mouse wheel, + / − buttons, or "Fit all" to reframe.</li>';
     // avis mobile
     var mh = document.querySelector("#mobile-avis h1"); if (mh) mh.textContent = "The board is designed for a computer";
     var mp = document.querySelector("#mobile-avis p");
@@ -165,11 +165,9 @@
     document.querySelectorAll(".tool[data-outil]").forEach(function (b) {
       b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false");
     });
-    scene.classList.toggle("outil-fleche", o === "fleche" || o === "fleche2");
-    scene.classList.toggle("outil-texte", o === "texte");
+    scene.classList.toggle("outil-fleche", o === "fleche");
     annulerFlecheEnCours();
-    var msg = { deplacer: "", fleche: S.flecheDepart, fleche2: S.flecheDouble, texte: S.texteClic };
-    aide.textContent = msg[o] || "";
+    aide.textContent = o === "fleche" ? S.flecheDepart : "";
   }
 
   /* ---------- Pioche / main (solo) ---------- */
@@ -194,7 +192,7 @@
     document.getElementById("btn-piocher").disabled = etat.pioche.length === 0;
     document.getElementById("btn-distribuer-tout").disabled = etat.pioche.length === 0;
     var exp = document.getElementById("btn-export");
-    if (exp) exp.disabled = !(etat.pioche.length === 0 && etat.main == null && etat.posees.length > 0);
+    if (exp) exp.hidden = !(etat.pioche.length === 0 && etat.main == null && etat.posees.length > 0);
   }
   function rendreMain() {
     mainZone.innerHTML = "";
@@ -262,7 +260,7 @@
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     rendreGlissable(el, rec);
     el.addEventListener("click", function (e) {
-      if (etat.outil === "fleche" || etat.outil === "fleche2") { e.stopPropagation(); clicFleche(rec); }
+      if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(rec); }
     });
     monde.appendChild(el);
     etat.posees.push(rec);
@@ -328,7 +326,7 @@
     } else if (etat.flecheDepart === rec) {
       annulerFlecheEnCours();
     } else {
-      etat.fleches.push({ id: etat.seq++, de: etat.flecheDepart.n, vers: rec.n, bidir: etat.outil === "fleche2", libelle: "" });
+      etat.fleches.push({ id: etat.seq++, de: etat.flecheDepart.n, vers: rec.n, bidir: false, libelle: "" });
       annulerFlecheEnCours(); dessinerFleches(); majCoach();
     }
   }
@@ -446,7 +444,7 @@
   }
 
   /* ---------- Selection + editeurs flottants (croix / libelle) ---------- */
-  var croixFleche = null, editLib = null, croixTexte = null;
+  var croixFleche = null, editLib = null, croixTexte = null, bidirFleche = null;
   function selectionner(type, ref) {
     deselect();
     etat.sel = { type: type, ref: ref };
@@ -459,8 +457,8 @@
       if (etat.sel.type === "carte" || etat.sel.type === "texte") etat.sel.ref.el.classList.remove("sel");
     }
     etat.sel = null;
-    [croixFleche, editLib, croixTexte].forEach(function (n) { if (n) n.remove(); });
-    croixFleche = editLib = croixTexte = null;
+    [croixFleche, editLib, croixTexte, bidirFleche].forEach(function (n) { if (n) n.remove(); });
+    croixFleche = editLib = croixTexte = bidirFleche = null;
     dessinerFleches();
   }
   function construireEditeurFleche(f) {
@@ -476,6 +474,14 @@
       etat.fleches = etat.fleches.filter(function (x) { return x !== f; }); deselect(); dessinerFleches();
     });
     scene.appendChild(croixFleche);
+    // Bascule sens unique <-> double sens.
+    bidirFleche = document.createElement("button");
+    bidirFleche.className = "fleche-bidir"; bidirFleche.textContent = "↔";
+    bidirFleche.title = S.sensDouble; bidirFleche.setAttribute("aria-pressed", f.bidir ? "true" : "false");
+    bidirFleche.addEventListener("click", function () {
+      f.bidir = !f.bidir; bidirFleche.setAttribute("aria-pressed", f.bidir ? "true" : "false"); dessinerFleches();
+    });
+    scene.appendChild(bidirFleche);
     positionnerEditeurs();
   }
   function construireCroixTexte(rec) {
@@ -494,6 +500,7 @@
       var m = etat.sel.ref._mid;
       var p = { x: etat.panX + m.x * etat.zoom, y: etat.panY + m.y * etat.zoom };
       if (croixFleche) { croixFleche.style.left = p.x + "px"; croixFleche.style.top = (p.y - 16) + "px"; }
+      if (bidirFleche) { bidirFleche.style.left = (p.x - 30) + "px"; bidirFleche.style.top = (p.y - 16) + "px"; }
       if (editLib) { editLib.style.left = (p.x + 14) + "px"; editLib.style.top = (p.y - 14) + "px"; }
     }
     if (etat.sel && etat.sel.type === "texte" && croixTexte) {
@@ -505,16 +512,18 @@
 
   /* ---------- Scene : clic + pan + molette ---------- */
   var panning = null;
+  function fondScene(t) { return t === scene || t === monde || t.classList.contains("plan-bord") || t.id === "fleches"; }
   scene.addEventListener("pointerdown", function (e) {
-    if (e.target !== scene && e.target !== monde && !e.target.classList.contains("plan-bord") && e.target.id !== "fleches") return;
-    if (etat.outil === "texte") {
-      e.preventDefault();
-      var w = versMonde(e.clientX, e.clientY); creerTexte(w.x, w.y, true); return;
-    }
-    if (etat.outil === "fleche" || etat.outil === "fleche2") { annulerFlecheEnCours(); }
+    if (!fondScene(e.target)) return;
+    if (etat.outil === "fleche") { annulerFlecheEnCours(); }
     deselect();
     panning = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY };
     scene.classList.add("grabbing"); scene.setPointerCapture(e.pointerId);
+  });
+  // Note : double-clic sur une zone vide du tableau.
+  scene.addEventListener("dblclick", function (e) {
+    if (!fondScene(e.target)) return;
+    var w = versMonde(e.clientX, e.clientY); creerTexte(w.x, w.y, true);
   });
   scene.addEventListener("pointermove", function (e) {
     if (!panning) return;
@@ -613,7 +622,8 @@
 
   /* ---------- Barres ---------- */
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) {
-    b.addEventListener("click", function () { setOutil(b.dataset.outil); });
+    // Un seul bouton d'outil (Lien) : il bascule entre deplacer et fleche.
+    b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); });
   });
   zPlus.addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   zMoins.addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });

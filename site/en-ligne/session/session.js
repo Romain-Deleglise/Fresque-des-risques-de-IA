@@ -18,7 +18,7 @@
     sessionClose: "The session was closed by the facilitator.",
     cliquezArrivee: "Click the target card.",
     flecheDepart: "Click the source card, then the target card.",
-    flecheDouble: "Double link: source then target.", texteClic: "Click the board to write.",
+    flecheDouble: "Double link: source then target.", sensDouble: "Two-way link", texteClic: "Click the board to write.",
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
     poser: "Place", libelle: "label…", texteAVenir: "Text coming soon.",
@@ -38,7 +38,7 @@
     sessionClose: "La session a été close par l'animateur.",
     cliquezArrivee: "Cliquez la carte d'arrivée.",
     flecheDepart: "Cliquez la carte de départ, puis la carte d'arrivée.",
-    flecheDouble: "Lien double : départ puis arrivée.", texteClic: "Cliquez le tableau pour écrire.",
+    flecheDouble: "Lien double : départ puis arrivée.", sensDouble: "Lien à double sens", texteClic: "Cliquez le tableau pour écrire.",
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", libelle: "libellé…", texteAVenir: "Texte à venir.",
@@ -67,8 +67,7 @@
       "#btn-rejoindre": "Join",
       "#btn-partager": "Copy the link",
       "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
-      '.tool[data-outil="deplacer"]': "Move", '.tool[data-outil="fleche"]': "Link →",
-      '.tool[data-outil="fleche2"]': "Link ↔", '.tool[data-outil="texte"]': "Note",
+      '.tool[data-outil="fleche"]': "Link",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
@@ -355,7 +354,7 @@
 
     dessinerFleches();
     var exp = document.getElementById("btn-export");
-    if (exp) exp.disabled = !(tab.cartes && tab.cartes.length >= 38);
+    if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
   }
 
   function creerElCarte(n) {
@@ -364,7 +363,7 @@
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("click", function (e) {
-      if (etat.outil === "fleche" || etat.outil === "fleche2") { e.stopPropagation(); clicFleche(n, el); }
+      if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
     });
     glisserCarte(el, n);
@@ -397,7 +396,7 @@
   function clicFleche(n, el) {
     if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
-    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: etat.outil === "fleche2" }); annulerFleche(); }
+    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: false }); annulerFleche(); }
   }
   function annulerFleche() { if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart"); etat.flecheDepart = null; }
 
@@ -442,7 +441,7 @@
   }
 
   /* ---------- Sélection flèche : libellé + suppression ---------- */
-  var croix = null, editLib = null;
+  var croix = null, editLib = null, bidir = null;
   function selFleche(id) {
     deselect(); etat.sel = { type: "fleche", id: id }; dessinerFleches();
     var f = etat.vue.tableau.fleches.find(function (x) { return x.id === id; }); if (!f) return;
@@ -453,19 +452,25 @@
     editLib.addEventListener("input", function () { clearTimeout(envoi); var v = editLib.value; envoi = setTimeout(function () { agir({ op: "libellerFleche", id: id, libelle: v }); }, 400); });
     E.scene.appendChild(editLib);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
+    bidir = document.createElement("button");
+    bidir.className = "fleche-bidir"; bidir.textContent = "↔"; bidir.title = S.sensDouble;
+    bidir.setAttribute("aria-pressed", f.bidir ? "true" : "false");
+    bidir.addEventListener("click", function () { agir({ op: "bidirFleche", id: id }); });
+    E.scene.appendChild(bidir);
     positionnerEditeurs();
   }
   function selCarte(n, el) { deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel"); }
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
-    etat.sel = null; [croix, editLib].forEach(function (x) { if (x) x.remove(); }); croix = editLib = null; dessinerFleches();
+    etat.sel = null; [croix, editLib, bidir].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = null; dessinerFleches();
   }
   function positionnerEditeurs() {
     if (etat.sel && etat.sel.type === "fleche") {
       var f = etat.vue.tableau.fleches.find(function (x) { return x.id === etat.sel.id; });
       if (f && f._mid) { var px = etat.panX + f._mid.x * etat.zoom, py = etat.panY + f._mid.y * etat.zoom;
         if (croix) { croix.style.left = px + "px"; croix.style.top = (py - 16) + "px"; }
+        if (bidir) { bidir.style.left = (px - 30) + "px"; bidir.style.top = (py - 16) + "px"; }
         if (editLib) { editLib.style.left = (px + 14) + "px"; editLib.style.top = (py - 14) + "px"; } }
     }
   }
@@ -525,10 +530,15 @@
 
   var pan = null;
   E.scene.addEventListener("pointerdown", function (e) {
-    if (e.target !== E.scene && e.target !== E.monde && !e.target.classList.contains("plan-bord") && e.target.id !== "fleches") return;
-    if (etat.outil === "texte") { var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y); return; }
+    if (!fondScene(e.target)) return;
     annulerFleche(); deselect();
     pan = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY }; E.scene.classList.add("grabbing"); E.scene.setPointerCapture(e.pointerId);
+  });
+  function fondScene(t) { return t === E.scene || t === E.monde || t.classList.contains("plan-bord") || t.id === "fleches"; }
+  // Note : double-clic sur une zone vide du tableau.
+  E.scene.addEventListener("dblclick", function (e) {
+    if (!fondScene(e.target)) return;
+    var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y);
   });
   E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
@@ -536,9 +546,9 @@
 
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
-    E.scene.classList.toggle("outil-fleche", o === "fleche" || o === "fleche2"); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
-    flash({ fleche: S.flecheDepart, fleche2: S.flecheDouble, texte: S.texteClic }[o] || ""); }
-  document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(b.dataset.outil); }); });
+    E.scene.classList.toggle("outil-fleche", o === "fleche"); annulerFleche();
+    flash(o === "fleche" ? S.flecheDepart : ""); }
+  document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);

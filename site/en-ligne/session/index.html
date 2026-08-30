@@ -55,7 +55,7 @@
     <button class="btn" id="btn-partager">Copier le lien</button>
     <span class="spacer"></span>
     <span class="compte anim-only" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
-    <button class="btn" id="btn-export" disabled title="Disponible une fois toutes les cartes placées">Télécharger l'image</button>
+    <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
     <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
     <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
     <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
@@ -69,10 +69,7 @@
     </div>
     <span class="sep-min anim-only"></span>
     <div class="groupe" role="group" aria-label="Outil">
-      <button class="btn tool" data-outil="deplacer" aria-pressed="true">Déplacer</button>
-      <button class="btn tool" data-outil="fleche" aria-pressed="false">Lien →</button>
-      <button class="btn tool" data-outil="fleche2" aria-pressed="false">Lien ↔</button>
-      <button class="btn tool" data-outil="texte" aria-pressed="false">Note</button>
+      <button class="btn tool" data-outil="fleche" aria-pressed="false" title="Relier deux cartes : cliquez la carte de départ, puis la carte d'arrivée">Lien</button>
     </div>
     <span class="sep"></span>
     <div class="groupe" role="group" aria-label="Zoom">
@@ -111,10 +108,11 @@
       </div>
       <p class="aide-intro" id="carte0-txt">…</p>
       <ul class="aide-liste" id="aide-liste">
-        <li><b>Cartes :</b> l'animateur distribue ; posez votre carte, puis glissez-la. Le bouton ⤢ l'agrandit.</li>
-        <li><b>Liens :</b> outil « Lien », cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour l'annoter ou le supprimer.</li>
-        <li><b>Notes :</b> outil « Note » puis un clic sur le tableau ; glissez pour déplacer, videz pour supprimer.</li>
-        <li><b>Vue :</b> zoom et déplacement sont propres à chacun. « Tout voir » recadre l'ensemble.</li>
+        <li><b>Déplacer :</b> glissez une carte pour la déplacer ; glissez une zone vide pour vous déplacer.</li>
+        <li><b>Cartes :</b> l'animateur distribue ; posez votre carte. Le bouton ⤢ l'agrandit.</li>
+        <li><b>Liens :</b> cliquez « Lien », puis la carte de départ et la carte d'arrivée. Sélectionnez une flèche pour l'annoter, la supprimer ou la passer en double sens (↔).</li>
+        <li><b>Notes :</b> double-cliquez sur une zone vide du tableau ; glissez pour déplacer, videz pour supprimer.</li>
+        <li><b>Vue :</b> molette pour zoomer ; zoom et déplacement sont propres à chacun. « Tout voir » recadre.</li>
       </ul>
     </aside>
   </div>
