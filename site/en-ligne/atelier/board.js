@@ -22,7 +22,7 @@
     texteClic: "Click the board to write.",
     posezDabord: "Place the card you're holding first.",
     cliquezArrivee: "Now click the target card.",
-    poser: "Place",
+    poser: "Place", glisserPoser: "Drag onto the board",
     libelle: "label…",
     suppFleche: "Delete the arrow", sensDouble: "Two-way link",
     suppTexte: "Delete the note",
@@ -32,7 +32,7 @@
     erreurCartes: "Unable to load the cards.",
     coachTitre: "How to play", coachFermer: "Got it",
     coachPiocher: "To start: click “Draw a card” to draw a card.",
-    coachPoser: "Now click “Place” (bottom left) to drop the card on the board.",
+    coachPoser: "Drag the card (bottom left) onto the board to place it.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another.",
     coachContinuer: "Keep going: draw more cards and connect them to build the fresco."
   } : {
@@ -41,7 +41,7 @@
     texteClic: "Cliquez le tableau pour écrire.",
     posezDabord: "Posez d'abord la carte que vous tenez.",
     cliquezArrivee: "Cliquez maintenant la carte d'arrivée.",
-    poser: "Poser",
+    poser: "Poser", glisserPoser: "Glissez sur le tableau",
     libelle: "libellé…",
     suppFleche: "Supprimer la flèche", sensDouble: "Lien à double sens",
     suppTexte: "Supprimer le texte",
@@ -51,7 +51,7 @@
     erreurCartes: "Impossible de charger les cartes.",
     coachTitre: "Comment jouer", coachFermer: "Compris",
     coachPiocher: "Pour commencer : cliquez « Piocher une carte » pour tirer une carte.",
-    coachPoser: "Cliquez maintenant « Poser » (en bas à gauche) pour placer la carte sur le tableau.",
+    coachPoser: "Glissez la carte (en bas à gauche) sur le tableau pour la placer.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre.",
     coachContinuer: "Continuez : piochez d'autres cartes et reliez-les pour construire la fresque."
   };
@@ -200,14 +200,45 @@
     var c = etat.cartesData[etat.main];
     var d = document.createElement("div");
     d.className = "main-carte a-poser";
-    d.innerHTML = '<div class="vis" data-a="voir" title="Agrandir"><img alt="" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
+    d.innerHTML = '<div class="vis"><img alt="" src="' + (c.image ? BASE + c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
       + '<div class="tit">' + echap(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">' + S.poser + '</button></div>';
-    d.querySelector('[data-a="poser"]').addEventListener("click", poserMain);
-    d.querySelector('[data-a="voir"]').addEventListener("click", function () { ouvrirModal(etat.main); });
+      + '<div class="pousser">' + S.glisserPoser + '</div>';
+    activerGlisserMain(d);
     mainZone.appendChild(d);
   }
-  // Pose la carte tenue au centre visible.
+  // Glisser la carte tenue vers le tableau ; clic simple = agrandir.
+  function activerGlisserMain(d) {
+    var drag = null;
+    d.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0 || etat.main == null) return;
+      drag = { x0: e.clientX, y0: e.clientY, bougé: false };
+      try { d.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    d.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      if (!drag.bougé && Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) > 6) {
+        drag.bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
+      }
+      if (drag.bougé) {
+        d.style.left = (e.clientX - d.offsetWidth / 2) + "px";
+        d.style.top = (e.clientY - 24) + "px";
+      }
+    });
+    d.addEventListener("pointerup", function (e) {
+      if (!drag) return;
+      var bougé = drag.bougé; drag = null;
+      try { d.releasePointerCapture(e.pointerId); } catch (x) {}
+      if (!bougé) { ouvrirModal(etat.main); return; }        // clic simple : agrandir
+      var r = rectScene();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        var w = versMonde(e.clientX, e.clientY);
+        poser(etat.main, w.x, w.y); etat.main = null; rendreMain(); majCoach();
+      } else {
+        rendreMain(); // relâché hors du tableau : la carte reste en main
+      }
+    });
+  }
+  // Pose la carte tenue au centre visible (repli depuis la fenêtre agrandie).
   function poserMain() {
     if (etat.main == null) return;
     var r = rectScene();
@@ -328,6 +359,7 @@
     } else {
       etat.fleches.push({ id: etat.seq++, de: etat.flecheDepart.n, vers: rec.n, bidir: false, libelle: "" });
       annulerFlecheEnCours(); dessinerFleches(); majCoach();
+      setOutil("deplacer"); // on repasse en deplacement apres chaque lien
     }
   }
   function annulerFlecheEnCours() {
@@ -608,6 +640,7 @@
       if (modal.classList.contains("on")) { fermerModal(); return; }
       if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; }
       deselect(); annulerFlecheEnCours();
+      if (etat.outil === "fleche") setOutil("deplacer");
     }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       var edit = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute("contenteditable") === "true";

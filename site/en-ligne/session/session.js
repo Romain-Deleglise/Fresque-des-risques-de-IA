@@ -21,13 +21,13 @@
     flecheDouble: "Double link: source then target.", sensDouble: "Two-way link", texteClic: "Click the board to write.",
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
-    poser: "Place", libelle: "label…", texteAVenir: "Text coming soon.",
+    poser: "Place", glisserPoser: "Drag onto the board", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
     coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
     coachAttente: "Waiting for a card from the facilitator…",
-    coachPoser: "Click “Place” to put your card on the board.",
+    coachPoser: "Drag your card onto the board to place it.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
@@ -41,13 +41,13 @@
     flecheDouble: "Lien double : départ puis arrivée.", sensDouble: "Lien à double sens", texteClic: "Cliquez le tableau pour écrire.",
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
-    poser: "Poser", libelle: "libellé…", texteAVenir: "Texte à venir.",
+    poser: "Poser", glisserPoser: "Glissez sur le tableau", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
     coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
     coachAttente: "En attente d'une carte de l'animateur…",
-    coachPoser: "Cliquez « Poser » pour placer votre carte sur le tableau.",
+    coachPoser: "Glissez votre carte sur le tableau pour la placer.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
@@ -308,13 +308,40 @@
     var p = etat.role === "participant" ? (vue.participants.find(function (x) { return x.id === _idMoi; })) : null;
     if (!p || p.carteEnMain == null) return;
     var c = etat.cartes[p.carteEnMain]; if (!c) return;
-    var d = document.createElement("div"); d.className = "main-carte";
-    d.innerHTML = '<div class="vis" data-a="voir" title="Agrandir"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
+    var d = document.createElement("div"); d.className = "main-carte a-poser";
+    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span></div>'
       + '<div class="tit">' + esc(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">'+S.poser+'</button></div>';
-    d.querySelector('[data-a="poser"]').addEventListener("click", poserMain);
-    d.querySelector('[data-a="voir"]').addEventListener("click", function () { ouvrirModal(p.carteEnMain); });
+      + '<div class="pousser">' + S.glisserPoser + '</div>';
+    activerGlisserMain(d, p.carteEnMain);
     mz.appendChild(d);
+  }
+  // Glisser la carte tenue vers le tableau ; clic simple = agrandir.
+  function activerGlisserMain(d, n) {
+    var drag = null;
+    d.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      drag = { x0: e.clientX, y0: e.clientY, bougé: false };
+      try { d.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    d.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      if (!drag.bougé && Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) > 6) {
+        drag.bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
+      }
+      if (drag.bougé) { d.style.left = (e.clientX - d.offsetWidth / 2) + "px"; d.style.top = (e.clientY - 24) + "px"; }
+    });
+    d.addEventListener("pointerup", function (e) {
+      if (!drag) return;
+      var bougé = drag.bougé; drag = null;
+      try { d.releasePointerCapture(e.pointerId); } catch (x) {}
+      if (!bougé) { ouvrirModal(n); return; }
+      var r = rectScene();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        var w = versMonde(e.clientX, e.clientY);
+        agir({ op: "poser", n: n, rect: { x: w.x - 90, y: w.y - 75, largeur: 200, hauteur: 200 } });
+      }
+      if (etat.vue) rendreMain(etat.vue);
+    });
   }
   // Carte tenue par moi (participant), ou null.
   function maCarte() {
@@ -396,7 +423,7 @@
   function clicFleche(n, el) {
     if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
-    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: false }); annulerFleche(); }
+    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: false }); annulerFleche(); setOutil("deplacer"); }
   }
   function annulerFleche() { if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart"); etat.flecheDepart = null; }
 
@@ -572,7 +599,7 @@
     if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal(); if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; } deselect(); annulerFleche(); }
+    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal(); if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; } deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();
