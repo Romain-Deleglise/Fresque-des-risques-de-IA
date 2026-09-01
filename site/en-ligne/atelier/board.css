@@ -97,7 +97,7 @@ a{color:var(--accent-txt);text-decoration:none}
   cursor:grab;touch-action:none}
 .scene.grabbing{cursor:grabbing}
 .scene.outil-fleche,.scene.outil-texte{cursor:crosshair}
-#monde{position:absolute;top:0;left:0;width:3200px;height:2200px;transform-origin:0 0}
+#monde{position:absolute;top:0;left:0;width:4400px;height:2200px;transform-origin:0 0}
 .plan-bord{position:absolute;inset:0;border:1px solid var(--ligne);border-radius:10px;background:var(--plan);pointer-events:none}
 
 /* Cartes posées (tuiles blanches lisibles) */
@@ -116,9 +116,9 @@ a{color:var(--accent-txt);text-decoration:none}
    discret. */
 #monde.loin .c-carte .tit{
   background:var(--accent);color:var(--sur-accent);
-  font-size:calc(.82rem * min(2.2, var(--iz,1)));
-  line-height:1.08;
-  padding:calc(.34rem * min(2.2,var(--iz,1))) calc(.42rem * min(2.2,var(--iz,1)));
+  font-size:calc(.82rem * min(3.6, var(--iz,1)));
+  line-height:1.1;text-align:center;white-space:normal;overflow-wrap:break-word;word-break:break-word;
+  padding:calc(.3rem * min(3.6,var(--iz,1))) calc(.34rem * min(3.6,var(--iz,1)));
 }
 #monde.loin .c-carte .agr{opacity:0;pointer-events:none}
 #monde.loin .c-texte{font-size:calc(15px * min(2.2, var(--iz,1)))}
@@ -128,7 +128,7 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Flèches */
-#fleches{position:absolute;top:0;left:0;width:3200px;height:2200px;overflow:visible;pointer-events:none}
+#fleches{position:absolute;top:0;left:0;width:4400px;height:2200px;overflow:visible;pointer-events:none}
 #fleches .hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
 #fleches .trait{stroke:#8a857b;stroke-width:2.2;fill:none}
 #fleches .trait.bidir{stroke:#F0A860}

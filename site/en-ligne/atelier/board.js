@@ -63,7 +63,7 @@
     var t = [
       [".marque", null, null], // logo texte géré à part
       ["#btn-piocher", "Draw a card"], ["#btn-recommencer", "Restart"],
-      ['.tool[data-outil="fleche"]', "Link"],
+      ['.tool[data-outil="fleche"]', "Link"], ['.tool[data-outil="texte"]', "Note"],
       ["#z-tout", "Fit all"],
       ["#btn-plein", "Fullscreen"], ["#aide-titre", "How to play"],
       ["#modal-flip", "Flip"], ["#modal-close", "Close ✕"]
@@ -104,7 +104,7 @@
   }
 
   var BASE = "../../";
-  var PLAN_W = 3200, PLAN_H = 2200;
+  var PLAN_W = 4400, PLAN_H = 2200;
   var ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
 
   var scene = document.getElementById("scene");
@@ -188,7 +188,8 @@
   }
   function toutVoir() {
     var r = rectScene();
-    var nz = Math.max(ZMIN, Math.min(r.width / PLAN_W, r.height / PLAN_H));
+    // Plancher a 38 % pour que les titres restent lisibles apres "Tout voir".
+    var nz = Math.max(0.38, Math.min(r.width / PLAN_W, r.height / PLAN_H));
     etat.zoom = nz;
     etat.panX = (r.width - PLAN_W * nz) / 2;
     etat.panY = (r.height - PLAN_H * nz) / 2;
@@ -206,8 +207,9 @@
       b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false");
     });
     scene.classList.toggle("outil-fleche", o === "fleche");
+    scene.classList.toggle("outil-texte", o === "texte");
     annulerFlecheEnCours();
-    aide.textContent = o === "fleche" ? S.flecheDepart : "";
+    aide.textContent = o === "fleche" ? S.flecheDepart : (o === "texte" ? S.texteClic : "");
   }
 
   /* ---------- Pioche / main (solo) ---------- */
@@ -267,7 +269,7 @@
       function up(ev) {
         document.removeEventListener("pointermove", mv, true);
         document.removeEventListener("pointerup", up, true);
-        if (!bougé) return;                                 // simple clic : géré par les boutons
+        if (!bougé) { if (etat.main != null) ouvrirModal(etat.main); return; } // clic simple = agrandir
         var r = rectScene();
         if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
           var w = versMonde(ev.clientX, ev.clientY);
@@ -302,9 +304,10 @@
   coach.innerHTML = '<span class="coach-txt"></span>' +
     '<button type="button" class="coach-x">' + echap(S.coachFermer) + '</button>';
   scene.appendChild(coach);
-  coach.querySelector(".coach-x").addEventListener("click", function () {
-    coachOff = true; try { localStorage.setItem("coach-off", "1"); } catch (e) {}
-    majCoach();
+  coach.querySelector(".coach-x").addEventListener("click", function (e) {
+    e.stopPropagation();
+    coachOff = true; try { localStorage.setItem("coach-off", "1"); } catch (e2) {}
+    coach.remove(); // suppression definitive : il ne peut plus reapparaitre
   });
   function etapeCoach() {
     if (etat.main != null) return "poser";
@@ -337,6 +340,7 @@
       + '<div class="tit">' + echap(c.titre) + '</div>';
     var rec = { n: n, x: pos.x, y: pos.y, el: el };
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
+    el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
     rendreGlissable(el, rec);
     el.addEventListener("click", function (e) {
       if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(rec); }
@@ -596,6 +600,7 @@
   function fondScene(t) { return t === scene || t === monde || t.classList.contains("plan-bord") || t.id === "fleches"; }
   scene.addEventListener("pointerdown", function (e) {
     if (!fondScene(e.target)) return;
+    if (etat.outil === "texte") { e.preventDefault(); var w = versMonde(e.clientX, e.clientY); creerTexte(w.x, w.y, true); setOutil("deplacer"); return; }
     if (etat.outil === "fleche") { annulerFlecheEnCours(); }
     deselect();
     panning = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY };
@@ -636,6 +641,7 @@
     grande.classList.remove("flip"); modal.classList.add("on");
   }
   document.getElementById("modal-flip").addEventListener("click", function () { grande.classList.toggle("flip"); });
+  grande.addEventListener("click", function () { grande.classList.toggle("flip"); }); // clic sur la carte = retourner
   var mp = document.getElementById("modal-poser");
   if (mp) mp.addEventListener("click", function () { poserMain(); fermerModal(); });
   document.getElementById("modal-close").addEventListener("click", fermerModal);

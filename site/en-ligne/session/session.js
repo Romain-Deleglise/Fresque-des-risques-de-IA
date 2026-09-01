@@ -67,7 +67,7 @@
       "#btn-rejoindre": "Join",
       "#btn-partager": "Copy the link",
       "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
-      '.tool[data-outil="fleche"]': "Link",
+      '.tool[data-outil="fleche"]': "Link", '.tool[data-outil="texte"]': "Note",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
@@ -107,7 +107,7 @@
 
   var API = "/.netlify/functions/fresque";
   var BASE = "../../";
-  var PLAN_W = 3200, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
+  var PLAN_W = 4400, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
   var POLL_MS = 2500;
 
   var E = {}; // éléments DOM
@@ -391,6 +391,7 @@
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
+    el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
     el.addEventListener("click", function (e) {
       if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
@@ -553,13 +554,14 @@
     etat.panY = ph <= r.height ? (r.height - ph) / 2 : Math.min(0, Math.max(r.height - ph, etat.panY)); }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
   function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); dessinerFleches(); }
-  function toutVoir() { var r = rectScene(); etat.zoom = Math.max(ZMIN, Math.min(r.width / PLAN_W, r.height / PLAN_H)); etat.panX = (r.width - PLAN_W * etat.zoom) / 2; etat.panY = (r.height - PLAN_H * etat.zoom) / 2; clampPan(); applyView(); dessinerFleches(); }
+  function toutVoir() { var r = rectScene(); etat.zoom = Math.max(0.38, Math.min(r.width / PLAN_W, r.height / PLAN_H)); etat.panX = (r.width - PLAN_W * etat.zoom) / 2; etat.panY = (r.height - PLAN_H * etat.zoom) / 2; clampPan(); applyView(); dessinerFleches(); }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }
 
   var pan = null;
   E.scene.addEventListener("pointerdown", function (e) {
     if (!fondScene(e.target)) return;
+    if (etat.outil === "texte") { e.preventDefault(); var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y); setOutil("deplacer"); return; }
     annulerFleche(); deselect();
     pan = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY }; E.scene.classList.add("grabbing"); E.scene.setPointerCapture(e.pointerId);
   });
@@ -575,8 +577,8 @@
 
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
-    E.scene.classList.toggle("outil-fleche", o === "fleche"); annulerFleche();
-    flash(o === "fleche" ? S.flecheDepart : ""); }
+    E.scene.classList.toggle("outil-fleche", o === "fleche"); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
+    flash(o === "fleche" ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
@@ -620,6 +622,7 @@
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
   E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });
+  E["carte-grande"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); }); // clic = retourner
   E["modal-close"].addEventListener("click", fermerModal);
   (function () { var mpo = document.getElementById("modal-poser"); if (mpo) mpo.addEventListener("click", function () { poserMain(); fermerModal(); }); })();
   E.modal.addEventListener("click", function (e) { if (e.target === E.modal) fermerModal(); });
