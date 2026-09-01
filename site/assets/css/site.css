@@ -169,7 +169,12 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 /* --- L'atelier : deux colonnes éditoriales -------------------------------- */
 .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: start; }
 .prose { max-width: var(--texte); }
-.prose p { color: var(--ink-doux); }
+.prose p { color: var(--ink-doux); text-align: justify; hyphens: auto; }
+/* Rythme des sous-titres homogene dans les colonnes de lecture */
+.prose h2 { margin-top: 2.8rem; }
+.prose h2:first-child { margin-top: 0; }
+.prose h3 { margin-top: 1.9rem; }
+.prose > *:first-child { margin-top: 0; }
 .flux { list-style: none; margin: 0; padding: 0; }
 .flux li { display: grid; grid-template-columns: auto 1fr; gap: 1.1rem; padding: 1.2rem 0; border-top: 1px solid var(--ligne); }
 .flux li:last-child { border-bottom: 1px solid var(--ligne); }
@@ -273,8 +278,11 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .pied-bas .wrap { padding: 1.3rem 1.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .6rem; font-family: var(--f-ui); font-size: .82rem; color: var(--gris); }
 
 /* --- Page titre (à propos / en ligne) ------------------------------------- */
-.page-tete { padding: clamp(3rem, 6vw, 4.5rem) 0 1rem; }
+.page-tete { padding: clamp(2.2rem, 4.2vw, 3.2rem) 0 0; }
 .page-tete h1 { max-width: 20ch; }
+.page-tete .lede { margin-top: 1rem; }
+/* La section qui suit un en-tete de page respire moins en haut (evite le double espace) */
+.page-tete + .section { padding-top: clamp(2.2rem, 4vw, 3.2rem); }
 
 /* --- Avis indisponible ---------------------------------------------------- */
 .avis { border: 1px solid var(--ligne); border-left: 3px solid var(--accent); background: var(--bg-doux); border-radius: 8px; padding: 1.3rem 1.5rem; margin: 0 0 2rem; }
