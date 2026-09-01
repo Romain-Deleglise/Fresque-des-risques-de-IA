@@ -29,17 +29,31 @@
     .then(function (data) {
       var parN = {};
       data.cartes.forEach(function (c) { parN[c.n] = c; });
+      var enAnglais = (document.documentElement.lang || "fr").indexOf("en") === 0;
       GALERIE.forEach(function (n) {
         var c = parN[n]; if (!c) return;
-        var fig = document.createElement("figure");
+        // Bouton : au clic, la carte se retourne pour montrer le verso (explication).
+        var fig = document.createElement("button");
+        fig.type = "button";
         fig.className = "gc"; fig.style.margin = "0";
+        fig.setAttribute("aria-pressed", "false");
+        fig.setAttribute("aria-label", (enAnglais ? "Card " : "Carte ") + c.n + " : " + c.titre + (enAnglais ? " — flip to read" : " — retourner pour lire"));
         if (c.image) {
           var img = document.createElement("img");
           // Vraie carte (format paysage) : elle porte deja son numero et son titre.
           img.src = c.image.carte || c.image.grand || c.image.vignette;
-          img.alt = "Carte " + c.n + " : " + c.titre; img.loading = "lazy";
+          img.alt = ""; img.loading = "lazy";
           fig.appendChild(img);
         }
+        var dos = document.createElement("span");
+        dos.className = "gc-verso";
+        dos.innerHTML = "<b>" + echap(c.titre) + "</b>" +
+          (c.verso || []).map(function (p) { return "<span>" + echap(/\[A COMPLETER\]/i.test(p) ? "" : p) + "</span>"; }).join("");
+        fig.appendChild(dos);
+        fig.addEventListener("click", function () {
+          var ouvert = fig.getAttribute("aria-pressed") === "true";
+          fig.setAttribute("aria-pressed", ouvert ? "false" : "true");
+        });
         galerie.appendChild(fig);
       });
     })

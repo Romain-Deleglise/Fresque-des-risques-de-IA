@@ -7,7 +7,7 @@
 const { getStore } = require("@netlify/blobs");
 const mail = require("./lib/mail.js");
 
-const LIEN = "https://fresque-risques-ia.pauseia.fr";
+const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
 const FENETRE_MS = 26 * 60 * 60 * 1000;
 
 function store() { return getStore({ name: "fresque-ateliers", consistency: "strong" }); }

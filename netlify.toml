@@ -21,6 +21,8 @@
 #     aucun e-mail n'est envoye ; le code s'affiche a l'ecran).
 #   - MAIL_FROM      : expediteur verifie, ex "Fresque des risques de l'IA <atelier@pauseia.fr>"
 #   - MAIL_REPONSE   : (optionnel) Reply-To, ex contact@pauseia.fr
+#   - SITE_URL       : URL publique du site pour les liens des e-mails,
+#     ex https://fresquedesrisquesdelia.org (defaut : ce domaine).
 # Rappels : la fonction rappels s'execute une fois par jour (voir ci-dessous) et
 # ecrit a l'animateur + participants (CC) pour les ateliers du lendemain.
 [functions."rappels"]

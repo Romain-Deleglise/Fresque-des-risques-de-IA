@@ -187,7 +187,10 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 /* --- Galerie de cartes : sobre -------------------------------------------- */
 .galerie { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
 /* Vraies cartes (format paysage) : ratio 1.414/1, image plein cadre. */
-.gc { position: relative; aspect-ratio: 1.414 / 1; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; }
+.gc { position: relative; aspect-ratio: 1.414 / 1; border-radius: 10px; overflow: hidden; background: #14110d; box-shadow: 0 8px 20px rgba(27,26,23,.10); transition: transform .18s ease; border: 0; padding: 0; width: 100%; cursor: pointer; font: inherit; display: block; }
+.gc .gc-verso { position: absolute; inset: 0; background: var(--surface); color: var(--ink-doux); padding: .8rem .9rem; text-align: left; overflow: auto; opacity: 0; visibility: hidden; transition: opacity .25s ease; display: flex; flex-direction: column; gap: .35rem; font-family: var(--f-texte); font-size: .82rem; line-height: 1.4; }
+.gc .gc-verso b { font-family: var(--f-titre); font-size: 1rem; color: var(--accent-txt); }
+.gc[aria-pressed="true"] .gc-verso { opacity: 1; visibility: visible; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: var(--sur-accent); background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }

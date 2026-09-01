@@ -14,7 +14,8 @@ const R = require("../../serveur/src/regles.js");
 const L = require("../../serveur/src/limites.js");
 const mail = require("./lib/mail.js");
 
-const LIEN = "https://fresque-risques-ia.pauseia.fr"; // ajuster si le domaine change
+// URL publique du site (variable d'environnement SITE_URL dans Netlify).
+const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
 const TTL_PURGE_MS = 7 * 24 * 60 * 60 * 1000; // on garde les ateliers 7 j apres leur date
 
 function store() { return getStore({ name: "fresque-ateliers", consistency: "strong" }); }
