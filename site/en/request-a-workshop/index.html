@@ -51,58 +51,66 @@
       </div>
     </section>
 
-    <section class="section section-doux">
+    <section class="section" id="roles">
       <div class="wrap">
         <div class="entete-sec">
-          <p class="eyebrow">Why it matters</p>
-          <h2>A different way of looking at AI</h2>
+          <p class="eyebrow">Workshops</p>
+          <h2>Attend or facilitate</h2>
+          <p class="muted">See the scheduled workshops and sign up, or schedule your own workshop as a facilitator.</p>
         </div>
-        <div class="modes">
-          <article class="mode">
-            <span class="mode-tag">A different approach</span>
-            <h2>Neither hype nor doom</h2>
-            <p>We start from the facts and take the time to debate. No magic promises, no panic:
-              everyone forms their own view, based on what we actually know today.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">Independent</span>
-            <h2>No commercial interest</h2>
-            <p>The Collage is run by Pause IA, an independent non-profit with no ties to the AI
-              industry. The content isn't sold by anyone and isn't trying to sell you anything.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">An enriching perspective</span>
-            <h2>Crossing viewpoints</h2>
-            <p>Curious minds, citizens, engineers: mixing perspectives around the table brings out
-              a sharper, often unexpected understanding of what's at stake.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">Concrete</span>
-            <h2>You leave with bearings</h2>
-            <p>Not a lecture but a shared construction. By the end, the collage of cards tells a
-              clear story, your own, that you can easily explain again.</p>
-          </article>
+        <div class="roles-choix">
+          <button class="btn btn-1" type="button" id="btn-vue-participer" aria-pressed="true">Attend</button>
+          <button class="btn btn-noir" type="button" id="btn-vue-animer" aria-pressed="false">Facilitate</button>
         </div>
       </div>
     </section>
 
-    <section class="section" id="next-session">
+    <section class="section section-doux" id="vue-participer">
       <div class="wrap">
-        <div class="appel">
-          <p class="eyebrow">Next session</p>
-          <h2>Sign up for a workshop</h2>
-          <p>
-            We regularly open facilitated sessions, online and in person. Find the upcoming dates
-            and book your spot on our calendar.
-          </p>
-          <div class="actions">
-            <!-- TODO: confirm / replace with Pause IA's exact public Luma calendar URL. -->
-            <a class="btn btn-1" href="https://luma.com/calendar/cal-UCsPbry6GaJdVrP" rel="noopener" target="_blank">
-              See the dates and sign up <small>Luma calendar</small>
-            </a>
-            <a class="lien-fleche" href="#organise">Organise one for your group</a>
-          </div>
+        <div class="entete-sec">
+          <h2>Scheduled workshops</h2>
+          <p class="muted">Pick a public workshop and sign up: you'll receive a confirmation e-mail with the session code, the date and time (and the exact location for in-person workshops).</p>
         </div>
+        <div id="liste-ateliers" class="ateliers-liste" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section section-doux" id="vue-animer" hidden>
+      <div class="wrap">
+        <div class="entete-sec">
+          <h2>Schedule a workshop</h2>
+          <p class="muted">Choose the format, date and number of seats. You'll receive a confirmation e-mail with the session code. A public workshop appears above; a private one stays known to you alone (share the code yourself).</p>
+        </div>
+        <form id="form-programmer" class="form-atelier" novalidate>
+          <fieldset class="champ-mode">
+            <legend>Format</legend>
+            <label class="radio"><input type="radio" name="mode" value="physique" checked> In person</label>
+            <label class="radio"><input type="radio" name="mode" value="enligne"> Online</label>
+          </fieldset>
+          <div class="grille-champs">
+            <label>Your first name<input name="animateurPrenom" maxlength="24" required autocomplete="given-name"></label>
+            <label>Your e-mail<input name="animateurMail" type="email" maxlength="160" required autocomplete="email"></label>
+            <label>Date<input name="date" type="date" required></label>
+            <label>Time<input name="heure" type="time" required></label>
+            <label>Max participants<input name="maxParticipants" type="number" min="1" max="16" value="8" required>
+              <span class="aide-champ">Tip: 8 per table, 2 tables max per facilitator.</span></label>
+            <label>Visibility
+              <select name="visibilite">
+                <option value="public">Public (shown under "Attend")</option>
+                <option value="prive">Private (code shared by you)</option>
+              </select>
+            </label>
+          </div>
+          <div class="champs-physique grille-champs" hidden>
+            <label>Displayed location<input name="lieu" maxlength="120" placeholder="e.g. Paris 13th">
+              <span class="aide-champ">Public, deliberately vague (not the exact address).</span></label>
+            <label>Exact address<input name="adresse" maxlength="200" placeholder="Street, city…">
+              <span class="aide-champ">Sent only by e-mail to registered participants.</span></label>
+          </div>
+          <label class="champ-titre">Title (optional)<input name="titre" maxlength="80" placeholder="e.g. Intro workshop"></label>
+          <button class="btn btn-1" type="submit">Schedule the workshop</button>
+          <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
+        </form>
       </div>
     </section>
 
@@ -122,7 +130,7 @@
             </div>
           </div>
 
-          <h2 style="margin-top:2.4rem">How it works</h2>
+          <h2>How it works</h2>
           <ul>
             <li>A workshop lasts about two hours and gathers from a few people to several tables.</li>
             <li>In person around a table, or remotely with the online tool and a voice room.</li>
@@ -130,7 +138,7 @@
             <li>The material is free; scheduling depends on the availability of our volunteer facilitators.</li>
           </ul>
 
-          <h2 style="margin-top:2.4rem">Make a request</h2>
+          <h2>Make a request</h2>
           <p>
             Write to us in a few lines: who you are, how many people, your possible dates, and
             whether you prefer in person or remote. We'll get back to you.
@@ -185,6 +193,7 @@
     </div>
   </footer>
   <script src="../../assets/js/nav.js" defer></script>
+  <script src="../../assets/js/ateliers.js" defer></script>
   <script src="../../assets/js/mesure.js" defer></script>
 </body>
 </html>

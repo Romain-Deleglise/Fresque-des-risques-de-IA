@@ -75,7 +75,8 @@
           form.reset(); majMode();
         } else {
           msg.className = "msg err";
-          msg.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur;
+          msg.textContent = (res.d && res.d.erreur && res.d.erreur.message)
+            || (res.d && res.d.details ? T.erreur + " (" + res.d.details + ")" : T.erreur);
         }
       }).catch(function () { msg.className = "msg err"; msg.textContent = T.indispo; })
         .finally(function () { if (btn) btn.disabled = false; });
