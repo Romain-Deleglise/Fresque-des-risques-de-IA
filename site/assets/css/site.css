@@ -360,3 +360,45 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 }
 
 .appel-note { margin-top: 1.1rem; }
+
+/* --- Ateliers : choix de rôle, formulaire, cartes -------------------------- */
+.btn-noir { background: var(--ink); color: var(--bg); }
+.btn-noir:hover { background: var(--accent-txt-fort); color: var(--sur-accent); }
+.roles-choix { display: flex; gap: .8rem; flex-wrap: wrap; }
+.roles-choix .btn { padding: .85rem 1.8rem; }
+
+.form-atelier { max-width: 44rem; }
+.form-atelier .champ-mode { border: 1px solid var(--ligne); border-radius: 10px; padding: .8rem 1rem; margin: 0 0 1.2rem; display: flex; gap: 1.4rem; flex-wrap: wrap; }
+.form-atelier .champ-mode legend { font-family: var(--f-ui); font-weight: 700; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); padding: 0 .4rem; }
+.form-atelier .radio { display: inline-flex; align-items: center; gap: .45rem; font-family: var(--f-ui); font-size: .95rem; color: var(--ink); cursor: pointer; }
+.form-atelier .radio input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent-txt); }
+.grille-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; margin-bottom: 1.2rem; }
+.form-atelier label { display: flex; flex-direction: column; gap: .35rem; font-family: var(--f-ui); font-weight: 600; font-size: .9rem; color: var(--ink); }
+.form-atelier input, .form-atelier select { font-family: var(--f-ui); font-weight: 400; font-size: 1rem; padding: .7rem .85rem; border: 1px solid var(--ligne); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.form-atelier input:focus, .form-atelier select:focus { outline: none; border-color: var(--accent); }
+.form-atelier .aide-champ { font-weight: 400; font-size: .8rem; color: var(--gris); }
+.form-atelier .champ-titre { margin-bottom: 1.2rem; }
+.form-atelier .msg { min-height: 1.3rem; margin: 1rem 0 0; font-family: var(--f-ui); font-size: .92rem; }
+.form-atelier .msg.ok { color: var(--ok); }
+.form-atelier .msg.err { color: var(--err); }
+@media (max-width: 560px) { .grille-champs { grid-template-columns: 1fr; } }
+
+.ateliers-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.1rem; }
+.ateliers-vide { grid-column: 1 / -1; }
+.atelier-carte { border: 1px solid var(--ligne); border-radius: 14px; padding: 1.2rem 1.3rem; background: var(--surface); display: flex; flex-direction: column; gap: .35rem; }
+.atelier-tete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .2rem; }
+.atelier-mode { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .2em .7em; }
+.atelier-places { font-family: var(--f-ui); font-size: .82rem; color: var(--gris); }
+.atelier-places.complet { color: var(--err); font-weight: 600; }
+.atelier-carte h3 { font-size: 1.1rem; }
+.atelier-quand { font-family: var(--f-ui); font-weight: 600; font-size: .95rem; color: var(--ink); margin: 0; text-transform: capitalize; }
+.atelier-lieu { font-family: var(--f-ui); font-size: .9rem; margin: 0 0 .4rem; }
+.atelier-carte .btn { margin-top: auto; align-self: flex-start; }
+.atelier-form { display: grid; gap: .7rem; margin-top: .6rem; border-top: 1px solid var(--ligne); padding-top: .9rem; }
+.atelier-form label { display: flex; flex-direction: column; gap: .3rem; font-family: var(--f-ui); font-weight: 600; font-size: .85rem; color: var(--ink); }
+.atelier-form input { font-family: var(--f-ui); font-weight: 400; font-size: .98rem; padding: .6rem .75rem; border: 1px solid var(--ligne); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.atelier-form input:focus { outline: none; border-color: var(--accent); }
+.atelier-form-actions { display: flex; gap: .5rem; }
+.atelier-form .msg { min-height: 1.1rem; font-family: var(--f-ui); font-size: .86rem; }
+.atelier-form .msg.ok { color: var(--ok); }
+.atelier-form .msg.err { color: var(--err); }

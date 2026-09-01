@@ -52,60 +52,66 @@
       </div>
     </section>
 
-    <section class="section section-doux">
+    <section class="section" id="roles">
       <div class="wrap">
         <div class="entete-sec">
-          <p class="eyebrow">Pourquoi c'est important</p>
-          <h2>Une manière différente de regarder l'IA</h2>
+          <p class="eyebrow">Ateliers</p>
+          <h2>Participer ou animer</h2>
+          <p class="muted">Voyez les ateliers programmés et inscrivez-vous, ou programmez votre propre atelier en tant qu'animateur·ice.</p>
         </div>
-        <div class="modes">
-          <article class="mode">
-            <span class="mode-tag">Une approche différente</span>
-            <h2>Ni hype, ni catastrophisme</h2>
-            <p>On part des faits et on prend le temps du débat. Pas de promesse magique ni de
-              panique : chacun·e se forge son propre avis, à partir de ce que l'on sait vraiment
-              aujourd'hui.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">Indépendants</span>
-            <h2>Aucun intérêt commercial</h2>
-            <p>La Fresque est portée par Pause IA, une association indépendante sans lien avec
-              l'industrie de l'IA. Le contenu n'est vendu par personne et ne cherche à vous vendre
-              rien.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">Une vision enrichissante</span>
-            <h2>Le croisement des regards</h2>
-            <p>Curieux·ses, citoyen·nes, ingénieur·es : mélanger les points de vue autour de la
-              table fait émerger une compréhension plus fine, souvent inattendue, des enjeux.</p>
-          </article>
-          <article class="mode">
-            <span class="mode-tag">Concret</span>
-            <h2>On repart avec des repères</h2>
-            <p>Pas un cours magistral : une construction commune. À la fin, la fresque des cartes
-              raconte une histoire claire, la vôtre, que vous pouvez réexpliquer facilement.</p>
-          </article>
+        <div class="roles-choix">
+          <button class="btn btn-1" type="button" id="btn-vue-participer" aria-pressed="true">Participer</button>
+          <button class="btn btn-noir" type="button" id="btn-vue-animer" aria-pressed="false">Animer</button>
         </div>
       </div>
     </section>
 
-    <section class="section" id="prochaine-session">
+    <section class="section section-doux" id="vue-participer">
       <div class="wrap">
-        <div class="appel">
-          <p class="eyebrow">Prochaine session</p>
-          <h2>Inscrivez-vous à un atelier</h2>
-          <p>
-            Nous ouvrons régulièrement des sessions animées, en ligne comme en présentiel.
-            Retrouvez les dates à venir et réservez votre place sur notre calendrier.
-          </p>
-          <div class="actions">
-            <!-- TODO : confirmer / remplacer par l'URL publique exacte du calendrier Luma de Pause IA. -->
-            <a class="btn btn-1" href="https://luma.com/calendar/cal-UCsPbry6GaJdVrP" rel="noopener" target="_blank">
-              Voir les dates et s'inscrire <small>Calendrier Luma</small>
-            </a>
-            <a class="lien-fleche" href="#organiser">Organiser pour votre groupe</a>
-          </div>
+        <div class="entete-sec">
+          <h2>Ateliers programmés</h2>
+          <p class="muted">Choisissez un atelier public et inscrivez-vous : vous recevrez un e-mail de confirmation avec le code de session, la date et l'heure (et le lieu exact si présentiel).</p>
         </div>
+        <div id="liste-ateliers" class="ateliers-liste" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section section-doux" id="vue-animer" hidden>
+      <div class="wrap">
+        <div class="entete-sec">
+          <h2>Programmer un atelier</h2>
+          <p class="muted">Choisissez le format, la date et le nombre de places. Vous recevez un e-mail de confirmation avec le code de session. Un atelier public apparaît ci-dessus ; un atelier privé reste connu de vous seul·e (donnez le code vous-même).</p>
+        </div>
+        <form id="form-programmer" class="form-atelier" novalidate>
+          <fieldset class="champ-mode">
+            <legend>Format</legend>
+            <label class="radio"><input type="radio" name="mode" value="physique" checked> Présentiel</label>
+            <label class="radio"><input type="radio" name="mode" value="enligne"> En ligne</label>
+          </fieldset>
+          <div class="grille-champs">
+            <label>Votre prénom<input name="animateurPrenom" maxlength="24" required autocomplete="given-name"></label>
+            <label>Votre e-mail<input name="animateurMail" type="email" maxlength="160" required autocomplete="email"></label>
+            <label>Date<input name="date" type="date" required></label>
+            <label>Heure<input name="heure" type="time" required></label>
+            <label>Participants max<input name="maxParticipants" type="number" min="1" max="16" value="8" required>
+              <span class="aide-champ">Conseil : 8 par table, 2 tables max par animateur·ice.</span></label>
+            <label>Visibilité
+              <select name="visibilite">
+                <option value="public">Public (visible dans « Participer »)</option>
+                <option value="prive">Privé (code donné par vous)</option>
+              </select>
+            </label>
+          </div>
+          <div class="champs-physique grille-champs" hidden>
+            <label>Localisation affichée<input name="lieu" maxlength="120" placeholder="Ex. 13e arr. Paris">
+              <span class="aide-champ">Publique, volontairement vague (pas l'adresse exacte).</span></label>
+            <label>Adresse exacte<input name="adresse" maxlength="200" placeholder="Rue, ville…">
+              <span class="aide-champ">Envoyée uniquement par e-mail aux inscrit·es.</span></label>
+          </div>
+          <label class="champ-titre">Intitulé (optionnel)<input name="titre" maxlength="80" placeholder="Ex. Atelier découverte"></label>
+          <button class="btn btn-1" type="submit">Programmer l'atelier</button>
+          <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
+        </form>
       </div>
     </section>
 
@@ -189,6 +195,7 @@
     </div>
   </footer>
   <script src="../assets/js/nav.js" defer></script>
+  <script src="../assets/js/ateliers.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
 </body>
 </html>
