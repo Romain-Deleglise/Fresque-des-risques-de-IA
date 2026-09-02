@@ -35,13 +35,17 @@
   var bP = document.getElementById("btn-vue-participer"), bA = document.getElementById("btn-vue-animer");
   var vP = document.getElementById("vue-participer"), vA = document.getElementById("vue-animer");
   if (bP && bA && vP && vA) {
-    function voir(animer) {
+    function voir(animer, defiler) {
       vA.hidden = !animer; vP.hidden = animer;
       bA.setAttribute("aria-pressed", animer ? "true" : "false");
       bP.setAttribute("aria-pressed", animer ? "false" : "true");
+      if (defiler) {
+        var cible = animer ? vA : vP;
+        try { cible.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { cible.scrollIntoView(); }
+      }
     }
-    bP.addEventListener("click", function () { voir(false); });
-    bA.addEventListener("click", function () { voir(true); });
+    bP.addEventListener("click", function () { voir(false, true); });
+    bA.addEventListener("click", function () { voir(true, true); });
     if (location.hash === "#vue-animer") voir(true);
   }
 
