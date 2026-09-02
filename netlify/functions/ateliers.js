@@ -8,7 +8,7 @@
      liste {}                                   -> { ateliers: [vuePublique...] }
      inscrire { code, prenom, mail }            -> { atelier: vueConfirmation }
 */
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 const A = require("../../serveur/src/ateliers.js");
 const R = require("../../serveur/src/regles.js");
 const L = require("../../serveur/src/limites.js");
@@ -96,6 +96,7 @@ function mailParticipant(a, prenom) {
 }
 
 exports.handler = async (event) => {
+  try { connectLambda(event); } catch (e) {}
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: {} };
   if (event.httpMethod !== "POST") return json(405, { error: "Méthode non autorisée" });
   let d; try { d = JSON.parse(event.body || "{}"); } catch { d = {}; }

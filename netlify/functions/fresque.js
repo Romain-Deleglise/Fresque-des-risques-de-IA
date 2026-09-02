@@ -9,7 +9,7 @@
      etat {code, jeton, version}    -> { etat } ou { inchange:true }
      agir {code, jeton, intention}  -> { etat } ou { refus }
 */
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 const R = require("../../serveur/src/regles.js");
 const L = require("../../serveur/src/limites.js");
 
@@ -124,6 +124,7 @@ async function muter(st, code, fn) {
 }
 
 exports.handler = async (event) => {
+  try { connectLambda(event); } catch (e) {}
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: {} };
   if (event.httpMethod !== "POST") return json(405, { error: "Méthode non autorisée" });
 

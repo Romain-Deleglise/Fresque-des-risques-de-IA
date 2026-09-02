@@ -6,7 +6,7 @@
 
    POST JSON : { p: chemin, r: hôte référent, u: 0|1 (vue unique/onglet), l: langue }
 */
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 const MAX_PAGES = 300;   // bornes pour éviter une croissance illimitée
 const MAX_REFS = 200;
@@ -42,6 +42,7 @@ function incr(dict, cle, max) {
 }
 
 exports.handler = async (event) => {
+  try { connectLambda(event); } catch (e) {}
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: {} };
   if (event.httpMethod !== "POST") return json(405, { error: "Méthode non autorisée" });
 

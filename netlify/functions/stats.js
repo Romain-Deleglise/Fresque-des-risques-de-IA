@@ -3,7 +3,7 @@
    Si la variable d'environnement AUDIENCE_KEY est définie, la clé est exigée
    (protège l'accès aux chiffres) ; sinon l'accès est ouvert (chiffres non sensibles).
 */
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 function store() { return getStore({ name: "audience", consistency: "strong" }); }
 const json = (statut, corps) => ({
@@ -27,6 +27,7 @@ function topN(dict, n) {
 }
 
 exports.handler = async (event) => {
+  try { connectLambda(event); } catch (e) {}
   if (event.httpMethod !== "GET") return json(405, { error: "Méthode non autorisée" });
   const q = event.queryStringParameters || {};
   const attendue = process.env.AUDIENCE_KEY;
