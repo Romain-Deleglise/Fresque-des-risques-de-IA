@@ -195,6 +195,10 @@ a{color:var(--accent-txt);text-decoration:none}
 /* La vraie carte contient déjà son titre et son numéro : on masque les surimpressions */
 .modal .recto .num,.modal .recto .tit{display:none}
 .modal .verso{transform:rotateY(180deg);padding:1.8rem;overflow:auto}
+.modal .verso .vg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--surface);display:none}
+.modal .verso.a-image{padding:0;overflow:hidden}
+.modal .verso.a-image .vg{display:block}
+.modal .verso.a-image .verso-txt{display:none}
 .modal .verso h2{font-family:var(--f-titre);color:var(--accent-txt);margin:.2rem 0 .8rem}
 .modal .verso p{font-size:1rem;line-height:1.55;color:var(--ink-doux)}
 /* Barre d'actions sous la carte, toujours visible */

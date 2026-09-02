@@ -116,7 +116,7 @@
    "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
    "liste-part","vocal-url","btn-vocal","vocal-lien","legende","modal","carte-grande","modal-flip",
-   "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso"].forEach(function (id) {
+   "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
   });
   traduireStatique();
@@ -618,6 +618,9 @@
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
     E["mg-img"].src = BASE + (c.image ? (c.image.carte || c.image.grand) : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
     E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; E["mg-verso"].appendChild(el); });
+    var vface = E["carte-grande"].querySelector(".verso");
+    if (c.image && c.image.verso) { E["mg-vimg"].src = BASE + (c.image.verso.carte || c.image.verso.grand); E["mg-vimg"].alt = c.titre + ". " + (c.verso || []).join(" "); vface.classList.add("a-image"); }
+    else { E["mg-vimg"].removeAttribute("src"); vface.classList.remove("a-image"); }
     var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = (maCarte() !== n);
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }

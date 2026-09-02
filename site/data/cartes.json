@@ -14,7 +14,12 @@
       "image": {
         "vignette": "assets/img/cartes/00-560.webp",
         "grand": "assets/img/cartes/00-900.webp",
-        "carte": "assets/img/cartes-hd/00.webp"
+        "carte": "assets/img/cartes-hd/00.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/00-verso-560.webp",
+          "grand": "assets/img/cartes/00-verso-900.webp",
+          "carte": "assets/img/cartes-verso/00.webp"
+        }
       }
     },
     {
@@ -28,7 +33,12 @@
       "image": {
         "vignette": "assets/img/cartes/01-560.webp",
         "grand": "assets/img/cartes/01-900.webp",
-        "carte": "assets/img/cartes-hd/01.webp"
+        "carte": "assets/img/cartes-hd/01.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/01-verso-560.webp",
+          "grand": "assets/img/cartes/01-verso-900.webp",
+          "carte": "assets/img/cartes-verso/01.webp"
+        }
       }
     },
     {
@@ -42,7 +52,12 @@
       "image": {
         "vignette": "assets/img/cartes/02-560.webp",
         "grand": "assets/img/cartes/02-900.webp",
-        "carte": "assets/img/cartes-hd/02.webp"
+        "carte": "assets/img/cartes-hd/02.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/02-verso-560.webp",
+          "grand": "assets/img/cartes/02-verso-900.webp",
+          "carte": "assets/img/cartes-verso/02.webp"
+        }
       }
     },
     {
@@ -56,7 +71,12 @@
       "image": {
         "vignette": "assets/img/cartes/03-560.webp",
         "grand": "assets/img/cartes/03-900.webp",
-        "carte": "assets/img/cartes-hd/03.webp"
+        "carte": "assets/img/cartes-hd/03.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/03-verso-560.webp",
+          "grand": "assets/img/cartes/03-verso-900.webp",
+          "carte": "assets/img/cartes-verso/03.webp"
+        }
       }
     },
     {
@@ -70,7 +90,12 @@
       "image": {
         "vignette": "assets/img/cartes/04-560.webp",
         "grand": "assets/img/cartes/04-900.webp",
-        "carte": "assets/img/cartes-hd/04.webp"
+        "carte": "assets/img/cartes-hd/04.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/04-verso-560.webp",
+          "grand": "assets/img/cartes/04-verso-900.webp",
+          "carte": "assets/img/cartes-verso/04.webp"
+        }
       }
     },
     {
@@ -84,7 +109,12 @@
       "image": {
         "vignette": "assets/img/cartes/05-560.webp",
         "grand": "assets/img/cartes/05-900.webp",
-        "carte": "assets/img/cartes-hd/05.webp"
+        "carte": "assets/img/cartes-hd/05.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/05-verso-560.webp",
+          "grand": "assets/img/cartes/05-verso-900.webp",
+          "carte": "assets/img/cartes-verso/05.webp"
+        }
       }
     },
     {
@@ -98,7 +128,12 @@
       "image": {
         "vignette": "assets/img/cartes/06-560.webp",
         "grand": "assets/img/cartes/06-900.webp",
-        "carte": "assets/img/cartes-hd/06.webp"
+        "carte": "assets/img/cartes-hd/06.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/06-verso-560.webp",
+          "grand": "assets/img/cartes/06-verso-900.webp",
+          "carte": "assets/img/cartes-verso/06.webp"
+        }
       }
     },
     {
@@ -112,7 +147,12 @@
       "image": {
         "vignette": "assets/img/cartes/07-560.webp",
         "grand": "assets/img/cartes/07-900.webp",
-        "carte": "assets/img/cartes-hd/07.webp"
+        "carte": "assets/img/cartes-hd/07.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/07-verso-560.webp",
+          "grand": "assets/img/cartes/07-verso-900.webp",
+          "carte": "assets/img/cartes-verso/07.webp"
+        }
       }
     },
     {
@@ -126,7 +166,12 @@
       "image": {
         "vignette": "assets/img/cartes/08-560.webp",
         "grand": "assets/img/cartes/08-900.webp",
-        "carte": "assets/img/cartes-hd/08.webp"
+        "carte": "assets/img/cartes-hd/08.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/08-verso-560.webp",
+          "grand": "assets/img/cartes/08-verso-900.webp",
+          "carte": "assets/img/cartes-verso/08.webp"
+        }
       }
     },
     {
@@ -140,7 +185,12 @@
       "image": {
         "vignette": "assets/img/cartes/09-560.webp",
         "grand": "assets/img/cartes/09-900.webp",
-        "carte": "assets/img/cartes-hd/09.webp"
+        "carte": "assets/img/cartes-hd/09.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/09-verso-560.webp",
+          "grand": "assets/img/cartes/09-verso-900.webp",
+          "carte": "assets/img/cartes-verso/09.webp"
+        }
       }
     },
     {
@@ -154,7 +204,12 @@
       "image": {
         "vignette": "assets/img/cartes/10-560.webp",
         "grand": "assets/img/cartes/10-900.webp",
-        "carte": "assets/img/cartes-hd/10.webp"
+        "carte": "assets/img/cartes-hd/10.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/10-verso-560.webp",
+          "grand": "assets/img/cartes/10-verso-900.webp",
+          "carte": "assets/img/cartes-verso/10.webp"
+        }
       }
     },
     {
@@ -168,7 +223,12 @@
       "image": {
         "vignette": "assets/img/cartes/11-560.webp",
         "grand": "assets/img/cartes/11-900.webp",
-        "carte": "assets/img/cartes-hd/11.webp"
+        "carte": "assets/img/cartes-hd/11.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/11-verso-560.webp",
+          "grand": "assets/img/cartes/11-verso-900.webp",
+          "carte": "assets/img/cartes-verso/11.webp"
+        }
       }
     },
     {
@@ -182,7 +242,12 @@
       "image": {
         "vignette": "assets/img/cartes/12-560.webp",
         "grand": "assets/img/cartes/12-900.webp",
-        "carte": "assets/img/cartes-hd/12.webp"
+        "carte": "assets/img/cartes-hd/12.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/12-verso-560.webp",
+          "grand": "assets/img/cartes/12-verso-900.webp",
+          "carte": "assets/img/cartes-verso/12.webp"
+        }
       }
     },
     {
@@ -196,7 +261,12 @@
       "image": {
         "vignette": "assets/img/cartes/13-560.webp",
         "grand": "assets/img/cartes/13-900.webp",
-        "carte": "assets/img/cartes-hd/13.webp"
+        "carte": "assets/img/cartes-hd/13.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/13-verso-560.webp",
+          "grand": "assets/img/cartes/13-verso-900.webp",
+          "carte": "assets/img/cartes-verso/13.webp"
+        }
       }
     },
     {
@@ -210,7 +280,12 @@
       "image": {
         "vignette": "assets/img/cartes/14-560.webp",
         "grand": "assets/img/cartes/14-900.webp",
-        "carte": "assets/img/cartes-hd/14.webp"
+        "carte": "assets/img/cartes-hd/14.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/14-verso-560.webp",
+          "grand": "assets/img/cartes/14-verso-900.webp",
+          "carte": "assets/img/cartes-verso/14.webp"
+        }
       }
     },
     {
@@ -224,7 +299,12 @@
       "image": {
         "vignette": "assets/img/cartes/15-560.webp",
         "grand": "assets/img/cartes/15-900.webp",
-        "carte": "assets/img/cartes-hd/15.webp"
+        "carte": "assets/img/cartes-hd/15.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/15-verso-560.webp",
+          "grand": "assets/img/cartes/15-verso-900.webp",
+          "carte": "assets/img/cartes-verso/15.webp"
+        }
       }
     },
     {
@@ -238,7 +318,12 @@
       "image": {
         "vignette": "assets/img/cartes/16-560.webp",
         "grand": "assets/img/cartes/16-900.webp",
-        "carte": "assets/img/cartes-hd/16.webp"
+        "carte": "assets/img/cartes-hd/16.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/16-verso-560.webp",
+          "grand": "assets/img/cartes/16-verso-900.webp",
+          "carte": "assets/img/cartes-verso/16.webp"
+        }
       }
     },
     {
@@ -252,7 +337,12 @@
       "image": {
         "vignette": "assets/img/cartes/17-560.webp",
         "grand": "assets/img/cartes/17-900.webp",
-        "carte": "assets/img/cartes-hd/17.webp"
+        "carte": "assets/img/cartes-hd/17.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/17-verso-560.webp",
+          "grand": "assets/img/cartes/17-verso-900.webp",
+          "carte": "assets/img/cartes-verso/17.webp"
+        }
       }
     },
     {
@@ -266,7 +356,12 @@
       "image": {
         "vignette": "assets/img/cartes/18-560.webp",
         "grand": "assets/img/cartes/18-900.webp",
-        "carte": "assets/img/cartes-hd/18.webp"
+        "carte": "assets/img/cartes-hd/18.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/18-verso-560.webp",
+          "grand": "assets/img/cartes/18-verso-900.webp",
+          "carte": "assets/img/cartes-verso/18.webp"
+        }
       }
     },
     {
@@ -280,7 +375,12 @@
       "image": {
         "vignette": "assets/img/cartes/19-560.webp",
         "grand": "assets/img/cartes/19-900.webp",
-        "carte": "assets/img/cartes-hd/19.webp"
+        "carte": "assets/img/cartes-hd/19.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/19-verso-560.webp",
+          "grand": "assets/img/cartes/19-verso-900.webp",
+          "carte": "assets/img/cartes-verso/19.webp"
+        }
       }
     },
     {
@@ -294,7 +394,12 @@
       "image": {
         "vignette": "assets/img/cartes/20-560.webp",
         "grand": "assets/img/cartes/20-900.webp",
-        "carte": "assets/img/cartes-hd/20.webp"
+        "carte": "assets/img/cartes-hd/20.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/20-verso-560.webp",
+          "grand": "assets/img/cartes/20-verso-900.webp",
+          "carte": "assets/img/cartes-verso/20.webp"
+        }
       }
     },
     {
@@ -308,7 +413,12 @@
       "image": {
         "vignette": "assets/img/cartes/21-560.webp",
         "grand": "assets/img/cartes/21-900.webp",
-        "carte": "assets/img/cartes-hd/21.webp"
+        "carte": "assets/img/cartes-hd/21.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/21-verso-560.webp",
+          "grand": "assets/img/cartes/21-verso-900.webp",
+          "carte": "assets/img/cartes-verso/21.webp"
+        }
       }
     },
     {
@@ -322,7 +432,12 @@
       "image": {
         "vignette": "assets/img/cartes/22-560.webp",
         "grand": "assets/img/cartes/22-900.webp",
-        "carte": "assets/img/cartes-hd/22.webp"
+        "carte": "assets/img/cartes-hd/22.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/22-verso-560.webp",
+          "grand": "assets/img/cartes/22-verso-900.webp",
+          "carte": "assets/img/cartes-verso/22.webp"
+        }
       }
     },
     {
@@ -336,7 +451,12 @@
       "image": {
         "vignette": "assets/img/cartes/23-560.webp",
         "grand": "assets/img/cartes/23-900.webp",
-        "carte": "assets/img/cartes-hd/23.webp"
+        "carte": "assets/img/cartes-hd/23.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/23-verso-560.webp",
+          "grand": "assets/img/cartes/23-verso-900.webp",
+          "carte": "assets/img/cartes-verso/23.webp"
+        }
       }
     },
     {
@@ -350,7 +470,12 @@
       "image": {
         "vignette": "assets/img/cartes/24-560.webp",
         "grand": "assets/img/cartes/24-900.webp",
-        "carte": "assets/img/cartes-hd/24.webp"
+        "carte": "assets/img/cartes-hd/24.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/24-verso-560.webp",
+          "grand": "assets/img/cartes/24-verso-900.webp",
+          "carte": "assets/img/cartes-verso/24.webp"
+        }
       }
     },
     {
@@ -364,7 +489,12 @@
       "image": {
         "vignette": "assets/img/cartes/25-560.webp",
         "grand": "assets/img/cartes/25-900.webp",
-        "carte": "assets/img/cartes-hd/25.webp"
+        "carte": "assets/img/cartes-hd/25.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/25-verso-560.webp",
+          "grand": "assets/img/cartes/25-verso-900.webp",
+          "carte": "assets/img/cartes-verso/25.webp"
+        }
       }
     },
     {
@@ -378,7 +508,12 @@
       "image": {
         "vignette": "assets/img/cartes/26-560.webp",
         "grand": "assets/img/cartes/26-900.webp",
-        "carte": "assets/img/cartes-hd/26.webp"
+        "carte": "assets/img/cartes-hd/26.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/26-verso-560.webp",
+          "grand": "assets/img/cartes/26-verso-900.webp",
+          "carte": "assets/img/cartes-verso/26.webp"
+        }
       }
     },
     {
@@ -392,7 +527,12 @@
       "image": {
         "vignette": "assets/img/cartes/27-560.webp",
         "grand": "assets/img/cartes/27-900.webp",
-        "carte": "assets/img/cartes-hd/27.webp"
+        "carte": "assets/img/cartes-hd/27.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/27-verso-560.webp",
+          "grand": "assets/img/cartes/27-verso-900.webp",
+          "carte": "assets/img/cartes-verso/27.webp"
+        }
       }
     },
     {
@@ -406,7 +546,12 @@
       "image": {
         "vignette": "assets/img/cartes/28-560.webp",
         "grand": "assets/img/cartes/28-900.webp",
-        "carte": "assets/img/cartes-hd/28.webp"
+        "carte": "assets/img/cartes-hd/28.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/28-verso-560.webp",
+          "grand": "assets/img/cartes/28-verso-900.webp",
+          "carte": "assets/img/cartes-verso/28.webp"
+        }
       }
     },
     {
@@ -420,7 +565,12 @@
       "image": {
         "vignette": "assets/img/cartes/29-560.webp",
         "grand": "assets/img/cartes/29-900.webp",
-        "carte": "assets/img/cartes-hd/29.webp"
+        "carte": "assets/img/cartes-hd/29.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/29-verso-560.webp",
+          "grand": "assets/img/cartes/29-verso-900.webp",
+          "carte": "assets/img/cartes-verso/29.webp"
+        }
       }
     },
     {
@@ -434,7 +584,12 @@
       "image": {
         "vignette": "assets/img/cartes/30-560.webp",
         "grand": "assets/img/cartes/30-900.webp",
-        "carte": "assets/img/cartes-hd/30.webp"
+        "carte": "assets/img/cartes-hd/30.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/30-verso-560.webp",
+          "grand": "assets/img/cartes/30-verso-900.webp",
+          "carte": "assets/img/cartes-verso/30.webp"
+        }
       }
     },
     {
@@ -448,7 +603,12 @@
       "image": {
         "vignette": "assets/img/cartes/31-560.webp",
         "grand": "assets/img/cartes/31-900.webp",
-        "carte": "assets/img/cartes-hd/31.webp"
+        "carte": "assets/img/cartes-hd/31.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/31-verso-560.webp",
+          "grand": "assets/img/cartes/31-verso-900.webp",
+          "carte": "assets/img/cartes-verso/31.webp"
+        }
       }
     },
     {
@@ -462,7 +622,12 @@
       "image": {
         "vignette": "assets/img/cartes/32-560.webp",
         "grand": "assets/img/cartes/32-900.webp",
-        "carte": "assets/img/cartes-hd/32.webp"
+        "carte": "assets/img/cartes-hd/32.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/32-verso-560.webp",
+          "grand": "assets/img/cartes/32-verso-900.webp",
+          "carte": "assets/img/cartes-verso/32.webp"
+        }
       }
     },
     {
@@ -476,7 +641,12 @@
       "image": {
         "vignette": "assets/img/cartes/33-560.webp",
         "grand": "assets/img/cartes/33-900.webp",
-        "carte": "assets/img/cartes-hd/33.webp"
+        "carte": "assets/img/cartes-hd/33.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/33-verso-560.webp",
+          "grand": "assets/img/cartes/33-verso-900.webp",
+          "carte": "assets/img/cartes-verso/33.webp"
+        }
       }
     },
     {
@@ -490,7 +660,12 @@
       "image": {
         "vignette": "assets/img/cartes/34-560.webp",
         "grand": "assets/img/cartes/34-900.webp",
-        "carte": "assets/img/cartes-hd/34.webp"
+        "carte": "assets/img/cartes-hd/34.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/34-verso-560.webp",
+          "grand": "assets/img/cartes/34-verso-900.webp",
+          "carte": "assets/img/cartes-verso/34.webp"
+        }
       }
     },
     {
@@ -504,7 +679,12 @@
       "image": {
         "vignette": "assets/img/cartes/35-560.webp",
         "grand": "assets/img/cartes/35-900.webp",
-        "carte": "assets/img/cartes-hd/35.webp"
+        "carte": "assets/img/cartes-hd/35.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/35-verso-560.webp",
+          "grand": "assets/img/cartes/35-verso-900.webp",
+          "carte": "assets/img/cartes-verso/35.webp"
+        }
       }
     },
     {
@@ -518,7 +698,12 @@
       "image": {
         "vignette": "assets/img/cartes/36-560.webp",
         "grand": "assets/img/cartes/36-900.webp",
-        "carte": "assets/img/cartes-hd/36.webp"
+        "carte": "assets/img/cartes-hd/36.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/36-verso-560.webp",
+          "grand": "assets/img/cartes/36-verso-900.webp",
+          "carte": "assets/img/cartes-verso/36.webp"
+        }
       }
     },
     {
@@ -532,7 +717,12 @@
       "image": {
         "vignette": "assets/img/cartes/37-560.webp",
         "grand": "assets/img/cartes/37-900.webp",
-        "carte": "assets/img/cartes-hd/37.webp"
+        "carte": "assets/img/cartes-hd/37.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/37-verso-560.webp",
+          "grand": "assets/img/cartes/37-verso-900.webp",
+          "carte": "assets/img/cartes-verso/37.webp"
+        }
       }
     },
     {
@@ -546,7 +736,12 @@
       "image": {
         "vignette": "assets/img/cartes/38-560.webp",
         "grand": "assets/img/cartes/38-900.webp",
-        "carte": "assets/img/cartes-hd/38.webp"
+        "carte": "assets/img/cartes-hd/38.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/38-verso-560.webp",
+          "grand": "assets/img/cartes/38-verso-900.webp",
+          "carte": "assets/img/cartes-verso/38.webp"
+        }
       }
     }
   ]

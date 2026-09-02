@@ -45,11 +45,20 @@
           img.alt = ""; img.loading = "lazy";
           fig.appendChild(img);
         }
-        var dos = document.createElement("span");
-        dos.className = "gc-verso";
-        dos.innerHTML = "<b>" + echap(c.titre) + "</b>" +
-          (c.verso || []).map(function (p) { return "<span>" + echap(/\[A COMPLETER\]/i.test(p) ? "" : p) + "</span>"; }).join("");
-        fig.appendChild(dos);
+        if (c.image && c.image.verso) {
+          // Verso : la vraie carte de dos (page 2 du PDF), pas seulement le texte.
+          var vimg = document.createElement("img");
+          vimg.className = "gc-verso-img";
+          vimg.src = c.image.verso.grand || c.image.verso.carte || c.image.verso.vignette;
+          vimg.alt = ""; vimg.loading = "lazy";
+          fig.appendChild(vimg);
+        } else {
+          var dos = document.createElement("span");
+          dos.className = "gc-verso";
+          dos.innerHTML = "<b>" + echap(c.titre) + "</b>" +
+            (c.verso || []).map(function (p) { return "<span>" + echap(/\[A COMPLETER\]/i.test(p) ? "" : p) + "</span>"; }).join("");
+          fig.appendChild(dos);
+        }
         fig.addEventListener("click", function () {
           var ouvert = fig.getAttribute("aria-pressed") === "true";
           fig.setAttribute("aria-pressed", ouvert ? "false" : "true");

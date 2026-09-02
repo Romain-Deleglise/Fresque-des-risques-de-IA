@@ -196,6 +196,8 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .gc .gc-verso { position: absolute; inset: 0; background: var(--surface); color: var(--ink-doux); padding: .8rem .9rem; text-align: left; overflow: auto; opacity: 0; visibility: hidden; transition: opacity .25s ease; display: flex; flex-direction: column; gap: .35rem; font-family: var(--f-texte); font-size: .82rem; line-height: 1.4; }
 .gc .gc-verso b { font-family: var(--f-titre); font-size: 1rem; color: var(--accent-txt); }
 .gc[aria-pressed="true"] .gc-verso { opacity: 1; visibility: visible; }
+.gc .gc-verso-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--surface); opacity: 0; visibility: hidden; transition: opacity .25s ease; z-index: 1; }
+.gc[aria-pressed="true"] .gc-verso-img { opacity: 1; visibility: visible; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: var(--sur-accent); background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }

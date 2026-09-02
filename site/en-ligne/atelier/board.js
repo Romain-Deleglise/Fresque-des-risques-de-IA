@@ -636,6 +636,12 @@
     document.getElementById("mg-vtit").textContent = c.titre;
     var v = document.getElementById("mg-verso"); v.innerHTML = "";
     (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; v.appendChild(el); });
+    var vimg = document.getElementById("mg-vimg"), vface = grande.querySelector(".verso");
+    if (c.image && c.image.verso) {
+      vimg.src = BASE + (c.image.verso.carte || c.image.verso.grand);
+      vimg.alt = c.titre + ". " + (c.verso || []).join(" ");
+      vface.classList.add("a-image");
+    } else { vimg.removeAttribute("src"); vface.classList.remove("a-image"); }
     var poserBtn = document.getElementById("modal-poser");
     if (poserBtn) poserBtn.hidden = (etat.main !== n);
     grande.classList.remove("flip"); modal.classList.add("on");
