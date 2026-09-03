@@ -237,7 +237,10 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .appel { text-align: center; }
 .appel h2 { max-width: 30rem; margin: 0 auto .9rem; }
 .appel p { max-width: 34rem; margin: 0 auto 2rem; color: var(--gris); }
-.appel .actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.appel .actions { justify-content: center; }
+/* Groupe d'actions generique (sections editoriales) : espacement coherent */
+.actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.prose .actions { margin-top: 1.6rem; }
 
 /* --- FAQ ------------------------------------------------------------------ */
 .faq { max-width: var(--texte); }
@@ -347,7 +350,12 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
   .entete.js-nav .nav .theme-toggle { order: 11; align-self: center; margin-top: .8rem; width: 2.4rem; height: 2.4rem; }
 }
 @media (max-width: 560px) {
-  .hero .actions .btn, .appel .actions .btn { width: 100%; justify-content: center; }
+  .actions { flex-direction: column; align-items: stretch; gap: .8rem; }
+  .actions .btn { width: 100%; justify-content: center; }
+  .actions .lien-fleche { text-align: center; margin-top: .2rem; }
+  .roles-choix { flex-direction: column; align-items: stretch; }
+  .roles-choix .btn { width: 100%; justify-content: center; }
+  .prose p > .btn { display: flex; width: 100%; justify-content: center; margin-bottom: .5rem; }
   .galerie { grid-template-columns: 1fr; }
   .pied .wrap { grid-template-columns: 1fr 1fr; }
   .temps li { grid-template-columns: 1.6rem 1fr; }
