@@ -24,6 +24,9 @@
   if (!galerie) return;
   var GALERIE = [6, 13, 17, 22, 31, 35]; // six images nettes et variees
 
+  // Base des chemins d'images : sur les pages EN (window.CARTES_JSON = "../data/cartes.json"),
+  // les chemins du JSON sont relatifs a la racine du site, il faut donc prefixer "../".
+  var BASE = (window.CARTES_JSON || "data/cartes.json").replace(/data\/cartes\.json$/, "");
   fetch(window.CARTES_JSON || "data/cartes.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -41,7 +44,7 @@
         if (c.image) {
           var img = document.createElement("img");
           // Vraie carte (format paysage) : elle porte deja son numero et son titre.
-          img.src = c.image.carte || c.image.grand || c.image.vignette;
+          img.src = BASE + (c.image.carte || c.image.grand || c.image.vignette);
           img.alt = ""; img.loading = "lazy";
           fig.appendChild(img);
         }
@@ -49,7 +52,7 @@
           // Verso : la vraie carte de dos (page 2 du PDF), pas seulement le texte.
           var vimg = document.createElement("img");
           vimg.className = "gc-verso-img";
-          vimg.src = c.image.verso.grand || c.image.verso.carte || c.image.verso.vignette;
+          vimg.src = BASE + (c.image.verso.grand || c.image.verso.carte || c.image.verso.vignette);
           vimg.alt = ""; vimg.loading = "lazy";
           fig.appendChild(vimg);
         } else {
