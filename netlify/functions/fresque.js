@@ -140,6 +140,15 @@ exports.handler = async (event) => {
       await balayer(st);
       const prenom = d.prenom;
       let code = null;
+      // Code reserve (atelier programme) transmis par l'animateur : on ouvre la
+      // session AVEC ce code s'il est libre ; s'il existe deja, on le signale
+      // pour que le client bascule sur une reprise (rejoindre).
+      const souhaite = String(d.code || "").toUpperCase();
+      if (/^[A-Z0-9]{6}$/.test(souhaite)) {
+        const exist = await lire(st, souhaite);
+        if (exist) return json(200, { existe: true, code: souhaite });
+        code = souhaite;
+      }
       for (let i = 0; i < 8 && !code; i++) {
         const cand = R.nouveauCode({});
         const exist = await lire(st, cand);

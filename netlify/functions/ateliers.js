@@ -13,6 +13,8 @@ const A = require("../../serveur/src/ateliers.js");
 const R = require("../../serveur/src/regles.js");
 const L = require("../../serveur/src/limites.js");
 const mail = require("./lib/mail.js");
+const G = require("./lib/gabarit.js");
+const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
 
 // URL publique du site (variable d'environnement SITE_URL dans Netlify).
 const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
@@ -58,28 +60,6 @@ async function purger(st) {
   } catch (e) {}
 }
 
-// Echappe le texte insere dans le HTML de l'e-mail.
-function h(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-function dateLisible(iso, heure) {
-  try {
-    const d = new Date(iso + "T" + (heure || "00:00") + ":00");
-    const s = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-    return s.charAt(0).toUpperCase() + s.slice(1) + " à " + (heure || "");
-  } catch (e) { return iso + " à " + (heure || ""); }
-}
-
-// Gabarit HTML commun : carte centree, en-tete oranges, pied Pause IA.
-function mailHtml(contenu) {
-  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    + '<body style="margin:0;background:#faf7f2;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1b1a17;">'
-    + '<div style="max-width:560px;margin:0 auto;padding:24px 14px;">'
-    + '<div style="background:#ffffff;border:1px solid #eadfce;border-radius:14px;overflow:hidden;">'
-    + '<div style="background:#E8811C;padding:16px 24px;"><span style="color:#ffffff;font-weight:700;font-size:16px;">La Fresque des risques de l\'IA</span></div>'
-    + '<div style="padding:24px;font-size:15px;line-height:1.55;">' + contenu + '</div>'
-    + '</div>'
-    + '<p style="text-align:center;color:#8a8577;font-size:12px;margin:16px 0 0;">Portée par Pause IA · <a href="https://pauseia.fr/" style="color:#8a8577;">pauseia.fr</a></p>'
-    + '</div></body></html>';
-}
 // Tableau d'informations de l'atelier (HTML).
 function ligneInfo(cle, val) {
   return '<tr><td style="padding:5px 10px 5px 0;color:#6b6b6b;white-space:nowrap;vertical-align:top;">' + h(cle) + '</td>'
@@ -97,9 +77,6 @@ function boiteCode(code) {
   return '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 18px;text-align:center;">'
     + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div>'
     + '<div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(code) + '</div></div>';
-}
-function bouton(url, texte) {
-  return '<a href="' + h(url) + '" style="display:inline-block;background:#B3610F;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:8px;">' + h(texte) + '</a>';
 }
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
 
@@ -128,19 +105,59 @@ function icsAtelier(a) {
 function pieceIcs(a) { return { filename: "atelier-fresque.ics", content: Buffer.from(icsAtelier(a), "utf8").toString("base64") }; }
 
 // E-mail a l'animateur quand un participant s'inscrit.
+function prenomsInscrits(a) { return (a.participants || []).map((p) => p.prenom).filter(Boolean); }
+
 function mailNouvelInscrit(a, prenom) {
   const n = (a.participants || []).length, max = a.maxParticipants;
+  const noms = prenomsInscrits(a);
   const l = [];
   l.push("Bonjour " + a.animateur.prenom + ",");
   l.push("");
   l.push(prenom + " vient de s'inscrire à votre atelier du " + dateLisible(a.date, a.heure) + ".");
   l.push("Inscrits : " + n + " / " + max + ".");
+  if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
   c += '<p style="margin:0 0 6px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du ' + h(dateLisible(a.date, a.heure)) + '.</p>';
-  c += '<p style="margin:0;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(max)) + '</strong></p>';
+  c += '<p style="margin:0 0 12px;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(max)) + '</strong></p>';
+  if (noms.length) c += '<p style="margin:0;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+
+// Desinscription : confirmation au participant, notification a l'animateur.
+function mailDesistParticipant(a, prenom) {
+  const l = [];
+  l.push("Bonjour " + prenom + ",");
+  l.push("");
+  l.push("Votre désinscription de l'atelier du " + dateLisible(a.date, a.heure) + " est bien prise en compte. Votre place est de nouveau libre.");
+  l.push("");
+  l.push("Au plaisir de vous accueillir à un prochain atelier : " + LIEN + "/demander-un-atelier/");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h(prenom) + ',</p>';
+  c += '<p style="margin:0 0 16px;">Votre désinscription de l\'atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong> est bien prise en compte. Votre place est de nouveau libre.</p>';
+  c += '<p style="margin:0;">' + bouton(LIEN + "/demander-un-atelier/", "Voir les autres ateliers") + '</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+function mailDesistAnimateur(a, prenom) {
+  const n = (a.participants || []).length, noms = prenomsInscrits(a);
+  const l = [];
+  l.push("Bonjour " + a.animateur.prenom + ",");
+  l.push("");
+  l.push(prenom + " s'est désinscrit·e de votre atelier du " + dateLisible(a.date, a.heure) + ".");
+  l.push("Inscrits : " + n + " / " + a.maxParticipants + ".");
+  if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
+  else l.push("Plus aucun inscrit pour le moment.");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
+  c += '<p style="margin:0 0 6px;"><strong>' + h(prenom) + '</strong> s\'est désinscrit·e de votre atelier du ' + h(dateLisible(a.date, a.heure)) + '.</p>';
+  c += '<p style="margin:0 0 12px;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(a.maxParticipants)) + '</strong></p>';
+  c += noms.length ? '<p style="margin:0;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>' : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -163,7 +180,7 @@ function mailAnnulation(a) {
 }
 
 function mailAnimateur(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/";
+  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code;
   const annulUrl = LIEN + "/demander-un-atelier/?annuler=" + a.code + "&t=" + (a.annulToken || "");
   const visibilite = a.visibilite === "prive"
     ? "Votre atelier est privé : il n'apparaît pas dans la liste publique, à vous de communiquer le code aux personnes que vous invitez."
@@ -220,7 +237,7 @@ function mailAnimateur(a) {
 
 function mailParticipant(a, participant) {
   const prenom = participant.prenom;
-  const sessionUrl = LIEN + "/en-ligne/session/";
+  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code;
   const desistUrl = LIEN + "/demander-un-atelier/?desister=" + a.code + "&p=" + (participant.token || "");
 
   const l = [];
@@ -350,6 +367,12 @@ exports.handler = async (event) => {
         a.participants = rt.participants;
         const w = await st.setJSON(cle(code), a, { onlyIfMatch: res.etag });
         if (w && w.modified === false) continue; // concurrence : on rejoue
+        // Confirmer au participant et prevenir l'animateur.
+        try {
+          const prenom = rt.participant && rt.participant.prenom;
+          if (rt.participant && rt.participant.mail) { const mdp = mailDesistParticipant(a, prenom); await mail.envoi({ to: rt.participant.mail, subject: "Désinscription confirmée", text: mdp.text, html: mdp.html }); }
+          if (a.animateur && a.animateur.mail) { const mda = mailDesistAnimateur(a, prenom); await mail.envoi({ to: a.animateur.mail, subject: "Une désinscription à votre atelier", text: mda.text, html: mda.html }); }
+        } catch (e) {}
         return json(200, { desiste: true });
       }
       return json(409, { erreur: { code: "conflit", message: "Réessayez dans un instant." } });

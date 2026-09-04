@@ -7,6 +7,8 @@
 "use strict";
 const { getStore } = require("@netlify/blobs");
 const mail = require("./lib/mail.js");
+const G = require("./lib/gabarit.js");
+const h = G.h, mailHtml = G.mailHtml, bouton = G.bouton;
 
 const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
 const FIN_MS = 3 * 60 * 60 * 1000;          // atelier considere termine 3 h apres le debut
@@ -14,21 +16,6 @@ const LIMITE_MS = 3 * 24 * 60 * 60 * 1000;  // fenetre d'envoi : jusqu'a 3 j apr
 const DISCORD = "https://discord.gg/vyXGd7AeGc";
 
 function store() { return getStore({ name: "fresque-ateliers" }); }
-function h(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-
-function mailHtml(contenu) {
-  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    + '<body style="margin:0;background:#faf7f2;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1b1a17;">'
-    + '<div style="max-width:560px;margin:0 auto;padding:24px 14px;">'
-    + '<div style="background:#ffffff;border:1px solid #eadfce;border-radius:14px;overflow:hidden;">'
-    + '<div style="background:#E8811C;padding:16px 24px;"><span style="color:#ffffff;font-weight:700;font-size:16px;">La Fresque des risques de l\'IA</span></div>'
-    + '<div style="padding:24px;font-size:15px;line-height:1.55;">' + contenu + '</div></div>'
-    + '<p style="text-align:center;color:#8a8577;font-size:12px;margin:16px 0 0;">Portée par Pause IA · <a href="https://pauseia.fr/" style="color:#8a8577;">pauseia.fr</a></p>'
-    + '</div></body></html>';
-}
-function bouton(url, texte) {
-  return '<a href="' + h(url) + '" style="display:inline-block;background:#B3610F;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:8px;">' + h(texte) + '</a>';
-}
 
 function contenuSuivi() {
   const cartes = LIEN + "/#telecharger";
