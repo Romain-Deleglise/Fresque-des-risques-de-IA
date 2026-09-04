@@ -11,7 +11,7 @@ const { getStore, connectLambda } = require("@netlify/blobs");
 const MAX_PAGES = 300;   // bornes pour éviter une croissance illimitée
 const MAX_REFS = 200;
 
-function store() { return getStore({ name: "audience", consistency: "strong" }); }
+function store() { return getStore({ name: "audience" }); }
 const json = (statut, corps) => ({
   statusCode: statut,
   headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

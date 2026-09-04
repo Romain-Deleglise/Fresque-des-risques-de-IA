@@ -25,7 +25,7 @@ const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
 // déclenché de façon opportuniste lors d'une création.
 const BALAYAGE_MS = 15 * 60 * 1000;
 
-function store() { return getStore({ name: "fresque-sessions", consistency: "strong" }); }
+function store() { return getStore({ name: "fresque-sessions" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
 const json = (statut, corps) => ({

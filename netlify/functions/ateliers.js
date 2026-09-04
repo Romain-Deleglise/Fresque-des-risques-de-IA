@@ -18,8 +18,8 @@ const mail = require("./lib/mail.js");
 const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
 const TTL_PURGE_MS = 7 * 24 * 60 * 60 * 1000; // on garde les ateliers 7 j apres leur date
 
-function store() { return getStore({ name: "fresque-ateliers", consistency: "strong" }); }
-function sessions() { return getStore({ name: "fresque-sessions", consistency: "strong" }); }
+function store() { return getStore({ name: "fresque-ateliers" }); }
+function sessions() { return getStore({ name: "fresque-sessions" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "atelier:" + code; }
 const json = (s, c) => ({ statusCode: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(c) });
