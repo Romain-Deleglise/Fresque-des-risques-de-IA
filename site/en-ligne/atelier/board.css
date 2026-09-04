@@ -110,15 +110,18 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
 /* --- Lisibilite au dezoom (#monde.loin, sous 50 %) ----------------------
-   Le titre s'affiche dans un encadre orange pleine largeur de la miniature,
-   et les notes (textes + libelles de fleches) grossissent legerement.
-   Tout est contre-mis a l'echelle via --iz (=1/zoom), plafonne pour rester
-   discret. */
+   Au dezoom, l'image devient illisible : on met le TITRE en avant, en gros
+   et centre, par-dessus l'image assombrie. On garde le numero pour reperer
+   la carte. Le titre est contre-mis a l'echelle via --iz (=1/zoom), plafonne. */
+/* Image reduite a un bandeau (le numero reste visible), titre en tuile
+   dessous qui grandit pour tout afficher : la carte s'allonge, pas de coupe. */
+#monde.loin .c-carte .vis{aspect-ratio:auto;height:calc(30px * min(3.4,var(--iz,1)))}
+#monde.loin .c-carte .vis img{object-position:center 40%;filter:brightness(.7)}
 #monde.loin .c-carte .tit{
-  background:var(--accent);color:var(--sur-accent);
-  font-size:calc(.82rem * min(3.6, var(--iz,1)));
-  line-height:1.1;text-align:center;white-space:normal;overflow-wrap:break-word;word-break:break-word;
-  padding:calc(.3rem * min(3.6,var(--iz,1))) calc(.34rem * min(3.6,var(--iz,1)));
+  background:var(--surface);color:var(--ink);
+  font-size:calc(.86rem * min(3.4, var(--iz,1)));
+  line-height:1.12;text-align:center;white-space:normal;overflow-wrap:break-word;word-break:break-word;
+  padding:calc(.45rem * min(3.4,var(--iz,1))) calc(.4rem * min(3.4,var(--iz,1)));
 }
 #monde.loin .c-carte .agr{opacity:0;pointer-events:none}
 #monde.loin .c-texte{font-size:calc(15px * min(2.2, var(--iz,1)))}
