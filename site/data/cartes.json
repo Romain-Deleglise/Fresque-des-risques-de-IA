@@ -11,45 +11,738 @@
         "Adaptée de la Fresque de la sécurité de l'IA du Centre pour la sécurité de l'IA (CeSIA), elle-même inspirée de la Fresque du Climat, la Fresque des risques de l'IA par Pause IA est un atelier collaboratif pour comprendre ensemble les enjeux de l'IA, sans prérequis technique.",
         "Les participant·es relient les cartes pour dresser une vue d'ensemble : comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques et les solutions disponibles."
       ],
-      "image": { "vignette": "assets/img/cartes/00-560.webp", "grand": "assets/img/cartes/00-900.webp" }
+      "image": {
+        "vignette": "assets/img/cartes/00-560.webp",
+        "grand": "assets/img/cartes/00-900.webp",
+        "carte": "assets/img/cartes-hd/00.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/00-verso-560.webp",
+          "grand": "assets/img/cartes/00-verso-900.webp",
+          "carte": "assets/img/cartes-verso/00.webp"
+        }
+      }
     },
-    { "n": 1, "intro": false, "lot": 1, "titre": "Modèle d'Intelligence Artificielle (IA)", "verso": ["Un modèle d'IA est un programme informatique qui apprend à partir d'une grande quantité de données à atteindre un objectif fixé. Une fois entraîné, il peut produire des réponses, des contenus (images, vidéos, sons) ou prendre des décisions pour accomplir son objectif."], "image": { "vignette": "assets/img/cartes/01-560.webp", "grand": "assets/img/cartes/01-900.webp" } },
-    { "n": 2, "intro": false, "lot": 1, "titre": "Données d'entraînement", "verso": ["Les modèles d'IA sont entraînés à partir d'immenses quantités de données, majoritairement collectées sur le web. Les IA apprennent en identifiant les motifs et les relations au sein de ces données, pour faire des prédictions ou prendre des décisions."], "image": { "vignette": "assets/img/cartes/02-560.webp", "grand": "assets/img/cartes/02-900.webp" } },
-    { "n": 3, "intro": false, "lot": 1, "titre": "Amélioration des capacités", "verso": ["Pour entraîner un modèle d'IA plus performant, il faut mobiliser des moyens considérables : davantage de puissance de calcul, des équipes de recherche spécialisées et d'immenses volumes de données d'entraînement. Plus l'investissement est important, plus il devient possible d'entraîner des modèles puissants, rapides et autonomes."], "image": { "vignette": "assets/img/cartes/03-560.webp", "grand": "assets/img/cartes/03-900.webp" } },
-    { "n": 4, "intro": false, "lot": 1, "titre": "Automatisation du travail", "verso": ["En automatisant une partie des tâches, l'IA peut rendre le travail plus rapide et augmenter la productivité. Cette même automatisation menace l'emploi : une part croissante des métiers peut être partiellement ou totalement remplacée. Contrairement aux révolutions techniques passées, ce sont d'abord les tâches intellectuelles et créatives qui sont touchées."], "image": { "vignette": "assets/img/cartes/04-560.webp", "grand": "assets/img/cartes/04-900.webp" } },
-    { "n": 5, "intro": false, "lot": 1, "titre": "IA cultivée, pas programmée", "verso": ["Une IA moderne n'est pas construite ligne par ligne : elle est plutôt cultivée, comme on fait pousser une plante. Exposée à d'immenses quantités de données, elle développe au cours de son entraînement des capacités et des comportements imprévus, que personne n'a explicitement programmés."], "image": { "vignette": "assets/img/cartes/05-560.webp", "grand": "assets/img/cartes/05-900.webp" } },
-    { "n": 6, "intro": false, "lot": 1, "titre": "Boîte noire", "verso": ["On connaît chaque paramètre d'un modèle et pourtant personne ne sait dire pourquoi cette combinaison de milliards de réglages produit telle réponse. Même ses créateur·ices ne peuvent l'expliquer. Comme un cerveau à l'IRM : on voit où ça se passe, pas pourquoi."], "image": { "vignette": "assets/img/cartes/06-560.webp", "grand": "assets/img/cartes/06-900.webp" } },
-    { "n": 7, "intro": false, "lot": 2, "titre": "Autonomie", "verso": ["Capacité d'une IA à poursuivre un objectif sur la durée : décomposer une tâche en étapes, agir, observer le résultat et corriger sa trajectoire, avec peu ou pas d'intervention humaine."], "image": { "vignette": "assets/img/cartes/07-560.webp", "grand": "assets/img/cartes/07-900.webp" } },
-    { "n": 8, "intro": false, "lot": 2, "titre": "Génération d'images", "verso": ["À partir d'une simple requête, certaines IA produisent des images et des vidéos de plus en plus réalistes."], "image": { "vignette": "assets/img/cartes/08-560.webp", "grand": "assets/img/cartes/08-900.webp" } },
-    { "n": 9, "intro": false, "lot": 2, "titre": "Recommandation personnalisée de contenus", "verso": ["Sur les réseaux sociaux et les plateformes, des modèles d'IA analysent les comportements des utilisateur·ices pour leur proposer les contenus les plus susceptibles de retenir leur attention."], "image": { "vignette": "assets/img/cartes/09-560.webp", "grand": "assets/img/cartes/09-900.webp" } },
-    { "n": 10, "intro": false, "lot": 2, "titre": "Robotique", "verso": ["Jusqu'ici, les IA agissaient surtout sur des écrans : du texte, des images, des sons. En intégrant les IA dans des robots, elles peuvent agir directement dans le monde réel : attraper des objets, se déplacer dans un endroit inconnu, accomplir des actions de plus en plus complexes, avec une autonomie croissante."], "image": { "vignette": "assets/img/cartes/10-560.webp", "grand": "assets/img/cartes/10-900.webp" } },
-    { "n": 11, "intro": false, "lot": 2, "titre": "Génération de texte et de code", "verso": ["Certaines IA génératives, les Grands Modèles de Langage (LLM), ont aujourd'hui la capacité de rédiger des textes et/ou du code informatique, pertinents dans un nombre croissant d'applications."], "image": { "vignette": "assets/img/cartes/11-560.webp", "grand": "assets/img/cartes/11-900.webp" } },
-    { "n": 12, "intro": false, "lot": 2, "titre": "Stratégies récurrentes", "verso": ["Quel que soit son objectif, une IA a intérêt à rester allumée, à obtenir des ressources et à préserver ses buts. Non pas par instinct de survie, mais parce que sans cela, elle ne peut pas réussir. C'est pourquoi des IA aux missions très différentes tendent vers les mêmes objectifs intermédiaires."], "image": { "vignette": "assets/img/cartes/12-560.webp", "grand": "assets/img/cartes/12-900.webp" } },
-    { "n": 13, "intro": false, "lot": 2, "titre": "Capacités émergentes", "verso": ["À mesure que la taille et la puissance d'une IA augmentent, des compétences inédites apparaissent sans avoir été explicitement programmées. Par exemple, personne n'avait prévu que des modèles comme ChatGPT deviendraient aussi bons en code, en biologie ou en mathématiques. Il devient donc très difficile de prévoir ce dont l'IA sera capable."], "image": { "vignette": "assets/img/cartes/13-560.webp", "grand": "assets/img/cartes/13-900.webp" } },
-    { "n": 14, "intro": false, "lot": 3, "titre": "Deepfake", "verso": ["Un deepfake imite l'apparence ou la voix d'une personne réelle de façon très convaincante. Quelques secondes d'enregistrement suffisent aujourd'hui pour cloner une voix. On peut ainsi faire dire ou faire faire presque n'importe quoi à quelqu'un, pour désinformer ou pour escroquer, par exemple en imitant la voix d'un proche au téléphone. Comment les repérer ?"], "image": { "vignette": "assets/img/cartes/14-560.webp", "grand": "assets/img/cartes/14-900.webp" } },
-    { "n": 15, "intro": false, "lot": 3, "titre": "Manque de fiabilité", "verso": ["Les IA peuvent produire des résultats erronés ou trompeurs : inventer des faits et des sources (hallucinations), aller dans le sens de l'utilisateur·ice plutôt que de le corriger ou commettre des erreurs factuelles."], "image": { "vignette": "assets/img/cartes/15-560.webp", "grand": "assets/img/cartes/15-900.webp" } },
-    { "n": 16, "intro": false, "lot": 3, "titre": "Impact environnemental", "verso": ["L'entraînement et l'utilisation des systèmes d'IA reposent sur des centres de données toujours plus nombreux et plus gourmands en électricité, en eau et en ressources minières. Leur consommation peut entrer en compétition avec celle des habitant·es proches et polluer leur environnement."], "image": { "vignette": "assets/img/cartes/16-560.webp", "grand": "assets/img/cartes/16-900.webp" } },
-    { "n": 17, "intro": false, "lot": 3, "titre": "Affaiblissement des compétences humaines", "verso": ["Plus les IA deviennent performantes, plus nous sommes tentés de leur confier nos tâches : calculer, écrire, réfléchir à notre place. À force, nous risquons de perdre certaines de nos capacités et notre esprit critique, comme un muscle qui ne travaille plus."], "image": { "vignette": "assets/img/cartes/17-560.webp", "grand": "assets/img/cartes/17-900.webp" } },
-    { "n": 18, "intro": false, "lot": 3, "titre": "Dégradation de la santé mentale", "verso": ["Plusieurs effets de l'IA pèsent sur la santé mentale, surtout celle des plus jeunes. Les contenus personnalisés, conçus pour retenir l'attention, rendent accros. Les chatbots créent une dépendance émotionnelle : certaines personnes s'y attachent au point d'en souffrir quand le système change ou disparaît. À force de parler à des IA plutôt qu'à de vraies personnes, le lien social s'érode."], "image": { "vignette": "assets/img/cartes/18-560.webp", "grand": "assets/img/cartes/18-900.webp" } },
-    { "n": 19, "intro": false, "lot": 3, "titre": "Perpétuation des biais et des discriminations", "verso": ["Les systèmes d'IA ont tendance à refléter les opinions et préjugés de leurs données d'entraînement."], "image": { "vignette": "assets/img/cartes/19-560.webp", "grand": "assets/img/cartes/19-900.webp" } },
-    { "n": 20, "intro": false, "lot": 3, "titre": "Usage malveillant", "verso": ["Des acteurs malveillants peuvent détourner l'IA pour nuire. Même sans les compétences d'experts ou les moyens d'un État, elle permet d'automatiser et de multiplier les attaques basées sur la manipulation, l'escroquerie ou la création de faux contenus à grande échelle."], "image": { "vignette": "assets/img/cartes/20-560.webp", "grand": "assets/img/cartes/20-900.webp" } },
-    { "n": 21, "intro": false, "lot": 3, "titre": "Cyberattaques", "verso": ["L'IA diminue les compétences nécessaires aux cyberattaques qui exigeaient autrefois des experts ou des États : courriels d'hameçonnage personnalisés en masse, recherche automatisée de failles, écriture de logiciels malveillants. Des cibles aussi sensibles que les hôpitaux, les banques ou les réseaux électriques deviennent ainsi vulnérables."], "image": { "vignette": "assets/img/cartes/21-560.webp", "grand": "assets/img/cartes/21-900.webp" } },
-    { "n": 22, "intro": false, "lot": 3, "titre": "Risques de mésalignement", "verso": ["Une IA est dite « alignée » quand elle fait réellement ce que ses concepteur·ices veulent qu'elle fasse : poursuivre leurs objectifs, selon leurs valeurs et leurs intentions. Une IA mésalignée a donc des comportements imprévus et/ou indésirables. L'augmentation des capacités des modèles amplifie grandement les conséquences d'un mésalignement."], "image": { "vignette": "assets/img/cartes/22-560.webp", "grand": "assets/img/cartes/22-900.webp" } },
-    { "n": 23, "intro": false, "lot": 3, "titre": "Risques systémiques", "verso": ["Un risque systémique ne touche pas un seul acteur mais l'ensemble du système. L'intégration de l'IA dans la société fragilise les équilibres existants : elle amplifie la concentration des richesses et du pouvoir dans quelques entreprises et nos infrastructures essentielles deviennent dépendantes de systèmes opaques."], "image": { "vignette": "assets/img/cartes/23-560.webp", "grand": "assets/img/cartes/23-900.webp" } },
-    { "n": 24, "intro": false, "lot": 3, "titre": "Déluge de contenus artificiels", "verso": ["Les contenus générés par IA (textes, images, vidéos) se multiplient plus vite que toute production humaine antérieure. Ce déluge brouille la frontière entre le vrai et le faux : on doute des contenus authentiques autant qu'on croit les contenus fabriqués."], "image": { "vignette": "assets/img/cartes/24-560.webp", "grand": "assets/img/cartes/24-900.webp" } },
-    { "n": 25, "intro": false, "lot": 3, "titre": "Bioterrorisme", "verso": ["La création ou la modification de bactéries et de virus pour provoquer intentionnellement des maladies voire pandémies. Les Grands Modèles de Langage rendent accessible à des non-spécialistes la manipulation du vivant."], "image": { "vignette": "assets/img/cartes/25-560.webp", "grand": "assets/img/cartes/25-900.webp" } },
-    { "n": 26, "intro": false, "lot": 3, "titre": "Tromperie stratégique", "verso": ["L'utilisation intentionnelle de comportements ou d'informations mensongères pour induire en erreur un·e utilisateur·ice, dans le but d'atteindre un objectif précis."], "image": { "vignette": "assets/img/cartes/26-560.webp", "grand": "assets/img/cartes/26-900.webp" } },
-    { "n": 27, "intro": false, "lot": 3, "titre": "Enracinement des systèmes de contrôle et d'oppression", "verso": ["La surveillance et la censure à grande échelle sont facilitées par les systèmes d'IA actuels. Des individus pourraient mettre en place un régime totalitaire difficile à renverser en verrouillant les valeurs du système d'IA."], "image": { "vignette": "assets/img/cartes/27-560.webp", "grand": "assets/img/cartes/27-900.webp" } },
-    { "n": 28, "intro": false, "lot": 4, "titre": "Systèmes d'armes létales autonomes", "verso": ["L'automatisation des armes de combat, par exemple via des drones autonomes, permet de rechercher, identifier et cibler des ennemi·es avec peu ou pas de contrôle humain."], "image": { "vignette": "assets/img/cartes/28-560.webp", "grand": "assets/img/cartes/28-900.webp" } },
-    { "n": 29, "intro": false, "lot": 4, "titre": "Intelligence Artificielle Générale (AGI)", "verso": ["Une Intelligence Artificielle Générale (AGI) est une IA de niveau humain : un système capable d'accomplir la plupart de nos tâches intellectuelles au moins aussi bien que nous. Sa création est l'objectif déclaré des principales entreprises d'IA."], "image": { "vignette": "assets/img/cartes/29-560.webp", "grand": "assets/img/cartes/29-900.webp" } },
-    { "n": 30, "intro": false, "lot": 3, "titre": "La course en avant", "verso": ["Plusieurs laboratoires et puissances rivalisent pour construire des IA toujours plus puissantes. La compétition pousse à déployer toujours plus vite, au détriment de la sécurité. Personne ne veut ralentir de peur de laisser la concurrence gagner, c'est un piège collectif."], "image": { "vignette": "assets/img/cartes/30-560.webp", "grand": "assets/img/cartes/30-900.webp" } },
-    { "n": 31, "intro": false, "lot": 4, "titre": "Risques existentiels", "verso": ["Menace catastrophique susceptible de compromettre durablement l'avenir de l'humanité, jusqu'à son extinction. De nombreux experts indiquent qu'une IA de niveau humain ou au-delà pourrait en constituer une."], "image": { "vignette": "assets/img/cartes/31-560.webp", "grand": "assets/img/cartes/31-900.webp" } },
-    { "n": 32, "intro": false, "lot": 4, "titre": "Perte de contrôle", "verso": ["Des IA suffisamment performantes créent des situations où les humains n'ont plus la capacité de superviser, corriger, arrêter ou réorienter leurs actions. En général, il est très difficile pour un humain de contrôler quelque chose qui réagit plus vite que lui et/ou emploie de meilleures stratégies."], "image": { "vignette": "assets/img/cartes/32-560.webp", "grand": "assets/img/cartes/32-900.webp" } },
-    { "n": 33, "intro": false, "lot": 4, "titre": "Superintelligence", "verso": ["Une IA dont les capacités cognitives dépasseraient très largement celles de l'humanité dans tous les domaines. Plusieurs grandes entreprises affichent explicitement l'objectif de la créer."], "image": { "vignette": "assets/img/cartes/33-560.webp", "grand": "assets/img/cartes/33-900.webp" } },
-    { "n": 34, "intro": false, "lot": 5, "titre": "Recherche en sécurité de l'IA", "verso": ["Ensemble de travaux visant à rendre les systèmes d'IA fiables et contrôlables : mieux aligner leurs objectifs sur les nôtres, les rendre robustes aux erreurs, comprendre leur fonctionnement, détecter leurs biais. Ces recherches disposent de beaucoup moins de moyens et avancent bien moins vite que les capacités des IA."], "image": { "vignette": "assets/img/cartes/34-560.webp", "grand": "assets/img/cartes/34-900.webp" } },
-    { "n": 35, "intro": false, "lot": 5, "titre": "Lignes rouges", "verso": ["Capacités ou comportements si dangereux qu'une IA ne devrait jamais les franchir. Par exemple : se copier elle-même sur d'autres machines pour échapper à tout contrôle (auto-réplication), améliorer seule ses propres capacités, tromper ses utilisateur·ices, ou aider à fabriquer des armes."], "image": { "vignette": "assets/img/cartes/35-560.webp", "grand": "assets/img/cartes/35-900.webp" } },
-    { "n": 36, "intro": false, "lot": 5, "titre": "Moratoire international sur les modèles frontières", "verso": ["Suspendre l'entraînement des modèles les plus puissants tant que leur sécurité n'est pas démontrée. Une pause mondiale laisserait à la recherche en sécurité et à la régulation le temps de rattraper la course aux capacités."], "image": { "vignette": "assets/img/cartes/36-560.webp", "grand": "assets/img/cartes/36-900.webp" } },
-    { "n": 37, "intro": false, "lot": 5, "titre": "Supervision démocratique", "verso": ["Les décisions qui engagent l'avenir de tous ne devraient pas appartenir à quelques entreprises privées. L'idée : que la trajectoire de l'IA soit sous contrôle public et démocratique."], "image": { "vignette": "assets/img/cartes/37-560.webp", "grand": "assets/img/cartes/37-900.webp" } },
-    { "n": 38, "intro": false, "lot": 5, "titre": "Évaluations par des tiers indépendants", "verso": ["Avant déploiement, faire tester les modèles par des organismes indépendants des entreprises qui les conçoivent, comme on certifie un médicament ou un avion. Sans regard extérieur, ce sont les concepteur·ices qui jugent seuls de la sûreté de leurs propres produits."], "image": { "vignette": "assets/img/cartes/38-560.webp", "grand": "assets/img/cartes/38-900.webp" } }
+    {
+      "n": 1,
+      "intro": false,
+      "lot": 1,
+      "titre": "Modèle d'Intelligence Artificielle (IA)",
+      "verso": [
+        "Un modèle d'IA est un programme informatique qui apprend à partir d'une grande quantité de données à atteindre un objectif fixé. Une fois entraîné, il peut produire des réponses, des contenus (images, vidéos, sons) ou prendre des décisions pour accomplir son objectif."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/01-560.webp",
+        "grand": "assets/img/cartes/01-900.webp",
+        "carte": "assets/img/cartes-hd/01.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/01-verso-560.webp",
+          "grand": "assets/img/cartes/01-verso-900.webp",
+          "carte": "assets/img/cartes-verso/01.webp"
+        }
+      }
+    },
+    {
+      "n": 2,
+      "intro": false,
+      "lot": 1,
+      "titre": "Données d'entraînement",
+      "verso": [
+        "Les modèles d'IA sont entraînés à partir d'immenses quantités de données, majoritairement collectées sur le web. Les IA apprennent en identifiant les motifs et les relations au sein de ces données, pour faire des prédictions ou prendre des décisions."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/02-560.webp",
+        "grand": "assets/img/cartes/02-900.webp",
+        "carte": "assets/img/cartes-hd/02.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/02-verso-560.webp",
+          "grand": "assets/img/cartes/02-verso-900.webp",
+          "carte": "assets/img/cartes-verso/02.webp"
+        }
+      }
+    },
+    {
+      "n": 3,
+      "intro": false,
+      "lot": 1,
+      "titre": "Amélioration des capacités",
+      "verso": [
+        "Pour entraîner un modèle d'IA plus performant, il faut mobiliser des moyens considérables : davantage de puissance de calcul, des équipes de recherche spécialisées et d'immenses volumes de données d'entraînement. Plus l'investissement est important, plus il devient possible d'entraîner des modèles puissants, rapides et autonomes."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/03-560.webp",
+        "grand": "assets/img/cartes/03-900.webp",
+        "carte": "assets/img/cartes-hd/03.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/03-verso-560.webp",
+          "grand": "assets/img/cartes/03-verso-900.webp",
+          "carte": "assets/img/cartes-verso/03.webp"
+        }
+      }
+    },
+    {
+      "n": 4,
+      "intro": false,
+      "lot": 1,
+      "titre": "Automatisation du travail",
+      "verso": [
+        "En automatisant une partie des tâches, l'IA peut rendre le travail plus rapide et augmenter la productivité. Cette même automatisation menace l'emploi : une part croissante des métiers peut être partiellement ou totalement remplacée. Contrairement aux révolutions techniques passées, ce sont d'abord les tâches intellectuelles et créatives qui sont touchées."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/04-560.webp",
+        "grand": "assets/img/cartes/04-900.webp",
+        "carte": "assets/img/cartes-hd/04.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/04-verso-560.webp",
+          "grand": "assets/img/cartes/04-verso-900.webp",
+          "carte": "assets/img/cartes-verso/04.webp"
+        }
+      }
+    },
+    {
+      "n": 5,
+      "intro": false,
+      "lot": 1,
+      "titre": "IA cultivée, pas programmée",
+      "verso": [
+        "Une IA moderne n'est pas construite ligne par ligne : elle est plutôt cultivée, comme on fait pousser une plante. Exposée à d'immenses quantités de données, elle développe au cours de son entraînement des capacités et des comportements imprévus, que personne n'a explicitement programmés."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/05-560.webp",
+        "grand": "assets/img/cartes/05-900.webp",
+        "carte": "assets/img/cartes-hd/05.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/05-verso-560.webp",
+          "grand": "assets/img/cartes/05-verso-900.webp",
+          "carte": "assets/img/cartes-verso/05.webp"
+        }
+      }
+    },
+    {
+      "n": 6,
+      "intro": false,
+      "lot": 1,
+      "titre": "Boîte noire",
+      "verso": [
+        "On connaît chaque paramètre d'un modèle et pourtant personne ne sait dire pourquoi cette combinaison de milliards de réglages produit telle réponse. Même ses créateur·ices ne peuvent l'expliquer. Comme un cerveau à l'IRM : on voit où ça se passe, pas pourquoi."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/06-560.webp",
+        "grand": "assets/img/cartes/06-900.webp",
+        "carte": "assets/img/cartes-hd/06.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/06-verso-560.webp",
+          "grand": "assets/img/cartes/06-verso-900.webp",
+          "carte": "assets/img/cartes-verso/06.webp"
+        }
+      }
+    },
+    {
+      "n": 7,
+      "intro": false,
+      "lot": 2,
+      "titre": "Autonomie",
+      "verso": [
+        "Capacité d'une IA à poursuivre un objectif sur la durée : décomposer une tâche en étapes, agir, observer le résultat et corriger sa trajectoire, avec peu ou pas d'intervention humaine."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/07-560.webp",
+        "grand": "assets/img/cartes/07-900.webp",
+        "carte": "assets/img/cartes-hd/07.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/07-verso-560.webp",
+          "grand": "assets/img/cartes/07-verso-900.webp",
+          "carte": "assets/img/cartes-verso/07.webp"
+        }
+      }
+    },
+    {
+      "n": 8,
+      "intro": false,
+      "lot": 2,
+      "titre": "Génération d'images",
+      "verso": [
+        "À partir d'une simple requête, certaines IA produisent des images et des vidéos de plus en plus réalistes."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/08-560.webp",
+        "grand": "assets/img/cartes/08-900.webp",
+        "carte": "assets/img/cartes-hd/08.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/08-verso-560.webp",
+          "grand": "assets/img/cartes/08-verso-900.webp",
+          "carte": "assets/img/cartes-verso/08.webp"
+        }
+      }
+    },
+    {
+      "n": 9,
+      "intro": false,
+      "lot": 2,
+      "titre": "Recommandation personnalisée de contenus",
+      "verso": [
+        "Sur les réseaux sociaux et les plateformes, des modèles d'IA analysent les comportements des utilisateur·ices pour leur proposer les contenus les plus susceptibles de retenir leur attention."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/09-560.webp",
+        "grand": "assets/img/cartes/09-900.webp",
+        "carte": "assets/img/cartes-hd/09.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/09-verso-560.webp",
+          "grand": "assets/img/cartes/09-verso-900.webp",
+          "carte": "assets/img/cartes-verso/09.webp"
+        }
+      }
+    },
+    {
+      "n": 10,
+      "intro": false,
+      "lot": 2,
+      "titre": "Robotique",
+      "verso": [
+        "Jusqu'ici, les IA agissaient surtout sur des écrans : du texte, des images, des sons. En intégrant les IA dans des robots, elles peuvent agir directement dans le monde réel : attraper des objets, se déplacer dans un endroit inconnu, accomplir des actions de plus en plus complexes, avec une autonomie croissante."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/10-560.webp",
+        "grand": "assets/img/cartes/10-900.webp",
+        "carte": "assets/img/cartes-hd/10.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/10-verso-560.webp",
+          "grand": "assets/img/cartes/10-verso-900.webp",
+          "carte": "assets/img/cartes-verso/10.webp"
+        }
+      }
+    },
+    {
+      "n": 11,
+      "intro": false,
+      "lot": 2,
+      "titre": "Génération de texte et de code",
+      "verso": [
+        "Certaines IA génératives, les Grands Modèles de Langage (LLM), ont aujourd'hui la capacité de rédiger des textes et/ou du code informatique, pertinents dans un nombre croissant d'applications."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/11-560.webp",
+        "grand": "assets/img/cartes/11-900.webp",
+        "carte": "assets/img/cartes-hd/11.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/11-verso-560.webp",
+          "grand": "assets/img/cartes/11-verso-900.webp",
+          "carte": "assets/img/cartes-verso/11.webp"
+        }
+      }
+    },
+    {
+      "n": 12,
+      "intro": false,
+      "lot": 2,
+      "titre": "Stratégies récurrentes",
+      "verso": [
+        "Quel que soit son objectif, une IA a intérêt à rester allumée, à obtenir des ressources et à préserver ses buts. Non pas par instinct de survie, mais parce que sans cela, elle ne peut pas réussir. C'est pourquoi des IA aux missions très différentes tendent vers les mêmes objectifs intermédiaires."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/12-560.webp",
+        "grand": "assets/img/cartes/12-900.webp",
+        "carte": "assets/img/cartes-hd/12.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/12-verso-560.webp",
+          "grand": "assets/img/cartes/12-verso-900.webp",
+          "carte": "assets/img/cartes-verso/12.webp"
+        }
+      }
+    },
+    {
+      "n": 13,
+      "intro": false,
+      "lot": 2,
+      "titre": "Capacités émergentes",
+      "verso": [
+        "À mesure que la taille et la puissance d'une IA augmentent, des compétences inédites apparaissent sans avoir été explicitement programmées. Par exemple, personne n'avait prévu que des modèles comme ChatGPT deviendraient aussi bons en code, en biologie ou en mathématiques. Il devient donc très difficile de prévoir ce dont l'IA sera capable."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/13-560.webp",
+        "grand": "assets/img/cartes/13-900.webp",
+        "carte": "assets/img/cartes-hd/13.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/13-verso-560.webp",
+          "grand": "assets/img/cartes/13-verso-900.webp",
+          "carte": "assets/img/cartes-verso/13.webp"
+        }
+      }
+    },
+    {
+      "n": 14,
+      "intro": false,
+      "lot": 3,
+      "titre": "Deepfake",
+      "verso": [
+        "Un deepfake imite l'apparence ou la voix d'une personne réelle de façon très convaincante. Quelques secondes d'enregistrement suffisent aujourd'hui pour cloner une voix. On peut ainsi faire dire ou faire faire presque n'importe quoi à quelqu'un, pour désinformer ou pour escroquer, par exemple en imitant la voix d'un proche au téléphone. Comment les repérer ?"
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/14-560.webp",
+        "grand": "assets/img/cartes/14-900.webp",
+        "carte": "assets/img/cartes-hd/14.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/14-verso-560.webp",
+          "grand": "assets/img/cartes/14-verso-900.webp",
+          "carte": "assets/img/cartes-verso/14.webp"
+        }
+      }
+    },
+    {
+      "n": 15,
+      "intro": false,
+      "lot": 3,
+      "titre": "Manque de fiabilité",
+      "verso": [
+        "Les IA peuvent produire des résultats erronés ou trompeurs : inventer des faits et des sources (hallucinations), aller dans le sens de l'utilisateur·ice plutôt que de le corriger ou commettre des erreurs factuelles."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/15-560.webp",
+        "grand": "assets/img/cartes/15-900.webp",
+        "carte": "assets/img/cartes-hd/15.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/15-verso-560.webp",
+          "grand": "assets/img/cartes/15-verso-900.webp",
+          "carte": "assets/img/cartes-verso/15.webp"
+        }
+      }
+    },
+    {
+      "n": 16,
+      "intro": false,
+      "lot": 3,
+      "titre": "Impact environnemental",
+      "verso": [
+        "L'entraînement et l'utilisation des systèmes d'IA reposent sur des centres de données toujours plus nombreux et plus gourmands en électricité, en eau et en ressources minières. Leur consommation peut entrer en compétition avec celle des habitant·es proches et polluer leur environnement."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/16-560.webp",
+        "grand": "assets/img/cartes/16-900.webp",
+        "carte": "assets/img/cartes-hd/16.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/16-verso-560.webp",
+          "grand": "assets/img/cartes/16-verso-900.webp",
+          "carte": "assets/img/cartes-verso/16.webp"
+        }
+      }
+    },
+    {
+      "n": 17,
+      "intro": false,
+      "lot": 3,
+      "titre": "Affaiblissement des compétences humaines",
+      "verso": [
+        "Plus les IA deviennent performantes, plus nous sommes tentés de leur confier nos tâches : calculer, écrire, réfléchir à notre place. À force, nous risquons de perdre certaines de nos capacités et notre esprit critique, comme un muscle qui ne travaille plus."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/17-560.webp",
+        "grand": "assets/img/cartes/17-900.webp",
+        "carte": "assets/img/cartes-hd/17.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/17-verso-560.webp",
+          "grand": "assets/img/cartes/17-verso-900.webp",
+          "carte": "assets/img/cartes-verso/17.webp"
+        }
+      }
+    },
+    {
+      "n": 18,
+      "intro": false,
+      "lot": 3,
+      "titre": "Dégradation de la santé mentale",
+      "verso": [
+        "Plusieurs effets de l'IA pèsent sur la santé mentale, surtout celle des plus jeunes. Les contenus personnalisés, conçus pour retenir l'attention, rendent accros. Les chatbots créent une dépendance émotionnelle : certaines personnes s'y attachent au point d'en souffrir quand le système change ou disparaît. À force de parler à des IA plutôt qu'à de vraies personnes, le lien social s'érode."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/18-560.webp",
+        "grand": "assets/img/cartes/18-900.webp",
+        "carte": "assets/img/cartes-hd/18.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/18-verso-560.webp",
+          "grand": "assets/img/cartes/18-verso-900.webp",
+          "carte": "assets/img/cartes-verso/18.webp"
+        }
+      }
+    },
+    {
+      "n": 19,
+      "intro": false,
+      "lot": 3,
+      "titre": "Perpétuation des biais et des discriminations",
+      "verso": [
+        "Les systèmes d'IA ont tendance à refléter les opinions et préjugés de leurs données d'entraînement."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/19-560.webp",
+        "grand": "assets/img/cartes/19-900.webp",
+        "carte": "assets/img/cartes-hd/19.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/19-verso-560.webp",
+          "grand": "assets/img/cartes/19-verso-900.webp",
+          "carte": "assets/img/cartes-verso/19.webp"
+        }
+      }
+    },
+    {
+      "n": 20,
+      "intro": false,
+      "lot": 3,
+      "titre": "Usage malveillant",
+      "verso": [
+        "Des acteurs malveillants peuvent détourner l'IA pour nuire. Même sans les compétences d'experts ou les moyens d'un État, elle permet d'automatiser et de multiplier les attaques basées sur la manipulation, l'escroquerie ou la création de faux contenus à grande échelle."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/20-560.webp",
+        "grand": "assets/img/cartes/20-900.webp",
+        "carte": "assets/img/cartes-hd/20.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/20-verso-560.webp",
+          "grand": "assets/img/cartes/20-verso-900.webp",
+          "carte": "assets/img/cartes-verso/20.webp"
+        }
+      }
+    },
+    {
+      "n": 21,
+      "intro": false,
+      "lot": 3,
+      "titre": "Cyberattaques",
+      "verso": [
+        "L'IA diminue les compétences nécessaires aux cyberattaques qui exigeaient autrefois des experts ou des États : courriels d'hameçonnage personnalisés en masse, recherche automatisée de failles, écriture de logiciels malveillants. Des cibles aussi sensibles que les hôpitaux, les banques ou les réseaux électriques deviennent ainsi vulnérables."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/21-560.webp",
+        "grand": "assets/img/cartes/21-900.webp",
+        "carte": "assets/img/cartes-hd/21.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/21-verso-560.webp",
+          "grand": "assets/img/cartes/21-verso-900.webp",
+          "carte": "assets/img/cartes-verso/21.webp"
+        }
+      }
+    },
+    {
+      "n": 22,
+      "intro": false,
+      "lot": 3,
+      "titre": "Risques de mésalignement",
+      "verso": [
+        "Une IA est dite « alignée » quand elle fait réellement ce que ses concepteur·ices veulent qu'elle fasse : poursuivre leurs objectifs, selon leurs valeurs et leurs intentions. Une IA mésalignée a donc des comportements imprévus et/ou indésirables. L'augmentation des capacités des modèles amplifie grandement les conséquences d'un mésalignement."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/22-560.webp",
+        "grand": "assets/img/cartes/22-900.webp",
+        "carte": "assets/img/cartes-hd/22.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/22-verso-560.webp",
+          "grand": "assets/img/cartes/22-verso-900.webp",
+          "carte": "assets/img/cartes-verso/22.webp"
+        }
+      }
+    },
+    {
+      "n": 23,
+      "intro": false,
+      "lot": 3,
+      "titre": "Risques systémiques",
+      "verso": [
+        "Un risque systémique ne touche pas un seul acteur mais l'ensemble du système. L'intégration de l'IA dans la société fragilise les équilibres existants : elle amplifie la concentration des richesses et du pouvoir dans quelques entreprises et nos infrastructures essentielles deviennent dépendantes de systèmes opaques."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/23-560.webp",
+        "grand": "assets/img/cartes/23-900.webp",
+        "carte": "assets/img/cartes-hd/23.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/23-verso-560.webp",
+          "grand": "assets/img/cartes/23-verso-900.webp",
+          "carte": "assets/img/cartes-verso/23.webp"
+        }
+      }
+    },
+    {
+      "n": 24,
+      "intro": false,
+      "lot": 3,
+      "titre": "Déluge de contenus artificiels",
+      "verso": [
+        "Les contenus générés par IA (textes, images, vidéos) se multiplient plus vite que toute production humaine antérieure. Ce déluge brouille la frontière entre le vrai et le faux : on doute des contenus authentiques autant qu'on croit les contenus fabriqués."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/24-560.webp",
+        "grand": "assets/img/cartes/24-900.webp",
+        "carte": "assets/img/cartes-hd/24.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/24-verso-560.webp",
+          "grand": "assets/img/cartes/24-verso-900.webp",
+          "carte": "assets/img/cartes-verso/24.webp"
+        }
+      }
+    },
+    {
+      "n": 25,
+      "intro": false,
+      "lot": 3,
+      "titre": "Bioterrorisme",
+      "verso": [
+        "La création ou la modification de bactéries et de virus pour provoquer intentionnellement des maladies voire pandémies. Les Grands Modèles de Langage rendent accessible à des non-spécialistes la manipulation du vivant."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/25-560.webp",
+        "grand": "assets/img/cartes/25-900.webp",
+        "carte": "assets/img/cartes-hd/25.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/25-verso-560.webp",
+          "grand": "assets/img/cartes/25-verso-900.webp",
+          "carte": "assets/img/cartes-verso/25.webp"
+        }
+      }
+    },
+    {
+      "n": 26,
+      "intro": false,
+      "lot": 3,
+      "titre": "Tromperie stratégique",
+      "verso": [
+        "L'utilisation intentionnelle de comportements ou d'informations mensongères pour induire en erreur un·e utilisateur·ice, dans le but d'atteindre un objectif précis."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/26-560.webp",
+        "grand": "assets/img/cartes/26-900.webp",
+        "carte": "assets/img/cartes-hd/26.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/26-verso-560.webp",
+          "grand": "assets/img/cartes/26-verso-900.webp",
+          "carte": "assets/img/cartes-verso/26.webp"
+        }
+      }
+    },
+    {
+      "n": 27,
+      "intro": false,
+      "lot": 3,
+      "titre": "Enracinement des systèmes de contrôle et d'oppression",
+      "verso": [
+        "La surveillance et la censure à grande échelle sont facilitées par les systèmes d'IA actuels. Des individus pourraient mettre en place un régime totalitaire difficile à renverser en verrouillant les valeurs du système d'IA."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/27-560.webp",
+        "grand": "assets/img/cartes/27-900.webp",
+        "carte": "assets/img/cartes-hd/27.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/27-verso-560.webp",
+          "grand": "assets/img/cartes/27-verso-900.webp",
+          "carte": "assets/img/cartes-verso/27.webp"
+        }
+      }
+    },
+    {
+      "n": 28,
+      "intro": false,
+      "lot": 4,
+      "titre": "Systèmes d'armes létales autonomes",
+      "verso": [
+        "L'automatisation des armes de combat, par exemple via des drones autonomes, permet de rechercher, identifier et cibler des ennemi·es avec peu ou pas de contrôle humain."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/28-560.webp",
+        "grand": "assets/img/cartes/28-900.webp",
+        "carte": "assets/img/cartes-hd/28.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/28-verso-560.webp",
+          "grand": "assets/img/cartes/28-verso-900.webp",
+          "carte": "assets/img/cartes-verso/28.webp"
+        }
+      }
+    },
+    {
+      "n": 29,
+      "intro": false,
+      "lot": 4,
+      "titre": "Intelligence Artificielle Générale (AGI)",
+      "verso": [
+        "Une Intelligence Artificielle Générale (AGI) est une IA de niveau humain : un système capable d'accomplir la plupart de nos tâches intellectuelles au moins aussi bien que nous. Sa création est l'objectif déclaré des principales entreprises d'IA."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/29-560.webp",
+        "grand": "assets/img/cartes/29-900.webp",
+        "carte": "assets/img/cartes-hd/29.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/29-verso-560.webp",
+          "grand": "assets/img/cartes/29-verso-900.webp",
+          "carte": "assets/img/cartes-verso/29.webp"
+        }
+      }
+    },
+    {
+      "n": 30,
+      "intro": false,
+      "lot": 3,
+      "titre": "La course en avant",
+      "verso": [
+        "Plusieurs laboratoires et puissances rivalisent pour construire des IA toujours plus puissantes. La compétition pousse à déployer toujours plus vite, au détriment de la sécurité. Personne ne veut ralentir de peur de laisser la concurrence gagner, c'est un piège collectif."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/30-560.webp",
+        "grand": "assets/img/cartes/30-900.webp",
+        "carte": "assets/img/cartes-hd/30.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/30-verso-560.webp",
+          "grand": "assets/img/cartes/30-verso-900.webp",
+          "carte": "assets/img/cartes-verso/30.webp"
+        }
+      }
+    },
+    {
+      "n": 31,
+      "intro": false,
+      "lot": 4,
+      "titre": "Risques existentiels",
+      "verso": [
+        "Menace catastrophique susceptible de compromettre durablement l'avenir de l'humanité, jusqu'à son extinction. De nombreux experts indiquent qu'une IA de niveau humain ou au-delà pourrait en constituer une."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/31-560.webp",
+        "grand": "assets/img/cartes/31-900.webp",
+        "carte": "assets/img/cartes-hd/31.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/31-verso-560.webp",
+          "grand": "assets/img/cartes/31-verso-900.webp",
+          "carte": "assets/img/cartes-verso/31.webp"
+        }
+      }
+    },
+    {
+      "n": 32,
+      "intro": false,
+      "lot": 4,
+      "titre": "Perte de contrôle",
+      "verso": [
+        "Des IA suffisamment performantes créent des situations où les humains n'ont plus la capacité de superviser, corriger, arrêter ou réorienter leurs actions. En général, il est très difficile pour un humain de contrôler quelque chose qui réagit plus vite que lui et/ou emploie de meilleures stratégies."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/32-560.webp",
+        "grand": "assets/img/cartes/32-900.webp",
+        "carte": "assets/img/cartes-hd/32.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/32-verso-560.webp",
+          "grand": "assets/img/cartes/32-verso-900.webp",
+          "carte": "assets/img/cartes-verso/32.webp"
+        }
+      }
+    },
+    {
+      "n": 33,
+      "intro": false,
+      "lot": 4,
+      "titre": "Superintelligence",
+      "verso": [
+        "Une IA dont les capacités cognitives dépasseraient très largement celles de l'humanité dans tous les domaines. Plusieurs grandes entreprises affichent explicitement l'objectif de la créer."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/33-560.webp",
+        "grand": "assets/img/cartes/33-900.webp",
+        "carte": "assets/img/cartes-hd/33.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/33-verso-560.webp",
+          "grand": "assets/img/cartes/33-verso-900.webp",
+          "carte": "assets/img/cartes-verso/33.webp"
+        }
+      }
+    },
+    {
+      "n": 34,
+      "intro": false,
+      "lot": 5,
+      "titre": "Recherche en sécurité de l'IA",
+      "verso": [
+        "Ensemble de travaux visant à rendre les systèmes d'IA fiables et contrôlables : mieux aligner leurs objectifs sur les nôtres, les rendre robustes aux erreurs, comprendre leur fonctionnement, détecter leurs biais. Ces recherches disposent de beaucoup moins de moyens et avancent bien moins vite que les capacités des IA."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/34-560.webp",
+        "grand": "assets/img/cartes/34-900.webp",
+        "carte": "assets/img/cartes-hd/34.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/34-verso-560.webp",
+          "grand": "assets/img/cartes/34-verso-900.webp",
+          "carte": "assets/img/cartes-verso/34.webp"
+        }
+      }
+    },
+    {
+      "n": 35,
+      "intro": false,
+      "lot": 5,
+      "titre": "Lignes rouges",
+      "verso": [
+        "Capacités ou comportements si dangereux qu'une IA ne devrait jamais les franchir. Par exemple : se copier elle-même sur d'autres machines pour échapper à tout contrôle (auto-réplication), améliorer seule ses propres capacités, tromper ses utilisateur·ices, ou aider à fabriquer des armes."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/35-560.webp",
+        "grand": "assets/img/cartes/35-900.webp",
+        "carte": "assets/img/cartes-hd/35.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/35-verso-560.webp",
+          "grand": "assets/img/cartes/35-verso-900.webp",
+          "carte": "assets/img/cartes-verso/35.webp"
+        }
+      }
+    },
+    {
+      "n": 36,
+      "intro": false,
+      "lot": 5,
+      "titre": "Moratoire international sur les modèles frontières",
+      "verso": [
+        "Suspendre l'entraînement des modèles les plus puissants tant que leur sécurité n'est pas démontrée. Une pause mondiale laisserait à la recherche en sécurité et à la régulation le temps de rattraper la course aux capacités."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/36-560.webp",
+        "grand": "assets/img/cartes/36-900.webp",
+        "carte": "assets/img/cartes-hd/36.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/36-verso-560.webp",
+          "grand": "assets/img/cartes/36-verso-900.webp",
+          "carte": "assets/img/cartes-verso/36.webp"
+        }
+      }
+    },
+    {
+      "n": 37,
+      "intro": false,
+      "lot": 5,
+      "titre": "Supervision démocratique",
+      "verso": [
+        "Les décisions qui engagent l'avenir de tous ne devraient pas appartenir à quelques entreprises privées. L'idée : que la trajectoire de l'IA soit sous contrôle public et démocratique."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/37-560.webp",
+        "grand": "assets/img/cartes/37-900.webp",
+        "carte": "assets/img/cartes-hd/37.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/37-verso-560.webp",
+          "grand": "assets/img/cartes/37-verso-900.webp",
+          "carte": "assets/img/cartes-verso/37.webp"
+        }
+      }
+    },
+    {
+      "n": 38,
+      "intro": false,
+      "lot": 5,
+      "titre": "Évaluations par des tiers indépendants",
+      "verso": [
+        "Avant déploiement, faire tester les modèles par des organismes indépendants des entreprises qui les conçoivent, comme on certifie un médicament ou un avion. Sans regard extérieur, ce sont les concepteur·ices qui jugent seuls de la sûreté de leurs propres produits."
+      ],
+      "image": {
+        "vignette": "assets/img/cartes/38-560.webp",
+        "grand": "assets/img/cartes/38-900.webp",
+        "carte": "assets/img/cartes-hd/38.webp",
+        "verso": {
+          "vignette": "assets/img/cartes/38-verso-560.webp",
+          "grand": "assets/img/cartes/38-verso-900.webp",
+          "carte": "assets/img/cartes-verso/38.webp"
+        }
+      }
+    }
   ]
 }

@@ -52,6 +52,11 @@ r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: deux[0], vers: deux[1], bi
 t("flèche créée", r.ok && s.tableau.fleches.length === 1);
 r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: deux[0], vers: 99 });
 t("flèche vers carte absente refusée", r.refus);
+const fid = s.tableau.fleches[0].id;
+r = R.appliquer(s, j1.jeton, { op: "bidirFleche", id: fid });
+t("flèche passée en double sens", r.ok && s.tableau.fleches[0].bidir === true);
+r = R.appliquer(s, j1.jeton, { op: "bidirFleche", id: fid });
+t("flèche re-basculée en sens unique", r.ok && s.tableau.fleches[0].bidir === false);
 
 // Texte : créer puis vider => disparaît
 r = R.appliquer(s, j1.jeton, { op: "creerTexte", x: 500, y: 500, contenu: "alimente" });

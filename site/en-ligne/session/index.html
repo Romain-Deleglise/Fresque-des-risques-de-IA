@@ -9,6 +9,18 @@
   <link rel="stylesheet" href="../../assets/css/fonts.css">
   <link rel="stylesheet" href="../atelier/board.css">
   <link rel="stylesheet" href="session.css">
+  <link rel="canonical" href="https://fresquedesrisquesdelia.org/en-ligne/session/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="La Fresque des risques de l'IA">
+  <meta property="og:title" content="Session · La Fresque des risques de l'IA">
+  <meta property="og:description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participants, un tableau partagé.">
+  <meta property="og:url" content="https://fresquedesrisquesdelia.org/en-ligne/session/">
+  <meta property="og:image" content="https://fresquedesrisquesdelia.org/assets/img/social/partage.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 
@@ -54,12 +66,12 @@
     <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">…</b> <span class="copier">copier</span></span>
     <button class="btn" id="btn-partager">Copier le lien</button>
     <span class="spacer"></span>
-    <span class="compte" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
+    <span class="compte anim-only" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
+    <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
     <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
+    <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
     <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
   </div>
-
-  <div class="carte0" id="carte0"><b>Introduction :</b> <span id="carte0-txt">…</span></div>
 
   <div class="toolbar" role="toolbar" aria-label="Outils">
     <div class="groupe anim-only" id="commandes-anim" role="group" aria-label="Distribution">
@@ -69,10 +81,8 @@
     </div>
     <span class="sep-min anim-only"></span>
     <div class="groupe" role="group" aria-label="Outil">
-      <button class="btn tool" data-outil="deplacer" aria-pressed="true">Déplacer</button>
-      <button class="btn tool" data-outil="fleche" aria-pressed="false">Lien →</button>
-      <button class="btn tool" data-outil="fleche2" aria-pressed="false">Lien ↔</button>
-      <button class="btn tool" data-outil="texte" aria-pressed="false">Note</button>
+      <button class="btn tool" data-outil="fleche" aria-pressed="false" title="Relier deux cartes : cliquez la carte de départ, puis la carte d'arrivée">Lien</button>
+      <button class="btn tool" data-outil="texte" aria-pressed="false" title="Ajouter une note : cliquez le tableau (ou double-cliquez une zone vide)">Note</button>
     </div>
     <span class="sep"></span>
     <div class="groupe" role="group" aria-label="Zoom">
@@ -81,6 +91,7 @@
       <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
       <button class="btn" id="z-tout">Tout voir</button>
     </div>
+    <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
     <button class="btn" id="btn-plein">Plein écran</button>
   </div>
 
@@ -88,7 +99,7 @@
     <div class="aide" id="aide"></div>
     <div id="monde">
       <div class="plan-bord"></div>
-      <svg id="fleches" viewBox="0 0 3200 2200"></svg>
+      <svg id="fleches" viewBox="0 0 4400 2200"></svg>
     </div>
     <div class="pioche" id="main-zone"></div>
 
@@ -103,15 +114,20 @@
       <ul class="liste-part" id="liste-part"></ul>
     </aside>
 
-    <details class="legende" id="legende" open>
-      <summary>Comment ça marche</summary>
-      <div class="corps">
-        <div><b>Cartes :</b> l'animateur distribue ; posez votre carte, puis glissez-la. Le bouton ⤢ l'ouvre en grand.</div>
-        <div><b>Liens :</b> outil Lien, cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour l'annoter ou le supprimer.</div>
-        <div><b>Notes :</b> outil Note puis un clic sur le tableau ; glissez pour déplacer, videz pour supprimer.</div>
-        <div><b>Vue :</b> zoom et déplacement sont propres à chacun. « Tout voir » recadre l'ensemble.</div>
+    <aside class="aide-pop" id="aide-pop" hidden aria-label="Aide">
+      <div class="aide-pop-tete">
+        <h2 id="aide-titre">Comment jouer</h2>
+        <button class="aide-pop-x" id="aide-fermer" aria-label="Fermer">✕</button>
       </div>
-    </details>
+      <p class="aide-intro" id="carte0-txt">…</p>
+      <ul class="aide-liste" id="aide-liste">
+        <li><b>Déplacer :</b> glissez une carte pour la déplacer ; glissez une zone vide pour vous déplacer.</li>
+        <li><b>Cartes :</b> l'animateur distribue ; posez votre carte. Le bouton ⤢ l'agrandit.</li>
+        <li><b>Liens :</b> cliquez « Lien », puis la carte de départ et la carte d'arrivée. Sélectionnez une flèche pour l'annoter, la supprimer ou la passer en double sens (↔).</li>
+        <li><b>Notes :</b> double-cliquez sur une zone vide du tableau ; glissez pour déplacer, videz pour supprimer.</li>
+        <li><b>Vue :</b> molette pour zoomer ; zoom et déplacement sont propres à chacun. « Tout voir » recadre.</li>
+      </ul>
+    </aside>
   </div>
 </div>
 
@@ -119,12 +135,13 @@
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
   <div class="carte-grande" id="carte-grande">
     <div class="barre">
-      <button class="btn" id="modal-flip">Retourner</button>
+      <button class="btn primaire" id="modal-poser" hidden>Poser la carte</button>
+      <button class="btn" id="modal-flip">Retourner la carte</button>
       <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
     </div>
     <div class="faces">
       <div class="face recto"><img class="vg" id="mg-img" alt=""><span class="num" id="mg-num"></span><div class="tit" id="mg-tit"></div></div>
-      <div class="face verso"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div>
+      <div class="face verso"><img class="vg" id="mg-vimg" alt=""><div class="verso-txt"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div></div>
     </div>
   </div>
 </div>
@@ -132,5 +149,6 @@
 <div class="mobile-avis"><div><h1>Sur ordinateur</h1><p>La Fresque en ligne se joue sur un écran d'ordinateur. <a href="../">Retour</a>.</p></div></div>
 
 <script src="session.js" defer></script>
+  <script src="../../assets/js/mesure.js" defer></script>
 </body>
 </html>

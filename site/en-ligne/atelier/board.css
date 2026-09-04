@@ -3,12 +3,36 @@
 :root{
   --bg:#ffffff; --canvas:#f4f2ec; --ink:#1b1a17; --gris:#6b665e; --gris-clair:#9a948a;
   --ligne:#e6e2da; --accent:#E8811C; --accent-fort:#C4610A; --accent-txt:#B0560A; --accent-txt-fort:#8a4200; --accent-doux:#fbf1e4;
+  --surface:#ffffff; --sur-accent:#ffffff; --ink-doux:#3a352c; --doux:#faf8f4;
+  --canvas-dot:#e2ddd2; --plan:#fbfaf7; --panel:rgba(255,255,255,.96);
+  --agr-bg:rgba(255,255,255,.9); --note-bg:#fff7e6; --note-bord:#f0dfbc;
   --f-titre:"Saira Condensed","Arial Narrow",sans-serif;
   --f-ui:"Montserrat",system-ui,sans-serif;
   --f-texte:"Roboto Slab",Georgia,serif;
   --ombre:0 8px 24px rgba(27,26,23,.10);
 }
+/* Mode sombre : suit la preference systeme, ou le choix memorise par le site
+   (data-theme sur <html>, meme cle localStorage "theme"). */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ color-scheme:dark;
+    --bg:#17150f; --canvas:#0f0d09; --ink:#f2efe8; --gris:#b0a99c; --gris-clair:#867f73;
+    --ligne:#332f28; --accent:#E8811C; --accent-fort:#f0a860; --accent-txt:#f0a860; --accent-txt-fort:#f6b877; --accent-doux:#2a2318;
+    --surface:#201d16; --sur-accent:#17150f; --ink-doux:#d6d0c5; --doux:#26221b;
+    --canvas-dot:#26221b; --plan:#201d16; --panel:rgba(32,29,22,.96);
+    --agr-bg:rgba(32,29,22,.9); --note-bg:#2e2716; --note-bord:#4a3f22;
+    --ombre:0 8px 24px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{ color-scheme:dark;
+  --bg:#17150f; --canvas:#0f0d09; --ink:#f2efe8; --gris:#b0a99c; --gris-clair:#867f73;
+  --ligne:#332f28; --accent:#E8811C; --accent-fort:#f0a860; --accent-txt:#f0a860; --accent-txt-fort:#f6b877; --accent-doux:#2a2318;
+  --surface:#201d16; --sur-accent:#17150f; --ink-doux:#d6d0c5; --doux:#26221b;
+  --canvas-dot:#26221b; --plan:#201d16; --panel:rgba(32,29,22,.96);
+  --agr-bg:rgba(32,29,22,.9); --note-bg:#2e2716; --note-bord:#4a3f22;
+  --ombre:0 8px 24px rgba(0,0,0,.45);
+}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-texte);overflow:hidden}
 button{font-family:var(--f-ui);cursor:pointer}
@@ -25,100 +49,166 @@ a{color:var(--accent-txt);text-decoration:none}
 .topbar .compte{font-family:var(--f-ui);font-size:.86rem;color:var(--gris)}
 .topbar .compte b{color:var(--ink)}
 
-.btn{background:#fff;color:var(--ink);border:1px solid var(--ligne);border-radius:8px;padding:.5rem .8rem;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem}
+.btn{background:var(--surface);color:var(--ink);border:1px solid var(--ligne);border-radius:8px;padding:.5rem .8rem;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem}
 .btn:hover{border-color:var(--ink)}
-.btn.primaire{background:var(--accent-txt);color:#fff;border-color:transparent}
+.btn.primaire{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
 .btn.primaire:hover{background:var(--accent-txt-fort)}
 .btn:disabled{opacity:.5;cursor:not-allowed;border-color:var(--ligne)}
 
 /* Bandeau carte 0 */
-.carte0{flex:0 0 auto;background:var(--accent-doux);border-bottom:1px solid var(--ligne);padding:.55rem 1.1rem;font-size:.88rem;line-height:1.4;color:#3a352c;max-height:6rem;overflow:auto}
-.carte0 b{color:var(--accent-txt);font-family:var(--f-ui)}
+/* Ecran d'accueil : explique l'objectif du jeu */
+.intro-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:1.2rem;background:rgba(20,17,13,.55);backdrop-filter:blur(3px)}
+.intro-carte{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.4);max-width:36rem;width:100%;padding:2rem 2.1rem;max-height:92vh;overflow:auto}
+.intro-carte h1{font-family:var(--f-titre);font-size:1.9rem;line-height:1.05;color:var(--ink);margin:0 0 .8rem}
+.intro-but{font-size:1.02rem;line-height:1.5;color:var(--ink-doux);margin:0 0 1.1rem}
+.intro-etapes{margin:0 0 1.1rem;padding-left:1.2rem;display:grid;gap:.5rem;line-height:1.45;color:var(--ink-doux)}
+.intro-etapes b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
+.intro-note{font-family:var(--f-ui);font-size:.88rem;line-height:1.45;color:var(--gris);background:var(--doux);border-radius:10px;padding:.7rem .85rem;margin:0 0 1.3rem}
+.intro-carte .btn.primaire{font-size:1rem;padding:.7rem 1.6rem}
+
+/* Bouton d'aide rond (?) dans la barre du haut */
+.btn.rond{width:2.15rem;height:2.15rem;padding:0;justify-content:center;border-radius:999px;font-weight:700;font-size:1rem;line-height:1}
+.btn.rond[aria-expanded="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+
+/* Panneau d'aide (remplace le bandeau intro + la legende du bas) */
+.aide-pop{position:fixed;top:3.9rem;right:1rem;z-index:90;width:min(360px,92vw);
+  background:var(--surface);border:1px solid var(--ligne);border-radius:14px;
+  box-shadow:0 18px 44px rgba(27,26,23,.22);padding:1rem 1.1rem 1.1rem}
+.aide-pop[hidden]{display:none}
+.aide-pop-tete{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.5rem}
+.aide-pop-tete h2{font-family:var(--f-titre);font-size:1.15rem;color:var(--accent-txt-fort);margin:0}
+.aide-pop-x{border:0;background:transparent;cursor:pointer;font-size:1rem;color:var(--gris);border-radius:8px;padding:.2rem .4rem}
+.aide-pop-x:hover{color:var(--ink);background:var(--doux)}
+.aide-intro{font-size:.9rem;line-height:1.5;color:var(--ink-doux);margin:0 0 .8rem;padding-bottom:.8rem;border-bottom:1px solid var(--ligne)}
+.aide-liste{list-style:none;margin:0;padding:0;display:grid;gap:.55rem;font-size:.88rem;line-height:1.45;color:var(--ink-doux)}
+.aide-liste b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
 
 /* Barre d'outils */
 .toolbar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne)}
-.toolbar .groupe{display:flex;gap:.3rem;align-items:center;background:#faf8f4;border:1px solid var(--ligne);border-radius:9px;padding:.25rem}
+.toolbar .groupe{display:flex;gap:.3rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:9px;padding:.25rem}
 .toolbar .sep{flex:1}
 .tool{border:1px solid transparent;background:transparent}
-.tool[aria-pressed="true"]{background:var(--accent);color:#fff}
+.tool[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
 .zoom-niv{font-family:var(--f-ui);font-size:.82rem;min-width:3rem;text-align:center;color:var(--gris)}
 
 /* Scène (canvas clair) */
 .scene{position:relative;flex:1 1 auto;overflow:hidden;background:var(--canvas);
-  background-image:radial-gradient(circle, #e2ddd2 1px, transparent 1px);background-size:26px 26px;
+  background-image:radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);background-size:26px 26px;
   cursor:grab;touch-action:none}
 .scene.grabbing{cursor:grabbing}
 .scene.outil-fleche,.scene.outil-texte{cursor:crosshair}
-#monde{position:absolute;top:0;left:0;width:3200px;height:2200px;transform-origin:0 0}
-.plan-bord{position:absolute;inset:0;border:1px solid var(--ligne);border-radius:10px;background:#fbfaf7;pointer-events:none}
+#monde{position:absolute;top:0;left:0;width:4400px;height:2200px;transform-origin:0 0}
+.plan-bord{position:absolute;inset:0;border:1px solid var(--ligne);border-radius:10px;background:var(--plan);pointer-events:none}
 
 /* Cartes posées (tuiles blanches lisibles) */
-.c-carte{position:absolute;width:150px;background:#fff;border:1px solid var(--ligne);border-radius:10px;box-shadow:var(--ombre);overflow:hidden;cursor:grab;user-select:none}
+.c-carte{position:absolute;width:150px;background:var(--surface);border:1px solid var(--ligne);border-radius:10px;box-shadow:var(--ombre);overflow:hidden;cursor:grab;user-select:none}
 .c-carte.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-doux),var(--ombre)}
 .c-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .c-carte .vis img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.c-carte .num{position:absolute;top:5px;left:5px;width:21px;height:21px;border-radius:5px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.85rem}
-.c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
-.c-carte .agr:hover{background:var(--accent);color:#fff}
+.c-carte .num{position:absolute;top:5px;left:5px;width:21px;height:21px;border-radius:5px;background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;font-family:var(--f-titre);font-size:.85rem}
+.c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
+.c-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
+/* --- Lisibilite au dezoom (#monde.loin, sous 50 %) ----------------------
+   Au dezoom, l'image devient illisible : on met le TITRE en avant, en gros
+   et centre, par-dessus l'image assombrie. On garde le numero pour reperer
+   la carte. Le titre est contre-mis a l'echelle via --iz (=1/zoom), plafonne. */
+/* Image reduite a un bandeau (le numero reste visible), titre en tuile
+   dessous qui grandit pour tout afficher : la carte s'allonge, pas de coupe. */
+#monde.loin .c-carte .vis{aspect-ratio:auto;height:calc(30px * min(3.4,var(--iz,1)))}
+#monde.loin .c-carte .vis img{object-position:center 40%;filter:brightness(.7)}
+#monde.loin .c-carte .tit{
+  background:var(--surface);color:var(--ink);
+  font-size:calc(.86rem * min(3.4, var(--iz,1)));
+  line-height:1.12;text-align:center;white-space:normal;overflow-wrap:break-word;word-break:break-word;
+  padding:calc(.45rem * min(3.4,var(--iz,1))) calc(.4rem * min(3.4,var(--iz,1)));
+}
+#monde.loin .c-carte .agr{opacity:0;pointer-events:none}
+#monde.loin .c-texte{font-size:calc(15px * min(2.2, var(--iz,1)))}
+#monde.loin .fleche-lib{font-size:calc(13px * min(2.2, var(--iz,1)))}
 .c-carte.pose-anim{animation:pulse .7s ease}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,129,28,.5)}100%{box-shadow:0 0 0 18px rgba(232,129,28,0)}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Flèches */
-#fleches{position:absolute;top:0;left:0;width:3200px;height:2200px;overflow:visible;pointer-events:none}
+#fleches{position:absolute;top:0;left:0;width:4400px;height:2200px;overflow:visible;pointer-events:none}
 #fleches .hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
 #fleches .trait{stroke:#8a857b;stroke-width:2.2;fill:none}
+#fleches .trait.bidir{stroke:#F0A860}
 #fleches .trait.sel{stroke:var(--accent);stroke-width:3}
-#fleches .lib{font-family:var(--f-ui);font-size:14px;fill:var(--ink)}
+/* Étiquette de flèche : encadré arrondi gris, texte orange, au-dessus des traits */
+.fleche-lib{position:absolute;transform:translate(-50%,-50%);z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;color:var(--accent-txt);background:var(--doux);border:1px solid var(--ligne);border-radius:7px;padding:2px 7px;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px rgba(27,26,23,.10)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
+.fleche-bidir{position:absolute;width:22px;height:22px;background:var(--surface);color:var(--accent-txt);border:1px solid var(--ligne);border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;cursor:pointer;transform:translate(-50%,-50%);z-index:5}
+.fleche-bidir[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
 
 /* Notes texte */
-.c-texte{position:absolute;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:#fff7e6;border:1px solid #f0dfbc;border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}
+.c-texte{position:absolute;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:var(--note-bg);border:1px solid var(--note-bord);border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}
 .c-texte.sel{outline:2px solid var(--accent)}
 .c-texte[contenteditable="true"]{cursor:text;outline:2px solid var(--accent)}
 .texte-croix{position:absolute;width:20px;height:20px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.75rem;transform:translate(-50%,-50%);z-index:5}
 
 /* Main / pioche (solo) */
 .pioche{position:absolute;left:1rem;bottom:1rem;z-index:20;display:flex;gap:.5rem;align-items:flex-end}
-.main-carte{width:150px;background:#fff;border:1px solid var(--ligne);border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
+.main-carte{width:150px;background:var(--surface);border:1px solid var(--ligne);border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
 .main-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .main-carte .vis img{width:100%;height:100%;object-fit:cover}
-.main-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
+.main-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
 .main-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.8rem;color:var(--ink);padding:.35rem .45rem}
-.main-carte .actions{display:flex;gap:.3rem;padding:0 .4rem .45rem}
-.main-carte .actions button{flex:1;font-size:.74rem;padding:.32rem .2rem}
+.main-carte{cursor:grab}
+.main-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem;cursor:pointer}
+.main-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
+.main-carte .actions{display:flex;gap:.3rem;padding:.15rem .4rem .45rem}
+.main-carte .actions .btn{flex:1;justify-content:center;font-size:.8rem;padding:.4rem .3rem}
+.main-carte .pousser{font-family:var(--f-ui);font-weight:600;font-size:.72rem;text-align:center;color:var(--accent-txt);background:var(--doux);padding:.35rem .4rem;border-top:1px solid var(--ligne)}
+.main-carte.glisse{position:fixed;z-index:60;width:150px;cursor:grabbing;transform:rotate(-3deg);box-shadow:0 18px 40px rgba(27,26,23,.35);opacity:.96}
 
 /* Aide / légende */
-.legende{position:absolute;left:1rem;right:1rem;bottom:.7rem;z-index:15;background:rgba(255,255,255,.96);border:1px solid var(--ligne);border-radius:10px;font-size:.82rem;box-shadow:var(--ombre)}
-.legende summary{cursor:pointer;padding:.5rem .85rem;font-family:var(--f-ui);font-weight:700;color:var(--ink);list-style:none}
-.legende summary::-webkit-details-marker{display:none}
-.legende summary::after{content:" ▾";color:var(--gris)}
-.legende[open] summary::after{content:" ▴"}
-.legende .corps{padding:0 .9rem .7rem;display:grid;grid-template-columns:1fr 1fr;gap:.35rem 1.4rem;line-height:1.4;color:#3a352c}
-.legende b{color:var(--accent-txt);font-family:var(--f-ui)}
-@media(max-width:800px){.legende .corps{grid-template-columns:1fr}}
 
-.aide{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:16;font-family:var(--f-ui);font-size:.82rem;color:#fff;background:var(--ink);padding:.35rem .8rem;border-radius:999px;transition:opacity .2s;pointer-events:none}
+.aide{position:absolute;top:3.4rem;left:50%;transform:translateX(-50%);z-index:16;font-family:var(--f-ui);font-size:.82rem;color:var(--bg);background:var(--ink);padding:.35rem .8rem;border-radius:999px;transition:opacity .2s;pointer-events:none}
+
+/* Coach pas a pas : bandeau discret en haut, montre l'action suivante. */
+.coach{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:18;
+  display:flex;align-items:center;gap:.7rem;max-width:min(92vw,640px);
+  font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--sur-accent);
+  background:var(--accent-txt-fort);border-radius:999px;padding:.5rem .6rem .5rem 1rem;
+  box-shadow:0 8px 24px rgba(27,26,23,.22)}
+.coach .coach-txt{line-height:1.25}
+.coach .coach-x{flex:0 0 auto;border:0;border-radius:999px;cursor:pointer;
+  font-family:var(--f-ui);font-weight:700;font-size:.78rem;padding:.3rem .7rem;
+  background:rgba(0,0,0,.22);color:var(--sur-accent)}
+.coach .coach-x:hover{background:rgba(0,0,0,.34)}
+@media(max-width:760px){.coach{font-size:.82rem}}
+
+/* Carte en main a poser : mise en evidence discrete. */
+.main-carte.a-poser{animation:posePulse 1.6s ease-in-out infinite}
+@keyframes posePulse{0%,100%{box-shadow:var(--ombre)}50%{box-shadow:0 0 0 3px var(--accent),var(--ombre)}}
 .aide:empty{display:none}
 .aide:not(:empty){opacity:.92}
 
 /* Modal carte */
 .modal{position:fixed;inset:0;background:rgba(27,26,23,.55);display:none;place-items:center;z-index:100;padding:1rem}
-.modal.on{display:grid}
-.modal .carte-grande{width:min(90vw,400px);aspect-ratio:1/1.41;perspective:1400px}
+.modal.on{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.modal .carte-grande{height:min(74vh,690px);aspect-ratio:1.414/1;width:auto;max-width:94vw;perspective:1600px}
 .modal .faces{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s}
 .modal .carte-grande.flip .faces{transform:rotateY(180deg)}
-.modal .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;border:1px solid var(--ligne)}
+.modal .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column;border:1px solid var(--ligne)}
 .modal .recto{background:#14110d}
-.modal .recto .vg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.modal .recto .num{position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:1.3rem;z-index:2}
-.modal .recto .tit{margin-top:auto;position:relative;z-index:1;font-family:var(--f-titre);font-size:1.4rem;color:#fff;padding:1.2rem .9rem .8rem;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}
-.modal .verso{transform:rotateY(180deg);padding:1.6rem}
+.modal .recto .vg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#14110d}
+/* La vraie carte contient déjà son titre et son numéro : on masque les surimpressions */
+.modal .recto .num,.modal .recto .tit{display:none}
+.modal .verso{transform:rotateY(180deg);padding:1.8rem;overflow:auto}
+.modal .verso .vg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--surface);display:none}
+.modal .verso.a-image{padding:0;overflow:hidden}
+.modal .verso.a-image .vg{display:block}
+.modal .verso.a-image .verso-txt{display:none}
 .modal .verso h2{font-family:var(--f-titre);color:var(--accent-txt);margin:.2rem 0 .8rem}
-.modal .verso p{font-size:.95rem;line-height:1.5;color:#35322c}
-.modal .barre{position:absolute;top:-3.2rem;right:0;display:flex;gap:.5rem}
-.modal .barre .btn{background:#fff}
+.modal .verso p{font-size:1rem;line-height:1.55;color:var(--ink-doux)}
+/* Barre d'actions sous la carte, toujours visible */
+.modal .barre{position:static;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
+.modal .barre .btn{background:var(--surface)}
+.modal .barre .btn.primaire{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+#modal-poser[hidden]{display:none}
 
 /* Message mobile (l'outil vise l'ordinateur, A17.2) */
 .mobile-avis{display:none}
@@ -128,3 +218,15 @@ a{color:var(--accent-txt);text-decoration:none}
   .mobile-avis h1{font-family:var(--f-titre);font-size:1.8rem;margin:0 0 .6rem}
   .mobile-avis p{font-family:var(--f-texte);color:var(--gris);max-width:22rem;margin:0 auto}
 }
+
+/* Plein écran : on garde TOUTES les commandes (barre du haut + outils).
+   On replie seulement le bandeau d'introduction pour gagner de la place. */
+body.plein .app{height:100vh}
+
+/* Couleur du tableau (independante du theme) : le bouton bascule blanc <-> noir.
+   canvas-noir force un canevas sombre, canvas-blanc un canevas clair. */
+body.canvas-noir .scene{background:#14110d;background-image:radial-gradient(circle,#2a2620 1px,transparent 1px)}
+body.canvas-noir .plan-bord{background:#191510;border-color:#2a2620}
+body.canvas-noir .aide{background:#000}
+body.canvas-blanc .scene{background:#f4f2ec;background-image:radial-gradient(circle,#e2ddd2 1px,transparent 1px)}
+body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}

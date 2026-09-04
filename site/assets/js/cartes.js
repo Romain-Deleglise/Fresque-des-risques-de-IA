@@ -24,22 +24,48 @@
   if (!galerie) return;
   var GALERIE = [6, 13, 17, 22, 31, 35]; // six images nettes et variees
 
+  // Base des chemins d'images : sur les pages EN (window.CARTES_JSON = "../data/cartes.json"),
+  // les chemins du JSON sont relatifs a la racine du site, il faut donc prefixer "../".
+  var BASE = (window.CARTES_JSON || "data/cartes.json").replace(/data\/cartes\.json$/, "");
   fetch(window.CARTES_JSON || "data/cartes.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
       var parN = {};
       data.cartes.forEach(function (c) { parN[c.n] = c; });
+      var enAnglais = (document.documentElement.lang || "fr").indexOf("en") === 0;
       GALERIE.forEach(function (n) {
         var c = parN[n]; if (!c) return;
-        var fig = document.createElement("figure");
+        // Bouton : au clic, la carte se retourne pour montrer le verso (explication).
+        var fig = document.createElement("button");
+        fig.type = "button";
         fig.className = "gc"; fig.style.margin = "0";
+        fig.setAttribute("aria-pressed", "false");
+        fig.setAttribute("aria-label", (enAnglais ? "Card " : "Carte ") + c.n + " : " + c.titre + (enAnglais ? " — flip to read" : " — retourner pour lire"));
         if (c.image) {
           var img = document.createElement("img");
-          img.src = c.image.vignette; img.alt = "Illustration : " + c.titre; img.loading = "lazy";
+          // Vraie carte (format paysage) : elle porte deja son numero et son titre.
+          img.src = BASE + (c.image.carte || c.image.grand || c.image.vignette);
+          img.alt = ""; img.loading = "lazy";
           fig.appendChild(img);
         }
-        fig.insertAdjacentHTML("beforeend", '<span class="no">' + c.n + '</span>');
-        fig.insertAdjacentHTML("beforeend", '<figcaption class="lbl">' + echap(c.titre) + '</figcaption>');
+        if (c.image && c.image.verso) {
+          // Verso : la vraie carte de dos (page 2 du PDF), pas seulement le texte.
+          var vimg = document.createElement("img");
+          vimg.className = "gc-verso-img";
+          vimg.src = BASE + (c.image.verso.grand || c.image.verso.carte || c.image.verso.vignette);
+          vimg.alt = ""; vimg.loading = "lazy";
+          fig.appendChild(vimg);
+        } else {
+          var dos = document.createElement("span");
+          dos.className = "gc-verso";
+          dos.innerHTML = "<b>" + echap(c.titre) + "</b>" +
+            (c.verso || []).map(function (p) { return "<span>" + echap(/\[A COMPLETER\]/i.test(p) ? "" : p) + "</span>"; }).join("");
+          fig.appendChild(dos);
+        }
+        fig.addEventListener("click", function () {
+          var ouvert = fig.getAttribute("aria-pressed") === "true";
+          fig.setAttribute("aria-pressed", ouvert ? "false" : "true");
+        });
         galerie.appendChild(fig);
       });
     })

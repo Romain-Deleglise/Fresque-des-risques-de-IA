@@ -6,11 +6,27 @@
   command = ""
   functions = "netlify/functions"
 
-# Fonctions serverless (newsletter CiviCRM). Secrets via variables
-# d'environnement Netlify : CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY,
-# et éventuellement CIVICRM_NEWSLETTER_GROUP_ID (défaut 72).
+# Fonctions serverless : newsletter CiviCRM (subscribe) et mesure d'audience
+# sans cookie (collect / stats, stockage Netlify Blobs). Variables d'environnement :
+#   - CIVICRM_BASE_URL, CIVICRM_API_KEY, CIVICRM_SITE_KEY,
+#     CIVICRM_NEWSLETTER_GROUP_ID (défaut 72, liste Fresque),
+#     CIVICRM_PAUSEIA_GROUP_ID (défaut 3, newsletter Pause IA)
+#   - AUDIENCE_KEY (optionnel) : si défini, protège la lecture de /stats/ par cette clé.
 [functions]
   node_bundler = "esbuild"
+
+# Programmation d'ateliers + inscriptions (fonction ateliers) et envoi d'e-mails
+# transactionnels (Resend). Variables d'environnement a definir dans Netlify :
+#   - RESEND_API_KEY : cle API Resend (sans elle, les inscriptions marchent mais
+#     aucun e-mail n'est envoye ; le code s'affiche a l'ecran).
+#   - MAIL_FROM      : expediteur verifie, ex "Fresque des risques de l'IA <atelier@pauseia.fr>"
+#   - MAIL_REPONSE   : (optionnel) Reply-To, ex contact@pauseia.fr
+#   - SITE_URL       : URL publique du site pour les liens des e-mails,
+#     ex https://fresquedesrisquesdelia.org (defaut : ce domaine).
+# Rappels : la fonction rappels s'execute une fois par jour (voir ci-dessous) et
+# ecrit a l'animateur + participants (CC) pour les ateliers du lendemain.
+[functions."rappels"]
+  schedule = "0 8 * * *"
 
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.

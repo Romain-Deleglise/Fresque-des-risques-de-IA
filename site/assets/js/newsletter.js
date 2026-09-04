@@ -36,13 +36,19 @@
       input.focus();
       return;
     }
+    var cbF = document.getElementById("nl-fresque"), cbP = document.getElementById("nl-pauseia");
+    var listes = [];
+    if (!cbF || cbF.checked) listes.push("fresque");
+    if (cbP && cbP.checked) listes.push("pauseia");
+    if (!listes.length) { afficher(en ? "Please choose at least one list." : "Choisissez au moins une liste.", "err"); return; }
+
     btn.disabled = true;
     afficher(T.cours, "");
 
     fetch("/.netlify/functions/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email, source: "fresque-risques-ia" })
+      body: JSON.stringify({ email: email, source: "fresque-risques-ia", listes: listes })
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {

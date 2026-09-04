@@ -7,9 +7,28 @@
      CIVICRM_API_KEY    cle d'API du contact de service
      CIVICRM_SITE_KEY   cle de site CiviCRM
      CIVICRM_NEWSLETTER_GROUP_ID  (optionnel) defaut 72 (gid du groupe newsletter Fresque)
+     CIVICRM_PAUSEIA_GROUP_ID     (optionnel) defaut 3  (gid de la newsletter Pause IA)
+
+   Le client envoie `listes` : un tableau de cles parmi une liste blanche
+   ({fresque, pauseia}). On n'accepte JAMAIS un gid brut du client : seules ces
+   cles connues sont converties en gid cote serveur.
 */
 
-const GROUP_ID = Number(process.env.CIVICRM_NEWSLETTER_GROUP_ID || 72);
+const LISTES = {
+  fresque: Number(process.env.CIVICRM_NEWSLETTER_GROUP_ID || 72),
+  pauseia: Number(process.env.CIVICRM_PAUSEIA_GROUP_ID || 3)
+};
+
+// Convertit les cles recues en gids valides (dedupe). Defaut : la liste Fresque.
+function gidsDemandes(listes) {
+  const cles = Array.isArray(listes) && listes.length ? listes : ['fresque'];
+  const gids = [];
+  cles.forEach((c) => {
+    const g = LISTES[c];
+    if (g && gids.indexOf(g) === -1) gids.push(g);
+  });
+  return gids.length ? gids : [LISTES.fresque];
+}
 
 async function api4(entity, action, params) {
   const base = (process.env.CIVICRM_BASE_URL || '').replace(/\/+$/, '');
@@ -91,18 +110,22 @@ exports.handler = async (event) => {
       });
     }
 
-    // 4. Ajouter au groupe newsletter (idempotent)
-    const already = await api4('GroupContact', 'get', {
-      select: ['group_id'],
-      where: [['contact_id', '=', contactId], ['status', '=', 'Added'], ['group_id', '=', GROUP_ID]],
-      limit: 1
-    });
-    const dejaInscrit = Boolean(already.count && already.count > 0);
-    if (!dejaInscrit) {
-      await api4('GroupContact', 'save', {
-        match: ['contact_id', 'group_id'],
-        records: [{ contact_id: contactId, group_id: GROUP_ID, status: 'Added' }]
+    // 4. Ajouter aux groupes demandes (idempotent, un a un)
+    const gids = gidsDemandes(data.listes);
+    let nouveauxAjouts = 0;
+    for (const gid of gids) {
+      const already = await api4('GroupContact', 'get', {
+        select: ['group_id'],
+        where: [['contact_id', '=', contactId], ['status', '=', 'Added'], ['group_id', '=', gid]],
+        limit: 1
       });
+      if (!(already.count && already.count > 0)) {
+        await api4('GroupContact', 'save', {
+          match: ['contact_id', 'group_id'],
+          records: [{ contact_id: contactId, group_id: gid, status: 'Added' }]
+        });
+        nouveauxAjouts++;
+      }
     }
 
     return {
@@ -110,7 +133,7 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({
         success: true,
-        message: dejaInscrit ? 'Vous êtes déjà inscrit·e, merci !' : 'Inscription confirmée, merci !'
+        message: nouveauxAjouts === 0 ? 'Vous êtes déjà inscrit·e, merci !' : 'Inscription confirmée, merci !'
       })
     };
   } catch (err) {

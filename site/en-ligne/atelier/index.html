@@ -8,6 +8,18 @@
   <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png">
   <link rel="stylesheet" href="../../assets/css/fonts.css">
   <link rel="stylesheet" href="board.css">
+  <link rel="canonical" href="https://fresquedesrisquesdelia.org/en-ligne/atelier/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="La Fresque des risques de l'IA">
+  <meta property="og:title" content="Tableau de la fresque (démo) · La Fresque des risques de l'IA">
+  <meta property="og:description" content="Prototype du tableau collaboratif de La Fresque des risques de l'IA, jouable en solo.">
+  <meta property="og:url" content="https://fresquedesrisquesdelia.org/en-ligne/atelier/">
+  <meta property="og:image" content="https://fresquedesrisquesdelia.org/assets/img/social/partage.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <div class="app">
@@ -18,19 +30,17 @@
       La Fresque des risques de l'IA
     </a>
     <span class="spacer"></span>
-    <span class="compte">Pioche : <b id="pioche-n">38</b></span>
-    <button class="btn primaire" id="btn-piocher">Piocher une carte</button>
-    <button class="btn" id="btn-distribuer-tout">Ajouter 6 cartes</button>
+    <span class="compte lot-info" id="lot-info" title="Les cartes arrivent dans l'ordre, par lots"></span>
+    <button class="btn primaire" id="btn-piocher" title="Tire la carte suivante (les cartes arrivent dans l'ordre, par lots)">Piocher une carte</button>
+    <button class="btn" id="btn-recommencer" title="Vider le tableau et recommencer">Recommencer</button>
+    <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
+    <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
   </div>
 
-  <div class="carte0" id="carte0"><b>Introduction :</b> <span id="carte0-txt">…</span></div>
-
   <div class="toolbar" role="toolbar" aria-label="Outils">
-    <div class="groupe" role="group" aria-label="Outil actif">
-      <button class="btn tool" data-outil="deplacer" aria-pressed="true">Déplacer</button>
-      <button class="btn tool" data-outil="fleche" aria-pressed="false">Lien →</button>
-      <button class="btn tool" data-outil="fleche2" aria-pressed="false">Lien ↔</button>
-      <button class="btn tool" data-outil="texte" aria-pressed="false">Note</button>
+    <div class="groupe" role="group" aria-label="Outil">
+      <button class="btn tool" data-outil="fleche" aria-pressed="false" title="Relier deux cartes : cliquez la carte de départ, puis la carte d'arrivée">Lien</button>
+      <button class="btn tool" data-outil="texte" aria-pressed="false" title="Ajouter une note : cliquez le tableau (ou double-cliquez une zone vide)">Note</button>
     </div>
     <span class="sep"></span>
     <div class="groupe" role="group" aria-label="Zoom">
@@ -38,8 +48,8 @@
       <span class="zoom-niv" id="z-niv">100 %</span>
       <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
       <button class="btn" id="z-tout">Tout voir</button>
-      <button class="btn tool" id="z-molette" aria-pressed="false" title="Zoomer à la molette">Molette</button>
     </div>
+    <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
     <button class="btn" id="btn-plein">Plein écran</button>
   </div>
 
@@ -47,33 +57,54 @@
     <div class="aide" id="aide"></div>
     <div id="monde">
       <div class="plan-bord"></div>
-      <svg id="fleches" viewBox="0 0 3200 2200"></svg>
+      <svg id="fleches" viewBox="0 0 4400 2200"></svg>
     </div>
 
     <div class="pioche" id="main-zone"></div>
+  </div>
 
-    <details class="legende" id="legende" open>
-      <summary>Comment ça marche</summary>
-      <div class="corps">
-        <div><b>Cartes :</b> « Piocher une carte » puis « Poser » ; sur le tableau, glissez-la. Le bouton ⤢ l'ouvre en grand et permet de la retourner.</div>
-        <div><b>Liens :</b> choisissez l'outil Lien, cliquez la carte de départ puis celle d'arrivée. Cliquez le trait pour écrire dessus ou le supprimer.</div>
-        <div><b>Notes :</b> outil Note puis un clic sur le tableau. Une note se déplace en la glissant et s'édite d'un clic ; vide, elle disparaît.</div>
-        <div><b>Zoom :</b> boutons + / − ou « Molette ». « Tout voir » recadre l'ensemble. Glissez une zone vide pour vous déplacer.</div>
-      </div>
-    </details>
+  <aside class="aide-pop" id="aide-pop" hidden aria-label="Aide">
+    <div class="aide-pop-tete">
+      <h2 id="aide-titre">Comment jouer</h2>
+      <button class="aide-pop-x" id="aide-fermer" aria-label="Fermer">✕</button>
+    </div>
+    <p class="aide-intro" id="carte0-txt">…</p>
+    <ul class="aide-liste" id="aide-liste">
+      <li><b>Déplacer :</b> glissez une carte pour la déplacer ; glissez une zone vide pour vous déplacer sur le tableau.</li>
+      <li><b>Cartes :</b> « Piocher une carte » puis « Poser ». Le bouton ⤢ l'agrandit et permet de la retourner.</li>
+      <li><b>Liens :</b> cliquez « Lien », puis la carte de départ et la carte d'arrivée. Sélectionnez une flèche pour l'annoter, la supprimer ou la passer en double sens (↔).</li>
+      <li><b>Notes :</b> double-cliquez sur une zone vide du tableau. Glissez pour déplacer, cliquez pour éditer ; vide, elle disparaît.</li>
+      <li><b>Zoom :</b> molette, boutons + / − ou « Tout voir » pour recadrer.</li>
+    </ul>
+    <button class="btn" id="revoir-objectif" style="margin-top:.9rem;width:100%;justify-content:center">Revoir l'objectif du jeu</button>
+  </aside>
+</div>
+
+<div class="intro-overlay" id="intro-overlay" hidden>
+  <div class="intro-carte" role="dialog" aria-modal="true" aria-labelledby="intro-titre">
+    <h1 id="intro-titre">Reconstituez la carte des risques de l'IA</h1>
+    <p class="intro-but">Le but : relier les 38 cartes pour dresser, petit à petit, une vue d'ensemble — comment l'IA fonctionne, ce qu'elle sait faire, ses risques, et les réponses possibles.</p>
+    <ol class="intro-etapes">
+      <li><b>Piochez</b> une carte : elles arrivent dans l'ordre, par lots (1 · fonctionnement → 2 · capacités → 3 · risques → 4 · risques majeurs → 5 · réponses).</li>
+      <li><b>Placez-la</b> sur le tableau (bouton « Poser » ou glisser), puis piochez la suivante.</li>
+      <li><b>Reliez</b> les cartes : outil « Lien », puis cliquez une carte de départ et une carte d'arrivée. Une flèche = « ceci entraîne / mène à cela ».</li>
+    </ol>
+    <p class="intro-note">Il n'y a pas une seule « bonne » fresque : le but est de construire des liens qui ont du sens pour vous. Bloqué·e ? Agrandissez une carte (⤢) pour lire son explication au dos. Cet atelier se vit d'habitude à plusieurs avec un animateur ; le « ? » en haut rappelle tout à tout moment.</p>
+    <button class="btn primaire" id="intro-ok">Commencer</button>
   </div>
 </div>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Carte agrandie">
   <div class="carte-grande" id="carte-grande">
-    <div class="barre">
-      <button class="btn" id="modal-flip">Retourner</button>
-      <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
-    </div>
     <div class="faces">
       <div class="face recto"><img class="vg" id="mg-img" alt=""><span class="num" id="mg-num"></span><div class="tit" id="mg-tit"></div></div>
-      <div class="face verso"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div>
+      <div class="face verso"><img class="vg" id="mg-vimg" alt=""><div class="verso-txt"><h2 id="mg-vtit"></h2><div id="mg-verso"></div></div></div>
     </div>
+  </div>
+  <div class="barre">
+    <button class="btn primaire" id="modal-poser" hidden>Poser la carte</button>
+    <button class="btn" id="modal-flip">Retourner la carte</button>
+    <button class="btn" id="modal-close" aria-label="Fermer">Fermer ✕</button>
   </div>
 </div>
 
@@ -86,5 +117,6 @@
 </div>
 
 <script src="board.js" defer></script>
+  <script src="../../assets/js/mesure.js" defer></script>
 </body>
 </html>
