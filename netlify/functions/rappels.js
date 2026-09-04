@@ -26,7 +26,7 @@ function texteRappel(a) {
   if (a.mode === "enligne") l.push("Rejoignez le tableau en ligne avec ce code : " + LIEN + "/en-ligne/session/");
   l.push("");
   l.push("À tout bientôt,");
-  l.push("La Fresque des risques de l'IA — Pause IA");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   return l.join("\n");
 }
 
@@ -44,7 +44,7 @@ exports.handler = async () => {
         if (!a || a.rappelEnvoye) continue;
         if (!isFinite(a.quandMs) || a.quandMs < now || a.quandMs > now + FENETRE_MS) continue;
         const parts = (a.participants || []).map((p) => p.mail).filter(Boolean);
-        const env = await mail.envoi({ to: a.animateur.mail, cc: parts, subject: "Rappel — votre atelier Fresque des risques de l'IA", text: texteRappel(a) });
+        const env = await mail.envoi({ to: a.animateur.mail, cc: parts, subject: "Rappel : votre atelier Fresque des risques de l'IA", text: texteRappel(a) });
         if (env.envoye) {
           a.rappelEnvoye = true;
           await st.setJSON(b.key, a, { onlyIfMatch: res.etag });

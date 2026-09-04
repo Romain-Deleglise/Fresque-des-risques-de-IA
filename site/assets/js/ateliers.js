@@ -11,7 +11,8 @@
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.",
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
-    confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; }
+    confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
+    ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it"
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -19,7 +20,8 @@
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.",
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
-    confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; }
+    confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
+    ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder"
   };
   function poster(op, data) {
     return fetch("/.netlify/functions/ateliers", {
@@ -164,15 +166,32 @@
     }).catch(function () { if (msgEl) { msgEl.className = "msg err"; msgEl.textContent = T.indispo; } });
   }
 
-  // Option 1 : formulaire code + e-mail de l'animateur·ice.
+  // Option 1 : formulaire code + e-mail, avec confirmation avant d'annuler.
   var fAnn = document.getElementById("form-annuler");
   if (fAnn) {
     fAnn.addEventListener("submit", function (e) {
       e.preventDefault();
-      var m = document.getElementById("annul-msg"), sb = fAnn.querySelector('button[type="submit"]');
+      var m = document.getElementById("annul-msg");
+      var sb = fAnn.querySelector('button[type="submit"]');
+      var code = (fAnn.code.value || "").toUpperCase(), mail = fAnn.mail.value;
+      // Etape 1 : demander confirmation dans un encadré inline.
+      var box = document.createElement("div");
+      box.className = "annul-confirm";
+      box.innerHTML = '<p>' + esc(T.confirmAnnul(code)) + '</p><div class="annul-confirm-actions">'
+        + '<button type="button" class="btn btn-noir" data-oui>' + esc(T.ouiAnnuler) + '</button>'
+        + '<button type="button" class="btn btn-2" data-non>' + esc(T.nonGarder) + '</button></div>';
+      m.textContent = ""; m.className = "msg";
+      var prev = fAnn.querySelector(".annul-confirm"); if (prev) prev.remove();
+      fAnn.insertBefore(box, m);
       if (sb) sb.disabled = true;
-      annulerAtelier({ code: (fAnn.code.value || "").toUpperCase(), mail: fAnn.mail.value }, m, function () { fAnn.reset(); })
-        .then(function () { if (sb) sb.disabled = false; });
+      function nettoyer() { box.remove(); if (sb) sb.disabled = false; }
+      box.querySelector("[data-non]").addEventListener("click", nettoyer);
+      box.querySelector("[data-oui]").addEventListener("click", function () {
+        box.remove();
+        // Etape 2 : annulation effective + message de validation.
+        annulerAtelier({ code: code, mail: mail }, m, function () { fAnn.reset(); })
+          .then(function () { if (sb) sb.disabled = false; });
+      });
     });
   }
 

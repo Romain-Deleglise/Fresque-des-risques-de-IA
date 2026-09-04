@@ -22,6 +22,7 @@ async function envoi(m) {
   var to = [].concat(m.to || []).filter(Boolean);
   if (!to.length) return { envoye: false, raison: "sans_destinataire" };
   var corps = { from: c.from, to: to, subject: m.subject, text: m.text };
+  if (m.html) corps.html = m.html;
   if (m.cc && [].concat(m.cc).filter(Boolean).length) corps.cc = [].concat(m.cc).filter(Boolean);
   if (c.replyTo) corps.reply_to = c.replyTo;
   try {

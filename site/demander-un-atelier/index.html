@@ -84,9 +84,11 @@
         </div>
         <form id="form-programmer" class="form-atelier" novalidate>
           <fieldset class="champ-mode">
-            <legend>Format</legend>
-            <label class="radio"><input type="radio" name="mode" value="physique" checked> Présentiel</label>
-            <label class="radio"><input type="radio" name="mode" value="enligne"> En ligne</label>
+            <legend>Format de l'atelier</legend>
+            <div class="mode-choix">
+              <label class="radio"><input type="radio" name="mode" value="physique" checked> <span>En présentiel</span></label>
+              <label class="radio"><input type="radio" name="mode" value="enligne"> <span>En ligne</span></label>
+            </div>
           </fieldset>
           <div class="grille-champs">
             <label>Votre prénom<input name="animateurPrenom" maxlength="24" required autocomplete="given-name"></label>
