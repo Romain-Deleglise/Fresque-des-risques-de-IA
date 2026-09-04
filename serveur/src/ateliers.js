@@ -70,6 +70,19 @@ function validerInscription(atelier, d) {
   return { participant: { prenom: prenom, mail: mail, le: Date.now() } };
 }
 
+// Autorise l'annulation d'un atelier. Le code de session n'est PAS secret
+// (les participants le recoivent aussi), donc on exige soit le jeton secret
+// envoye a l'animateur par e-mail, soit l'e-mail exact de l'animateur.
+function annulationAutorisee(atelier, d) {
+  d = d || {};
+  if (!atelier) return err("atelier_inconnu", "Cet atelier n'existe pas ou plus.");
+  var jeton = tronque(d.token, 64);
+  if (atelier.annulToken && jeton && jeton === atelier.annulToken) return { ok: true };
+  var mail = tronque(d.mail, LEN_MAIL).toLowerCase();
+  if (mail && atelier.animateur && (atelier.animateur.mail || "").toLowerCase() === mail) return { ok: true };
+  return err("non_autorise", "Code ou e-mail incorrect : seul l'animateur·ice peut annuler cet atelier.");
+}
+
 function estPasse(a) {
   // On garde l'atelier visible jusqu'a 3h apres l'heure de debut.
   return a && isFinite(a.quandMs) && (Date.now() > a.quandMs + 3 * 60 * 60 * 1000);
@@ -105,5 +118,6 @@ function err(code, message) { return { erreur: { code: code, message: message } 
 module.exports = {
   MAX_ENLIGNE: MAX_ENLIGNE, MAX_PHYSIQUE: MAX_PHYSIQUE,
   mailValide: mailValide, valider: valider, validerInscription: validerInscription,
+  annulationAutorisee: annulationAutorisee,
   estPasse: estPasse, vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

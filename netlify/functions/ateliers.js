@@ -73,6 +73,10 @@ function mailAnimateur(a) {
   l.push("Code de session : " + a.code);
   if (a.mode === "enligne") l.push("Le jour J, ouvrez le tableau en ligne et créez la session avec ce code : " + LIEN + "/en-ligne/session/");
   l.push("");
+  l.push("Une erreur de saisie ? Vous pouvez annuler cet atelier ici :");
+  l.push(LIEN + "/demander-un-atelier/?annuler=" + a.code + "&t=" + (a.annulToken || ""));
+  l.push("(Ne transmettez pas ce lien : il permet d'annuler l'atelier.)");
+  l.push("");
   l.push("À bientôt,");
   l.push("La Fresque des risques de l'IA — Pause IA");
   return l.join("\n");
@@ -112,6 +116,7 @@ exports.handler = async (event) => {
       for (let i = 0; i < 10 && !code; i++) { const c = R.nouveauCode({}); if (await codeLibre(c)) code = c; }
       if (!code) return json(500, { erreur: { code: "code", message: "Impossible de générer un code." } });
       const a = v.atelier; a.code = code; a.participants = []; a.creeLe = Date.now();
+      a.annulToken = R.jetonAleatoire();
       await st.setJSON(cle(code), a);
       purger(st);
       const env = await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier Fresque des risques de l'IA — code " + code, text: mailAnimateur(a) });
@@ -148,6 +153,17 @@ exports.handler = async (event) => {
         return json(200, { atelier: A.vueConfirmation(a), emailEnvoye: env.envoye });
       }
       return json(409, { erreur: { code: "conflit", message: "Trop de monde s'inscrit en même temps, réessayez." } });
+    }
+
+    if (d.op === "annuler") {
+      if (await depasse("entree", ip)) return json(429, { erreur: { code: "trop", message: "Trop de tentatives, patientez une minute." } });
+      const code = String(d.code || "").toUpperCase();
+      const res = await st.getWithMetadata(cle(code), { type: "json" });
+      if (!res || !res.data) return json(404, { erreur: { code: "atelier_inconnu", message: "Cet atelier n'existe pas ou plus." } });
+      const auth = A.annulationAutorisee(res.data, d);
+      if (auth.erreur) return json(403, { erreur: auth.erreur });
+      await st.delete(cle(code));
+      return json(200, { annule: true });
     }
 
     return json(400, { error: "Opération inconnue." });

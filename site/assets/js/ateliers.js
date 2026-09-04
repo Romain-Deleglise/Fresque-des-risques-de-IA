@@ -9,13 +9,17 @@
     codeOk: "Workshop scheduled. Session code: ", mailOk: " A confirmation e-mail has been sent.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
     inscritOk: "You're registered! Session code: ", places: function (n, m) { return n + " / " + m + " registered"; },
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.",
-    participer: "Register", annuler: "Cancel"
+    participer: "Register", annuler: "Cancel",
+    annuleOk: "Workshop cancelled. It no longer appears in the list.",
+    confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; }
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
     inscritOk: "Inscription confirmée ! Code de session : ", places: function (n, m) { return n + " / " + m + " inscrits"; },
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.",
-    participer: "Participer", annuler: "Annuler"
+    participer: "Participer", annuler: "Annuler",
+    annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
+    confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; }
   };
   function poster(op, data) {
     return fetch("/.netlify/functions/ateliers", {
@@ -145,4 +149,46 @@
       }).catch(function () { m.className = "msg err"; m.textContent = T.indispo; if (sb) sb.disabled = false; });
     });
   }
+
+  /* ---------- Annuler un atelier (animateur·ice) ---------- */
+  function annulerAtelier(donnees, msgEl, apres) {
+    if (msgEl) { msgEl.textContent = T.envoi; msgEl.className = "msg"; }
+    return poster("annuler", donnees).then(function (res) {
+      if (res.ok && res.d && res.d.annule) {
+        if (msgEl) { msgEl.className = "msg ok"; msgEl.textContent = T.annuleOk; }
+        if (apres) apres();
+      } else if (msgEl) {
+        msgEl.className = "msg err";
+        msgEl.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur;
+      }
+    }).catch(function () { if (msgEl) { msgEl.className = "msg err"; msgEl.textContent = T.indispo; } });
+  }
+
+  // Option 1 : formulaire code + e-mail de l'animateur·ice.
+  var fAnn = document.getElementById("form-annuler");
+  if (fAnn) {
+    fAnn.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var m = document.getElementById("annul-msg"), sb = fAnn.querySelector('button[type="submit"]');
+      if (sb) sb.disabled = true;
+      annulerAtelier({ code: (fAnn.code.value || "").toUpperCase(), mail: fAnn.mail.value }, m, function () { fAnn.reset(); })
+        .then(function () { if (sb) sb.disabled = false; });
+    });
+  }
+
+  // Option 2 : lien direct depuis l'e-mail (?annuler=CODE&t=JETON).
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var code = params.get("annuler");
+    if (!code) return;
+    code = code.toUpperCase();
+    var token = params.get("t") || "";
+    var bAnim = document.getElementById("btn-vue-animer");
+    if (bAnim) bAnim.click(); // révèle la vue « Programmer / annuler »
+    var m = document.getElementById("annul-msg");
+    if (m) { try { m.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }
+    if (window.confirm(T.confirmAnnul(code))) {
+      annulerAtelier({ code: code, token: token }, m);
+    }
+  })();
 })();

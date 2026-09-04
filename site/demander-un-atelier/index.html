@@ -112,6 +112,19 @@
           <button class="btn btn-1" type="submit">Programmer l'atelier</button>
           <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
         </form>
+
+        <div class="annuler-atelier">
+          <h3>Annuler un atelier</h3>
+          <p class="muted">Une erreur de saisie ? Saisissez le code de session et l'e-mail de l'animateur·ice pour le retirer de la liste. (Le lien reçu par e-mail permet aussi de l'annuler en un clic.)</p>
+          <form id="form-annuler" class="form-atelier" novalidate>
+            <div class="grille-champs">
+              <label>Code de session<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+              <label>E-mail de l'animateur·ice<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+            </div>
+            <button class="btn btn-noir" type="submit">Annuler cet atelier</button>
+            <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
       </div>
     </section>
 
