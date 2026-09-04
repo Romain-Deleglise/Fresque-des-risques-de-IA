@@ -127,6 +127,23 @@ function icsAtelier(a) {
 }
 function pieceIcs(a) { return { filename: "atelier-fresque.ics", content: Buffer.from(icsAtelier(a), "utf8").toString("base64") }; }
 
+// E-mail a l'animateur quand un participant s'inscrit.
+function mailNouvelInscrit(a, prenom) {
+  const n = (a.participants || []).length, max = a.maxParticipants;
+  const l = [];
+  l.push("Bonjour " + a.animateur.prenom + ",");
+  l.push("");
+  l.push(prenom + " vient de s'inscrire à votre atelier du " + dateLisible(a.date, a.heure) + ".");
+  l.push("Inscrits : " + n + " / " + max + ".");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
+  c += '<p style="margin:0 0 6px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du ' + h(dateLisible(a.date, a.heure)) + '.</p>';
+  c += '<p style="margin:0;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(max)) + '</strong></p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+
 // E-mail envoye aux inscrits quand l'animateur annule l'atelier.
 function mailAnnulation(a) {
   const l = [];
@@ -296,6 +313,8 @@ exports.handler = async (event) => {
         if (w && w.modified === false) continue; // concurrence : on rejoue
         const mp = mailParticipant(a, vi.participant);
         const env = await mail.envoi({ to: vi.participant.mail, subject: "Inscription confirmée à la Fresque des risques de l'IA", text: mp.text, html: mp.html, attachments: [pieceIcs(a)] });
+        // Notifier l'animateur (sans bloquer l'inscription en cas d'echec).
+        try { const mn = mailNouvelInscrit(a, vi.participant.prenom); await mail.envoi({ to: a.animateur.mail, subject: "Nouvelle inscription à votre atelier (" + a.participants.length + "/" + a.maxParticipants + ")", text: mn.text, html: mn.html }); } catch (e) {}
         return json(200, { atelier: A.vueConfirmation(a), emailEnvoye: env.envoye });
       }
       return json(409, { erreur: { code: "conflit", message: "Trop de monde s'inscrit en même temps, réessayez." } });
