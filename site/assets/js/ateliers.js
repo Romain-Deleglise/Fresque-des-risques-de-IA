@@ -12,7 +12,9 @@
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
     confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
-    ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it"
+    ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
+    confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
+    desisteOk: "You have been unregistered. Your seat is freed up."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -21,7 +23,9 @@
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
     confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
-    ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder"
+    ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
+    confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
+    desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre."
   };
   function poster(op, data) {
     return fetch("/.netlify/functions/ateliers", {
@@ -209,5 +213,26 @@
     if (window.confirm(T.confirmAnnul(code))) {
       annulerAtelier({ code: code, token: token }, m);
     }
+  })();
+
+  // Désinscription participant via le lien de l'e-mail (?desister=CODE&p=JETON).
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var code = params.get("desister");
+    if (!code) return;
+    code = code.toUpperCase();
+    var token = params.get("p") || "";
+    var host = document.getElementById("liste-ateliers");
+    var m = document.createElement("p");
+    m.className = "msg"; m.setAttribute("role", "status"); m.style.maxWidth = "44rem"; m.style.margin = "0 0 1.2rem";
+    if (host && host.parentNode) host.parentNode.insertBefore(m, host);
+    try { m.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+    if (window.confirm(T.confirmDesist(code))) {
+      m.textContent = T.envoi;
+      poster("desister", { code: code, token: token }).then(function (res) {
+        if (res.ok && res.d && res.d.desiste) { m.className = "msg ok"; m.textContent = T.desisteOk; }
+        else { m.className = "msg err"; m.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur; }
+      }).catch(function () { m.className = "msg err"; m.textContent = T.indispo; });
+    } else { m.remove(); }
   })();
 })();

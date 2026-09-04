@@ -83,6 +83,19 @@ function annulationAutorisee(atelier, d) {
   return err("non_autorise", "Code ou e-mail incorrect : seul l'animateur·ice peut annuler cet atelier.");
 }
 
+// Retire un participant identifié par son jeton personnel (lien de l'e-mail).
+function retraitParticipant(atelier, d) {
+  d = d || {};
+  if (!atelier) return err("atelier_inconnu", "Cet atelier n'existe pas ou plus.");
+  var token = tronque(d.token, 64);
+  if (!token) return err("token_manquant", "Lien de désinscription invalide.");
+  var parts = atelier.participants || [];
+  var i = -1;
+  for (var k = 0; k < parts.length; k++) { if (parts[k] && parts[k].token && parts[k].token === token) { i = k; break; } }
+  if (i < 0) return err("participant_inconnu", "Vous n'êtes pas (ou plus) inscrit·e à cet atelier.");
+  return { participants: parts.slice(0, i).concat(parts.slice(i + 1)), participant: parts[i] };
+}
+
 function estPasse(a) {
   // On garde l'atelier visible jusqu'a 3h apres l'heure de debut.
   return a && isFinite(a.quandMs) && (Date.now() > a.quandMs + 3 * 60 * 60 * 1000);
@@ -118,6 +131,6 @@ function err(code, message) { return { erreur: { code: code, message: message } 
 module.exports = {
   MAX_ENLIGNE: MAX_ENLIGNE, MAX_PHYSIQUE: MAX_PHYSIQUE,
   mailValide: mailValide, valider: valider, validerInscription: validerInscription,
-  annulationAutorisee: annulationAutorisee,
+  annulationAutorisee: annulationAutorisee, retraitParticipant: retraitParticipant,
   estPasse: estPasse, vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

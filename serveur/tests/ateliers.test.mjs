@@ -57,3 +57,18 @@ test("annulation : jeton secret ou e-mail animateur exigé", () => {
   assert.ok(A.annulationAutorisee(a, {}).erreur, "sans preuve refusé");
   assert.ok(A.annulationAutorisee(null, { token: "x" }).erreur, "atelier inconnu");
 });
+
+test("désinscription participant : par jeton personnel", () => {
+  const a = { code: "ABCDEF", participants: [
+    { prenom: "Jo", mail: "jo@ex.org", token: "TOK-JO" },
+    { prenom: "Ka", mail: "ka@ex.org", token: "TOK-KA" }
+  ] };
+  const r = A.retraitParticipant(a, { token: "TOK-JO" });
+  assert.ok(!r.erreur, "jeton valide accepté");
+  assert.equal(r.participants.length, 1);
+  assert.equal(r.participants[0].token, "TOK-KA", "seul le bon participant est retiré");
+  assert.equal(r.participant.prenom, "Jo");
+  assert.ok(A.retraitParticipant(a, { token: "inconnu" }).erreur, "jeton inconnu refusé");
+  assert.ok(A.retraitParticipant(a, {}).erreur, "sans jeton refusé");
+  assert.ok(A.retraitParticipant(null, { token: "x" }).erreur, "atelier inconnu");
+});
