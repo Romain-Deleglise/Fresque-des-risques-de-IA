@@ -11,6 +11,7 @@
   var EN = LANG === "en";
   var S = EN ? {
     prenomManquant: "Please enter your first name.", creation: "Creating…", echec: "Failed.",
+    ouvrirAtelier: function (c) { return "Opening workshop " + c + ": enter your first name, then click “Open the session”."; },
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
     partagezCode: function (c) { return "Share the code " + c + " with the participants."; },
@@ -31,6 +32,7 @@
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
+    ouvrirAtelier: function (c) { return "Ouverture de l'atelier " + c + " : entrez votre prénom, puis cliquez sur « Ouvrir la session »."; },
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
     partagezCode: function (c) { return "Partagez le code " + c + " avec les participants."; },
@@ -144,12 +146,20 @@
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
 
+  var codeSouhaite = null; // code reserve (atelier) a ouvrir, transmis par ?ouvrir=
   E["btn-creer"].addEventListener("click", function () {
     var prenom = (E["anim-prenom"].value || "").trim();
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
     E["btn-creer"].disabled = true; lobbyMsg(S.creation);
-    api("creer", { prenom: prenom }).then(function (res) {
+    api("creer", { prenom: prenom, code: codeSouhaite || undefined }).then(function (res) {
       E["btn-creer"].disabled = false;
+      if (res.d && res.d.existe) { // la session existe deja : on rejoint (reprise animateur si jeton connu)
+        api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jetonStocke(res.d.code) }).then(function (r2) {
+          if (r2.d && r2.d.jeton) { stockerJeton(res.d.code, r2.d.jeton); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
+          else lobbyMsg((r2.d && r2.d.refus && r2.d.refus.message) || S.echec, "err");
+        }).catch(function () { lobbyMsg(S.indispoMoment, "err"); });
+        return;
+      }
       if (res.d && res.d.code) { stockerJeton(res.d.code, res.d.jeton); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
       else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
     }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
@@ -179,6 +189,27 @@
         if (res.d && res.d.jeton) { stockerJeton(m.toUpperCase(), res.d.jeton); demarrer(m.toUpperCase(), res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       }).catch(function(){});
     }
+  })();
+
+  // Liens des e-mails : ?ouvrir=CODE (animateur, ouvre/reprend l'atelier reserve),
+  // ?code=CODE (participant, pre-remplit le code a rejoindre).
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var pre = (params.get("code") || "").toUpperCase();
+    if (pre) { E["join-code"].value = pre; try { E["join-prenom"].focus(); } catch (e) {} }
+    var o = (params.get("ouvrir") || "").toUpperCase();
+    if (!o) return;
+    var j = jetonStocke(o);
+    if (j) { // l'animateur a deja ouvert la session : on reprend
+      api("rejoindre", { code: o, jeton: j }).then(function (res) {
+        if (res.d && res.d.jeton) { stockerJeton(o, res.d.jeton); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+        else { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
+      }).catch(function () { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); });
+      return;
+    }
+    codeSouhaite = o;
+    lobbyMsg(S.ouvrirAtelier(o));
+    try { E["anim-prenom"].focus(); } catch (e) {}
   })();
 
   /* ---------- Démarrage session ---------- */

@@ -47,3 +47,28 @@ test("vuePublique n'expose aucun e-mail", () => {
   assert.equal(v.inscrits, 1);
   assert.equal(v.lieu, "MJC");
 });
+
+test("annulation : jeton secret ou e-mail animateur exigé", () => {
+  const a = { code: "ABCDEF", animateur: { prenom: "Léa", mail: "lea@ex.org" }, annulToken: "SECRET-TOKEN-123" };
+  assert.ok(A.annulationAutorisee(a, { token: "SECRET-TOKEN-123" }).ok, "jeton correct");
+  assert.ok(A.annulationAutorisee(a, { mail: "LEA@ex.org" }).ok, "e-mail animateur (insensible casse)");
+  assert.ok(A.annulationAutorisee(a, { token: "mauvais" }).erreur, "jeton faux refusé");
+  assert.ok(A.annulationAutorisee(a, { mail: "participant@ex.org" }).erreur, "e-mail tiers refusé");
+  assert.ok(A.annulationAutorisee(a, {}).erreur, "sans preuve refusé");
+  assert.ok(A.annulationAutorisee(null, { token: "x" }).erreur, "atelier inconnu");
+});
+
+test("désinscription participant : par jeton personnel", () => {
+  const a = { code: "ABCDEF", participants: [
+    { prenom: "Jo", mail: "jo@ex.org", token: "TOK-JO" },
+    { prenom: "Ka", mail: "ka@ex.org", token: "TOK-KA" }
+  ] };
+  const r = A.retraitParticipant(a, { token: "TOK-JO" });
+  assert.ok(!r.erreur, "jeton valide accepté");
+  assert.equal(r.participants.length, 1);
+  assert.equal(r.participants[0].token, "TOK-KA", "seul le bon participant est retiré");
+  assert.equal(r.participant.prenom, "Jo");
+  assert.ok(A.retraitParticipant(a, { token: "inconnu" }).erreur, "jeton inconnu refusé");
+  assert.ok(A.retraitParticipant(a, {}).erreur, "sans jeton refusé");
+  assert.ok(A.retraitParticipant(null, { token: "x" }).erreur, "atelier inconnu");
+});

@@ -5,7 +5,7 @@
 */
 const { getStore, connectLambda } = require("@netlify/blobs");
 
-function store() { return getStore({ name: "audience", consistency: "strong" }); }
+function store() { return getStore({ name: "audience" }); }
 const json = (statut, corps) => ({
   statusCode: statut,
   headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
