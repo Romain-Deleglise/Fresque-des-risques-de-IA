@@ -36,6 +36,33 @@
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.
 
+# Redirection du domaine .fr vers le domaine principal .org (301 permanent).
+# Le .fr est un alias du site sur Netlify ; sans regle explicite, Netlify sert
+# le contenu sur le .fr sans rediriger. On force http ET https, avec et sans www.
+[[redirects]]
+  from = "https://fresquedesrisquesdelia.fr/*"
+  to = "https://fresquedesrisquesdelia.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://fresquedesrisquesdelia.fr/*"
+  to = "https://fresquedesrisquesdelia.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.fresquedesrisquesdelia.fr/*"
+  to = "https://fresquedesrisquesdelia.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.fresquedesrisquesdelia.fr/*"
+  to = "https://fresquedesrisquesdelia.org/:splat"
+  status = 301
+  force = true
+
 # En-tetes de securite (B9.4 du cahier des charges).
 [[headers]]
   for = "/*"
