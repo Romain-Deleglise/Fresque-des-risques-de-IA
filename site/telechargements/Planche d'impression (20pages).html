@@ -1,0 +1,622 @@
+<!doctype html>
+<!-- Fresque IA — planche d'impression v3 (v1 finale) : 4 cartes / A4 paysage, recto + verso miroir (duplex) -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fresque IA — planche d'impression A4 (39 cartes, 0 à 38)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Montserrat:wght@400;700;900&family=Roboto+Slab:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --orange:#F7931D; --ink:#222222; --white:#FFFFFF;
+    --orange-deep:#D4740A;   /* orange assombri : épaisseurs, liserés (dérivé du #F7931D, non substitutif) */
+    --diag:15px;             /* chute de la diagonale du bandeau (identique à l'original) */
+    /* carte à la coupe (taille réelle A6 paysage, SANS fond perdu : impression maison) */
+    --w:148mm; --h:105mm;
+    --inset:6mm;            /* marge de sécurité interne */
+    /* facteur d'ajustement : réduit le bloc 2x2 pour rester dans la zone imprimable.
+       0.93 = sûr pour la plupart des imprimantes. Monte vers 0.96 si la tienne imprime près du bord. */
+    --fit:0.93;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#5b6068;font-family:"Roboto Slab",Georgia,serif;-webkit-font-smoothing:antialiased;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  /* ---------- bandeau d'instructions (jamais imprimé) ---------- */
+  .guide{background:#22252a;color:#e7eaee;padding:22px 26px;font-family:"Montserrat",sans-serif;}
+  .guide h1{font-size:20px;font-weight:900;margin:0 0 10px;}
+  .guide h1 b{color:var(--orange);}
+  .guide ol{margin:0;padding-left:20px;font-size:13.5px;line-height:1.65;color:#c9ced5;max-width:1000px;}
+  .guide ol b{color:#fff;}
+  .guide .warn{color:var(--orange);}
+  .guide .note{margin:14px 0 0;padding:12px 14px;border-left:3px solid var(--orange);background:#2b2f36;
+    font-size:13px;line-height:1.6;color:#c9ced5;max-width:1000px;}
+  .guide .note b{color:#fff;}
+  @media print{ .guide{display:none;} }
+
+  /* ---------- feuilles A4 ---------- */
+  @page{ size:A4 landscape; margin:0; }
+  .sheet{position:relative;width:297mm;height:210mm;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    margin:24px auto;box-shadow:0 14px 40px rgba(0,0,0,.4);}
+  .sheet .label{position:absolute;top:6mm;left:8mm;font-family:"Montserrat",sans-serif;
+    font-size:11px;font-weight:700;letter-spacing:1px;color:#b8bcc2;text-transform:uppercase;}
+  @media print{ .sheet{margin:0;box-shadow:none;page-break-after:always;} .sheet .label{display:none;} }
+
+  /* bloc 2x2 mis à l'échelle pour entrer dans la zone imprimable */
+  .block{position:relative;width:calc(var(--w)*2);height:calc(var(--h)*2);
+    transform:scale(var(--fit));transform-origin:center;
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0;
+    outline:0.3mm dashed #9aa0a6;}
+  /* croix = traits de coupe partagés (massicot) */
+  .block::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:0.3mm dashed #9aa0a6;}
+  .block::after{content:"";position:absolute;top:50%;left:0;right:0;border-top:0.3mm dashed #9aa0a6;}
+
+  /* ---------- carte ---------- */
+  .card{position:relative;width:var(--w);height:var(--h);background:var(--white);
+    overflow:hidden;font-family:"Saira Condensed",sans-serif;}
+
+  /* image : <img> par-dessus un placeholder dégradé ; si l'image manque, le dégradé reste */
+  .img{position:absolute;inset:0;background:
+      repeating-linear-gradient(118deg,#20242b 0 10px,#262b33 10px 20px),
+      linear-gradient(160deg,#1c1f25,#34261a);}
+  .img::after{content:"zone image";position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);
+    font-family:"Montserrat",sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;
+    text-transform:uppercase;color:rgba(255,255,255,.4);}
+  /* mode par défaut : image à fond perdu, elle couvre toute la carte en gardant
+     ses proportions (rognage minimal). --pos déplace le recadrage. */
+  .img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    object-position:var(--pos,center);}
+  /* dès qu'une image est chargée : fond derrière (blanc par défaut, --imgbg par carte) */
+  .img.loaded{background:var(--imgbg,#fff);}
+  .img.loaded::after{display:none;}
+  /* mode « dézoomé » : image entière (contain) dans la zone libre entre le bandeau
+     titre et les éléments du bas, facteur --z pour réduire encore */
+  .img.fitcontain{background:var(--imgbg,#fff);}
+  .img.fitcontain::after{color:rgba(0,0,0,.25);}
+  /* zone d'affichage réglable : --ftop (sous le bandeau), --fbot (au-dessus des
+     jetons), --fside. L'image y tient EN ENTIER (contain). width/height doivent
+     être explicites : sur un élément remplacé, width:auto reprend la taille
+     intrinsèque de l'image et ignore right/bottom. */
+  .img.fitcontain img{top:var(--ftop,32mm);left:var(--fside,8mm);right:auto;bottom:auto;
+    width:calc(100% - var(--fside,8mm) * 2);
+    height:calc(100% - var(--ftop,32mm) - var(--fbot,26mm));
+    object-fit:contain;transform:translateY(var(--zy,0)) scale(var(--z,1));transform-origin:center;}
+  .img.fitcontain.fw img{left:0;width:100%;}
+  .img.fitcontain.fcover img{object-fit:cover;}
+  /* mode « sous bandeau » : pleine largeur, bord supérieur au bas du bandeau titre
+     (côté droit, point haut de la diagonale, ajustable via bt en px).
+     Par défaut l'image garde sa hauteur naturelle (ratio) : elle peut dépasser en bas
+     (rognée au bord de la carte) ou s'arrêter avant. Avec bb (ex. "0mm", "20mm"),
+     la zone devient fixe : du bandeau jusqu'à bb du bas, remplie en cover ou contain.
+     --bz : zoom, --by : décalage vertical, --bo : point d'ancrage du zoom. */
+  .img.fitband{background:var(--imgbg,#fff);}
+  .img.fitband::after{color:rgba(0,0,0,.25);}
+  .img.fitband img{left:0;right:0;top:var(--bandtop,26mm);bottom:auto;
+    width:100%;height:auto;object-fit:cover;object-position:var(--bpos,center);
+    transform:translateY(var(--by,0)) scale(var(--bz,1));transform-origin:var(--bo,top center);}
+  .img.fitband.bzone img{bottom:var(--bb,0mm);
+    height:calc(100% - var(--bandtop,26mm) - var(--bb,0mm));}
+  .img.fitband.bcontain img{object-fit:contain;}
+  /* mode « naturel pleine largeur » : image complète, largeur de la carte,
+     hauteur selon son ratio, centrée verticalement (--ny). */
+  .img.fnat{background:var(--imgbg,#fff);}
+  .img.fnat::after{color:rgba(0,0,0,.25);}
+  .img.fnat img{left:0;right:0;width:100%;height:auto;top:var(--ny,55%);bottom:auto;
+    transform:translateY(-50%);}
+
+  /* carte 0 : recto de couverture. Fond clair + badge Pause IA au centre tant
+     qu'aucune image n'est fournie ; une image img/0 … prend le dessus. */
+  .img.intro{background:var(--imgbg,#fff);}
+  .img.intro::after{display:none;}
+  .img.intro .introbadge{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);
+    width:42mm;height:42mm;opacity:.92;}
+  .img.intro.loaded .introbadge{display:none;}
+
+  /* bandeau titre orange en biais — habillage : épaisseur orange foncé le long
+     de la coupe (effet papier plié) + ombre douce épousant la diagonale */
+  .titleband{position:absolute;top:0;left:0;right:0;z-index:10;background:var(--orange);
+    padding:6mm 12mm 11mm;text-align:center;
+    clip-path:polygon(0 0,100% 0,100% calc(100% - var(--diag)),0 100%);
+    filter:drop-shadow(0 1mm 1.6mm rgba(20,14,4,.22));}
+  .titleband::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;
+    background:var(--orange-deep);pointer-events:none;
+    clip-path:polygon(0 calc(100% - 2.2mm),100% calc(100% - var(--diag) - 2.2mm),
+                      100% calc(100% - var(--diag)),0 100%);}
+  .title{position:relative;z-index:1;color:#fff;font-family:"Saira Condensed",sans-serif;font-weight:700;
+    font-size:29px;line-height:1.0;letter-spacing:.4px;text-wrap:balance;}
+
+  /* bulle numéro : jeton à anneau blanc + ombre douce pour décoller de l'image */
+  .numbubble{position:absolute;bottom:var(--inset);left:8mm;width:17mm;height:17mm;border-radius:50%;
+    background:var(--orange);display:flex;align-items:center;justify-content:center;z-index:20;
+    box-shadow:0 .7mm 2mm rgba(20,14,4,.28), inset 0 -1.1mm 0 rgba(0,0,0,.12);}
+  .numbubble::before{content:"";position:absolute;inset:1.2mm;border:.45mm solid rgba(255,255,255,.95);
+    border-radius:50%;pointer-events:none;}
+  .numbubble span{position:relative;font-family:"Montserrat",sans-serif;font-weight:900;color:#fff;font-size:21px;line-height:1;}
+
+  /* étiquette lot : parallélogramme incliné rappelant la diagonale du bandeau.
+     Le lot est désormais identifié par son NUMÉRO (1 à 5), précédé de la mention
+     « LOT » en petit pour éviter toute confusion avec le numéro de carte. */
+  .lotbox{position:absolute;bottom:var(--inset);right:8mm;height:14mm;background:var(--orange);
+    border-radius:1.6mm;padding:0 4mm 0 5mm;display:flex;align-items:center;z-index:20;
+    transform:skewX(-8deg);transform-origin:bottom right;
+    box-shadow:0 .7mm 2mm rgba(20,14,4,.28), inset 0 -1.1mm 0 rgba(0,0,0,.12);}
+  .lotbox .lotin{display:flex;align-items:center;gap:2.6mm;transform:skewX(8deg);}
+  .lotbox .lotname{display:flex;align-items:baseline;gap:1.4mm;
+    font-family:"Montserrat",sans-serif;color:#fff;white-space:nowrap;}
+  .lotbox .lotword{font-weight:700;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;opacity:.9;}
+  .lotbox .lotnum{font-weight:900;font-size:20px;line-height:1;}
+  .lotbox .badge{width:9mm;height:9mm;flex:0 0 auto;}
+  /* carte 0 : pas d'étiquette de lot, elle n'appartient à aucun lot */
+  .lotbox.lot-none{display:none;}
+
+  /* verso : habillage discret qui répond au recto */
+  .verso{background:var(--white);}
+  /* filet diagonal en tête, écho du bandeau recto */
+  .verso::before{content:"";position:absolute;top:0;left:0;right:0;height:3.4mm;background:var(--orange);
+    clip-path:polygon(0 0,100% 0,100% 38%,0 100%);z-index:5;}
+  .verso::after{content:"";position:absolute;top:0;left:0;right:0;height:4.2mm;background:var(--orange-deep);
+    clip-path:polygon(0 81%,100% 30%,100% 38%,0 100%);z-index:4;}
+  /* numéro fantôme : filigrane géant en bas à gauche, même position que la pastille recto */
+  .verso .ghost{position:absolute;left:4mm;bottom:-9mm;z-index:0;
+    font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:52mm;line-height:1;
+    color:var(--orange);opacity:.09;letter-spacing:-1px;user-select:none;}
+  .verso .vbody{position:absolute;top:5.5mm;left:8mm;right:8mm;bottom:19mm;z-index:10;
+    display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .verso .vtitle{font-family:"Saira Condensed",sans-serif;font-weight:700;color:var(--ink);
+    font-size:20px;line-height:1.02;letter-spacing:.2px;margin:0 0 2mm;}
+  .verso .vrule{width:44px;height:3px;background:var(--orange);transform:skewX(-35deg);
+    border-radius:.5px;margin:0 0 3mm;flex:0 0 auto;}
+  /* v3 : corps du verso agrandi (15 → 17,5 px, plancher d'ajustement 12 px) */
+  .verso .vtext{font-family:"Roboto Slab",serif;font-weight:300;color:var(--ink);
+    font-size:17.5px;line-height:1.48;max-width:128mm;flex:1;display:flex;align-items:center;text-wrap:pretty;}
+  .verso .vtext > div{width:100%;}
+  /* étiquette lot au verso : version contour, plus légère sur fond blanc */
+  .verso .lotbox{background:#fff;border:.5mm solid var(--orange);box-shadow:none;}
+  .verso .lotbox .lotname{color:var(--orange);}
+</style>
+
+<div class="guide">
+  <h1>Planche d'impression : <b>Fresque IA</b> · 39 cartes (0 à 38) · 4 cartes / A4 paysage · 20 pages</h1>
+  <ol>
+    <li><b>Place tes images</b> dans un dossier <b>img/</b> à côté de ce fichier. Le code essaie d'abord les <b>nouveaux</b> noms (<b>img/14 Deepfake.png</b>), puis les <b>anciens</b> (<b>img/13 Deepfake.png</b>), puis <b>img/14.png</b>. <span class="warn">Tu n'as donc rien à renommer</span> malgré la renumérotation.</li>
+    <li><b>Ordre des pages :</b> recto et verso sont <b>intercalés</b> (page 1 = recto de la feuille 1, page 2 = verso en miroir, etc.) : le PDF s'imprime directement en recto-verso, feuille par feuille.</li>
+    <li><b>Imprimer → Enregistrer au format PDF</b> (ou imprimer direct). Si option : coche « Graphismes d'arrière-plan » / « Background graphics » et marges sur « Aucune ».</li>
+    <li><b>Recto-verso :</b> active l'impression recto-verso, retournement <b>bord long</b>.</li>
+    <li><b>Découpe :</b> coupe (au massicot) le long de la croix centrale et du cadre (traits pointillés).</li>
+  </ol>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+/* ============================================================
+   CONFIG — les lots sont désormais désignés par leur NUMÉRO
+   1 = ex-« IA »              2 = ex-« Capacités »
+   3 = ex-« Risques actuels »  4 = ex-« Risques existentiels »
+   5 = ex-« Solutions »
+   La carte 0 (couverture) n'appartient à aucun lot : pas d'étiquette.
+   ============================================================ */
+const LOT_LABEL = "LOT";   /* mettre "" pour n'afficher que le chiffre */
+
+/* Badge du lot (identique au template ; remplaçable par lot si besoin) */
+const BADGE = '<svg class="badge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#fff"/><rect x="33" y="28" width="13" height="44" rx="2" fill="#F7931D"/><rect x="54" y="28" width="13" height="44" rx="2" fill="#F7931D"/></svg>';
+/* Variante contour pour le verso (fond blanc) */
+const BADGE_OUTLINE = '<svg class="badge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#fff" stroke="#F7931D" stroke-width="6"/><rect x="33" y="28" width="13" height="44" rx="2" fill="#F7931D"/><rect x="54" y="28" width="13" height="44" rx="2" fill="#F7931D"/></svg>';
+/* Grand badge de couverture (carte 0) */
+const BADGE_COVER = '<svg class="introbadge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#F7931D"/><rect x="33" y="28" width="13" height="44" rx="2" fill="#fff"/><rect x="54" y="28" width="13" height="44" rx="2" fill="#fff"/></svg>';
+
+/* ============================================================
+   DONNÉES — 39 cartes (n° 0 à 38), dans l'ordre de jeu.
+   "\n" dans un verso = saut de paragraphe.
+   old / oldT = numéro et titre dans la planche v2, utilisés uniquement
+   pour retrouver les fichiers images déjà nommés. À supprimer le jour
+   où les images seront renommées avec la nouvelle numérotation.
+   ============================================================ */
+const CARDS = [
+  {n:0, lot:null, intro:true, t:"Fresque des risques de l'IA",
+   v:"La Fresque des risques de l'IA par Pause IA est un atelier collaboratif pour comprendre ensemble les enjeux de l'IA, sans prérequis technique.\nLes participant·es relient les cartes pour dresser une vue d'ensemble : comment l'IA fonctionne, ce qu'elle sait faire, ses impacts, ses risques et les solutions disponibles."},
+
+  /* ----- LOT 1 ----- */
+  {n:1, lot:1, band:"contain", bb:"0mm", bg:"#000",
+   old:1, oldT:"Système d'Intelligence Artificielle (IA)",
+   t:"Modèle d'Intelligence Artificielle (IA)",
+   v:"Un modèle d'IA est un programme informatique qui apprend à partir d'une grande quantité de données à atteindre un objectif fixé. Une fois entraîné, il peut produire des réponses, des contenus (images, vidéos, sons) ou prendre des décisions pour accomplir son objectif."},
+  {n:2, lot:1, old:2, oldT:"Données d'entraînement",
+   t:"Données d'entraînement",
+   v:"Les modèles d'IA sont entraînés à partir d'immenses quantités de données, majoritairement collectées sur le web. Les IA apprennent en identifiant les motifs et les relations au sein de ces données, pour faire des prédictions ou prendre des décisions."},
+  {n:3, lot:1, fit:1, old:3, oldT:"Amélioration des capacités",
+   t:"Amélioration des capacités",
+   v:"Pour entraîner un modèle d'IA plus performant, il faut mobiliser des moyens considérables : davantage de puissance de calcul, des équipes de recherche spécialisées et d'immenses volumes de données d'entraînement.\nPlus l'investissement est important, plus il devient possible d'entraîner des modèles puissants, rapides et autonomes."},
+  {n:4, lot:1, old:4, oldT:"Automatisation du travail",
+   t:"Automatisation du travail",
+   v:"En automatisant une partie des tâches, l'IA peut rendre le travail plus rapide et augmenter la productivité. Cette même automatisation menace l'emploi : une part croissante des métiers peut être partiellement ou totalement remplacée. Contrairement aux révolutions techniques passées, ce sont d'abord les tâches intellectuelles et créatives qui sont touchées."},
+  {n:5, lot:1, old:5, oldT:"IA cultivée, pas programmée",
+   t:"IA cultivée, pas programmée",
+   v:"Une IA moderne n'est pas construite ligne par ligne : elle est plutôt cultivée, comme on fait pousser une plante. Exposée à d'immenses quantités de données, elle développe au cours de son entraînement des capacités et des comportements imprévus, que personne n'a explicitement programmés."},
+  {n:6, lot:1, band:true, bb:"0mm", old:6, oldT:"Boîte noire",
+   t:"Boîte noire",
+   v:"On connaît chaque paramètre d'un modèle et pourtant personne ne sait dire pourquoi cette combinaison de milliards de réglages produit telle réponse. Même ses créateur·ices ne peuvent l'expliquer. Comme un cerveau à l'IRM : on voit où ça se passe, pas pourquoi."},
+
+  /* ----- LOT 2 ----- */
+  {n:7, lot:2, band:"contain", bt:-3, by:"-20px", old:7, oldT:"Autonomie",
+   t:"Autonomie",
+   v:"Capacité d'une IA à poursuivre un objectif sur la durée : décomposer une tâche en étapes, agir, observer le résultat et corriger sa trajectoire, avec peu ou pas d'intervention humaine."},
+  {n:8, lot:2, band:"contain", bt:-3, old:8, oldT:"Génération d'images",
+   t:"Génération d'images",
+   v:"À partir d'une simple requête, certaines IA produisent des images et des vidéos de plus en plus réalistes."},
+  {n:9, lot:2, band:"contain", bz:0.75, old:9, oldT:"Recommandation personnalisée de contenus",
+   t:"Recommandation personnalisée de contenus",
+   v:"Sur les réseaux sociaux et les plateformes, des modèles d'IA analysent les comportements des utilisateur·ices pour leur proposer les contenus les plus susceptibles de retenir leur attention."},
+  {n:10, lot:2, band:true, bz:1.1, old:10, oldT:"Robotique",
+   t:"Robotique",
+   v:"Jusqu'ici, les IA agissaient surtout sur des écrans : du texte, des images, des sons. En intégrant les IA dans des robots, elles peuvent agir directement dans le monde réel : attraper des objets, se déplacer dans un endroit inconnu, accomplir des actions de plus en plus complexes, avec une autonomie croissante."},
+  {n:11, lot:2, old:11, oldT:"Génération de texte et de code",
+   t:"Génération de texte et de code",
+   v:"Certaines IA génératives, les Grands Modèles de Langage (LLM), ont aujourd'hui la capacité de rédiger des textes et/ou du code informatique, pertinents dans un nombre croissant d'applications."},
+  {n:12, lot:2, fit:1.2, old:12, oldT:"Sous-objectifs émergents",
+   t:"Stratégies récurrentes",
+   v:"Quel que soit son objectif, une IA a intérêt à rester allumée, à obtenir des ressources et à préserver ses buts. Non pas par instinct de survie, mais parce que sans cela, elle ne peut pas réussir. C'est pourquoi des IA aux missions très différentes tendent vers les mêmes objectifs intermédiaires."},
+  /* NOUVELLE CARTE — lot 2 retenu par défaut (à confirmer), image à fournir */
+  {n:13, lot:2,
+   t:"Capacités émergentes",
+   v:"À mesure que la taille et la puissance d'une IA augmentent, des compétences inédites apparaissent sans avoir été explicitement programmées. Par exemple, personne n'avait prévu que des modèles comme ChatGPT deviendraient aussi bons en code, en biologie ou en mathématiques. Il devient donc très difficile de prévoir ce dont l'IA sera capable."},
+
+  /* ----- LOT 3 ----- */
+  {n:14, lot:3, band:true, bb:"0mm", old:13, oldT:"Deepfake",
+   t:"Deepfake",
+   v:"Un deepfake imite l'apparence ou la voix d'une personne réelle de façon très convaincante. Quelques secondes d'enregistrement suffisent aujourd'hui pour cloner une voix. On peut ainsi faire dire ou faire faire presque n'importe quoi à quelqu'un, pour désinformer ou pour escroquer, par exemple en imitant la voix d'un proche au téléphone. Comment les repérer ?"},
+  {n:15, lot:3, fit:1, old:14, oldT:"Manque de fiabilité",
+   t:"Manque de fiabilité",
+   v:"Les IA peuvent produire des résultats erronés ou trompeurs : inventer des faits et des sources (hallucinations), aller dans le sens de l'utilisateur·ice plutôt que de le corriger ou commettre des erreurs factuelles."},
+  /* Image calée SOUS le bandeau titre, affichée EN ENTIER (band:"contain" +
+     bb:"0mm") : la zone va du bas du bandeau au bas de la carte, l'image y tient
+     sans aucun rognage. `bg` remplit les côtés avec le fond de l'image pour que
+     la jonction soit invisible. */
+  {n:16, lot:3, band:"contain", bb:"0mm", bg:"#FAF7F2",
+   old:15, oldT:"Impact environnemental",
+   t:"Impact environnemental",
+   v:"L'entraînement et l'utilisation des systèmes d'IA reposent sur des centres de données toujours plus nombreux et plus gourmands en électricité, en eau et en ressources minières. Leur consommation peut entrer en compétition avec celle des habitant·es proches et polluer leur environnement."},
+  {n:17, lot:3, old:16, oldT:"Affaiblissement des compétences humaines",
+   t:"Affaiblissement des compétences humaines",
+   v:"Plus les IA deviennent performantes, plus nous sommes tentés de leur confier nos tâches : calculer, écrire, réfléchir à notre place. À force, nous risquons de perdre certaines de nos capacités et notre esprit critique, comme un muscle qui ne travaille plus."},
+  {n:18, lot:3, old:17, oldT:"Dégradation de la santé mentale",
+   t:"Dégradation de la santé mentale",
+   v:"Plusieurs effets de l'IA pèsent sur la santé mentale, surtout celle des plus jeunes. Les contenus personnalisés, conçus pour retenir l'attention, rendent accros. Les chatbots créent une dépendance émotionnelle : certaines personnes s'y attachent au point d'en souffrir quand le système change ou disparaît. À force de parler à des IA plutôt qu'à de vraies personnes, le lien social s'érode."},
+  {n:19, lot:3, nat:true, old:18, oldT:"Perpétuation des biais et des discriminations",
+   t:"Perpétuation des biais et des discriminations",
+   v:"Les systèmes d'IA ont tendance à refléter les opinions et préjugés de leurs données d'entraînement."},
+  /* SCISSION de l'ancienne carte 19 « Usage malveillant et cyberattaques » */
+  {n:20, lot:3, old:19, oldT:"Usage malveillant et cyberattaques",
+   t:"Usage malveillant",
+   v:"Des acteurs malveillants peuvent détourner l'IA pour nuire. Même sans les compétences d'experts ou les moyens d'un État, elle permet d'automatiser et de multiplier les attaques basées sur la manipulation, l'escroquerie ou la création de faux contenus à grande échelle."},
+  {n:21, lot:3,
+   t:"Cyberattaques",
+   v:"L'IA diminue les compétences nécessaires aux cyberattaques qui exigeaient autrefois des experts ou des États : courriels d'hameçonnage personnalisés en masse, recherche automatisée de failles, écriture de logiciels malveillants. Des cibles aussi sensibles que les hôpitaux, les banques ou les réseaux électriques deviennent ainsi vulnérables."},
+  {n:22, lot:3, band:"contain", bb:"0mm", bg:"#FAF7F2", old:20, oldT:"Risques de mésalignement",
+   t:"Risques de mésalignement",
+   v:"Une IA est dite « alignée » quand elle fait réellement ce que ses concepteur·ices veulent qu'elle fasse : poursuivre leurs objectifs, selon leurs valeurs et leurs intentions. Une IA mésalignée a donc des comportements imprévus et/ou indésirables. L'augmentation des capacités des modèles amplifie grandement les conséquences d'un mésalignement."},
+  {n:23, lot:3, band:"contain", bt:-3, bb:"20mm", old:21, oldT:"Risques systémiques",
+   t:"Risques systémiques",
+   v:"Un risque systémique ne touche pas un seul acteur mais l'ensemble du système. L'intégration de l'IA dans la société fragilise les équilibres existants : elle amplifie la concentration des richesses et du pouvoir dans quelques entreprises et nos infrastructures essentielles deviennent dépendantes de systèmes opaques."},
+  {n:24, lot:3, band:true, old:22, oldT:"Déluge de contenus artificiels",
+   t:"Déluge de contenus artificiels",
+   v:"Les contenus générés par IA (textes, images, vidéos) se multiplient plus vite que toute production humaine antérieure. Ce déluge brouille la frontière entre le vrai et le faux : on doute des contenus authentiques autant qu'on croit les contenus fabriqués."},
+  {n:25, lot:3, old:23, oldT:"Bioterrorisme",
+   t:"Bioterrorisme",
+   v:"La création ou la modification de bactéries et de virus pour provoquer intentionnellement des maladies voire pandémies. Les Grands Modèles de Langage rendent accessible à des non-spécialistes la manipulation du vivant."},
+  {n:26, lot:3, old:24, oldT:"Tromperie stratégique",
+   t:"Tromperie stratégique",
+   v:"L'utilisation intentionnelle de comportements ou d'informations mensongères pour induire en erreur un·e utilisateur·ice, dans le but d'atteindre un objectif précis."},
+  {n:27, lot:3, old:25, oldT:"Enracinement des systèmes de contrôle et d'oppression",
+   t:"Enracinement des systèmes de contrôle et d'oppression",
+   v:"La surveillance et la censure à grande échelle sont facilitées par les systèmes d'IA actuels. Des individus pourraient mettre en place un régime totalitaire difficile à renverser en verrouillant les valeurs du système d'IA."},
+  {n:28, lot:3, old:26, oldT:"Systèmes d'armes létales autonomes",
+   t:"Systèmes d'armes létales autonomes",
+   v:"L'automatisation des armes de combat, par exemple via des drones autonomes, permet de rechercher, identifier et cibler des ennemi·es avec peu ou pas de contrôle humain."},
+
+  /* ----- LOT 4 ----- */
+  {n:29, lot:4, band:true, bg:"#000", old:27, oldT:"Intelligence Artificielle Générale (AGI)",
+   t:"Intelligence Artificielle Générale (AGI)",
+   v:"Une Intelligence Artificielle Générale (AGI) est une IA de niveau humain : un système capable d'accomplir la plupart de nos tâches intellectuelles au moins aussi bien que nous. Sa création est l'objectif déclaré des principales entreprises d'IA."},
+  {n:30, lot:4, old:28, oldT:"La course en avant",
+   t:"La course en avant",
+   v:"Plusieurs laboratoires et puissances rivalisent pour construire des IA toujours plus puissantes. La compétition pousse à déployer toujours plus vite, au détriment de la sécurité. Personne ne veut ralentir de peur de laisser la concurrence gagner, c'est un piège collectif."},
+  {n:31, lot:4, band:true, old:29, oldT:"Risques existentiels",
+   t:"Risques existentiels",
+   v:"Menace catastrophique susceptible de compromettre durablement l'avenir de l'humanité, jusqu'à son extinction. De nombreux experts indiquent qu'une IA de niveau humain ou au-delà pourrait en constituer une."},
+  {n:32, lot:4, old:30, oldT:"Perte de contrôle",
+   t:"Perte de contrôle",
+   v:"Des IA suffisamment performantes créent des situations où les humains n'ont plus la capacité de superviser, corriger, arrêter ou réorienter leurs actions. En général, il est très difficile pour un humain de contrôler quelque chose qui réagit plus vite que lui et/ou emploie de meilleures stratégies."},
+  {n:33, lot:4, old:31, oldT:"Superintelligence",
+   t:"Superintelligence",
+   v:"Une IA dont les capacités cognitives dépasseraient très largement celles de l'humanité dans tous les domaines. Plusieurs grandes entreprises affichent explicitement l'objectif de la créer."},
+
+  /* ----- LOT 5 ----- */
+  {n:34, lot:5, band:"contain", bb:"0mm", bg:"#FAF7F2", old:32, oldT:"Recherche en sécurité de l'IA",
+   t:"Recherche en sécurité de l'IA",
+   v:"Ensemble de travaux visant à rendre les systèmes d'IA fiables et contrôlables : mieux aligner leurs objectifs sur les nôtres, les rendre robustes aux erreurs, comprendre leur fonctionnement, détecter leurs biais. Ces recherches disposent de beaucoup moins de moyens et avancent bien moins vite que les capacités des IA."},
+  {n:35, lot:5, band:true, by:"-30px", old:33, oldT:"Lignes rouges",
+   t:"Lignes rouges",
+   v:"Capacités ou comportements si dangereux qu'une IA ne devrait jamais les franchir. Par exemple : se copier elle-même sur d'autres machines pour échapper à tout contrôle (auto-réplication), améliorer seule ses propres capacités, tromper ses utilisateur·ices, ou aider à fabriquer des armes."},
+  {n:36, lot:5, fit:0.9, zy:"20px", bg:"#000", old:34, oldT:"Moratoire international sur les modèles frontières",
+   t:"Moratoire international sur les modèles frontières",
+   v:"Suspendre l'entraînement des modèles les plus puissants tant que leur sécurité n'est pas démontrée. Une pause mondiale laisserait à la recherche en sécurité et à la régulation le temps de rattraper la course aux capacités."},
+  {n:37, lot:5, band:true, old:35, oldT:"Supervision démocratique",
+   t:"Supervision démocratique",
+   v:"Les décisions qui engagent l'avenir de tous ne devraient pas appartenir à quelques entreprises privées. L'idée : que la trajectoire de l'IA soit sous contrôle public et démocratique."},
+  {n:38, lot:5, old:36, oldT:"Évaluations par des tiers indépendants",
+   t:"Évaluations par des tiers indépendants",
+   v:"Avant déploiement, faire tester les modèles par des organismes indépendants des entreprises qui les conçoivent, comme on certifie un médicament ou un avion. Sans regard extérieur, ce sont les concepteur·ices qui jugent seuls de la sûreté de leurs propres produits."}
+];
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+
+/* Variantes de nom de fichier essayées pour chaque carte, dans l'ordre :
+   1. nouveau numéro + nouveau titre   (img/14 Deepfake.png)
+   2. ancien numéro + ancien titre     (img/13 Deepfake.png)  ← planche v2
+   3. nouveau numéro + ancien titre    (img/14 Sous-objectifs émergents.png)
+   4. numéro seul                      (img/14.png, img/13.png)
+   Chaque variante est testée avec les deux formes d'apostrophe et 4 extensions. */
+function imgCandidates(card){
+  const pairs = [];
+  const push = (num, title) => { if (num !== undefined && title) pairs.push([num, title]); };
+  push(card.n, card.t);
+  push(card.old, card.oldT);
+  push(card.n, card.oldT);
+
+  const list = [];
+  const seen = new Set();
+  const add = (path) => { if (!seen.has(path)){ seen.add(path); list.push(path); } };
+
+  for (const [num, title] of pairs){
+    const variants = new Set([title, title.replace(/’/g, "'"), title.replace(/'/g, "’")]);
+    for (const t of variants){
+      for (const ext of ["png","jpg","jpeg","webp"]) add(`img/${num} ${t}.${ext}`);
+    }
+  }
+  for (const num of [card.n, card.old]){
+    if (num === undefined) continue;
+    for (const ext of ["png","jpg","jpeg","webp"]) add(`img/${num}.${ext}`);
+  }
+  return list;
+}
+
+function makeImg(card){
+  const wrap = document.createElement("div");
+  wrap.className = "img";
+  if (card.intro){
+    wrap.classList.add("intro");
+    wrap.insertAdjacentHTML("beforeend", BADGE_COVER);
+  } else if (card.nat){
+    wrap.classList.add("fnat");
+    if (card.ny) wrap.style.setProperty("--ny", card.ny);
+  } else if (card.band){
+    wrap.classList.add("fitband");
+    if (card.band === "contain") wrap.classList.add("bcontain");
+    if (card.bz) wrap.style.setProperty("--bz", card.bz);
+    if (card.by) wrap.style.setProperty("--by", card.by);
+    if (card.bb !== undefined){
+      wrap.classList.add("bzone");
+      wrap.style.setProperty("--bb", card.bb);
+    }
+    if (card.bpos) wrap.style.setProperty("--bpos", card.bpos);
+    if (card.bo) wrap.style.setProperty("--bo", card.bo);
+    if (card.bt) wrap.dataset.bt = card.bt;
+  } else if (card.fit){
+    wrap.classList.add("fitcontain");
+    if (card.fw) wrap.classList.add("fw");
+    if (card.cover) wrap.classList.add("fcover");
+    wrap.style.setProperty("--z", card.fit);
+    if (card.zy) wrap.style.setProperty("--zy", card.zy);
+    /* zone d'affichage réglable carte par carte (mode « image entière ») */
+    if (card.ftop) wrap.style.setProperty("--ftop", card.ftop);
+    if (card.fbot) wrap.style.setProperty("--fbot", card.fbot);
+    if (card.fside) wrap.style.setProperty("--fside", card.fside);
+  }
+  if (card.bg) wrap.style.setProperty("--imgbg", card.bg);
+  if (card.pos) wrap.style.setProperty("--pos", card.pos);
+  const img = document.createElement("img");
+  img.alt = "";
+  const candidates = imgCandidates(card);
+  let i = 0;
+  img.onload = () => wrap.classList.add("loaded");
+  img.onerror = () => {
+    i++;
+    if (i < candidates.length) img.src = candidates[i];
+    else img.style.display = "none"; // fallback : dégradé (ou couverture pour la carte 0)
+  };
+  img.src = candidates[0];
+  wrap.appendChild(img);
+  return wrap;
+}
+
+function makeLotbox(card, verso){
+  const box = document.createElement("div");
+  box.className = "lotbox";
+  if (card.lot === null || card.lot === undefined){
+    box.classList.add("lot-none");
+    return box;
+  }
+  const inner = document.createElement("span");
+  inner.className = "lotin";
+  const name = document.createElement("span");
+  name.className = "lotname";
+  if (LOT_LABEL){
+    const word = document.createElement("span");
+    word.className = "lotword";
+    word.textContent = LOT_LABEL;
+    name.appendChild(word);
+  }
+  const num = document.createElement("span");
+  num.className = "lotnum";
+  num.textContent = card.lot;
+  name.appendChild(num);
+  inner.appendChild(name);
+  inner.insertAdjacentHTML("beforeend", verso ? BADGE_OUTLINE : BADGE);
+  box.appendChild(inner);
+  return box;
+}
+
+function makeNumbubble(card){
+  const b = document.createElement("div");
+  b.className = "numbubble";
+  const s = document.createElement("span");
+  s.textContent = card.n;
+  b.appendChild(s);
+  return b;
+}
+
+function makeRecto(card){
+  const c = document.createElement("div");
+  c.className = "card";
+  c.appendChild(makeImg(card));
+  const band = document.createElement("div");
+  band.className = "titleband";
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = card.t;
+  band.appendChild(title);
+  c.appendChild(band);
+  c.appendChild(makeNumbubble(card));
+  c.appendChild(makeLotbox(card));
+  return c;
+}
+
+function makeVerso(card){
+  const c = document.createElement("div");
+  c.className = "card verso";
+  const ghost = document.createElement("div");
+  ghost.className = "ghost";
+  ghost.textContent = card.n;
+  c.appendChild(ghost);
+  const body = document.createElement("div");
+  body.className = "vbody";
+  const vt = document.createElement("div");
+  vt.className = "vtitle";
+  vt.textContent = card.t;
+  const rule = document.createElement("div");
+  rule.className = "vrule";
+  const text = document.createElement("div");
+  text.className = "vtext";
+  const inner = document.createElement("div");
+  card.v.split("\n").forEach((para, idx) => {
+    if (idx > 0) inner.appendChild(document.createElement("br"));
+    inner.appendChild(document.createTextNode(para));
+  });
+  text.appendChild(inner);
+  body.appendChild(vt); body.appendChild(rule); body.appendChild(text);
+  c.appendChild(body);
+  c.appendChild(makeLotbox(card, true));
+  return c;
+}
+
+function makeSheet(labelText, cardEls){
+  const sheet = document.createElement("div");
+  sheet.className = "sheet";
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = labelText;
+  sheet.appendChild(label);
+  const block = document.createElement("div");
+  block.className = "block";
+  cardEls.forEach(el => block.appendChild(el));
+  sheet.appendChild(block);
+  return sheet;
+}
+
+/* Découpage en groupes de 4, feuilles recto/verso intercalées.
+   Grille 2x2 : positions [A haut-gauche, B haut-droite, C bas-gauche, D bas-droite].
+   Verso en miroir (retournement bord long, A4 paysage) : colonnes échangées
+   → [verso de B, verso de A, verso de D, verso de C]. */
+const container = document.getElementById("sheets");
+let sheetNum = 0;
+for (let i = 0; i < CARDS.length; i += 4){
+  sheetNum++;
+  const group = CARDS.slice(i, i + 4);
+  const nums = group.map(c => c.n).join(", ");
+
+  const rectos = group.map(makeRecto);
+  container.appendChild(makeSheet(`Feuille ${sheetNum} — RECTO (cartes ${nums})`, rectos));
+
+  // Miroir : si le groupe est complet (4 cartes), ordre [B,A,D,C] ;
+  // sinon chaque verso va dans la colonne opposée de sa rangée.
+  const versoCards = [];
+  if (group.length === 4){
+    [1, 0, 3, 2].forEach(idx => versoCards.push(group[idx]));
+  } else {
+    const grid = [null, null, null, null];
+    group.forEach((card, idx) => {
+      const row = Math.floor(idx / 2);
+      const col = idx % 2;
+      grid[row * 2 + (1 - col)] = card;
+    });
+    grid.forEach(c => versoCards.push(c));
+  }
+  const versoEls = versoCards.map(c => {
+    if (c) return makeVerso(c);
+    const empty = document.createElement("div");
+    empty.className = "card";
+    return empty;
+  });
+  container.appendChild(makeSheet(`Feuille ${sheetNum} — VERSO (miroir, cartes ${nums})`, versoEls));
+}
+
+/* ============================================================
+   AJUSTEMENT AUTOMATIQUE des tailles de police (titres longs,
+   versos denses) pour éviter tout débordement à l'impression.
+   v3 : le corps du verso part de 17,5 px (au lieu de 15) et ne
+   descend jamais sous 12 px (au lieu de 10,5).
+   ============================================================ */
+function fitAll(){
+  document.querySelectorAll(".title").forEach(el => {
+    let fs = 29;
+    el.style.fontSize = fs + "px";
+    while (el.scrollHeight > 64 && fs > 21){
+      fs -= 1;
+      el.style.fontSize = fs + "px";
+    }
+  });
+  /* .vtext est un élément flex (flex:1, contenu centré) : ni son scrollHeight
+     ni son clientHeight ne signalent le débordement — min-height:auto l'agrandit
+     au lieu de le tronquer. On mesure donc le conteneur .vbody, dont la hauteur
+     est fixée par top/bottom, sinon l'ajustement ne se déclenche jamais.
+     (Ce défaut existait dans la v2 : l'ajustement du verso ne s'y appliquait pas.) */
+  document.querySelectorAll(".verso .vbody").forEach(body => {
+    const el = body.querySelector(".vtext");
+    let fs = 17.5;
+    el.style.fontSize = fs + "px";
+    while (body.scrollHeight > body.clientHeight && fs > 12){
+      fs -= 0.5;
+      el.style.fontSize = fs + "px";
+    }
+  });
+  document.querySelectorAll(".verso .vtitle").forEach(el => {
+    let fs = 20;
+    el.style.fontSize = fs + "px";
+    while (el.scrollHeight > 46 && fs > 15){
+      fs -= 1;
+      el.style.fontSize = fs + "px";
+    }
+  });
+  /* mode « sous bandeau » : mesure la hauteur réelle du bandeau (après ajustement
+     du titre) et cale le haut de l'image sur son bord bas côté droit (diagonale -15px) */
+  document.querySelectorAll(".card").forEach(cardEl => {
+    const wrap = cardEl.querySelector(".img.fitband");
+    const band = cardEl.querySelector(".titleband");
+    if (wrap && band){
+      const bt = parseFloat(wrap.dataset.bt || 0);
+      wrap.style.setProperty("--bandtop", (band.offsetHeight - 15 + bt) + "px");
+    }
+  });
+}
+if (document.fonts && document.fonts.ready){
+  document.fonts.ready.then(fitAll);
+} else {
+  window.addEventListener("load", fitAll);
+}
+window.addEventListener("beforeprint", fitAll);
+</script>
