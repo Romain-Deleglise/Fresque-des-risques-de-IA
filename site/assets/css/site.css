@@ -434,6 +434,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 .ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
 .ateliers-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.1rem; }
 .ateliers-vide { grid-column: 1 / -1; }
+.ateliers-vide p { margin: 0 0 .7rem; }
 .atelier-carte { border: 1px solid var(--ligne); border-radius: 14px; padding: 1.2rem 1.3rem; background: var(--surface); display: flex; flex-direction: column; gap: .35rem; }
 .atelier-tete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .2rem; }
 .atelier-mode { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .2em .7em; }

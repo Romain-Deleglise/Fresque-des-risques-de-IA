@@ -14,7 +14,8 @@
     confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
     ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
     confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
-    desisteOk: "You have been unregistered. Your seat is freed up."
+    desisteOk: "You have been unregistered. Your seat is freed up.",
+    videCta: "Schedule a workshop"
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -25,8 +26,14 @@
     confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
     ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
     confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
-    desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre."
+    desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre.",
+    videCta: "Programmer un atelier"
   };
+  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/demander-un-atelier/#vue-animer";
+  function videHtml() {
+    return '<div class="ateliers-vide"><p class="muted">' + esc(T.aucun) + "</p>"
+      + '<a class="btn btn-2" href="' + HREF_PROG + '">' + esc(T.videCta) + "</a></div>";
+  }
   function poster(op, data) {
     return fetch("/.netlify/functions/ateliers", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -102,10 +109,10 @@
   if (liste) {
     poster("liste", {}).then(function (res) {
       var arr = (res.d && res.d.ateliers) || [];
-      if (!arr.length) { liste.innerHTML = '<p class="muted ateliers-vide">' + esc(T.aucun) + "</p>"; return; }
+      if (!arr.length) { liste.innerHTML = videHtml(); return; }
       liste.innerHTML = "";
       arr.forEach(function (a) { liste.appendChild(carte(a)); });
-    }).catch(function () { liste.innerHTML = '<p class="muted ateliers-vide">' + esc(T.aucun) + "</p>"; });
+    }).catch(function () { liste.innerHTML = videHtml(); });
   }
   function carte(a) {
     var el = document.createElement("article");
