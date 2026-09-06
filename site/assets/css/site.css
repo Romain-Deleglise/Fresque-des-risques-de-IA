@@ -130,7 +130,7 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 :root[data-theme="dark"] .theme-toggle .ic-soleil, .theme-toggle[data-sombre="1"] .ic-soleil { display: none; }
 
 /* --- Hero ----------------------------------------------------------------- */
-.hero { padding: clamp(3rem, 7vw, 6rem) 0 clamp(3rem, 6vw, 5rem); }
+.hero { padding: clamp(1.25rem, 3vw, 2.5rem) 0 clamp(2rem, 4vw, 3.5rem); }
 .hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 4rem; align-items: center; }
 .hero h1 { margin-bottom: 1.2rem; }
 .hero .meta { font-family: var(--f-ui); font-size: .9rem; color: var(--gris); margin: 1.6rem 0 2rem; display: flex; gap: 1rem; flex-wrap: wrap; }
