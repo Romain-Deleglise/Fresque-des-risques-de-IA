@@ -40,7 +40,7 @@
         fig.type = "button";
         fig.className = "gc"; fig.style.margin = "0";
         fig.setAttribute("aria-pressed", "false");
-        fig.setAttribute("aria-label", (enAnglais ? "Card " : "Carte ") + c.n + " : " + c.titre + (enAnglais ? " — flip to read" : " — retourner pour lire"));
+        fig.setAttribute("aria-label", (enAnglais ? "Card " : "Carte ") + c.n + " : " + c.titre + (enAnglais ? " (flip to read)" : " (retourner pour lire)"));
         if (c.image) {
           var img = document.createElement("img");
           // Vraie carte (format paysage) : elle porte deja son numero et son titre.
