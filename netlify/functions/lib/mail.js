@@ -22,7 +22,10 @@ async function envoi(m) {
   var to = [].concat(m.to || []).filter(Boolean);
   if (!to.length) return { envoye: false, raison: "sans_destinataire" };
   var corps = { from: c.from, to: to, subject: m.subject, text: m.text };
+  if (m.html) corps.html = m.html;
+  if (m.attachments && m.attachments.length) corps.attachments = m.attachments;
   if (m.cc && [].concat(m.cc).filter(Boolean).length) corps.cc = [].concat(m.cc).filter(Boolean);
+  if (m.bcc && [].concat(m.bcc).filter(Boolean).length) corps.bcc = [].concat(m.bcc).filter(Boolean);
   if (c.replyTo) corps.reply_to = c.replyTo;
   try {
     var r = await fetch("https://api.resend.com/emails", {

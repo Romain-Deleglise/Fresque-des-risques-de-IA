@@ -84,9 +84,11 @@
         </div>
         <form id="form-programmer" class="form-atelier" novalidate>
           <fieldset class="champ-mode">
-            <legend>Format</legend>
-            <label class="radio"><input type="radio" name="mode" value="physique" checked> In person</label>
-            <label class="radio"><input type="radio" name="mode" value="enligne"> Online</label>
+            <legend>Workshop format</legend>
+            <div class="mode-choix">
+              <label class="radio"><input type="radio" name="mode" value="physique" checked> <span>In person</span></label>
+              <label class="radio"><input type="radio" name="mode" value="enligne"> <span>Online</span></label>
+            </div>
           </fieldset>
           <div class="grille-champs">
             <label>Your first name<input name="animateurPrenom" maxlength="24" required autocomplete="given-name"></label>
@@ -112,6 +114,19 @@
           <button class="btn btn-1" type="submit">Schedule the workshop</button>
           <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
         </form>
+
+        <div class="annuler-atelier">
+          <h3>Cancel a workshop</h3>
+          <p class="muted">Made a mistake? Enter the session code and the facilitator's e-mail to remove it from the list. (The link in your e-mail also cancels it in one click.)</p>
+          <form id="form-annuler" class="form-atelier" novalidate>
+            <div class="grille-champs">
+              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+              <label>Facilitator's e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+            </div>
+            <button class="btn btn-noir" type="submit">Cancel this workshop</button>
+            <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
       </div>
     </section>
 

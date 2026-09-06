@@ -60,8 +60,9 @@
             its capabilities to its risks, all the way to the possible solutions.
           </p>
           <p>
-            Taking part in a collage requires no technical background. The cards provide the
-            substance, the participants bring their own perspective.
+            Taking part in a collage requires no technical background. Participants are guided by the
+            content of the cards and can bring their own perspective on every issue. Discussion is, of
+            course, encouraged.
           </p>
           <p class="meta">
             <span><i class="pt"></i> 38 cards</span>
@@ -70,15 +71,15 @@
           </p>
           <div class="actions" id="download">
             <a class="btn btn-1" href="../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" download>
-              Download the cards <small>PDF · 3.3 MB · in French</small>
+              Download the cards <small>PDF · 5 MB · in French</small>
             </a>
           </div>
           <p class="muted appel-note">Released under the open CC BY-SA 4.0 licence.</p>
         </div>
         <div class="pile" id="pile">
-          <div class="slot s1"><button type="button" class="carte" data-n="14" aria-pressed="false"><span class="face front"><img loading="eager" src="../assets/img/cartes/14-560.webp" alt=""><span class="no">14</span><span class="lbl">Deepfake</span></span><span class="face back"><h3>Deepfake</h3><p>A deepfake convincingly imitates the appearance or voice of a real person. A few seconds of recording are now enough to clone a voice, to spread disinformation or to defraud.</p></span></button></div>
-          <div class="slot s3"><button type="button" class="carte" data-n="28" aria-pressed="false"><span class="face front"><img loading="eager" src="../assets/img/cartes/28-560.webp" alt=""><span class="no">28</span><span class="lbl">Autonomous weapons</span></span><span class="face back"><h3>Lethal autonomous weapon systems</h3><p>Automating combat weapons, for example through autonomous drones, makes it possible to search for, identify and target enemies with little or no human control.</p></span></button></div>
-          <div class="slot s2"><button type="button" class="carte" data-n="8" aria-pressed="false"><span class="face front"><img loading="eager" src="../assets/img/cartes/08-560.webp" alt=""><span class="no">8</span><span class="lbl">Image generation</span></span><span class="face back"><h3>Image generation</h3><p>From a simple prompt, some AI systems produce increasingly realistic images and videos, sometimes hard to tell apart from real photographs.</p></span></button></div>
+          <div class="slot s1"><button type="button" class="carte" data-n="14" aria-pressed="false" aria-label="Card 14: Deepfake (flip to read)"><span class="face front"><img loading="eager" src="../assets/img/cartes/14-560.webp" alt=""></span><span class="face back"><h3>Deepfake</h3><p>A deepfake convincingly imitates the appearance or voice of a real person. A few seconds of recording are now enough to clone a voice, to spread disinformation or to defraud.</p></span></button></div>
+          <div class="slot s3"><button type="button" class="carte" data-n="28" aria-pressed="false" aria-label="Card 28: Autonomous weapons (flip to read)"><span class="face front"><img loading="eager" src="../assets/img/cartes/28-560.webp" alt=""></span><span class="face back"><h3>Lethal autonomous weapon systems</h3><p>Automating combat weapons, for example through autonomous drones, makes it possible to search for, identify and target enemies with little or no human control.</p></span></button></div>
+          <div class="slot s2"><button type="button" class="carte" data-n="8" aria-pressed="false" aria-label="Card 8: Image generation (flip to read)"><span class="face front"><img loading="eager" src="../assets/img/cartes/08-560.webp" alt=""></span><span class="face back"><h3>Image generation</h3><p>From a simple prompt, some AI systems produce increasingly realistic images and videos, sometimes hard to tell apart from real photographs.</p></span></button></div>
         </div>
       </div>
     </section>
@@ -101,6 +102,10 @@
             <a class="btn btn-2" href="request-a-workshop/#vue-animer">Facilitate a workshop</a>
             <a class="btn btn-noir" href="../telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf" download>Facilitator guide <small>PDF · in French</small></a>
           </div>
+        </div>
+        <div class="ateliers-apercu">
+          <h3>Upcoming workshops</h3>
+          <div id="liste-ateliers" class="ateliers-liste" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -161,6 +166,7 @@
 
   <script>window.CARTES_JSON = "../data/cartes.json";</script>
   <script src="../assets/js/cartes.js" defer></script>
+  <script src="../assets/js/ateliers.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
 </body>
