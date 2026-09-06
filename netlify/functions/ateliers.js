@@ -78,6 +78,26 @@ function boiteCode(code) {
     + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div>'
     + '<div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(code) + '</div></div>';
 }
+// Encadre "compteur d'inscrits" avec petite barre de progression (email-safe).
+function boiteCompteur(n, max) {
+  var m = parseInt(max, 10) || 0;
+  var pct = m ? Math.max(4, Math.min(100, Math.round((n / m) * 100))) : 0;
+  var reste = 100 - pct;
+  return '<div style="background:#f4faf4;border:1px solid #cfe6d3;border-radius:10px;padding:14px 18px;margin:0 0 18px;text-align:center;">'
+    + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Inscrits</div>'
+    + '<div style="font-size:26px;font-weight:700;color:#2f7d4f;margin-top:2px;">' + n + ' <span style="color:#8a8577;font-size:17px;font-weight:600;">/ ' + h(String(max)) + '</span></div>'
+    + '<table role="presentation" width="100%" style="border-collapse:collapse;margin-top:10px;"><tr>'
+    + '<td style="background:#2f7d4f;height:8px;border-radius:6px;font-size:0;line-height:0;width:' + pct + '%;">&nbsp;</td>'
+    + (reste > 0 ? '<td style="background:#dce7dd;height:8px;border-radius:6px;font-size:0;line-height:0;width:' + reste + '%;">&nbsp;</td>' : '')
+    + '</tr></table></div>';
+}
+// Prenoms des inscrits sous forme de pastilles.
+function pucesPrenoms(noms) {
+  if (!noms || !noms.length) return '';
+  return '<div style="margin:0;">' + noms.map(function (nm) {
+    return '<span style="display:inline-block;background:#f3ece1;border:1px solid #eadfce;border-radius:999px;padding:4px 12px;margin:0 6px 6px 0;font-size:13px;color:#4a473f;">' + h(nm) + '</span>';
+  }).join('') + '</div>';
+}
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
 
 // Invitation calendrier (.ics) : ajoutee en piece jointe, rappel la veille.
@@ -120,9 +140,9 @@ function mailNouvelInscrit(a, prenom) {
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
-  c += '<p style="margin:0 0 6px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du ' + h(dateLisible(a.date, a.heure)) + '.</p>';
-  c += '<p style="margin:0 0 12px;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(max)) + '</strong></p>';
-  if (noms.length) c += '<p style="margin:0;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
+  c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
+  c += boiteCompteur(n, max);
+  if (noms.length) c += '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesPrenoms(noms);
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -155,9 +175,9 @@ function mailDesistAnimateur(a, prenom) {
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
-  c += '<p style="margin:0 0 6px;"><strong>' + h(prenom) + '</strong> s\'est désinscrit·e de votre atelier du ' + h(dateLisible(a.date, a.heure)) + '.</p>';
-  c += '<p style="margin:0 0 12px;font-size:18px;">Inscrits : <strong>' + n + " / " + h(String(a.maxParticipants)) + '</strong></p>';
-  c += noms.length ? '<p style="margin:0;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>' : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
+  c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> s\'est désinscrit·e de votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
+  c += boiteCompteur(n, a.maxParticipants);
+  c += noms.length ? '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesPrenoms(noms) : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
