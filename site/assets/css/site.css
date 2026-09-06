@@ -139,12 +139,12 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .hero .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 
 /* Visuel héros : trois cartes en éventail, retournables au clic (fondu) */
-.hero-visuel { display: block; }
-.pile { position: relative; width: 100%; height: 27rem; display: grid; place-items: center; }
-.pile .slot { position: absolute; width: 18rem; aspect-ratio: 1.41 / 1; }
-.pile .s1 { transform: rotate(-8deg) translate(-6.2rem, 2.6rem); z-index: 1; }
-.pile .s2 { transform: translateY(-1.2rem); z-index: 3; }
-.pile .s3 { transform: rotate(8deg) translate(6.2rem, 2.6rem); z-index: 2; }
+.hero-visuel { display: block; align-self: start; margin-top: 1rem; }
+.pile { position: relative; width: 100%; height: 30rem; display: grid; place-items: center; }
+.pile .slot { position: absolute; width: 20.5rem; aspect-ratio: 1.41 / 1; }
+.pile .s1 { transform: rotate(-8deg) translate(-5.8rem, 2.4rem); z-index: 1; }
+.pile .s2 { transform: translateY(-2rem); z-index: 3; }
+.pile .s3 { transform: rotate(8deg) translate(5.8rem, 2.4rem); z-index: 2; }
 .pile .slot:hover, .pile .slot:focus-within { z-index: 5; }
 .pile .carte { position: relative; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; transition: transform .18s ease; }
 .pile .slot:hover .carte, .pile .carte:focus-visible { transform: translateY(-8px); }
