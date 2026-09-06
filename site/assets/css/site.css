@@ -161,9 +161,8 @@ a:hover { color: var(--accent-txt-fort); text-decoration: underline; text-underl
 .pile .front { background: #14110d; opacity: 1; }
 .pile .front::after { content: ""; position: absolute; inset: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.10); pointer-events: none; }
 .pile .front img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.pile .back { background: var(--surface); border: 1px solid var(--ligne); opacity: 0; padding: 1.2rem 1.1rem; text-align: left; display: flex; flex-direction: column; }
-.pile .back h3 { font-size: 1rem; color: var(--accent-txt); margin-bottom: .5rem; }
-.pile .back p { font-size: .78rem; line-height: 1.42; color: var(--ink-doux); margin: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 9; }
+.pile .back { background: #14110d; opacity: 0; }
+.pile .back img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
 .pile .carte[aria-pressed="true"] .back { opacity: 1; }
 
