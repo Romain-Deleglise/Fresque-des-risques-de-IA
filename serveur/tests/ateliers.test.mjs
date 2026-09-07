@@ -39,6 +39,24 @@ test("inscription : capacite, doublon, prive", () => {
   assert.ok(A.validerInscription(a, { prenom: "P", mail: "p@ex.org" }).erreur, "prive");
 });
 
+test("lien visio : optionnel, validé si présent, stocké", () => {
+  const base = { mode: "enligne", animateurPrenom: "Léa", animateurMail: "lea@ex.org", date: dateFutur, heure: "18:30" };
+  assert.equal(A.valider(base).atelier.visio, undefined, "absent par défaut");
+  assert.ok(A.valider(Object.assign({}, base, { visioUrl: "pas une url" })).erreur, "url invalide refusée");
+  const ok = A.valider(Object.assign({}, base, { visioUrl: "https://meet.google.com/abc-defg-hij" }));
+  assert.equal(ok.atelier.visio, "https://meet.google.com/abc-defg-hij");
+});
+
+test("inscription refusée passé 30 min après le début", () => {
+  const futurProche = { code: "ABCDEF", mode: "enligne", visibilite: "public", quandMs: Date.now() + 3600e3, maxParticipants: 8, participants: [] };
+  assert.ok(A.validerInscription(futurProche, { prenom: "Jo", mail: "jo@ex.org" }).participant, "avant le début : ok");
+  const commence20 = Object.assign({}, futurProche, { quandMs: Date.now() - 20 * 60e3 });
+  assert.ok(A.validerInscription(commence20, { prenom: "Jo", mail: "jo@ex.org" }).participant, "20 min après : encore ouvert");
+  const commence40 = Object.assign({}, futurProche, { quandMs: Date.now() - 40 * 60e3 });
+  assert.ok(A.validerInscription(commence40, { prenom: "Jo", mail: "jo@ex.org" }).erreur, "40 min après : fermé");
+  assert.equal(A.inscriptionOuverte(commence40), false);
+});
+
 test("vuePublique n'expose aucun e-mail", () => {
   const a = { code: "ABCDEF", mode: "physique", visibilite: "public", quandMs: Date.now() + 3600e3, maxParticipants: 8, lieu: "MJC", adresse: "1 rue X", animateur: { prenom: "Léa", mail: "lea@ex.org" }, participants: [{ prenom: "Jo", mail: "jo@ex.org", le: 0 }] };
   const v = A.vuePublique(a);

@@ -27,6 +27,7 @@ function mailRappel(a) {
   l.push("Format : " + (a.mode === "enligne" ? "en ligne" : "en présentiel"));
   if (a.mode === "physique") { l.push("Lieu : " + a.lieu); if (a.adresse) l.push("Adresse : " + a.adresse); }
   l.push("Code de session : " + a.code);
+  if (a.visio) l.push("Visioconférence : " + a.visio);
   if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
   l.push("");
   if (a.mode === "enligne") { l.push("Rejoignez le tableau en ligne avec ce code :"); l.push(sessionUrl); }
@@ -47,6 +48,7 @@ function mailRappel(a) {
   c += '<p style="margin:0 0 16px;">Rappel : votre atelier de la Fresque des risques de l\'IA a lieu <strong>bientôt</strong>.</p>';
   c += info + code;
   if (noms.length) c += '<p style="margin:0 0 16px;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
+  if (a.visio) c += '<p style="margin:0 0 12px;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
   if (a.mode === "enligne") c += '<p style="margin:0;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };

@@ -99,6 +99,9 @@ function pucesPrenoms(noms) {
   }).join('') + '</div>';
 }
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
+// Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.
+function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
+function texteVisio(a) { return a && a.visio ? "Visioconférence : " + a.visio : ""; }
 
 // Invitation calendrier (.ics) : ajoutee en piece jointe, rappel la veille.
 function icsAtelier(a) {
@@ -111,15 +114,21 @@ function icsAtelier(a) {
   const end = jour + "T" + finH + hm.slice(3, 5) + "00";
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const echap = (s) => String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const lienPrincipal = a.visio || url;   // visio si fournie, sinon le tableau en ligne
+  const desc = "Code de session : " + a.code + (a.visio ? "\nVisio : " + a.visio : "") + (url ? "\nTableau : " + url : "");
   const lignes = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Pause IA//Fresque des risques de l'IA//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     "BEGIN:VEVENT", "UID:" + a.code + "@fresquedesrisquesdelia.org", "DTSTAMP:" + stamp,
     "DTSTART;TZID=Europe/Paris:" + start, "DTEND;TZID=Europe/Paris:" + end,
     "SUMMARY:" + echap("Fresque des risques de l'IA" + (a.titre ? " : " + a.titre : "")),
-    "LOCATION:" + echap(lieu), "DESCRIPTION:" + echap("Code de session : " + a.code + (url ? "\n" + url : "")),
-    "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:" + echap("Rappel : Fresque des risques de l'IA demain"), "END:VALARM",
-    "END:VEVENT", "END:VCALENDAR"
+    "LOCATION:" + echap(a.visio || lieu), "DESCRIPTION:" + echap(desc)
   ];
+  if (lienPrincipal) lignes.push("URL:" + echap(lienPrincipal));
+  lignes.push(
+    "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:" + echap("Rappel : Fresque des risques de l'IA demain"), "END:VALARM",
+    "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:" + echap("Rappel : Fresque des risques de l'IA dans 1 heure"), "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"
+  );
   return lignes.join("\r\n");
 }
 function pieceIcs(a) { return { filename: "atelier-fresque.ics", content: Buffer.from(icsAtelier(a), "utf8").toString("base64") }; }
@@ -218,6 +227,7 @@ function mailAnimateur(a) {
   l.push("Participants max : " + a.maxParticipants);
   l.push("");
   l.push("Code de session : " + a.code);
+  if (a.visio) l.push("Lien de visioconférence (partagé avec les inscrit·es) : " + a.visio);
   l.push(visibilite);
   l.push("");
   l.push("Pour préparer votre animation, téléchargez le guide d'animation :");
@@ -242,6 +252,7 @@ function mailAnimateur(a) {
   c += '<p style="margin:0 0 18px;">Votre atelier de la Fresque des risques de l\'IA est bien programmé. Voici le récapitulatif.</p>';
   c += tableauInfos(a);
   c += boiteCode(a.code);
+  c += boutonVisio(a);
   c += '<p style="margin:0 0 18px;color:#4a473f;">' + h(visibilite) + '</p>';
   c += '<p style="margin:0 0 12px;">Pour préparer votre animation, appuyez-vous sur le guide. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail.</p>';
   c += '<p style="margin:0 0 20px;">' + bouton(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
@@ -271,6 +282,7 @@ function mailParticipant(a, participant) {
   l.push("");
   l.push("Code de session : " + a.code);
   if (a.mode === "enligne") { l.push("Le jour J, rejoignez le tableau en ligne avec ce code (depuis un ordinateur) :"); l.push(sessionUrl); }
+  if (a.visio) { l.push("Visioconférence : " + a.visio); }
   l.push("Une invitation calendrier est jointe à cet e-mail (avec un rappel la veille).");
   l.push("");
   l.push("Aucun prérequis technique : les cartes expliquent tout au fur et à mesure. À très vite !");
@@ -287,8 +299,9 @@ function mailParticipant(a, participant) {
   c += boiteCode(a.code);
   if (a.mode === "enligne") {
     c += '<p style="margin:0 0 12px;">Le jour J, rejoignez le tableau en ligne avec ce code, depuis un ordinateur.</p>';
-    c += '<p style="margin:0 0 20px;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+    c += '<p style="margin:0 0 16px;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   }
+  c += boutonVisio(a);
   c += '<p style="margin:0 0 16px;color:#4a473f;">Aucun prérequis technique : les cartes expliquent tout au fur et à mesure. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail. À très vite !</p>';
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0;color:#8a8577;font-size:13px;">Un empêchement ? <a href="' + h(desistUrl) + '" style="color:#B3610F;">Se désinscrire</a> pour libérer votre place.</p>';
@@ -328,7 +341,7 @@ exports.handler = async (event) => {
         try {
           const res = await st.getWithMetadata(b.key, { type: "json" });
           const a = res && res.data;
-          if (a && a.visibilite === "public" && !A.estPasse(a)) out.push(A.vuePublique(a));
+          if (a && a.visibilite === "public" && A.inscriptionOuverte(a)) out.push(A.vuePublique(a));
         } catch (e) {}
       }
       out.sort((x, y) => x.quandMs - y.quandMs);

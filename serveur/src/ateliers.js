@@ -5,11 +5,13 @@
 
 var MAX_ENLIGNE = 8;        // 8 participants max par session en ligne
 var MAX_PHYSIQUE = 16;      // 2 tables x 8, conseil d'animation
-var LEN_PRENOM = 24, LEN_TITRE = 80, LEN_LIEU = 120, LEN_ADRESSE = 200, LEN_MAIL = 160;
+var LEN_PRENOM = 24, LEN_TITRE = 80, LEN_LIEU = 120, LEN_ADRESSE = 200, LEN_MAIL = 160, LEN_VISIO = 300;
 var RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+var LIMITE_INSCRIPTION_MS = 30 * 60 * 1000;   // inscriptions closes 30 min apres le debut
 
 function tronque(s, n) { return String(s == null ? "" : s).trim().slice(0, n); }
 function mailValide(m) { return typeof m === "string" && m.length <= LEN_MAIL && RE_MAIL.test(m.trim()); }
+function urlValide(u) { u = String(u == null ? "" : u).trim(); return u.length <= LEN_VISIO && /^https?:\/\/[^\s.]+\.[^\s]+$/.test(u); }
 
 // Valide une demande de programmation d'atelier. Retourne { atelier } (sans code
 // ni participants, ajoutes par la fonction) ou { erreur: { code, message } }.
@@ -49,6 +51,11 @@ function valider(d) {
     a.adresse = tronque(d.adresse, LEN_ADRESSE);
     if (!a.lieu) return err("lieu_manquant", "Indiquez le lieu de l'atelier.");
   }
+  var visio = tronque(d.visioUrl, LEN_VISIO);
+  if (visio) {
+    if (!urlValide(visio)) return err("visio_invalide", "Le lien de visioconférence doit être une adresse http(s) valide.");
+    a.visio = visio;
+  }
   return { atelier: a };
 }
 
@@ -57,7 +64,7 @@ function validerInscription(atelier, d) {
   d = d || {};
   if (!atelier) return err("atelier_inconnu", "Cet atelier n'existe pas ou plus.");
   if (atelier.visibilite === "prive") return err("atelier_prive", "Cet atelier est privé : demandez le code à l'animateur.");
-  if (estPasse(atelier)) return err("atelier_passe", "Cet atelier est déjà passé.");
+  if (!inscriptionOuverte(atelier)) return err("trop_tard", "Les inscriptions sont closes : l'atelier a déjà commencé.");
   var prenom = tronque(d.prenom, LEN_PRENOM);
   if (!prenom) return err("prenom_manquant", "Indiquez votre prénom.");
   var mail = tronque(d.mail, LEN_MAIL);
@@ -101,6 +108,12 @@ function estPasse(a) {
   return a && isFinite(a.quandMs) && (Date.now() > a.quandMs + 3 * 60 * 60 * 1000);
 }
 
+// Les inscriptions (et l'affichage dans le calendrier public) restent ouvertes
+// jusqu'a 30 min apres le debut ; au-dela, on ne peut plus se rajouter.
+function inscriptionOuverte(a) {
+  return !!(a && isFinite(a.quandMs) && (Date.now() <= a.quandMs + LIMITE_INSCRIPTION_MS));
+}
+
 // Vue publique pour l'onglet Participer : AUCUN e-mail expose.
 function vuePublique(a) {
   return {
@@ -130,7 +143,8 @@ function err(code, message) { return { erreur: { code: code, message: message } 
 
 module.exports = {
   MAX_ENLIGNE: MAX_ENLIGNE, MAX_PHYSIQUE: MAX_PHYSIQUE,
-  mailValide: mailValide, valider: valider, validerInscription: validerInscription,
+  mailValide: mailValide, urlValide: urlValide, valider: valider, validerInscription: validerInscription,
   annulationAutorisee: annulationAutorisee, retraitParticipant: retraitParticipant,
-  estPasse: estPasse, vuePublique: vuePublique, vueConfirmation: vueConfirmation
+  estPasse: estPasse, inscriptionOuverte: inscriptionOuverte,
+  vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };
