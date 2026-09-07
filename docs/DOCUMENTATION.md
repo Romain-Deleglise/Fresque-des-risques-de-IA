@@ -134,7 +134,9 @@ Fonctions serverless Netlify (/.netlify/functions/*)
 │
 ├── scripts/
 │   ├── valider-cartes.mjs    # Valide cartes.json (39 entrées, 0..38, 1 intro)
-│   ├── generer-images.py     # Génère les WebP des cartes (Pillow)
+│   ├── generer-cartes-web.py # Génère les WebP des cartes depuis les PDF (ghostscript + Pillow)
+│   ├── generer-planche.py    # Planche d'impression A4 (pikepdf + compression)
+│   ├── generer-images.py     # Ancien générateur WebP (sources image, Pillow)
 │   └── audit-a11y.mjs        # Audit accessibilité (axe-core + Playwright)
 │
 ├── contenus/                 # Sources des cartes (PDF, illustrations) - non publié
@@ -263,15 +265,19 @@ carte, dans `contenus/cartes/`). Pour chaque carte on produit, en WebP :
 - recto HD (`assets/img/cartes-hd/`),
 - verso HD (`assets/img/cartes-verso/`).
 
-Rendu haute définition (DPI 320, qualité 92) pour que le texte du verso reste
-net. Le script historique `scripts/generer-images.py` (Pillow) couvre le cas
-« sources image » ; le rendu depuis les PDF utilise ghostscript + Pillow.
+Rendu haute définition (DPI 320, qualité WebP 95) pour que le texte du verso
+reste net et sans halo sur les fonds noirs. Script :
+`scripts/generer-cartes-web.py` (ghostscript + Pillow, lit les PDF de
+`contenus/cartes/`). Le script historique `scripts/generer-images.py` (Pillow,
+sources image aplaties sur blanc) est conservé pour référence.
 
 ### 6.3 Téléchargements (`site/telechargements/`)
 
 - `fresque-des-risques-de-l-ia-cartes.pdf` : **planche d'impression** A4,
   4 cartes par feuille, recto/verso en vis-à-vis pour une impression duplex
-  « bord long » (20 pages, ~5 Mo).
+  « bord long » (20 pages, ~6 Mo). Généré par `scripts/generer-planche.py`
+  (imposition pikepdf + compression JPEG q97). Une marge de sécurité entoure
+  la planche pour éviter le rognage haut/bas à l'impression « taille réelle ».
 - `guide-animateur-fresque-des-risques-de-l-ia.pdf` : guide d'animation.
 
 Le bouton « Télécharger » de la navigation pointe directement sur le PDF des
@@ -587,7 +593,8 @@ node --test serveur/tests/ateliers.test.mjs
 node scripts/valider-cartes.mjs
 ```
 
-Régénérer les visuels des cartes : voir `scripts/generer-images.py`
+Régénérer les visuels web des cartes : `scripts/generer-cartes-web.py` ;
+la planche d'impression : `scripts/generer-planche.py`
 (dépend de Pillow ; le rendu depuis les PDF utilise ghostscript).
 
 ---

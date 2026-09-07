@@ -36,10 +36,16 @@ SRC = RACINE / "contenus" / "cartes"
 OUT = RACINE / "site" / "telechargements" / "fresque-des-risques-de-l-ia-cartes.pdf"
 
 W, H = 841.89, 595.28              # A4 paysage (points)
-cw, ch = W / 2, H / 2
+# Marge de securite : les imprimantes domestiques ne savent pas imprimer
+# jusqu'au bord (zone non imprimable ~3 a 5 mm). Sans marge, une impression a
+# taille reelle (100 %) rogne le haut et le bas des cartes, ou force l'imprimante
+# a proposer un ajustement (ex. 96 %). On inset donc la grille de 18 pt (~6,3 mm)
+# sur les quatre bords. La couture centrale reste partagee (ligne de coupe).
+M = 18.0
+xm, ym = W / 2, H / 2
 # cellules : 0=haut-gauche 1=haut-droite 2=bas-gauche 3=bas-droite
-CELLS = [Rectangle(0, ch, cw, H), Rectangle(cw, ch, W, H),
-         Rectangle(0, 0, cw, ch), Rectangle(cw, 0, W, ch)]
+CELLS = [Rectangle(M, ym, xm, H - M), Rectangle(xm, ym, W - M, H - M),
+         Rectangle(M, M, xm, ym), Rectangle(xm, M, W - M, ym)]
 SWAP = {0: 1, 1: 0, 2: 3, 3: 2}   # miroir colonnes pour le duplex bord long
 
 JPEG_Q = 97                        # voir la note d'en-tete : ne pas descendre sous 95
