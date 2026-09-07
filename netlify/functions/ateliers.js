@@ -92,16 +92,34 @@ function boiteCompteur(n, max) {
     + '</tr></table></div>';
 }
 // Prenoms des inscrits sous forme de pastilles.
-function pucesPrenoms(noms) {
-  if (!noms || !noms.length) return '';
-  return '<div style="margin:0;">' + noms.map(function (nm) {
-    return '<span style="display:inline-block;background:#f3ece1;border:1px solid #eadfce;border-radius:999px;padding:4px 12px;margin:0 6px 6px 0;font-size:13px;color:#4a473f;">' + h(nm) + '</span>';
-  }).join('') + '</div>';
-}
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
 // Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.
 function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
 function texteVisio(a) { return a && a.visio ? "Visioconférence : " + a.visio : ""; }
+
+// Bouton pour qu'un participant écrive à l'animateur·ice (mailto pré-rempli).
+function boutonContactAnimateur(a) {
+  if (!a || !a.animateur || !a.animateur.mail) return "";
+  var sujet = encodeURIComponent("Question sur l'atelier du " + dateLisible(a.date, a.heure) + " (code " + a.code + ")");
+  return '<p style="margin:0 0 16px;">' + bouton("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
+}
+// Bouton pour que l'animateur écrive à tou·tes les inscrit·es (adresses en Cci).
+function boutonEcrireInscrits(a) {
+  var mails = (a.participants || []).map(function (p) { return p.mail; }).filter(Boolean);
+  if (!mails.length) return "";
+  var sujet = encodeURIComponent("Atelier Fresque des risques de l'IA du " + dateLisible(a.date, a.heure));
+  return '<p style="margin:0 0 4px;">' + bouton("mailto:?bcc=" + mails.join(",") + "&subject=" + sujet, "Écrire à tou·tes les inscrit·es") + "</p>"
+    + '<p style="margin:0 0 12px;font-size:12px;color:#8a8577;">Adresses en copie cachée : les participant·es ne se voient pas entre eux.</p>';
+}
+// Prénoms des inscrit·es en pastilles cliquables (mailto), pour l'animateur.
+function pucesContacts(parts) {
+  parts = (parts || []).filter(function (p) { return p && p.prenom; });
+  if (!parts.length) return "";
+  return '<div style="margin:0;">' + parts.map(function (p) {
+    var href = p.mail ? "mailto:" + p.mail : "#";
+    return '<a href="' + h(href) + '" style="display:inline-block;background:#f3ece1;border:1px solid #eadfce;border-radius:999px;padding:4px 12px;margin:0 6px 6px 0;font-size:13px;color:#4a473f;text-decoration:none;">' + h(p.prenom) + ' ✉</a>';
+  }).join("") + "</div>";
+}
 
 // Invitation calendrier (.ics) : ajoutee en piece jointe, rappel la veille.
 function icsAtelier(a) {
@@ -145,13 +163,18 @@ function mailNouvelInscrit(a, prenom) {
   l.push(prenom + " vient de s'inscrire à votre atelier du " + dateLisible(a.date, a.heure) + ".");
   l.push("Inscrits : " + n + " / " + max + ".");
   if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
+  var contactsInscrits = (a.participants || []).map(function (p) { return p.mail; }).filter(Boolean);
+  if (contactsInscrits.length) l.push("Pour les contacter : " + contactsInscrits.join(", "));
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
   c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
   c += boiteCompteur(n, max);
-  if (noms.length) c += '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesPrenoms(noms);
+  if (n) {
+    c += '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits <span style="font-weight:400;color:#8a8577;font-size:12px;">(cliquez un prénom pour écrire)</span></p>' + pucesContacts(a.participants);
+    c += '<div style="margin-top:14px;">' + boutonEcrireInscrits(a) + '</div>';
+  }
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -186,7 +209,7 @@ function mailDesistAnimateur(a, prenom) {
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
   c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> s\'est désinscrit·e de votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
   c += boiteCompteur(n, a.maxParticipants);
-  c += noms.length ? '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesPrenoms(noms) : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
+  c += noms.length ? '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesContacts(a.participants) : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -316,6 +339,8 @@ function mailParticipant(a, participant) {
   l.push("");
   l.push("Aucun prérequis technique : les cartes expliquent tout au fur et à mesure. À très vite !");
   l.push("");
+  l.push("Une question avant l'atelier ? Écrivez à l'animateur·ice : " + a.animateur.mail);
+  l.push("");
   l.push("Un empêchement ? Vous pouvez vous désinscrire ici pour libérer votre place :");
   l.push(desistUrl);
   l.push("");
@@ -331,6 +356,7 @@ function mailParticipant(a, participant) {
     c += '<p style="margin:0 0 16px;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   }
   c += boutonVisio(a);
+  c += boutonContactAnimateur(a);
   c += '<p style="margin:0 0 16px;color:#4a473f;">Aucun prérequis technique : les cartes expliquent tout au fur et à mesure. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail. À très vite !</p>';
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0;color:#8a8577;font-size:13px;">Un empêchement ? <a href="' + h(desistUrl) + '" style="color:#B3610F;">Se désinscrire</a> pour libérer votre place.</p>';
