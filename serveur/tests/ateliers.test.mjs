@@ -76,6 +76,16 @@ test("annulation : jeton secret ou e-mail animateur exigé", () => {
   assert.ok(A.annulationAutorisee(null, { token: "x" }).erreur, "atelier inconnu");
 });
 
+test("reprogrammation : auth requise, nouvelle date future", () => {
+  const a = { code: "ABCDEF", date: dateFutur, heure: "18:30", quandMs: Date.now() + 7 * 864e5, animateur: { prenom: "Léa", mail: "lea@ex.org" }, annulToken: "TOK" };
+  const demain = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
+  assert.ok(A.validerReprogrammation(a, { token: "mauvais", date: demain, heure: "10:00" }).erreur, "sans auth : refusé");
+  assert.ok(A.validerReprogrammation(a, { token: "TOK", date: "2000-01-01", heure: "10:00" }).erreur, "date passée : refusée");
+  assert.ok(A.validerReprogrammation(a, { mail: "lea@ex.org", date: dateFutur, heure: "18:30" }).erreur, "date inchangée : refusée");
+  const ok = A.validerReprogrammation(a, { token: "TOK", date: demain, heure: "10:00" });
+  assert.equal(ok.date, demain); assert.equal(ok.heure, "10:00"); assert.ok(isFinite(ok.quandMs));
+});
+
 test("désinscription participant : par jeton personnel", () => {
   const a = { code: "ABCDEF", participants: [
     { prenom: "Jo", mail: "jo@ex.org", token: "TOK-JO" },

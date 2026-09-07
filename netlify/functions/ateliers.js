@@ -208,6 +208,33 @@ function mailAnnulation(a) {
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
+// E-mail envoye aux inscrits (et a l'animateur) quand l'atelier est deplace.
+function mailDeplacement(a, ancien) {
+  const sessionUrl = LIEN + "/en-ligne/session/";
+  const l = [];
+  l.push("Bonjour,");
+  l.push("");
+  l.push("L'atelier de la Fresque des risques de l'IA a été déplacé.");
+  l.push("Ancienne date : " + ancien);
+  l.push("Nouvelle date : " + dateLisible(a.date, a.heure));
+  l.push("Code de session : " + a.code);
+  if (a.visio) l.push("Visioconférence : " + a.visio);
+  if (a.mode === "enligne") l.push("Tableau en ligne : " + sessionUrl);
+  l.push("");
+  l.push("Une nouvelle invitation calendrier est jointe. À bientôt,");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour,</p>';
+  c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA a été <strong>déplacé</strong>.</p>';
+  c += '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(dateLisible(a.date, a.heure)) + '</td></tr></table>';
+  c += boiteCode(a.code);
+  c += boutonVisio(a);
+  c += '<p style="margin:0;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail. Si cette nouvelle date ne vous convient pas, vous pouvez vous désinscrire depuis votre e-mail de confirmation.</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+
 function mailAnimateur(a) {
   const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code;
   const annulUrl = LIEN + "/demander-un-atelier/?annuler=" + a.code + "&t=" + (a.annulToken || "");
@@ -242,6 +269,7 @@ function mailAnimateur(a) {
   }
   l.push("Une erreur de saisie ? Vous pouvez annuler cet atelier ici (ne transmettez pas ce lien) :");
   l.push(annulUrl);
+  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/demander-un-atelier/#vue-animer");
   l.push("");
   l.push("À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -261,7 +289,8 @@ function mailAnimateur(a) {
     c += '<p style="margin:0 0 20px;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
+  c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/demander-un-atelier/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
@@ -386,6 +415,28 @@ exports.handler = async (event) => {
         try { await mail.envoi({ to: av.animateur.mail, bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
       }
       return json(200, { annule: true, prevenus: inscrits.length });
+    }
+
+    if (d.op === "reprogrammer") {
+      if (await depasse("entree", ip)) return json(429, { erreur: { code: "trop", message: "Trop de tentatives, patientez une minute." } });
+      const code = String(d.code || "").toUpperCase();
+      for (let essai = 0; essai < 6; essai++) {
+        const res = await st.getWithMetadata(cle(code), { type: "json" });
+        if (!res || !res.data) return json(404, { erreur: { code: "atelier_inconnu", message: "Cet atelier n'existe pas ou plus." } });
+        const a = res.data;
+        const rp = A.validerReprogrammation(a, d);
+        if (rp.erreur) return json(rp.erreur.code === "non_autorise" ? 403 : 400, { erreur: rp.erreur });
+        const ancien = dateLisible(a.date, a.heure);
+        a.date = rp.date; a.heure = rp.heure; a.quandMs = rp.quandMs;
+        a.rappelEnvoye = false; a.rappelHeureEnvoye = false; a.suiviEnvoye = false;
+        const w = await st.setJSON(cle(code), a, { onlyIfMatch: res.etag });
+        if (w && w.modified === false) continue; // concurrence : on rejoue
+        const inscrits = (a.participants || []).map((p) => p.mail).filter(Boolean);
+        const md = mailDeplacement(a, ancien);
+        try { await mail.envoi({ to: a.animateur.mail, bcc: inscrits, subject: "Atelier déplacé : Fresque des risques de l'IA", text: md.text, html: md.html, attachments: [pieceIcs(a)] }); } catch (e) {}
+        return json(200, { deplace: true, prevenus: inscrits.length, atelier: A.vueConfirmation(a) });
+      }
+      return json(409, { erreur: { code: "conflit", message: "Réessayez dans un instant." } });
     }
 
     if (d.op === "desister") {

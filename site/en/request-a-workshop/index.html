@@ -118,6 +118,21 @@
         </form>
 
         <div class="annuler-atelier">
+          <h3>Move a workshop</h3>
+          <p class="muted">A change of date? Enter the code, the facilitator's e-mail and the new date: registrants are notified automatically.</p>
+          <form id="form-deplacer" class="form-atelier" novalidate>
+            <div class="grille-champs">
+              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+              <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+              <label>New date<input name="date" type="date" required></label>
+              <label>New time<input name="heure" type="time" required></label>
+            </div>
+            <button class="btn btn-noir" type="submit">Move this workshop</button>
+            <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div class="annuler-atelier">
           <h3>Cancel a workshop</h3>
           <p class="muted">Made a mistake? Enter the session code and the facilitator's e-mail to remove it from the list. (The link in your e-mail also cancels it in one click.)</p>
           <form id="form-annuler" class="form-atelier" novalidate>

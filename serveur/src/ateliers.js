@@ -90,6 +90,22 @@ function annulationAutorisee(atelier, d) {
   return err("non_autorise", "Code ou e-mail incorrect : seul l'animateur·ice peut annuler cet atelier.");
 }
 
+// Déplacement (reprogrammation) d'un atelier : même autorisation que l'annulation
+// (jeton secret ou e-mail de l'animateur), plus une nouvelle date/heure future.
+function validerReprogrammation(atelier, d) {
+  d = d || {};
+  var auth = annulationAutorisee(atelier, d);
+  if (auth.erreur) return auth;
+  var date = tronque(d.date, 10), heure = tronque(d.heure, 5);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return err("date_invalide", "Nouvelle date invalide.");
+  if (!/^\d{2}:\d{2}$/.test(heure)) return err("heure_invalide", "Nouvelle heure invalide.");
+  var quand = Date.parse(date + "T" + heure + ":00");
+  if (!isFinite(quand)) return err("date_invalide", "Nouvelle date ou heure invalide.");
+  if (quand < Date.now() - 60 * 1000) return err("date_passee", "La nouvelle date doit être dans le futur.");
+  if (date === atelier.date && heure === atelier.heure) return err("inchange", "La date et l'heure sont identiques.");
+  return { date: date, heure: heure, quandMs: quand };
+}
+
 // Retire un participant identifié par son jeton personnel (lien de l'e-mail).
 function retraitParticipant(atelier, d) {
   d = d || {};
@@ -144,7 +160,7 @@ function err(code, message) { return { erreur: { code: code, message: message } 
 module.exports = {
   MAX_ENLIGNE: MAX_ENLIGNE, MAX_PHYSIQUE: MAX_PHYSIQUE,
   mailValide: mailValide, urlValide: urlValide, valider: valider, validerInscription: validerInscription,
-  annulationAutorisee: annulationAutorisee, retraitParticipant: retraitParticipant,
+  annulationAutorisee: annulationAutorisee, validerReprogrammation: validerReprogrammation, retraitParticipant: retraitParticipant,
   estPasse: estPasse, inscriptionOuverte: inscriptionOuverte,
   vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

@@ -11,6 +11,7 @@
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.",
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
+    deplaceOk: "Workshop moved. Registrants have been notified.",
     confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
     ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
     confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
@@ -23,6 +24,7 @@
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.",
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
+    deplaceOk: "Atelier déplacé. Les inscrit·es ont été prévenu·es.",
     confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
     ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
     confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
@@ -175,6 +177,24 @@
         msgEl.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur;
       }
     }).catch(function () { if (msgEl) { msgEl.className = "msg err"; msgEl.textContent = T.indispo; } });
+  }
+
+  /* ---------- Déplacer un atelier (animateur·ice) ---------- */
+  var fDep = document.getElementById("form-deplacer");
+  if (fDep) {
+    fDep.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var m = document.getElementById("deplacer-msg");
+      var sb = fDep.querySelector('button[type="submit"]');
+      var data = { code: (fDep.code.value || "").toUpperCase(), mail: fDep.mail.value, date: fDep.date.value, heure: fDep.heure.value };
+      if (sb) sb.disabled = true;
+      m.textContent = T.envoi; m.className = "msg";
+      poster("reprogrammer", data).then(function (res) {
+        if (res.ok && res.d && res.d.deplace) { m.className = "msg ok"; m.textContent = T.deplaceOk; fDep.reset(); }
+        else { m.className = "msg err"; m.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur; }
+      }).catch(function () { m.className = "msg err"; m.textContent = T.indispo; })
+        .finally(function () { if (sb) sb.disabled = false; });
+    });
   }
 
   // Option 1 : formulaire code + e-mail, avec confirmation avant d'annuler.
