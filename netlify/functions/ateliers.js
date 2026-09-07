@@ -13,6 +13,7 @@ const A = require("../../serveur/src/ateliers.js");
 const R = require("../../serveur/src/regles.js");
 const L = require("../../serveur/src/limites.js");
 const mail = require("./lib/mail.js");
+const C = require("./lib/contacts.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
 
@@ -23,6 +24,7 @@ const TTL_PURGE_MS = 7 * 24 * 60 * 60 * 1000; // on garde les ateliers 7 j apres
 function store() { return getStore({ name: "fresque-ateliers" }); }
 function sessions() { return getStore({ name: "fresque-sessions" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
+function contacts() { return getStore({ name: "fresque-contacts" }); }
 function cle(code) { return "atelier:" + code; }
 const json = (s, c) => ({ statusCode: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(c) });
 
@@ -387,6 +389,8 @@ exports.handler = async (event) => {
       if (a.visioAuto) { a.visio = "https://meet.jit.si/FresqueRisquesIA-" + code + "-" + R.jetonAleatoire(); delete a.visioAuto; }
       await st.setJSON(cle(code), a);
       purger(st);
+      // Registre durable des contacts (best-effort, ne bloque pas la creation).
+      try { await C.enregistrer(contacts(), { mail: a.animateur.mail, prenom: a.animateur.prenom, role: "animateur", code: code, quandMs: a.quandMs, mode: a.mode, titre: a.titre }); } catch (e) {}
       const ma = mailAnimateur(a);
       const env = await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier est programmé (code " + code + ")", text: ma.text, html: ma.html, attachments: [pieceIcs(a)] });
       return json(200, { code: code, atelier: A.vueConfirmation(a), emailEnvoye: env.envoye });
@@ -419,6 +423,8 @@ exports.handler = async (event) => {
         a.participants = a.participants || []; a.participants.push(vi.participant);
         const w = await st.setJSON(cle(code), a, { onlyIfMatch: res.etag });
         if (w && w.modified === false) continue; // concurrence : on rejoue
+        // Registre durable des contacts (best-effort).
+        try { await C.enregistrer(contacts(), { mail: vi.participant.mail, prenom: vi.participant.prenom, role: "participant", code: a.code, quandMs: a.quandMs, mode: a.mode, titre: a.titre }); } catch (e) {}
         const mp = mailParticipant(a, vi.participant);
         const env = await mail.envoi({ to: vi.participant.mail, subject: "Inscription confirmée à la Fresque des risques de l'IA", text: mp.text, html: mp.html, attachments: [pieceIcs(a)] });
         // Notifier l'animateur (sans bloquer l'inscription en cas d'echec).

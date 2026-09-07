@@ -356,6 +356,27 @@ vue de page anonyme et l'agrège par jour dans le magasin `audience` (aucune IP
 stockée, aucun identifiant de visiteur : exemptée de consentement CNIL).
 `stats` (GET) lit les agrégats ; l'accès peut être protégé par `AUDIENCE_KEY`.
 
+### 7.4b Contacts et administration : `admin.js` (+ `lib/contacts.js`)
+
+Registre durable des contacts, séparé des ateliers (qui sont purgés 7 j après
+leur date). `lib/contacts.js` tient le magasin Blobs `fresque-contacts` : une
+entrée par e-mail (clé = empreinte SHA-256 de l'adresse), alimentée par
+`ateliers.js` à la programmation (rôle animateur·ice) et à l'inscription (rôle
+participant·e), en **best-effort** (une panne du registre ne bloque jamais une
+inscription). Chaque entrée garde le prénom, les rôles, le nombre d'ateliers,
+les dates de premier/dernier contact, l'historique (borné) et un indicateur de
+désinscription.
+
+`admin.js` est l'API de l'espace `/admin/`, **protégée par `ADMIN_TOKEN`**
+(comparaison à temps constant ; sans la variable, la fonction renvoie 503). Elle
+fournit les statistiques agrégées (nombre d'ateliers, animateur·ices,
+participant·es, répartition en ligne/présentiel, ateliers par mois), la liste
+des contacts, l'export CSV, et la désinscription/effacement d'un contact (droits
+RGPD). La page `site/admin/` (non indexée, `Disallow` dans `robots.txt`) affiche
+un tableau de bord ; sa clé est saisie à la connexion et gardée le temps de
+l'onglet. Base légale : intérêt légitime, avec mention au moment de la collecte
+et effacement sur demande (voir les mentions légales).
+
 ### 7.5 Newsletter : `subscribe.js`
 
 Inscrit une adresse à la newsletter via l'API4 de **CiviCRM** (même origine,
@@ -564,6 +585,7 @@ dans le dépôt) :
 | `MAIL_REPONSE` | mail.js | (optionnel) Reply-To, ex. `contact@pauseia.fr` |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
+| `ADMIN_TOKEN` | admin.js | Clé secrète de l'espace `/admin/`. Sans elle, l'espace est désactivé (503) |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |

@@ -1,4 +1,4 @@
-# Configuration Netlify — Fresque des risques de l'IA
+# Configuration Netlify : Fresque des risques de l'IA
 # Site 100 % statique, aucune etape de build. Le contenu publie est le dossier site/.
 
 [build]
@@ -23,6 +23,12 @@
 #   - MAIL_REPONSE   : (optionnel) Reply-To, ex contact@pauseia.fr
 #   - SITE_URL       : URL publique du site pour les liens des e-mails,
 #     ex https://fresquedesrisquesdelia.org (defaut : ce domaine).
+#   - ADMIN_TOKEN    : cle secrete de l'espace d'administration (/admin/). Sans
+#     elle, l'espace admin est desactive (fonction admin -> 503). A definir avec
+#     une valeur longue et aleatoire, connue de la seule equipe.
+# Registre durable des contacts : store Blobs "fresque-contacts", alimente par la
+# fonction ateliers a la programmation et a l'inscription, lu par la fonction admin
+# (suivi + statistiques + export CSV + desinscription/effacement RGPD).
 # Rappels : la fonction rappels s'execute une fois par jour (voir ci-dessous) et
 # ecrit a l'animateur + participants (CC) pour les ateliers du lendemain.
 [functions."rappels"]
@@ -75,7 +81,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     # CSP : interdit scripts et polices tiers, aucune requete externe.
-    # connect-src 'self' — a etendre a l'origine du service de sessions
+    # connect-src 'self' : a etendre a l'origine du service de sessions
     # (et wss:) quand la Fresque en ligne sera branchee (B3.6).
     Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 

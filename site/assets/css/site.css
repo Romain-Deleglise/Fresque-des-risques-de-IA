@@ -454,3 +454,6 @@ a.btn, a.btn:hover { text-decoration: none; }
 .atelier-form .msg { min-height: 1.1rem; font-family: var(--f-ui); font-size: .86rem; }
 .atelier-form .msg.ok { color: var(--ok); }
 .atelier-form .msg.err { color: var(--err); }
+
+/* Mention d'information sur les donnees personnelles, sous les formulaires. */
+.rgpd-note { font-size: .8rem; line-height: 1.55; color: var(--gris-clair); max-width: 46rem; margin-top: 16px; }
