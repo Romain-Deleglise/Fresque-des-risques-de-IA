@@ -124,10 +124,16 @@ function estPasse(a) {
   return a && isFinite(a.quandMs) && (Date.now() > a.quandMs + 3 * 60 * 60 * 1000);
 }
 
-// Les inscriptions (et l'affichage dans le calendrier public) restent ouvertes
-// jusqu'a 30 min apres le debut ; au-dela, on ne peut plus se rajouter.
+// Les inscriptions restent ouvertes jusqu'a 30 min apres le debut ; au-dela,
+// on ne peut plus se rajouter (mais l'atelier reste affiche, voir ci-dessous).
 function inscriptionOuverte(a) {
   return !!(a && isFinite(a.quandMs) && (Date.now() <= a.quandMs + LIMITE_INSCRIPTION_MS));
+}
+
+// L'atelier reste visible dans le calendrier public jusqu'a 7 jours apres le
+// debut (historique, calendrier mieux rempli), meme si l'inscription est close.
+function visibleCalendrier(a) {
+  return !!(a && isFinite(a.quandMs) && (Date.now() <= a.quandMs + 7 * 24 * 60 * 60 * 1000));
 }
 
 // Vue publique pour l'onglet Participer : AUCUN e-mail expose.
@@ -141,7 +147,8 @@ function vuePublique(a) {
     lieu: a.mode === "physique" ? (a.lieu || "") : "",
     maxParticipants: a.maxParticipants,
     inscrits: (a.participants || []).length,
-    complet: (a.participants || []).length >= a.maxParticipants
+    complet: (a.participants || []).length >= a.maxParticipants,
+    ouvert: inscriptionOuverte(a)   // false = déjà commencé, on n'affiche plus le bouton Participer
   };
 }
 
@@ -161,6 +168,6 @@ module.exports = {
   MAX_ENLIGNE: MAX_ENLIGNE, MAX_PHYSIQUE: MAX_PHYSIQUE,
   mailValide: mailValide, urlValide: urlValide, valider: valider, validerInscription: validerInscription,
   annulationAutorisee: annulationAutorisee, validerReprogrammation: validerReprogrammation, retraitParticipant: retraitParticipant,
-  estPasse: estPasse, inscriptionOuverte: inscriptionOuverte,
+  estPasse: estPasse, inscriptionOuverte: inscriptionOuverte, visibleCalendrier: visibleCalendrier,
   vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

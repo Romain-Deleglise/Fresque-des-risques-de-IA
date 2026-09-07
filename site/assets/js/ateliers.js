@@ -8,7 +8,7 @@
     envoi: "Sending…", erreur: "Something went wrong. Please try again.", indispo: "Service unavailable. Please try again later.",
     codeOk: "Workshop scheduled. Session code: ", mailOk: " A confirmation e-mail has been sent.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
     inscritOk: "You're registered! Session code: ", places: function (n, m) { return n + " / " + m + " registered"; },
-    complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.",
+    complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.", passe: "Past",
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
     deplaceOk: "Workshop moved. Registrants have been notified.",
@@ -21,7 +21,7 @@
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
     inscritOk: "Inscription confirmée ! Code de session : ", places: function (n, m) { return n + " / " + m + " inscrits"; },
-    complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.",
+    complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.", passe: "Passé",
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
     deplaceOk: "Atelier déplacé. Les inscrit·es ont été prévenu·es.",
@@ -109,25 +109,32 @@
   /* ---------- Liste + inscription (onglet Participer) ---------- */
   var liste = document.getElementById("liste-ateliers");
   if (liste) {
+    // Le calendrier de « Participer » (data-passes) montre aussi les ateliers
+    // récents (jusqu'à 7 j après), l'aperçu d'accueil seulement les à venir.
+    var montrePasses = liste.hasAttribute("data-passes");
     poster("liste", {}).then(function (res) {
       var arr = (res.d && res.d.ateliers) || [];
-      if (!arr.length) { liste.innerHTML = videHtml(); return; }
+      var avenir = arr.filter(function (a) { return a.ouvert; }).sort(function (x, y) { return x.quandMs - y.quandMs; });
+      var passes = arr.filter(function (a) { return !a.ouvert; }).sort(function (x, y) { return y.quandMs - x.quandMs; });
+      var show = montrePasses ? avenir.concat(passes) : avenir;
+      if (!show.length) { liste.innerHTML = videHtml(); return; }
       liste.innerHTML = "";
-      arr.forEach(function (a) { liste.appendChild(carte(a)); });
+      show.forEach(function (a) { liste.appendChild(carte(a)); });
     }).catch(function () { liste.innerHTML = videHtml(); });
   }
   function carte(a) {
     var el = document.createElement("article");
-    el.className = "atelier-carte";
+    el.className = "atelier-carte" + (a.ouvert ? "" : " passe");
     var lieu = a.mode === "enligne" ? T.enligne : (T.presentiel + (a.lieu ? " · " + esc(a.lieu) : ""));
     var titre = a.titre ? esc(a.titre) : (a.mode === "enligne" ? T.enligne : T.presentiel);
+    var etat = !a.ouvert ? '<span class="atelier-places passe">' + T.passe + "</span>"
+      : '<span class="atelier-places' + (a.complet ? " complet" : "") + '">' + (a.complet ? T.complet : T.places(a.inscrits, a.maxParticipants)) + "</span>";
     el.innerHTML =
-      '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' +
-      '<span class="atelier-places' + (a.complet ? " complet" : "") + '">' + (a.complet ? T.complet : T.places(a.inscrits, a.maxParticipants)) + "</span></div>" +
+      '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' + etat + "</div>" +
       "<h3>" + titre + "</h3>" +
       '<p class="atelier-quand">' + esc(fmtDate(a.date, a.heure)) + "</p>" +
       '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>";
-    if (!a.complet) {
+    if (a.ouvert && !a.complet) {
       var btn = document.createElement("button");
       btn.className = "btn btn-1"; btn.type = "button"; btn.textContent = T.participer;
       btn.addEventListener("click", function () { ouvrirInscription(el, a, btn); });

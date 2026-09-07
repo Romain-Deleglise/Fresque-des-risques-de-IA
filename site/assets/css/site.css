@@ -440,6 +440,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 .atelier-mode { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .2em .7em; }
 .atelier-places { font-family: var(--f-ui); font-size: .82rem; color: var(--gris); }
 .atelier-places.complet { color: var(--err); font-weight: 600; }
+.atelier-places.passe { color: var(--gris); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .06em; }
+.atelier-carte.passe { opacity: .6; }
 .atelier-carte h3 { font-size: 1.1rem; }
 .atelier-quand { font-family: var(--f-ui); font-weight: 600; font-size: .95rem; color: var(--ink); margin: 0; text-transform: capitalize; }
 .atelier-lieu { font-family: var(--f-ui); font-size: .9rem; margin: 0 0 .4rem; }

@@ -396,7 +396,7 @@ exports.handler = async (event) => {
         try {
           const res = await st.getWithMetadata(b.key, { type: "json" });
           const a = res && res.data;
-          if (a && a.visibilite === "public" && A.inscriptionOuverte(a)) out.push(A.vuePublique(a));
+          if (a && a.visibilite === "public" && A.visibleCalendrier(a)) out.push(A.vuePublique(a));
         } catch (e) {}
       }
       out.sort((x, y) => x.quandMs - y.quandMs);
