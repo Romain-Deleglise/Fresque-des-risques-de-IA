@@ -39,12 +39,18 @@ test("inscription : capacite, doublon, prive", () => {
   assert.ok(A.validerInscription(a, { prenom: "P", mail: "p@ex.org" }).erreur, "prive");
 });
 
-test("lien visio : optionnel, validé si présent, stocké", () => {
+test("visio : aucune / auto / perso", () => {
   const base = { mode: "enligne", animateurPrenom: "Léa", animateurMail: "lea@ex.org", date: dateFutur, heure: "18:30" };
-  assert.equal(A.valider(base).atelier.visio, undefined, "absent par défaut");
-  assert.ok(A.valider(Object.assign({}, base, { visioUrl: "pas une url" })).erreur, "url invalide refusée");
-  const ok = A.valider(Object.assign({}, base, { visioUrl: "https://meet.google.com/abc-defg-hij" }));
-  assert.equal(ok.atelier.visio, "https://meet.google.com/abc-defg-hij");
+  assert.equal(A.valider(base).atelier.visio, undefined, "aucune par défaut");
+  const auto = A.valider(Object.assign({}, base, { visioMode: "auto" })).atelier;
+  assert.equal(auto.visioAuto, true, "auto : drapeau posé (l'URL est générée côté fonction)");
+  assert.equal(auto.visio, undefined);
+  assert.ok(A.valider(Object.assign({}, base, { visioMode: "perso", visioUrl: "pas une url" })).erreur, "perso + url invalide");
+  assert.ok(A.valider(Object.assign({}, base, { visioMode: "perso" })).erreur, "perso sans lien");
+  const perso = A.valider(Object.assign({}, base, { visioMode: "perso", visioUrl: "https://meet.google.com/abc-defg-hij" })).atelier;
+  assert.equal(perso.visio, "https://meet.google.com/abc-defg-hij");
+  const retro = A.valider(Object.assign({}, base, { visioUrl: "https://meet.jit.si/x" })).atelier;
+  assert.equal(retro.visio, "https://meet.jit.si/x", "rétro-compat : lien sans mode = perso");
 });
 
 test("inscription refusée passé 30 min après le début", () => {

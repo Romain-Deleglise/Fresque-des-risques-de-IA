@@ -382,6 +382,9 @@ exports.handler = async (event) => {
       if (!code) return json(500, { erreur: { code: "code", message: "Impossible de générer un code." } });
       const a = v.atelier; a.code = code; a.participants = []; a.creeLe = Date.now();
       a.annulToken = R.jetonAleatoire();
+      // Visio générée automatiquement : un salon Jitsi Meet gratuit, sans compte.
+      // Le nom de salon est long et aléatoire (non devinable de l'extérieur).
+      if (a.visioAuto) { a.visio = "https://meet.jit.si/FresqueRisquesIA-" + code + "-" + R.jetonAleatoire(); delete a.visioAuto; }
       await st.setJSON(cle(code), a);
       purger(st);
       const ma = mailAnimateur(a);

@@ -84,6 +84,19 @@
     }
     form.querySelectorAll('input[name="mode"]').forEach(function (r) { r.addEventListener("change", majMode); });
     majMode();
+    // Visio : le champ "lien perso" n'apparaît que si l'animateur fournit le sien.
+    var visioSel = form.querySelector('[name="visioMode"]');
+    var champVisio = form.querySelector(".champ-visio-perso");
+    if (visioSel && champVisio) {
+      function majVisio() {
+        var perso = visioSel.value === "perso";
+        champVisio.hidden = !perso;
+        var inp = champVisio.querySelector("input");
+        if (inp) inp.required = perso;
+      }
+      visioSel.addEventListener("change", majVisio);
+      majVisio();
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var fd = new FormData(form), data = {};

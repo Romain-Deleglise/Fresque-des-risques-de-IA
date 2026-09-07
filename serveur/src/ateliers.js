@@ -51,10 +51,16 @@ function valider(d) {
     a.adresse = tronque(d.adresse, LEN_ADRESSE);
     if (!a.lieu) return err("lieu_manquant", "Indiquez le lieu de l'atelier.");
   }
-  var visio = tronque(d.visioUrl, LEN_VISIO);
-  if (visio) {
+  // Visioconférence : générée automatiquement (auto), fournie par l'animateur
+  // (perso), ou aucune. Rétro-compatible : un lien sans mode = "perso".
+  var visioMode = ["auto", "perso", "aucune"].indexOf(d.visioMode) >= 0 ? d.visioMode : (d.visioUrl ? "perso" : "aucune");
+  if (visioMode === "perso") {
+    var visio = tronque(d.visioUrl, LEN_VISIO);
+    if (!visio) return err("visio_manquant", "Indiquez votre lien de visioconférence, ou choisissez le lien automatique.");
     if (!urlValide(visio)) return err("visio_invalide", "Le lien de visioconférence doit être une adresse http(s) valide.");
     a.visio = visio;
+  } else if (visioMode === "auto") {
+    a.visioAuto = true;   // la fonction remplit a.visio avec un salon Jitsi une fois le code connu
   }
   return { atelier: a };
 }

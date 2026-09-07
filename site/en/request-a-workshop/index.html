@@ -111,8 +111,14 @@
               <span class="aide-champ">Sent only by e-mail to registered participants.</span></label>
           </div>
           <label class="champ-titre">Title (optional)<input name="titre" maxlength="80" placeholder="e.g. Intro workshop"></label>
-          <label class="champ-titre">Video call link (optional)<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.google.com/…">
-            <span class="aide-champ">Google Meet, Jitsi, Zoom… It is e-mailed to registrants and added to the calendar invite. Recommended for an online workshop.</span></label>
+          <label class="champ-titre">Video call
+            <select name="visioMode" id="visio-mode">
+              <option value="auto">Generate a link automatically (Jitsi Meet, free, no account)</option>
+              <option value="perso">I'll provide my own link</option>
+              <option value="aucune">None (I'll send it myself)</option>
+            </select>
+            <span class="aide-champ">The link is e-mailed to registrants and added to the calendar invite.</span></label>
+          <label class="champ-titre champ-visio-perso" hidden>Your video call link<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.jit.si/…"></label>
           <button class="btn btn-1" type="submit">Schedule the workshop</button>
           <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
         </form>

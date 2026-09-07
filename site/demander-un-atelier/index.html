@@ -111,8 +111,14 @@
               <span class="aide-champ">Envoyée uniquement par e-mail aux inscrit·es.</span></label>
           </div>
           <label class="champ-titre">Intitulé (optionnel)<input name="titre" maxlength="80" placeholder="Ex. Atelier découverte"></label>
-          <label class="champ-titre">Lien de visioconférence (optionnel)<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.google.com/…">
-            <span class="aide-champ">Google Meet, Jitsi, Zoom… Il sera envoyé par e-mail aux inscrit·es et ajouté à l'invitation calendrier. Recommandé pour un atelier en ligne.</span></label>
+          <label class="champ-titre">Visioconférence
+            <select name="visioMode" id="visio-mode">
+              <option value="auto">Générer un lien automatiquement (Jitsi Meet, gratuit, sans compte)</option>
+              <option value="perso">Je fournis mon propre lien</option>
+              <option value="aucune">Aucune (je l'enverrai moi-même)</option>
+            </select>
+            <span class="aide-champ">Le lien est envoyé par e-mail aux inscrit·es et ajouté à l'invitation calendrier.</span></label>
+          <label class="champ-titre champ-visio-perso" hidden>Votre lien de visioconférence<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.jit.si/…"></label>
           <button class="btn btn-1" type="submit">Programmer l'atelier</button>
           <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
         </form>
