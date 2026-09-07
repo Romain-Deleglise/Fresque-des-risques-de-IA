@@ -8,25 +8,34 @@
     envoi: "Sending…", erreur: "Something went wrong. Please try again.", indispo: "Service unavailable. Please try again later.",
     codeOk: "Workshop scheduled. Session code: ", mailOk: " A confirmation e-mail has been sent.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
     inscritOk: "You're registered! Session code: ", places: function (n, m) { return n + " / " + m + " registered"; },
-    complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.",
+    complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.", passe: "Past",
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
+    deplaceOk: "Workshop moved. Registrants have been notified.",
     confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
     ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
     confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
-    desisteOk: "You have been unregistered. Your seat is freed up."
+    desisteOk: "You have been unregistered. Your seat is freed up.",
+    videCta: "Schedule a workshop"
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
     inscritOk: "Inscription confirmée ! Code de session : ", places: function (n, m) { return n + " / " + m + " inscrits"; },
-    complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.",
+    complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.", passe: "Passé",
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
+    deplaceOk: "Atelier déplacé. Les inscrit·es ont été prévenu·es.",
     confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
     ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
     confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
-    desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre."
+    desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre.",
+    videCta: "Programmer un atelier"
   };
+  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/demander-un-atelier/#vue-animer";
+  function videHtml() {
+    return '<div class="ateliers-vide"><p class="muted">' + esc(T.aucun) + "</p>"
+      + '<a class="btn btn-2" href="' + HREF_PROG + '">' + esc(T.videCta) + "</a></div>";
+  }
   function poster(op, data) {
     return fetch("/.netlify/functions/ateliers", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -75,6 +84,19 @@
     }
     form.querySelectorAll('input[name="mode"]').forEach(function (r) { r.addEventListener("change", majMode); });
     majMode();
+    // Visio : le champ "lien perso" n'apparaît que si l'animateur fournit le sien.
+    var visioSel = form.querySelector('[name="visioMode"]');
+    var champVisio = form.querySelector(".champ-visio-perso");
+    if (visioSel && champVisio) {
+      function majVisio() {
+        var perso = visioSel.value === "perso";
+        champVisio.hidden = !perso;
+        var inp = champVisio.querySelector("input");
+        if (inp) inp.required = perso;
+      }
+      visioSel.addEventListener("change", majVisio);
+      majVisio();
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var fd = new FormData(form), data = {};
@@ -100,25 +122,32 @@
   /* ---------- Liste + inscription (onglet Participer) ---------- */
   var liste = document.getElementById("liste-ateliers");
   if (liste) {
+    // Le calendrier de « Participer » (data-passes) montre aussi les ateliers
+    // récents (jusqu'à 7 j après), l'aperçu d'accueil seulement les à venir.
+    var montrePasses = liste.hasAttribute("data-passes");
     poster("liste", {}).then(function (res) {
       var arr = (res.d && res.d.ateliers) || [];
-      if (!arr.length) { liste.innerHTML = '<p class="muted ateliers-vide">' + esc(T.aucun) + "</p>"; return; }
+      var avenir = arr.filter(function (a) { return a.ouvert; }).sort(function (x, y) { return x.quandMs - y.quandMs; });
+      var passes = arr.filter(function (a) { return !a.ouvert; }).sort(function (x, y) { return y.quandMs - x.quandMs; });
+      var show = montrePasses ? avenir.concat(passes) : avenir;
+      if (!show.length) { liste.innerHTML = videHtml(); return; }
       liste.innerHTML = "";
-      arr.forEach(function (a) { liste.appendChild(carte(a)); });
-    }).catch(function () { liste.innerHTML = '<p class="muted ateliers-vide">' + esc(T.aucun) + "</p>"; });
+      show.forEach(function (a) { liste.appendChild(carte(a)); });
+    }).catch(function () { liste.innerHTML = videHtml(); });
   }
   function carte(a) {
     var el = document.createElement("article");
-    el.className = "atelier-carte";
+    el.className = "atelier-carte" + (a.ouvert ? "" : " passe");
     var lieu = a.mode === "enligne" ? T.enligne : (T.presentiel + (a.lieu ? " · " + esc(a.lieu) : ""));
     var titre = a.titre ? esc(a.titre) : (a.mode === "enligne" ? T.enligne : T.presentiel);
+    var etat = !a.ouvert ? '<span class="atelier-places passe">' + T.passe + "</span>"
+      : '<span class="atelier-places' + (a.complet ? " complet" : "") + '">' + (a.complet ? T.complet : T.places(a.inscrits, a.maxParticipants)) + "</span>";
     el.innerHTML =
-      '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' +
-      '<span class="atelier-places' + (a.complet ? " complet" : "") + '">' + (a.complet ? T.complet : T.places(a.inscrits, a.maxParticipants)) + "</span></div>" +
+      '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' + etat + "</div>" +
       "<h3>" + titre + "</h3>" +
       '<p class="atelier-quand">' + esc(fmtDate(a.date, a.heure)) + "</p>" +
       '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>";
-    if (!a.complet) {
+    if (a.ouvert && !a.complet) {
       var btn = document.createElement("button");
       btn.className = "btn btn-1"; btn.type = "button"; btn.textContent = T.participer;
       btn.addEventListener("click", function () { ouvrirInscription(el, a, btn); });
@@ -168,6 +197,24 @@
         msgEl.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur;
       }
     }).catch(function () { if (msgEl) { msgEl.className = "msg err"; msgEl.textContent = T.indispo; } });
+  }
+
+  /* ---------- Déplacer un atelier (animateur·ice) ---------- */
+  var fDep = document.getElementById("form-deplacer");
+  if (fDep) {
+    fDep.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var m = document.getElementById("deplacer-msg");
+      var sb = fDep.querySelector('button[type="submit"]');
+      var data = { code: (fDep.code.value || "").toUpperCase(), mail: fDep.mail.value, date: fDep.date.value, heure: fDep.heure.value };
+      if (sb) sb.disabled = true;
+      m.textContent = T.envoi; m.className = "msg";
+      poster("reprogrammer", data).then(function (res) {
+        if (res.ok && res.d && res.d.deplace) { m.className = "msg ok"; m.textContent = T.deplaceOk; fDep.reset(); }
+        else { m.className = "msg err"; m.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur; }
+      }).catch(function () { m.className = "msg err"; m.textContent = T.indispo; })
+        .finally(function () { if (sb) sb.disabled = false; });
+    });
   }
 
   // Option 1 : formulaire code + e-mail, avec confirmation avant d'annuler.

@@ -14,6 +14,7 @@
     ouvrirAtelier: function (c) { return "Opening workshop " + c + ": enter your first name, then click “Open the session”."; },
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
+    rechargerErreur: "Could not load the board. Check your connection and reload the page.",
     partagezCode: function (c) { return "Share the code " + c + " with the participants."; },
     attenteCarte: "Waiting for a card…", sessionTerminee: "Session ended.",
     sessionClose: "The session was closed by the facilitator.",
@@ -35,6 +36,7 @@
     ouvrirAtelier: function (c) { return "Ouverture de l'atelier " + c + " : entrez votre prénom, puis cliquez sur « Ouvrir la session »."; },
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
+    rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
     partagezCode: function (c) { return "Partagez le code " + c + " avec les participants."; },
     attenteCarte: "En attente d'une carte…", sessionTerminee: "Session terminée.",
     sessionClose: "La session a été close par l'animateur.",
@@ -219,10 +221,23 @@
     document.body.classList.add("role-" + role);
     E.lobby.hidden = true; E.app.hidden = false;
     E["code-val"].textContent = code;
+    demarrerQuandCartes(vue, 0);
+  }
+  // Les cartes (data/cartes.json) sont indispensables au rendu du tableau.
+  // Si le chargement echoue (reseau capricieux), on reessaie avec un delai
+  // croissant plutot que de rester sur un tableau nu et sans instructions.
+  function demarrerQuandCartes(vue, essai) {
     chargerCartes().then(function () {
       centrer(); appliquerEtat(vue); setOutil("deplacer");
-      flash(role === "animateur" ? S.partagezCode(code) : S.attenteCarte);
+      flash(etat.role === "animateur" ? S.partagezCode(etat.code) : S.attenteCarte);
       boucle();
+    }).catch(function () {
+      if (essai < 5) {
+        flash(S.connexion);
+        setTimeout(function () { demarrerQuandCartes(vue, essai + 1); }, 900 * (essai + 1));
+      } else {
+        flash(S.rechargerErreur);
+      }
     });
   }
   function chargerCartes() {

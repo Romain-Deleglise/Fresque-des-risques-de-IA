@@ -29,13 +29,13 @@
 
   <header class="entete">
     <div class="wrap">
-      <a class="logo" href="../"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg> The AI Risks Collage</a>
+      <a class="logo" href="../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="13" width="46" height="38" rx="6" stroke="currentColor" stroke-width="2.6"/><g stroke="#E8811C" stroke-width="2.6"><line x1="22" y1="26" x2="42" y2="23"/><line x1="22" y1="26" x2="32" y2="41"/><line x1="42" y1="23" x2="32" y2="41"/></g></g><g fill="#E8811C"><circle cx="22" cy="26" r="4.2"/><circle cx="42" cy="23" r="4.2"/><circle cx="32" cy="41" r="4.2"/></g></svg> The AI Risks Collage</a>
       <nav class="nav" aria-label="Main navigation">
         <a class="lien-ap" href="../../en/about/">About</a>
         <a class="" href="../../en/facilitate/">Facilitate</a>
         <a class="actif" href="../../en/request-a-workshop/">Attend</a>
         <a class="" href="../../en/online/">Online workshop<span class="bientot">beta</span></a>
-        <a href="../../en/#download" class="btn-nav">Download</a>
+        <a href="../../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" class="btn-nav" download>Download</a>
         <a class="lang" href="../../demander-un-atelier/" hreflang="fr" lang="fr">FR</a>
       </nav>
     </div>
@@ -72,7 +72,7 @@
           <h2>Scheduled workshops</h2>
           <p class="muted">Pick a public workshop and sign up: you'll receive a confirmation e-mail with the session code, the date and time (and the exact location for in-person workshops).</p>
         </div>
-        <div id="liste-ateliers" class="ateliers-liste" aria-live="polite"></div>
+        <div id="liste-ateliers" class="ateliers-liste" data-passes aria-live="polite"></div>
       </div>
     </section>
 
@@ -111,9 +111,32 @@
               <span class="aide-champ">Sent only by e-mail to registered participants.</span></label>
           </div>
           <label class="champ-titre">Title (optional)<input name="titre" maxlength="80" placeholder="e.g. Intro workshop"></label>
+          <label class="champ-titre">Video call
+            <select name="visioMode" id="visio-mode">
+              <option value="auto">Generate a link automatically (Jitsi Meet, free, no account)</option>
+              <option value="perso">I'll provide my own link</option>
+              <option value="aucune">None (I'll send it myself)</option>
+            </select>
+            <span class="aide-champ">The link is e-mailed to registrants and added to the calendar invite.</span></label>
+          <label class="champ-titre champ-visio-perso" hidden>Your video call link<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.jit.si/…"></label>
           <button class="btn btn-1" type="submit">Schedule the workshop</button>
           <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
         </form>
+
+        <div class="annuler-atelier">
+          <h3>Move a workshop</h3>
+          <p class="muted">A change of date? Enter the code, the facilitator's e-mail and the new date: registrants are notified automatically.</p>
+          <form id="form-deplacer" class="form-atelier" novalidate>
+            <div class="grille-champs">
+              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+              <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+              <label>New date<input name="date" type="date" required></label>
+              <label>New time<input name="heure" type="time" required></label>
+            </div>
+            <button class="btn btn-noir" type="submit">Move this workshop</button>
+            <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
 
         <div class="annuler-atelier">
           <h3>Cancel a workshop</h3>
@@ -135,7 +158,7 @@
   <footer class="pied">
     <div class="wrap">
       <div class="pied-marque">
-        <a class="logo" href="../../en/"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#E8811C"/><g stroke="#fff" stroke-width="2.1"><line x1="10" y1="11" x2="22" y2="10"/><line x1="10" y1="11" x2="17" y2="22"/><line x1="22" y1="10" x2="17" y2="22"/></g><g fill="#fff"><circle cx="10" cy="11" r="3"/><circle cx="22" cy="10" r="3"/><circle cx="17" cy="22" r="3"/></g></svg> The AI Risks Collage</a>
+        <a class="logo" href="../../en/"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="13" width="46" height="38" rx="6" stroke="currentColor" stroke-width="2.6"/><g stroke="#E8811C" stroke-width="2.6"><line x1="22" y1="26" x2="42" y2="23"/><line x1="22" y1="26" x2="32" y2="41"/><line x1="42" y1="23" x2="32" y2="41"/></g></g><g fill="#E8811C"><circle cx="22" cy="26" r="4.2"/><circle cx="42" cy="23" r="4.2"/><circle cx="32" cy="41" r="4.2"/></g></svg> The AI Risks Collage</a>
         <p>A collaborative workshop to understand the stakes of artificial intelligence together. Run by Pause IA.</p>
       </div>
       <div>

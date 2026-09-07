@@ -1,92 +1,69 @@
 # La Fresque des risques de l'IA
 
-Site et outils de **La Fresque des risques de l'IA** — un atelier collaboratif de
+Site et outils de **La Fresque des risques de l'IA** : un atelier collaboratif de
 38 cartes (environ 2 h) pour comprendre ensemble les enjeux de l'intelligence
 artificielle, sans prérequis technique. Adapté de la Fresque de la sécurité de
 l'IA du [CeSIA](https://www.securite-ia.fr/), inspiré de la
 [Fresque du Climat](https://fresqueduclimat.org/), porté par
 [Pause IA](https://pauseia.fr/).
 
-Le projet comporte **deux briques indépendantes** (le site survit à une panne du
+En ligne : **https://fresquedesrisquesdelia.org**
+
+> 📘 **Documentation technique complète** : [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)
+> (architecture, pages, fonctions serverless, e-mails, modèle de données,
+> déploiement, sécurité, variables d'environnement, conventions).
+
+## En bref
+
+Le projet est fait de **briques indépendantes** (le site survit à une panne d'un
 service) :
 
-1. **Site vitrine statique** — accueil, à propos, page « Fresque en ligne ».
-   Objectif principal : faire télécharger les cartes et le guide. *(Réalisé.)*
-2. **Service de sessions temps réel** — l'outil d'atelier en ligne (un animateur,
-   jusqu'à 8 participants, tableau noir partagé). *(À venir — la page affiche
-   « bientôt » en attendant.)*
+1. **Site vitrine statique** (`site/`) : accueil, à propos, animer, participer,
+   Fresque en ligne, guide, mentions légales. 100 % statique, aucun framework.
+2. **Programmation d'ateliers** : liste publique, inscriptions et e-mails
+   transactionnels (fonction `ateliers` + Resend).
+3. **Fresque en ligne** : tableau collaboratif (solo et multi-participants) via
+   la fonction `fresque` et Netlify Blobs.
+4. **Extras** : newsletter (CiviCRM), mesure d'audience sans cookie.
 
-## État d'avancement
+Principes : sobriété, vie privée par défaut (aucun cookie ni traceur tiers),
+CSP stricte (aucune requête externe), accessibilité WCAG 2.1 AA, bilingue FR/EN.
 
-- [x] Structure du dépôt, licences, CI
-- [x] Site vitrine : accueil, à propos, Fresque en ligne (placeholder)
-- [x] `cartes.json` (source unique des contenus) + schéma + validation CI
-- [x] Éventail de cartes d'exemple (cartes 1, 4, 12) avec retournement au clic/clavier
-- [x] **Contenus des 38 cartes** (titres, versos, lots) repris du PDF officiel
-- [x] **Visuels des cartes** générés en variantes web (WebP 560/900) + carte 0 (logo Pause IA)
-- [x] **PDF des cartes** (version libre de droits, ~4,9 Mo) branché sur le bouton principal
-- [ ] **Guide animateur** (PDF) à déposer dans `site/telechargements/` (bouton « bientôt » en attendant)
-- [ ] **Polices** `.woff2` à déposer dans `site/assets/fonts/` (replis système en attendant)
-- [ ] Service de sessions temps réel (`serveur/`)
+## Lancer en local
 
-## Lancer le site en local
-
-Le site est 100 % statique. Un simple serveur de fichiers suffit :
+Le site est 100 % statique :
 
 ```bash
 cd site && python3 -m http.server 8000
-# puis ouvrir http://localhost:8000
+# http://localhost:8000
 ```
 
-## Valider les données des cartes
+Les fonctions serverless nécessitent la Netlify CLI (`netlify dev`) pour router
+`/.netlify/functions/*`.
+
+## Tests
 
 ```bash
-node scripts/valider-cartes.mjs
+npm test        # règles pures + garde-fous + ateliers + validation cartes.json
 ```
 
-Vérifie que `cartes.json` contient bien 39 entrées (0 à 38), des numéros uniques
-et une seule carte d'introduction. Exécuté aussi en intégration continue.
+Détail : validation de `cartes.json` (39 entrées, 0..38, une carte intro),
+règles des sessions, limitation de débit, règles des ateliers. Un audit
+d'accessibilité (axe-core + Playwright) tourne aussi en CI.
 
-## Corriger le texte d'une carte
+## Contenu des cartes
 
-Tout le contenu vit dans **`site/data/cartes.json`** (exigence A15.2). Pour
-corriger un titre ou un texte de verso, éditez la ligne correspondante — aucune
-compilation. Le `verso` est un **tableau de paragraphes**.
+Toutes les cartes vivent dans la source unique **`site/data/cartes.json`**
+(titre, verso, lot, chemins d'images). Pour corriger un texte, éditez la ligne
+concernée : aucune compilation. Voir la doc, section « Les cartes », pour la
+génération des visuels et du PDF imprimable.
 
-## Ajouter les visuels des cartes
+## Déploiement
 
-1. Déposez les images haute résolution dans `contenus/cartes/`, nommées
-   `01.png`, `02.jpg`, … (voir `contenus/cartes/README.md` pour la
-   correspondance avec les fichiers fournis).
-2. Générez les deux variantes web par carte (`560 px` et `900 px`, WebP) dans
-   `site/assets/img/cartes/`, nommées `NN-560.webp` et `NN-900.webp` (B3.7).
-   Tant qu'elles ne sont pas là, le site dégrade proprement (cadre + titre).
-
-## Newsletter (CiviCRM)
-
-L'inscription à la newsletter passe par une **fonction serverless Netlify**
-(`netlify/functions/subscribe.js`) qui parle à l'API CiviCRM v4, sur le modèle
-du site principal de Pause IA. Le formulaire de l'accueil poste vers
-`/.netlify/functions/subscribe` (même origine, aucune requête tierce).
-
-Configurez ces variables d'environnement dans Netlify (jamais dans le dépôt) :
-
-| Variable | Rôle |
-| --- | --- |
-| `CIVICRM_BASE_URL` | URL de base du CiviCRM (ex. `https://crm.pauseia.fr`) |
-| `CIVICRM_API_KEY` | clé d'API du contact de service |
-| `CIVICRM_SITE_KEY` | clé de site CiviCRM |
-| `CIVICRM_NEWSLETTER_GROUP_ID` | (optionnel) id du groupe, défaut **72** |
-
-Tant que ces variables ne sont pas définies, le formulaire répond proprement
-« service momentanément indisponible » sans casser la page.
-
-## Outil en ligne (prototype)
-
-Un prototype **jouable en solo** du tableau collaboratif est disponible sous
-`site/en-ligne/atelier/`. Il implémente le tableau (cartes, flèches liées,
-textes, zoom/pan, plein écran, carte 0, légende) côté client uniquement. Le
-**service de sessions temps réel** (multi-utilisateurs) reste à brancher dessus.
+Hébergé sur **Netlify** : `publish = "site"`, fonctions dans
+`netlify/functions/`, fonctions planifiées (rappels) via `netlify.toml`. Un merge
+sur `main` déclenche le déploiement. Les **secrets** (Resend, CiviCRM) sont en
+variables d'environnement Netlify, jamais dans le dépôt (liste dans la doc).
 
 ## Signaler un bug
 
@@ -95,11 +72,6 @@ ou écrivez à [contact@pauseia.fr](mailto:contact@pauseia.fr).
 
 ## Licences
 
-- **Code** : [GPL-3.0](LICENSE) *(à confirmer par Pause IA — décision ouverte du cahier des charges)*.
+- **Code** : [GPL-3.0](LICENSE).
 - **Contenus** (cartes, textes, guide) : [CC BY-SA 4.0](LICENSE-CONTENUS).
-
-## Documentation
-
-Le cahier des charges complet est le document de référence pour toutes les
-exigences (Partie A « ce que l'on veut », Partie B « spécifications techniques »,
-annexes et checklist de recette).
+  Attribution : « Adapté du CeSIA, inspiré de la Fresque du Climat ».
