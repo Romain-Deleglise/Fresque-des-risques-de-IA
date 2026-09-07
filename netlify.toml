@@ -28,6 +28,11 @@
 [functions."rappels"]
   schedule = "0 8 * * *"
 
+# Rappel imminent : toutes les 15 min, prévient ~1 h avant le début (e-mail
+# court avec code + lien visio + bouton pour rejoindre).
+[functions."rappel-imminent"]
+  schedule = "*/15 * * * *"
+
 # Suivi post-atelier : une fois par jour, remercie animateur + participants
 # (en Cci) apres l'atelier et invite a devenir animateur a son tour.
 [functions."suivi"]
