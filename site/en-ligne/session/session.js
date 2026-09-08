@@ -75,7 +75,6 @@
       "#btn-rejoindre": "Join",
       "#btn-partager": "Copy the link",
       "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
-      '.tool[data-outil="fleche"]': "Link", '.tool[data-outil="texte"]': "Note",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
       "#panneau .panneau-tete h3": "Participants",
@@ -92,7 +91,11 @@
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
-      ["#anim-code", "placeholder", "Leave blank for an auto code"]
+      ["#anim-code", "placeholder", "Leave blank for an auto code"],
+      ['.tool[data-outil="deplacer"]', "title", "Hand: move and pan the board"], ['.tool[data-outil="deplacer"]', "aria-label", "Hand: move and pan the board"],
+      ['.tool[data-outil="fleche"]', "title", "Link: click the source card, then the target"], ['.tool[data-outil="fleche"]', "aria-label", "Link two cards"],
+      ['.tool[data-outil="fleche2"]', "title", "Two-way link: click one card, then the other"], ['.tool[data-outil="fleche2"]', "aria-label", "Two-way link"],
+      ['.tool[data-outil="texte"]', "title", "Note: click the board to write"], ['.tool[data-outil="texte"]', "aria-label", "Add a note"]
     ];
     attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
     document.querySelectorAll(".marque").forEach(function (m) {
@@ -481,12 +484,14 @@
 
   function creerElCarte(n) {
     var c = etat.cartes[n]; var el = document.createElement("div"); el.className = "c-carte"; el.dataset.n = n;
+    // Info-bulle au survol : utile quand on est dezoome et que le titre est petit.
+    if (c && c.titre) el.title = n + " · " + c.titre;
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
     el.addEventListener("click", function (e) {
-      if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(n, el); }
+      if (estFleche(etat.outil)) { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
     });
     glisserCarte(el, n);
@@ -516,10 +521,11 @@
   }
 
   /* ---------- Flèches ---------- */
+  function estFleche(o) { return o === "fleche" || o === "fleche2"; }
   function clicFleche(n, el) {
     if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
-    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: false }); annulerFleche(); setOutil("deplacer"); }
+    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: etat.outil === "fleche2" }); annulerFleche(); setOutil("deplacer"); }
   }
   function annulerFleche() { if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart"); etat.flecheDepart = null; }
 
@@ -670,8 +676,8 @@
 
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
-    E.scene.classList.toggle("outil-fleche", o === "fleche"); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
-    flash(o === "fleche" ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
+    E.scene.classList.toggle("outil-fleche", estFleche(o)); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
+    flash(estFleche(o) ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
@@ -733,7 +739,7 @@
       if (document.body.classList.contains("barres-cachees")) { majBarres(false); return; }
       if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
       if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
-      deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
+      deselect(); annulerFleche(); if (estFleche(etat.outil)) setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();
