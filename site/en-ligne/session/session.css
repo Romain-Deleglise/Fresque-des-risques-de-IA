@@ -75,3 +75,9 @@ body.barres-cachees .topbar, body.barres-cachees .toolbar{display:none}
 .liste-part .hors-txt{color:var(--err)}
 .liste-part .part-x{border:0;background:transparent;color:var(--gris-clair);cursor:pointer;font-size:.9rem;border-radius:6px;padding:0 .3rem;flex:0 0 auto}
 .liste-part .part-x:hover{color:var(--err);background:rgba(193,68,78,.1)}
+
+/* Lobby mono-role (depuis un lien d'e-mail) : une seule colonne. */
+body.lobby-solo .lobby-sep{display:none}
+body.lobby-solo .lobby-cols{grid-template-columns:1fr;max-width:26rem;margin:0 auto}
+body.lobby-participant #lobby .lobby-cols>section:first-of-type{display:none}
+body.lobby-animateur #lobby .lobby-cols>section:last-of-type{display:none}

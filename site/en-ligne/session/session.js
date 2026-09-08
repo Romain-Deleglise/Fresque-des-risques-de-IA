@@ -33,6 +33,7 @@
     coachPrendre: "Take a card from the pool and place it on the board.",
     prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
+    titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
     poolVideAnim: "Add cards to the pool from the deck below.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
@@ -60,6 +61,7 @@
     coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
     prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
+    titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
     poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
@@ -230,12 +232,24 @@
 
   // Liens des e-mails : ?ouvrir=CODE (animateur, ouvre/reprend l'atelier reserve),
   // ?code=CODE (participant, pre-remplit le code a rejoindre).
+  // Lobby mono-role : depuis un lien d'e-mail, on n'affiche que la colonne utile
+  // (le role est deja decide dans le mail), pour ne pas hesiter animer/participer.
+  function lobbyRole(role) {
+    document.body.classList.add("lobby-solo", role === "animateur" ? "lobby-animateur" : "lobby-participant");
+    var h1 = document.querySelector("#lobby h1");
+    var sous = document.querySelector(".lobby-sous");
+    if (role === "participant") {
+      if (h1) h1.textContent = S.titreRejoindre;
+      if (sous) sous.textContent = S.sousRejoindre;
+    }
+  }
   (function () {
     var params = new URLSearchParams(location.search);
     var pre = (params.get("code") || "").toUpperCase();
-    if (pre) { E["join-code"].value = pre; try { E["join-prenom"].focus(); } catch (e) {} }
+    if (pre) { E["join-code"].value = pre; lobbyRole("participant"); try { E["join-prenom"].focus(); } catch (e) {} }
     var o = (params.get("ouvrir") || "").toUpperCase();
     if (!o) return;
+    lobbyRole("animateur");
     codeSouhaite = o;
     if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
     var j = jetonAnim(o) || jetonTab(o); // reprise : jeton animateur en priorite
