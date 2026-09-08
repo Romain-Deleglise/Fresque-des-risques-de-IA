@@ -330,6 +330,7 @@
     rendreDeck(vue);
     rendreVocal(vue);
     rendreTableau(vue.tableau);
+    rendrePing(vue.ping);
     majCoach();
     if (vue.clos) { flash(S.sessionClose); }
   }
@@ -718,6 +719,26 @@
     }).catch(function () { marquerConnexion(false); });
   }
 
+  /* ---------- Ping (cercle qui s'agrandit) ---------- */
+  // Un seul ping courant cote serveur ; on n'anime que s'il est recent et pas
+  // deja vu (par id), et jamais le sien (deja anime au clic).
+  var dernierPing = 0;
+  function rendrePing(p) {
+    if (!p || !p.id || p.id === dernierPing) return;
+    dernierPing = p.id;
+    if (Date.now() - (p.ts || 0) > 4000) return; // trop vieux (on vient d'arriver)
+    montrerPing(p.x, p.y, p.par || "");
+  }
+  function montrerPing(x, y, nom) {
+    var el = document.createElement("div");
+    el.className = "ping";
+    el.style.left = x + "px"; el.style.top = y + "px";
+    var c = document.createElement("span"); c.className = "ping-cercle"; el.appendChild(c);
+    if (nom) { var t = document.createElement("span"); t.className = "ping-nom"; t.textContent = nom; el.appendChild(t); }
+    E.monde.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1300);
+  }
+
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
@@ -748,6 +769,16 @@
   E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+
+  // Ping : clic droit sur le tableau -> cercle qui s'agrandit chez tout le monde,
+  // pour attirer l'attention (emprunte a Excalidraw / Foundry). On evite le menu
+  // contextuel du navigateur et on borne au plan.
+  E.scene.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    var w = versMonde(e.clientX, e.clientY);
+    agir({ op: "ping", x: Math.round(w.x), y: Math.round(w.y) });
+    montrerPing(w.x, w.y, S.vous || "");
+  });
 
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });

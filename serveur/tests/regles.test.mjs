@@ -96,5 +96,13 @@ R.appliquer(s, jAnim, { op: "exclure", id: j2.id });
 t("animateur exclut un participant", s.participants.length === avantExcl - 1 && !s.participants.some((p) => p.id === j2.id));
 t("jeton du participant exclu invalidé", !s.jetons[j2.jeton]);
 
+// Ping du tableau (tout le monde), position bornée, marqueur éphémère
+r = R.appliquer(s, j1.jeton, { op: "ping", x: 700, y: 800 });
+t("participant peut ping", r.ok && s.ping && s.ping.x === 700 && s.ping.y === 800);
+const idPing = s.ping.id;
+r = R.appliquer(s, jAnim, { op: "ping", x: 999999, y: -50 });
+t("ping animateur, coordonnées bornées + nouvel id", s.ping.x <= 3200 && s.ping.y === 0 && s.ping.id !== idPing);
+t("ping exposé dans la vue", R.vue(s).ping && R.vue(s).ping.x === s.ping.x);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

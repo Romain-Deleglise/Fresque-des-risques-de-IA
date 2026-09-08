@@ -96,7 +96,8 @@ function vue(s) {
       return { id: p.id, prenom: p.prenom, connecte: present(p) };
     }),
     pool: s.pool.slice(),
-    tableau: s.tableau
+    tableau: s.tableau,
+    ping: s.ping || null
   };
 }
 
@@ -200,6 +201,12 @@ function deplacerTexte(s, id, x, y) {
 function supprimerTexte(s, id) {
   s.tableau.textes = s.tableau.textes.filter(function (t) { return t.id !== id; }); bump(s); return { ok: true };
 }
+// Ping : signale un point du tableau aux autres (cercle qui s'agrandit chez eux).
+// Ephemere : un seul ping courant, les clients l'ignorent apres ~2 s (via ts).
+function ping(s, x, y, par) {
+  s.ping = { x: borne(+x || 0, 0, PLAN_W), y: borne(+y || 0, 0, PLAN_H), par: tronque(par, LEN_PRENOM), ts: Date.now(), id: s.seq++ };
+  bump(s); return { ok: true };
+}
 function definirLienVocal(s, url) {
   url = tronque(url, LEN_VOCAL);
   if (url && !/^https:\/\//i.test(url)) return { refus: { code: "url_invalide", message: "Le lien doit commencer par https://" } };
@@ -236,6 +243,7 @@ function appliquer(s, jeton, intention) {
     case "exclure": return exclure(s, d.id);
     case "definirLienVocal": return definirLienVocal(s, d.url);
     case "clore": return clore(s);
+    case "ping": return ping(s, d.x, d.y, estAnim ? s.animateur.prenom : (moi && moi.prenom) || ""); // tous
     case "poserCarte": return poserCarte(s, d.n, d.rect); // prendre du pool -> table (tous)
     case "deplacerCarte": return deplacerCarte(s, d.n, d.x, d.y);
     case "creerFleche": return creerFleche(s, d.de, d.vers, d.bidir);
