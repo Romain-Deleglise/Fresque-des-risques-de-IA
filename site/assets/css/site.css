@@ -417,8 +417,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 .form-atelier .mode-choix .radio:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .grille-champs { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem 1.2rem; margin-bottom: 1.3rem; }
 .form-atelier label { display: flex; flex-direction: column; gap: .4rem; font-family: var(--f-ui); font-weight: 600; font-size: .88rem; color: var(--ink); }
-.form-atelier input, .form-atelier select { font-family: var(--f-ui); font-weight: 400; font-size: 1rem; padding: .72rem .9rem; border: 1px solid var(--ligne); border-radius: 9px; background: var(--bg-doux); color: var(--ink); transition: border-color .15s, box-shadow .15s, background .15s; }
-.form-atelier input:focus, .form-atelier select:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-doux); }
+.form-atelier input, .form-atelier select, .form-atelier textarea { font-family: var(--f-ui); font-weight: 400; font-size: 1rem; padding: .72rem .9rem; border: 1px solid var(--ligne); border-radius: 9px; background: var(--bg-doux); color: var(--ink); transition: border-color .15s, box-shadow .15s, background .15s; }
+.form-atelier input:focus, .form-atelier select:focus, .form-atelier textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-doux); }
 .form-atelier .aide-champ { font-weight: 400; font-size: .8rem; color: var(--gris); }
 .form-atelier .champ-titre { margin-bottom: 1.4rem; }
 .form-atelier > button[type="submit"] { margin-top: .4rem; }
@@ -473,3 +473,5 @@ a.btn, a.btn:hover { text-decoration: none; }
 .filtre-passes input { width: 1.05em; height: 1.05em; accent-color: var(--accent); cursor: pointer; }
 .ateliers-aucun { padding: 22px 0; }
 
+.form-atelier textarea { resize: vertical; min-height: 3.2rem; line-height: 1.5; font-family: var(--f-ui); }
+.atelier-desc { font-size: .9rem; color: var(--ink-doux); margin: .5rem 0 0; white-space: pre-wrap; }

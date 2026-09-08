@@ -206,7 +206,8 @@
       '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' + etat + "</div>" +
       "<h3>" + titre + "</h3>" +
       '<p class="atelier-quand">' + esc(fmtDate(a.date, a.heure)) + "</p>" +
-      '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>";
+      '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>" +
+      (a.description ? '<p class="atelier-desc">' + esc(a.description) + "</p>" : "");
     if (a.ouvert && !a.complet) {
       var btn = document.createElement("button");
       btn.className = "btn btn-1"; btn.type = "button"; btn.textContent = T.participer;
