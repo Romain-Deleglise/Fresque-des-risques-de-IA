@@ -25,7 +25,7 @@
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓",
-    plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)",
+    plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
     coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
@@ -48,7 +48,7 @@
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓",
-    plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)",
+    plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
     coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
@@ -718,7 +718,21 @@
   if (E["btn-barres-show"]) E["btn-barres-show"].addEventListener("click", function () { majBarres(false); });
   (function () {
     var s = document.getElementById("btn-sombre");
-    if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
+    if (s) {
+      // Etat initial selon le theme (le CSS reagit a canvas-noir / canvas-blanc).
+      var noirDepart = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var attr = document.documentElement.getAttribute("data-theme");
+      if (attr === "dark") noirDepart = true; else if (attr === "light") noirDepart = false;
+      function appliquerCanvas(noir) {
+        document.body.classList.toggle("canvas-noir", noir);
+        document.body.classList.toggle("canvas-blanc", !noir);
+        s.setAttribute("aria-pressed", noir ? "true" : "false");
+        s.textContent = noir ? S.fondBlanc : S.fondNoir; // le bouton propose l'action inverse
+        try { dessinerFleches(); } catch (e) {}
+      }
+      appliquerCanvas(noirDepart);
+      s.addEventListener("click", function () { appliquerCanvas(!document.body.classList.contains("canvas-noir")); });
+    }
     var e = document.getElementById("btn-export");
     if (e) e.addEventListener("click", exporterImage);
   })();
@@ -808,7 +822,7 @@
     var W = maxx - minx, H = maxy - miny, scale = Math.max(0.5, Math.min(2, 2400 / W));
     var cv = document.createElement("canvas"); cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
     var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
-    ctx.fillStyle = document.body.classList.contains("sombre") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
+    ctx.fillStyle = document.body.classList.contains("canvas-noir") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
 
     var idx = {};
     fleches.forEach(function (f) {
