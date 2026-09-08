@@ -1,10 +1,12 @@
-/* Moteur de règles de la Fresque en ligne — PUR (aucune I/O).
+/* Moteur de règles de la Fresque en ligne : PUR (aucune I/O).
    Le serveur est l'autorité (cahier des charges B6). Ce module est utilisé
    par la fonction Netlify et par les tests. CommonJS pour être universel. */
 "use strict";
 
 var ALPHABET = "ABCDEFGHJKMNPQRTUVWXYZ2346789"; // sans 0 O I 1 L S 5
 var MAX_PARTICIPANTS = 8;
+var MAX_POOL = 8;          // cartes maximum dans le pool commun (pour ne pas surcharger)
+var NB_CARTES = 38;        // cartes jouables 1..38 (la 0 est l'intro, hors jeu)
 var LIMITE_TEXTES = 200, LIMITE_FLECHES = 300;
 var LEN_PRENOM = 24, LEN_TEXTE = 280, LEN_LIBELLE = 40, LEN_VOCAL = 200;
 var PLAN_W = 3200, PLAN_H = 2200;
@@ -35,8 +37,7 @@ function creer(prenom, code) {
       version: 1,
       animateur: { id: idAnim, prenom: tronque(prenom, LEN_PRENOM) || "Animateur", connecte: true, vuLe: Date.now() },
       participants: [],
-      pioche: Array.from({ length: 38 }, function (_, i) { return i + 1; }),
-      tour: 0,
+      pool: [],           // cartes mises a disposition par l'animateur (max MAX_POOL)
       lienVocal: null,
       tableau: { cartes: [], fleches: [], textes: [] },
       seq: 1,
@@ -68,7 +69,7 @@ function rejoindre(s, prenom, jeton) {
     return { refus: { code: "session_pleine", message: "La session est complète (8 participants)." } };
   }
   var id = "p" + (s.seq++);
-  var nouveau = { id: id, prenom: tronque(prenom, LEN_PRENOM) || "Invité", connecte: true, vuLe: Date.now(), carteEnMain: null, recues: 0 };
+  var nouveau = { id: id, prenom: tronque(prenom, LEN_PRENOM) || "Invité", connecte: true, vuLe: Date.now() };
   s.participants.push(nouveau);
   var nj = jetonAleatoire();
   s.jetons[nj] = { role: "participant", id: id };
@@ -90,61 +91,47 @@ function vue(s) {
     code: s.code, version: s.version, clos: s.clos, lienVocal: s.lienVocal,
     animateur: { prenom: s.animateur.prenom, connecte: s.animateur.connecte },
     participants: s.participants.map(function (p) {
-      return { id: p.id, prenom: p.prenom, connecte: p.connecte, carteEnMain: p.carteEnMain, recues: p.recues };
+      return { id: p.id, prenom: p.prenom, connecte: p.connecte };
     }),
-    piocheRestante: s.pioche.length,
-    tour: s.tour,
+    pool: s.pool.slice(),
     tableau: s.tableau
   };
 }
 
-/* --- Distribution -------------------------------------------------------- */
-function prochainDestinataire(s) {
-  var n = s.participants.length; if (!n) return null;
-  for (var k = 0; k < n; k++) {
-    var idx = (s.tour + k) % n; var p = s.participants[idx];
-    if (p.connecte) return { idx: idx, p: p };
-  }
-  return null;
-}
+/* --- Pool commun ---------------------------------------------------------
+   L'animateur met des cartes a disposition dans un pool partage (max MAX_POOL).
+   N'importe quel participant (ou l'animateur) peut ensuite prendre une carte du
+   pool et la poser sur la table. Plus de tour par tour ni de main individuelle :
+   un joueur absent ne bloque jamais la partie. */
+function carteJouable(n) { n = +n; return Number.isInteger(n) && n >= 1 && n <= NB_CARTES; }
+function surTable(s, n) { return s.tableau.cartes.some(function (c) { return c.n === n; }); }
+function dansPool(s, n) { return s.pool.indexOf(n) >= 0; }
 
-function distribuer(s) {
-  if (!s.pioche.length) return { refus: { code: "pioche_vide", message: "La pioche est vide." } };
-  var d = prochainDestinataire(s);
-  if (!d) return { refus: { code: "aucun_participant", message: "Aucun participant connecté." } };
-  if (d.p.carteEnMain != null) {
-    return { refus: { code: "main_pleine", message: d.p.prenom + " tient déjà une carte : elle doit la poser d'abord." } };
-  }
-  var n = s.pioche.shift();
-  d.p.carteEnMain = n; d.p.recues++;
-  s.tour = (d.idx + 1) % s.participants.length;
-  bump(s);
-  return { ok: true, resultat: { carte: n, prenom: d.p.prenom } };
+function poolAjouter(s, n) {
+  n = +n;
+  if (!carteJouable(n)) return { refus: { code: "carte_invalide", message: "Carte inconnue." } };
+  if (dansPool(s, n) || surTable(s, n)) { return { ok: true }; } // deja disponible / posee : idempotent
+  if (s.pool.length >= MAX_POOL) return { refus: { code: "pool_plein", message: "Le pool est plein (" + MAX_POOL + " cartes). Retirez-en une d'abord." } };
+  s.pool.push(n); bump(s);
+  return { ok: true, resultat: { n: n } };
 }
-
-function passerAuSuivant(s) {
-  if (!s.participants.length) return { refus: { code: "aucun_participant", message: "Aucun participant." } };
-  s.tour = (s.tour + 1) % s.participants.length; bump(s);
+function poolRetirer(s, n) {
+  n = +n;
+  var i = s.pool.indexOf(n); if (i < 0) return { ok: true };
+  s.pool.splice(i, 1); bump(s);
   return { ok: true };
 }
 
-function distribuerATous(s) {
-  var libres = s.participants.filter(function (p) { return p.connecte && p.carteEnMain == null; });
-  var servis = 0;
-  for (var i = 0; i < libres.length && s.pioche.length; i++) {
-    libres[i].carteEnMain = s.pioche.shift(); libres[i].recues++; servis++;
-  }
-  s.tour = 0; bump(s);
-  return { ok: true, resultat: { servis: servis, nonServis: libres.length - servis } };
-}
-
 /* --- Tableau ------------------------------------------------------------- */
-function poser(s, participant, n, rect) {
-  if (participant.carteEnMain !== n) return { refus: { code: "pas_en_main", message: "Cette carte n'est pas dans votre main." } };
-  if (s.tableau.cartes.some(function (c) { return c.n === n; })) { participant.carteEnMain = null; bump(s); return { ok: true }; }
+// Prendre une carte du pool et la poser sur la table (tout le monde peut).
+function poserCarte(s, n, rect) {
+  n = +n;
+  var i = s.pool.indexOf(n);
+  if (i < 0) return { refus: { code: "hors_pool", message: "Cette carte n'est plus dans le pool." } };
+  s.pool.splice(i, 1);
+  if (surTable(s, n)) { bump(s); return { ok: true }; }
   var pos = placementLibre(s, rect);
   s.tableau.cartes.push({ n: n, x: pos.x, y: pos.y });
-  participant.carteEnMain = null;
   bump(s);
   return { ok: true, resultat: { n: n, x: pos.x, y: pos.y } };
 }
@@ -227,17 +214,18 @@ function appliquer(s, jeton, intention) {
   var moi = estAnim ? null : s.participants.find(function (p) { return p.id === info.id; });
   var d = intention || {}; var op = d.op;
 
-  var actionsAnim = { distribuer: 1, distribuerATous: 1, passerAuSuivant: 1, retirerCarte: 1, definirLienVocal: 1, clore: 1 };
+  // Reservees a l'animateur : gerer le pool, retirer une carte de la table,
+  // le lien vocal, clore la session.
+  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, retirerCarte: 1, definirLienVocal: 1, clore: 1 };
   if (actionsAnim[op] && !estAnim) return { refus: { code: "droit_insuffisant", message: "Réservé à l'animateur." } };
 
   switch (op) {
-    case "distribuer": return distribuer(s);
-    case "distribuerATous": return distribuerATous(s);
-    case "passerAuSuivant": return passerAuSuivant(s);
+    case "poolAjouter": return poolAjouter(s, d.n);
+    case "poolRetirer": return poolRetirer(s, d.n);
     case "retirerCarte": return retirerCarte(s, d.n);
     case "definirLienVocal": return definirLienVocal(s, d.url);
     case "clore": return clore(s);
-    case "poser": if (!moi) return { refus: { code: "droit_insuffisant" } }; return poser(s, moi, d.n, d.rect);
+    case "poserCarte": return poserCarte(s, d.n, d.rect); // prendre du pool -> table (tous)
     case "deplacerCarte": return deplacerCarte(s, d.n, d.x, d.y);
     case "creerFleche": return creerFleche(s, d.de, d.vers, d.bidir);
     case "libellerFleche": return libellerFleche(s, d.id, d.libelle);
@@ -255,5 +243,5 @@ module.exports = {
   ALPHABET: ALPHABET, MAX_PARTICIPANTS: MAX_PARTICIPANTS,
   nouveauCode: nouveauCode, jetonAleatoire: jetonAleatoire,
   creer: creer, rejoindre: rejoindre, toucher: toucher, vue: vue, appliquer: appliquer,
-  prochainDestinataire: prochainDestinataire
+  MAX_POOL: MAX_POOL, NB_CARTES: NB_CARTES
 };

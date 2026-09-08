@@ -28,9 +28,12 @@
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
-    coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
-    coachAttente: "Waiting for a card from the facilitator…",
-    coachPoser: "Drag your card onto the board to place it.",
+    coachPool: "Add cards to the shared pool (deck at the bottom) so the group can place them.",
+    coachAttente: "Waiting for the facilitator to add cards…",
+    coachPrendre: "Take a card from the pool and place it on the board.",
+    prendre: "Place on board", retirerPool: "Remove from pool",
+    poolVide: "Waiting for the facilitator to add cards to the pool.",
+    poolVideAnim: "Add cards to the pool from the deck below.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
@@ -51,9 +54,12 @@
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
-    coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
-    coachAttente: "En attente d'une carte de l'animateur…",
-    coachPoser: "Glissez votre carte sur le tableau pour la placer.",
+    coachPool: "Ajoutez des cartes au pool commun (le jeu, en bas) pour que le groupe les pose.",
+    coachAttente: "En attente que l'animateur mette des cartes à disposition…",
+    coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
+    prendre: "Poser sur le tableau", retirerPool: "Retirer du pool",
+    poolVide: "En attente que l'animateur mette des cartes dans le pool.",
+    poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
@@ -74,7 +80,7 @@
       'label[for="join-prenom"]': "Your first name",
       "#btn-rejoindre": "Join",
       "#btn-partager": "Copy the link",
-      "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
+      "#deck-titre": "Card deck", "#deck-toggle": "Deck",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
       "#panneau .panneau-tete h3": "Participants",
@@ -87,7 +93,6 @@
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
       ["#code-chip", "title", "Copy the code"], ["#etat-conn", "title", "Connection"],
-      ["#btn-passer", "title", "Advance the turn without dealing"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
@@ -103,7 +108,6 @@
     });
     var setFirst = function (sel, v) { var el = document.querySelector(sel); if (el && el.firstChild) el.firstChild.nodeValue = v; };
     setFirst("#code-chip", "Code ");            // « Code <b> »
-    setFirst("#pioche-info", "Deck: ");         // « Pioche : <b> »
     setFirst("#btn-participants", "Participants (");
     var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
     var ret = document.querySelector(".lobby-retour");
@@ -125,9 +129,9 @@
 
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
-   "code-val","code-chip","btn-partager","pioche-n","nb-part","etat-conn","carte0-txt",
-   "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
-   "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
+   "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
+   "scene","monde","fleches","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
+   "btn-participants","panneau","fermer-panneau",
    "btn-barres","btn-barres-show",
    "liste-part","vocal-url","btn-vocal","vocal-lien","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
@@ -297,10 +301,10 @@
     if (!vue) return;
     if (vue.version < etat.version) return; // vieil état
     etat.vue = vue; etat.version = vue.version;
-    E["pioche-n"].textContent = vue.piocheRestante;
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
-    rendreMain(vue);
+    rendrePool(vue);
+    rendreDeck(vue);
     rendreVocal(vue);
     rendreTableau(vue.tableau);
     majCoach();
@@ -327,13 +331,14 @@
     var v = etat.vue; if (!v) return null;
     var tab = v.tableau || {}, cartes = tab.cartes || [], fleches = tab.fleches || [];
     if (fleches.length >= 1) return null; // un lien cree : le principe est saisi
+    var pool = v.pool || [];
     if (etat.role === "animateur") {
       if ((v.participants || []).length === 0) return S.coachPartager(etat.code);
-      if (cartes.length === 0) return S.coachDistribuer;
+      if (pool.length === 0 && cartes.length === 0) return S.coachPool;
       if (cartes.length >= 2) return S.coachRelier;
       return null;
     }
-    if (maCarte() != null) return S.coachPoser;
+    if (pool.length > 0 && cartes.length === 0) return S.coachPrendre;
     if (cartes.length === 0) return S.coachAttente;
     if (cartes.length >= 2) return S.coachRelier;
     return null;
@@ -399,57 +404,67 @@
     if (vue.lienVocal) { E["vocal-lien"].hidden = false; E["vocal-lien"].href = vue.lienVocal; if (E["vocal-url"]) E["vocal-url"].value = vue.lienVocal; }
     else E["vocal-lien"].hidden = true;
   }
-  function rendreMain(vue) {
-    var mz = E["main-zone"]; mz.innerHTML = "";
-    var p = etat.role === "participant" ? (vue.participants.find(function (x) { return x.id === _idMoi; })) : null;
-    if (!p || p.carteEnMain == null) return;
-    var c = etat.cartes[p.carteEnMain]; if (!c) return;
-    var d = document.createElement("div"); d.className = "main-carte a-poser";
-    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span>'
-      + '<button class="agr" data-a="voir" aria-label="' + S.agrandirCarte + '" title="' + S.agrandir + '">⤢</button></div>'
-      + '<div class="tit">' + esc(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">' + S.poser + '</button></div>';
-    d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); poserMain(); });
-    d.querySelector('[data-a="voir"]').addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(p.carteEnMain); });
-    activerGlisserMain(d, p.carteEnMain);
-    mz.appendChild(d);
-  }
-  // Glisser la carte tenue vers le tableau ; clic simple = agrandir.
-  // Ecoute au niveau document : le relachement est capte ou que soit le curseur.
-  function activerGlisserMain(d, n) {
-    d.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0 || e.target.closest("button")) return;
-      var x0 = e.clientX, y0 = e.clientY, bougé = false;
-      function mv(ev) {
-        if (!bougé && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 6) {
-          bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
-        }
-        if (bougé) { d.style.left = (ev.clientX - d.offsetWidth / 2) + "px"; d.style.top = (ev.clientY - 24) + "px"; }
-      }
-      function up(ev) {
-        document.removeEventListener("pointermove", mv, true);
-        document.removeEventListener("pointerup", up, true);
-        if (!bougé) { ouvrirModal(n); return; }
-        var r = rectScene();
-        if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-          var w = versMonde(ev.clientX, ev.clientY);
-          agir({ op: "poser", n: n, rect: { x: w.x - 90, y: w.y - 75, largeur: 200, hauteur: 200 } });
-        }
-        if (etat.vue) rendreMain(etat.vue);
-      }
-      document.addEventListener("pointermove", mv, true);
-      document.addEventListener("pointerup", up, true);
+  // Couleur par lot (aide l'animateur a voir ou il en est dans la partie).
+  var LOT_COULEUR = { 1: "#E8811C", 2: "#2f7d4f", 3: "#3b6ea5", 4: "#8a4fb3", 5: "#c1444e" };
+
+  // Pool commun : cartes mises a disposition par l'animateur, visibles de tou·tes.
+  // Un clic « Poser » place la carte sur la table (tout le monde). L'animateur
+  // peut aussi la retirer du pool (x).
+  function rendrePool(vue) {
+    var z = E["pool"]; if (!z) return;
+    var pool = vue.pool || [];
+    z.innerHTML = "";
+    z.classList.toggle("vide", pool.length === 0);
+    if (!pool.length) {
+      var v = document.createElement("p"); v.className = "pool-vide";
+      v.textContent = etat.role === "animateur" ? S.poolVideAnim : S.poolVide;
+      z.appendChild(v); return;
+    }
+    pool.forEach(function (n) {
+      var c = etat.cartes[n];
+      var d = document.createElement("div"); d.className = "pool-carte";
+      if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+      if (c && c.titre) d.title = n + " · " + c.titre;
+      d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span></div>'
+        + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
+        + '<div class="pool-actions"><button class="btn primaire" data-a="poser">' + esc(S.prendre) + '</button>'
+        + (etat.role === "animateur" ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
+        + '</div>';
+      d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
+      var bx = d.querySelector('[data-a="retirer"]'); if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
+      z.appendChild(d);
     });
   }
-  // Carte tenue par moi (participant), ou null.
-  function maCarte() {
-    if (etat.role !== "participant" || !etat.vue) return null;
-    var p = (etat.vue.participants || []).find(function (x) { return x.id === _idMoi; });
-    return p && p.carteEnMain != null ? p.carteEnMain : null;
+
+  // Jeu complet (animateur) : clic pour mettre une carte dans le pool. Grisee si
+  // deja dans le pool ou posee. Construit une seule fois, etat mis a jour ensuite.
+  var deckFait = false;
+  function construireDeck() {
+    var z = E["deck-cartes"]; if (!z || deckFait) return; deckFait = true;
+    for (var n = 1; n <= 38; n++) {
+      var c = etat.cartes[n]; if (!c) continue;
+      var b = document.createElement("button"); b.type = "button"; b.className = "deck-carte"; b.dataset.n = n;
+      b.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+      b.title = n + " · " + c.titre;
+      b.innerHTML = '<span class="dn">' + n + '</span><span class="dt">' + esc(c.titre) + '</span>';
+      b.addEventListener("click", function () { agir({ op: "poolAjouter", n: +this.dataset.n }); });
+      z.appendChild(b);
+    }
   }
-  function poserMain() {
-    var n = maCarte(); if (n == null) return;
-    agir({ op: "poser", n: n, rect: rectVisible() });
+  function rendreDeck(vue) {
+    if (etat.role !== "animateur") return;
+    construireDeck();
+    var z = E["deck-cartes"]; if (!z) return;
+    var etatCarte = {};
+    (vue.pool || []).forEach(function (n) { etatCarte[n] = "pool"; });
+    ((vue.tableau && vue.tableau.cartes) || []).forEach(function (c) { etatCarte[c.n] = "table"; });
+    Array.prototype.forEach.call(z.children, function (b) {
+      var st = etatCarte[+b.dataset.n];
+      b.classList.toggle("en-pool", st === "pool");
+      b.classList.toggle("en-table", st === "table");
+      b.disabled = !!st;
+    });
+    if (E["deck-compte"]) E["deck-compte"].textContent = (vue.pool || []).length + " / 8";
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
@@ -736,9 +751,12 @@
     var e = document.getElementById("btn-export");
     if (e) e.addEventListener("click", exporterImage);
   })();
-  E["btn-distribuer"].addEventListener("click", function () { agir({ op: "distribuer" }); });
-  E["btn-passer"].addEventListener("click", function () { agir({ op: "passerAuSuivant" }); });
-  E["btn-distribuer-tous"].addEventListener("click", function () { agir({ op: "distribuerATous" }); });
+  // Deck (animateur) : replier / deplier le jeu complet en bas de l'ecran.
+  if (E["deck-toggle"] && E["deck"]) E["deck-toggle"].addEventListener("click", function () {
+    var replie = E["deck"].classList.toggle("replie");
+    this.setAttribute("aria-expanded", replie ? "false" : "true");
+    reflowPlein();
+  });
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
@@ -771,13 +789,12 @@
     var vface = E["carte-grande"].querySelector(".verso");
     if (c.image && c.image.verso) { E["mg-vimg"].src = BASE + (c.image.verso.carte || c.image.verso.grand); E["mg-vimg"].alt = c.titre + ". " + (c.verso || []).join(" "); vface.classList.add("a-image"); }
     else { E["mg-vimg"].removeAttribute("src"); vface.classList.remove("a-image"); }
-    var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = (maCarte() !== n);
+    var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = true; // plus de main individuelle
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
   E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });
   E["carte-grande"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); }); // clic = retourner
   E["modal-close"].addEventListener("click", fermerModal);
-  (function () { var mpo = document.getElementById("modal-poser"); if (mpo) mpo.addEventListener("click", function () { poserMain(); fermerModal(); }); })();
   E.modal.addEventListener("click", function (e) { if (e.target === E.modal) fermerModal(); });
 
   /* ---------- utilitaires ---------- */

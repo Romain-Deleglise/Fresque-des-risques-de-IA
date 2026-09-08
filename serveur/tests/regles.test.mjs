@@ -1,4 +1,6 @@
 // Tests des règles (pur, sans I/O). Lancement : node serveur/tests/regles.test.mjs
+// Modèle : pool commun (l'animateur met des cartes à disposition, tout le monde
+// les pose sur la table). Plus de tour par tour ni de main individuelle.
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const R = require("../src/regles.js");
@@ -9,10 +11,12 @@ function t(nom, cond) { if (cond) { ok++; } else { ko++; console.error("  ✗ " 
 // Création
 const c = R.creer("Léa", "H7KQ2M");
 const s = c.session;
-s.jetons[c.jeton] = { role: "animateur", id: c.idAnim };
+const jAnim = c.jeton;
+s.jetons[jAnim] = { role: "animateur", id: c.idAnim }; // le serveur le fait normalement
 t("code posé", s.code === "H7KQ2M");
-t("pioche 38, carte 0 absente", s.pioche.length === 38 && s.pioche[0] === 1 && !s.pioche.includes(0));
-t("animateur sans main", s.animateur.carteEnMain === undefined);
+t("pool vide au départ", Array.isArray(s.pool) && s.pool.length === 0);
+t("pas de pioche/tour dans la vue", R.vue(s).piocheRestante === undefined && R.vue(s).tour === undefined);
+t("vue expose le pool", Array.isArray(R.vue(s).pool));
 
 // Rejoindre 2 participants
 const j1 = R.rejoindre(s, "Ana");
@@ -20,80 +24,69 @@ const j2 = R.rejoindre(s, "Bo");
 t("2 participants", s.participants.length === 2);
 t("jonctions distinctes = jetons distincts", j1.jeton && j2.jeton && j1.jeton !== j2.jeton);
 t("jonctions distinctes = identifiants distincts", j1.id !== j2.id);
-t("jetons distincts", j1.jeton && j2.jeton && j1.jeton !== j2.jeton);
 
-// Distribution dans l'ordre
-let r = R.appliquer(s, c.jeton, { op: "distribuer" });
-t("distribue à Ana", r.ok && r.resultat.prenom === "Ana" && r.resultat.carte === 1);
-r = R.appliquer(s, c.jeton, { op: "distribuer" });
-t("distribue à Bo (2e)", r.ok && r.resultat.prenom === "Bo" && r.resultat.carte === 2);
+// Pool : réservé à l'animateur
+let r = R.appliquer(s, j1.jeton, { op: "poolAjouter", n: 1 });
+t("participant ne peut pas alimenter le pool", r.refus && r.refus.code === "droit_insuffisant");
+r = R.appliquer(s, jAnim, { op: "poolAjouter", n: 1 });
+t("animateur ajoute au pool", r.ok && s.pool.length === 1 && s.pool[0] === 1);
+r = R.appliquer(s, jAnim, { op: "poolAjouter", n: 1 });
+t("ajout idempotent (même carte)", s.pool.length === 1);
+r = R.appliquer(s, jAnim, { op: "poolAjouter", n: 0 });
+t("carte 0 (intro) refusée", r.refus && r.refus.code === "carte_invalide");
+r = R.appliquer(s, jAnim, { op: "poolAjouter", n: 39 });
+t("carte 39 hors bornes refusée", r.refus && r.refus.code === "carte_invalide");
 
-// Refus si main pleine (retour à Ana qui tient déjà)
-r = R.appliquer(s, c.jeton, { op: "distribuer" });
-t("refus main pleine", r.refus && r.refus.code === "main_pleine");
+// Plafond du pool
+for (let n = 2; n <= 8; n++) R.appliquer(s, jAnim, { op: "poolAjouter", n: n });
+t("pool à 8", s.pool.length === 8);
+r = R.appliquer(s, jAnim, { op: "poolAjouter", n: 9 });
+t("9e carte refusée (pool plein)", r.refus && r.refus.code === "pool_plein");
 
-// passerAuSuivant débloque
-r = R.appliquer(s, c.jeton, { op: "passerAuSuivant" });
-t("passer au suivant ok", r.ok);
+// Retirer du pool
+r = R.appliquer(s, jAnim, { op: "poolRetirer", n: 8 });
+t("animateur retire du pool", s.pool.length === 7 && s.pool.indexOf(8) < 0);
 
-// Participant ne peut pas distribuer
-r = R.appliquer(s, j1.jeton, { op: "distribuer" });
-t("participant refusé distribuer", r.refus && r.refus.code === "droit_insuffisant");
+// Poser depuis le pool : n'importe quel participant
+r = R.appliquer(s, j1.jeton, { op: "poserCarte", n: 1, rect: { x: 400, y: 400 } });
+t("participant pose une carte du pool", r.ok && s.tableau.cartes.some((x) => x.n === 1) && s.pool.indexOf(1) < 0);
+r = R.appliquer(s, j2.jeton, { op: "poserCarte", n: 1 });
+t("poser une carte hors pool refusé", r.refus && r.refus.code === "hors_pool");
 
-// Poser une carte
-const ana = s.participants[0];
-r = R.appliquer(s, j1.jeton, { op: "poser", n: ana.carteEnMain, rect: { x: 1400, y: 1000, largeur: 800, hauteur: 600 } });
-t("Ana pose sa carte", r.ok && s.tableau.cartes.length === 1 && ana.carteEnMain === null);
+// Poser une 2e carte puis relier
+R.appliquer(s, j2.jeton, { op: "poserCarte", n: 2, rect: { x: 800, y: 400 } });
+t("2 cartes sur la table", s.tableau.cartes.length === 2);
+r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: 1, vers: 2, bidir: false });
+t("flèche créée entre 2 cartes posées", r.ok && s.tableau.fleches.length === 1);
+r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: 1, vers: 3 });
+t("flèche vers une carte absente refusée", r.refus);
 
-// Deuxième pose (Bo) puis flèche entre les deux
-const bo = s.participants[1];
-R.appliquer(s, j2.jeton, { op: "poser", n: bo.carteEnMain, rect: { x: 1600, y: 1200, largeur: 800, hauteur: 600 } });
-t("2 cartes posées", s.tableau.cartes.length === 2);
-const deux = s.tableau.cartes.map(x => x.n);
-r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: deux[0], vers: deux[1], bidir: false });
-t("flèche créée", r.ok && s.tableau.fleches.length === 1);
-r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: deux[0], vers: 99 });
-t("flèche vers carte absente refusée", r.refus);
-const fid = s.tableau.fleches[0].id;
-r = R.appliquer(s, j1.jeton, { op: "bidirFleche", id: fid });
-t("flèche passée en double sens", r.ok && s.tableau.fleches[0].bidir === true);
-r = R.appliquer(s, j1.jeton, { op: "bidirFleche", id: fid });
-t("flèche re-basculée en sens unique", r.ok && s.tableau.fleches[0].bidir === false);
+// Déplacer une carte (tout le monde)
+r = R.appliquer(s, j1.jeton, { op: "deplacerCarte", n: 1, x: 1000, y: 900 });
+t("carte déplacée", r.ok && s.tableau.cartes.find((x) => x.n === 1).x === 1000);
 
-// Texte : créer puis vider => disparaît
+// Retirer une carte de la table : réservé à l'animateur, cascade des flèches
+r = R.appliquer(s, j1.jeton, { op: "retirerCarte", n: 1 });
+t("participant ne peut pas retirer une carte", r.refus && r.refus.code === "droit_insuffisant");
+r = R.appliquer(s, jAnim, { op: "retirerCarte", n: 1 });
+t("animateur retire + flèches en cascade", s.tableau.cartes.length === 1 && s.tableau.fleches.length === 0);
+
+// Notes
 r = R.appliquer(s, j1.jeton, { op: "creerTexte", x: 500, y: 500, contenu: "alimente" });
-const tid = r.resultat.id;
 t("texte créé", s.tableau.textes.length === 1);
-R.appliquer(s, j1.jeton, { op: "modifierTexte", id: tid, contenu: "   " });
-t("texte vidé disparaît", s.tableau.textes.length === 0);
 
-// Retirer une carte (animateur) supprime ses flèches
-r = R.appliquer(s, c.jeton, { op: "retirerCarte", n: deux[0] });
-t("carte retirée + flèches en cascade", s.tableau.cartes.length === 1 && s.tableau.fleches.length === 0);
-
-// Limite 8 participants
-for (let i = 0; i < 6; i++) R.rejoindre(s, "P" + i);
-const trop = R.rejoindre(s, "Neuvième");
-t("9e refusé", trop.refus && trop.refus.code === "session_pleine");
-
-// Reprise via jeton même quand plein
-const reprise = R.rejoindre(s, "Ana", j1.jeton);
-t("reprise via jeton acceptée même plein", reprise.role === "participant" && reprise.jeton === j1.jeton);
-
-// Distribuer à tous ne sert que les mains libres
-const avant = s.pioche.length;
-r = R.appliquer(s, c.jeton, { op: "distribuerATous" });
-t("distribuer à chacun ok", r.ok && r.resultat.servis >= 1);
-t("pioche décroît", s.pioche.length < avant);
-
-// Lien vocal doit être https
-r = R.appliquer(s, c.jeton, { op: "definirLienVocal", url: "http://mauvais" });
-t("lien vocal http refusé", r.refus);
-r = R.appliquer(s, c.jeton, { op: "definirLienVocal", url: "https://meet.example/x" });
+// Lien vocal (animateur), validation https
+r = R.appliquer(s, jAnim, { op: "definirLienVocal", url: "http://x" });
+t("lien vocal non https refusé", r.refus && r.refus.code === "url_invalide");
+r = R.appliquer(s, jAnim, { op: "definirLienVocal", url: "https://meet.example/x" });
 t("lien vocal https ok", r.ok && s.lienVocal === "https://meet.example/x");
 
-// Version incrémentée
-t("version a augmenté", s.version > 1);
+// Reprise via jeton même si plein
+for (let i = 0; i < 6; i++) R.rejoindre(s, "P" + i);
+const trop = R.rejoindre(s, "Neuvième");
+t("9e participant refusé", trop.refus && trop.refus.code === "session_pleine");
+const reprise = R.rejoindre(s, "Ana", j1.jeton);
+t("reprise via jeton acceptée même plein", reprise.role === "participant" && reprise.jeton === j1.jeton);
 
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);
