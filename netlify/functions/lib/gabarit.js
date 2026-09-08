@@ -31,9 +31,15 @@ function mailHtml(contenu) {
     + '</div></body></html>';
 }
 
-// Bouton d'action (lien stylise). Centre par le conteneur (text-align:center).
+// Bouton d'action PRINCIPAL (plein, orange). Centre par le conteneur.
 function bouton(url, texte) {
   return '<a href="' + h(url) + '" style="display:inline-block;background:#B3610F;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;line-height:1.2;padding:13px 26px;border-radius:9px;">' + h(texte) + '</a>';
 }
 
-module.exports = { h: h, dateLisible: dateLisible, mailHtml: mailHtml, bouton: bouton };
+// Bouton SECONDAIRE (contour, plus discret) pour les actions moins prioritaires
+// (visio, guide...). Meme forme mais moins d'emphase, pour une hierarchie claire.
+function boutonSecondaire(url, texte) {
+  return '<a href="' + h(url) + '" style="display:inline-block;background:#ffffff;color:#B3610F;text-decoration:none;font-weight:600;font-size:14px;line-height:1.2;padding:10px 22px;border-radius:9px;border:1.5px solid #E4C9A6;">' + h(texte) + '</a>';
+}
+
+module.exports = { h: h, dateLisible: dateLisible, mailHtml: mailHtml, bouton: bouton, boutonSecondaire: boutonSecondaire };

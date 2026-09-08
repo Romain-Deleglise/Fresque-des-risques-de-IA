@@ -15,7 +15,7 @@ const L = require("../../serveur/src/limites.js");
 const mail = require("./lib/mail.js");
 const C = require("./lib/contacts.js");
 const G = require("./lib/gabarit.js");
-const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
+const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton, boutonSecondaire = G.boutonSecondaire;
 
 // URL publique du site (variable d'environnement SITE_URL dans Netlify).
 const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
@@ -96,14 +96,15 @@ function boiteCompteur(n, max) {
 // Prenoms des inscrits sous forme de pastilles.
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
 // Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.
-function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
+// Secondaire : l'action principale reste le tableau en ligne.
+function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
 function texteVisio(a) { return a && a.visio ? "Visioconférence : " + a.visio : ""; }
 
 // Bouton pour qu'un participant écrive à l'animateur·ice (mailto pré-rempli).
 function boutonContactAnimateur(a) {
   if (!a || !a.animateur || !a.animateur.mail) return "";
   var sujet = encodeURIComponent("Question sur l'atelier du " + dateLisible(a.date, a.heure) + " (code " + a.code + ")");
-  return '<p style="margin:0 0 16px;text-align:center;">' + bouton("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
+  return '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
 }
 // Bouton pour que l'animateur écrive à tou·tes les inscrit·es (adresses en Cci).
 function boutonEcrireInscrits(a) {
@@ -305,13 +306,18 @@ function mailAnimateur(a) {
   c += '<p style="margin:0 0 18px;">Votre atelier de la Fresque des risques de l\'IA est bien programmé. Voici le récapitulatif.</p>';
   c += tableauInfos(a);
   c += boiteCode(a.code);
+  // Action principale d'abord (le jour J) : ouvrir le tableau. Puis la visio
+  // (secondaire), puis le guide (secondaire) : hierarchie claire.
+  if (a.mode === "enligne") {
+    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez le tableau en ligne et créez la session avec ce code.</p>';
+    c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
+  }
   c += boutonVisio(a);
   c += '<p style="margin:0 0 18px;color:#4a473f;">' + h(visibilite) + '</p>';
   c += '<p style="margin:0 0 12px;">Pour préparer votre animation, appuyez-vous sur le guide. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail.</p>';
-  c += '<p style="margin:0 0 20px;text-align:center;">' + bouton(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
+  c += '<p style="margin:0 0 20px;text-align:center;">' + boutonSecondaire(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
   if (a.mode === "enligne") {
-    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez le tableau en ligne et créez la session avec ce code. Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe.</p>';
-    c += '<p style="margin:0 0 20px;text-align:center;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
+    c += '<p style="margin:0 0 18px;color:#4a473f;">Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe' + (a.visio ? ", ou utilisez la visio ci-dessus" : "") + '.</p>';
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';

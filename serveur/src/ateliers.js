@@ -166,7 +166,10 @@ function vueConfirmation(a) {
     code: a.code, mode: a.mode, titre: a.titre || "",
     date: a.date, heure: a.heure,
     lieu: a.mode === "physique" ? (a.lieu || "") : "",
-    adresse: a.mode === "physique" ? (a.adresse || "") : ""
+    adresse: a.mode === "physique" ? (a.adresse || "") : "",
+    // Visio (lien perso ou salon genere automatiquement) pour l'afficher a
+    // l'animateur des la creation, afin qu'il puisse le copier / partager.
+    visio: a.visio || ""
   };
 }
 
