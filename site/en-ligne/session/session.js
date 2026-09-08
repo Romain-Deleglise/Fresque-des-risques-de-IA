@@ -145,8 +145,17 @@
       body: JSON.stringify(Object.assign({ op: op }, extra)) })
       .then(function (r) { return r.json().then(function (d) { return { http: r.ok, d: d }; }); });
   }
-  function jetonStocke(code) { try { return localStorage.getItem("fresque:" + code); } catch (e) { return null; } }
-  function stockerJeton(code, j) { try { localStorage.setItem("fresque:" + code, j); } catch (e) {} }
+  // Identite par ONGLET (sessionStorage) : deux onglets d'un meme navigateur
+  // sont deux participant·es distinct·es. La reprise apres rechargement d'un
+  // onglet reste possible (sessionStorage survit au reload). En plus, le jeton
+  // de l'animateur est garde en localStorage pour lui permettre de rouvrir sa
+  // session apres avoir ferme l'onglet (lien ?ouvrir= de l'e-mail).
+  function jetonTab(code) { try { return sessionStorage.getItem("fresque:" + code); } catch (e) { return null; } }
+  function stockerJetonTab(code, j) { try { sessionStorage.setItem("fresque:" + code, j); } catch (e) {} }
+  function jetonAnim(code) { try { return localStorage.getItem("fresque:anim:" + code); } catch (e) { return null; } }
+  function stockerJetonAnim(code, j) { try { localStorage.setItem("fresque:anim:" + code, j); } catch (e) {} }
+  // Enregistre le jeton recu apres creation/jonction (onglet + anim si role animateur).
+  function memoriser(code, jeton, role) { stockerJetonTab(code, jeton); if (role === "animateur") stockerJetonAnim(code, jeton); }
 
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
@@ -163,13 +172,14 @@
     api("creer", { prenom: prenom, code: code || undefined }).then(function (res) {
       E["btn-creer"].disabled = false;
       if (res.d && res.d.existe) { // la session existe deja : on rejoint (reprise animateur si jeton connu)
-        api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jetonStocke(res.d.code) }).then(function (r2) {
-          if (r2.d && r2.d.jeton) { stockerJeton(res.d.code, r2.d.jeton); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
+        var jr = jetonTab(res.d.code) || jetonAnim(res.d.code);
+        api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jr }).then(function (r2) {
+          if (r2.d && r2.d.jeton) { memoriser(res.d.code, r2.d.jeton, r2.d.role); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
           else lobbyMsg((r2.d && r2.d.refus && r2.d.refus.message) || S.echec, "err");
         }).catch(function () { lobbyMsg(S.indispoMoment, "err"); });
         return;
       }
-      if (res.d && res.d.code) { stockerJeton(res.d.code, res.d.jeton); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
+      if (res.d && res.d.code) { memoriser(res.d.code, res.d.jeton, res.d.role); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
       else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
     }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
   });
@@ -182,9 +192,11 @@
     if (code.length !== 6) { lobbyMsg(S.code6, "err"); return; }
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
     E["btn-rejoindre"].disabled = true; lobbyMsg(S.connexion);
-    api("rejoindre", { code: code, prenom: prenom, jeton: jetonStocke(code) }).then(function (res) {
+    // On ne reutilise QUE le jeton de cet onglet (sessionStorage) : un 2e onglet
+    // du meme navigateur rejoint donc comme une personne distincte.
+    api("rejoindre", { code: code, prenom: prenom, jeton: jetonTab(code) }).then(function (res) {
       E["btn-rejoindre"].disabled = false;
-      if (res.d && res.d.jeton) { stockerJeton(code, res.d.jeton); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+      if (res.d && res.d.jeton) { memoriser(code, res.d.jeton, res.d.role); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || S.codeInconnu, "err");
     }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
@@ -192,10 +204,10 @@
   // reprise auto si ?s=CODE et jeton stocké
   (function () {
     var m = new URLSearchParams(location.search).get("s");
-    if (m) { E["join-code"].value = m.toUpperCase();
-      var j = jetonStocke(m.toUpperCase());
-      if (j) api("rejoindre", { code: m.toUpperCase(), jeton: j }).then(function (res) {
-        if (res.d && res.d.jeton) { stockerJeton(m.toUpperCase(), res.d.jeton); demarrer(m.toUpperCase(), res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+    if (m) { m = m.toUpperCase(); E["join-code"].value = m;
+      var j = jetonTab(m); // reprise de CET onglet uniquement
+      if (j) api("rejoindre", { code: m, jeton: j }).then(function (res) {
+        if (res.d && res.d.jeton) { memoriser(m, res.d.jeton, res.d.role); demarrer(m, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       }).catch(function(){});
     }
   })();
@@ -210,10 +222,10 @@
     if (!o) return;
     codeSouhaite = o;
     if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
-    var j = jetonStocke(o);
+    var j = jetonTab(o) || jetonAnim(o); // reprise : cet onglet, sinon jeton animateur garde
     if (j) { // l'animateur a deja ouvert la session : on reprend
       api("rejoindre", { code: o, jeton: j }).then(function (res) {
-        if (res.d && res.d.jeton) { stockerJeton(o, res.d.jeton); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+        if (res.d && res.d.jeton) { memoriser(o, res.d.jeton, res.d.role); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
         else { lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
       }).catch(function () { lobbyMsg(S.ouvrirAtelier(o)); });
       return;
@@ -229,6 +241,8 @@
     document.body.classList.add("role-" + role);
     E.lobby.hidden = true; E.app.hidden = false;
     E["code-val"].textContent = code;
+    // URL de reprise pour cet onglet : un rechargement rejoint la meme place.
+    try { history.replaceState(null, "", location.pathname + "?s=" + code); } catch (e) {}
     demarrerQuandCartes(vue, 0);
   }
   // Les cartes (data/cartes.json) sont indispensables au rendu du tableau.
