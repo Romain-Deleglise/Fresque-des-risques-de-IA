@@ -25,6 +25,7 @@
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓",
+    plein: "Fullscreen", quitterPlein: "Exit fullscreen",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
     coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
@@ -47,6 +48,7 @@
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓",
+    plein: "Plein écran", quitterPlein: "Quitter le plein écran",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
     coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
@@ -651,7 +653,31 @@
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
-  E["btn-plein"].addEventListener("click", function () { document.body.classList.toggle("plein"); setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 50); });
+  // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
+  // repli sur une classe CSS si l'API n'est pas disponible.
+  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 60); }
+  function syncPlein() {
+    var actif = !!(document.fullscreenElement || document.webkitFullscreenElement) || document.body.classList.contains("plein-css");
+    document.body.classList.toggle("plein", actif);
+    if (E["btn-plein"]) { E["btn-plein"].setAttribute("aria-pressed", actif ? "true" : "false"); E["btn-plein"].textContent = actif ? S.quitterPlein : S.plein; }
+    reflowPlein();
+  }
+  document.addEventListener("fullscreenchange", syncPlein);
+  document.addEventListener("webkitfullscreenchange", syncPlein);
+  E["btn-plein"].addEventListener("click", function () {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var sortie = document.exitFullscreen || document.webkitExitFullscreen;
+      if (sortie) { try { sortie.call(document); } catch (e) {} }
+      return;
+    }
+    if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
+    var el = document.documentElement;
+    var demande = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (demande) {
+      var p; try { p = demande.call(el); } catch (e) { p = null; }
+      if (p && p.catch) p.catch(function () { document.body.classList.add("plein-css"); syncPlein(); });
+    } else { document.body.classList.add("plein-css"); syncPlein(); } // navigateur sans API Fullscreen
+  });
   (function () {
     var s = document.getElementById("btn-sombre");
     if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
@@ -671,7 +697,10 @@
     if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal(); if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; } deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
+    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal();
+      if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
+      if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
+      deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();
