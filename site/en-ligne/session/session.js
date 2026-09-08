@@ -127,7 +127,7 @@
   var API = "/.netlify/functions/fresque";
   var BASE = "../../";
   var PLAN_W = 4400, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
-  var POLL_MS = 2500;
+  var POLL_MS = 900; // rafraichissement sous la seconde (reactivite)
 
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
@@ -625,11 +625,7 @@
     E.scene.appendChild(editLib);
     setTimeout(function () { try { editLib.focus(); editLib.select(); } catch (e) {} }, 0);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
-    bidir = document.createElement("button");
-    bidir.className = "fleche-bidir"; bidir.textContent = "↔"; bidir.title = S.sensDouble;
-    bidir.setAttribute("aria-pressed", f.bidir ? "true" : "false");
-    bidir.addEventListener("click", function () { agir({ op: "bidirFleche", id: id }); });
-    E.scene.appendChild(bidir);
+    // Le sens de la fleche se choisit a la creation (outils « lien » / « lien ↔ »).
     positionnerEditeurs();
   }
   function selCarte(n, el) { deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel"); }
