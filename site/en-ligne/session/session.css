@@ -60,3 +60,12 @@ body.role-animateur .anim-only.vocal{display:block}
 
 /* Corriger la priorité de [hidden] sur .app{display:flex} */
 .app[hidden], .panneau[hidden], .lobby[hidden]{display:none !important}
+
+/* Mise en evidence de soi dans la liste des participants. */
+.liste-part li.moi{background:var(--accent-doux);border-radius:8px}
+.liste-part li.moi .nom{font-weight:700}
+.liste-part .moi-tag{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--accent-txt);flex:0 0 auto}
+
+/* Masquer les barres (topbar + toolbar) pour un tableau plein cadre. */
+body.barres-cachees .topbar, body.barres-cachees .toolbar{display:none}
+.barres-show{position:fixed;top:.5rem;right:.5rem;z-index:60;box-shadow:var(--ombre)}

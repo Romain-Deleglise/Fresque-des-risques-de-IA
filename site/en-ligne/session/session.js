@@ -25,7 +25,7 @@
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓",
-    plein: "Fullscreen", quitterPlein: "Exit fullscreen",
+    plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
     coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
@@ -48,7 +48,7 @@
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓",
-    plein: "Plein écran", quitterPlein: "Quitter le plein écran",
+    plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
     coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
@@ -77,6 +77,7 @@
       "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
       '.tool[data-outil="fleche"]': "Link", '.tool[data-outil="texte"]': "Note",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
+      "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
       "#vocal-lien": "🎧 Join the voice room",
@@ -124,6 +125,7 @@
    "code-val","code-chip","btn-partager","pioche-n","nb-part","etat-conn","carte0-txt",
    "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
+   "btn-barres","btn-barres-show",
    "liste-part","vocal-url","btn-vocal","vocal-lien","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
@@ -147,17 +149,20 @@
       body: JSON.stringify(Object.assign({ op: op }, extra)) })
       .then(function (r) { return r.json().then(function (d) { return { http: r.ok, d: d }; }); });
   }
-  // Identite par ONGLET (sessionStorage) : deux onglets d'un meme navigateur
-  // sont deux participant·es distinct·es. La reprise apres rechargement d'un
-  // onglet reste possible (sessionStorage survit au reload). En plus, le jeton
-  // de l'animateur est garde en localStorage pour lui permettre de rouvrir sa
-  // session apres avoir ferme l'onglet (lien ?ouvrir= de l'e-mail).
-  function jetonTab(code) { try { return sessionStorage.getItem("fresque:" + code); } catch (e) { return null; } }
-  function stockerJetonTab(code, j) { try { sessionStorage.setItem("fresque:" + code, j); } catch (e) {} }
+  // Identite persistante par NAVIGATEUR (localStorage) : si on quitte puis on
+  // revient (rechargement, coupure reseau, fermeture d'onglet), on reprend la
+  // MEME place au lieu de creer un nouveau participant. Deux cles distinctes :
+  //  - participant : "fresque:CODE"
+  //  - animateur   : "fresque:anim:CODE"
+  // Ainsi, dans un meme navigateur, l'animateur et un participant restent deux
+  // identites separees (utile pour tester les deux roles sur un seul PC). Pour
+  // simuler DEUX participants sur la meme machine, utiliser une fenetre privee.
+  function jetonTab(code) { try { return localStorage.getItem("fresque:" + code); } catch (e) { return null; } }
+  function stockerJetonTab(code, j) { try { localStorage.setItem("fresque:" + code, j); } catch (e) {} }
   function jetonAnim(code) { try { return localStorage.getItem("fresque:anim:" + code); } catch (e) { return null; } }
   function stockerJetonAnim(code, j) { try { localStorage.setItem("fresque:anim:" + code, j); } catch (e) {} }
-  // Enregistre le jeton recu apres creation/jonction (onglet + anim si role animateur).
-  function memoriser(code, jeton, role) { stockerJetonTab(code, jeton); if (role === "animateur") stockerJetonAnim(code, jeton); }
+  // Enregistre le jeton dans la cle correspondant au role (sans croiser les deux).
+  function memoriser(code, jeton, role) { if (role === "animateur") stockerJetonAnim(code, jeton); else stockerJetonTab(code, jeton); }
 
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
@@ -207,7 +212,7 @@
   (function () {
     var m = new URLSearchParams(location.search).get("s");
     if (m) { m = m.toUpperCase(); E["join-code"].value = m;
-      var j = jetonTab(m); // reprise de CET onglet uniquement
+      var j = jetonTab(m) || jetonAnim(m); // reprise (participant ou animateur)
       if (j) api("rejoindre", { code: m, jeton: j }).then(function (res) {
         if (res.d && res.d.jeton) { memoriser(m, res.d.jeton, res.d.role); demarrer(m, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       }).catch(function(){});
@@ -224,7 +229,7 @@
     if (!o) return;
     codeSouhaite = o;
     if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
-    var j = jetonTab(o) || jetonAnim(o); // reprise : cet onglet, sinon jeton animateur garde
+    var j = jetonAnim(o) || jetonTab(o); // reprise : jeton animateur en priorite
     if (j) { // l'animateur a deja ouvert la session : on reprend
       api("rejoindre", { code: o, jeton: j }).then(function (res) {
         if (res.d && res.d.jeton) { memoriser(o, res.d.jeton, res.d.role); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
@@ -359,14 +364,32 @@
   }
   function rendreParticipants(vue) {
     var ul = E["liste-part"]; ul.innerHTML = "";
-    var liA = document.createElement("li");
-    liA.innerHTML = '<span class="pastille' + (vue.animateur.connecte ? '' : ' hs') + '"></span><span class="nom">' + esc(vue.animateur.prenom) + '</span><span class="anim">'+S.animateur+'</span>';
-    ul.appendChild(liA);
-    vue.participants.forEach(function (p) {
+    // Distinguer les homonymes : si un prénom apparaît plusieurs fois, on
+    // numérote les occurrences (Antoine ·1, Antoine ·2) pour que tout le monde
+    // s'y retrouve.
+    var tous = [vue.animateur].concat(vue.participants || []);
+    var compte = {}; tous.forEach(function (x) { var k = (x.prenom || "").toLowerCase(); compte[k] = (compte[k] || 0) + 1; });
+    var vus = {};
+    function nomAffiche(prenom) {
+      var k = (prenom || "").toLowerCase();
+      if (compte[k] > 1) { vus[k] = (vus[k] || 0) + 1; return prenom + " ·" + vus[k]; }
+      return prenom;
+    }
+    function ligne(x, role, estMoi) {
       var li = document.createElement("li");
-      var info = p.carteEnMain != null ? S.carteN(p.carteEnMain) : (p.recues ? S.recues(p.recues) : "");
-      li.innerHTML = '<span class="pastille' + (p.connecte ? '' : ' hs') + '"></span><span class="nom">' + esc(p.prenom) + '</span><span class="info">' + info + '</span>';
-      ul.appendChild(li);
+      if (estMoi) li.className = "moi";
+      var suff = role === "anim"
+        ? '<span class="anim">' + S.animateur + '</span>'
+        : '<span class="info">' + (x.carteEnMain != null ? S.carteN(x.carteEnMain) : (x.recues ? S.recues(x.recues) : "")) + '</span>';
+      li.innerHTML = '<span class="pastille' + (x.connecte ? '' : ' hs') + '"></span>'
+        + '<span class="nom">' + esc(nomAffiche(x.prenom)) + '</span>'
+        + (estMoi ? '<span class="moi-tag">' + S.vous + '</span>' : '')
+        + suff;
+      return li;
+    }
+    ul.appendChild(ligne(vue.animateur, "anim", etat.role === "animateur"));
+    (vue.participants || []).forEach(function (p) {
+      ul.appendChild(ligne(p, "part", p.id === _idMoi));
     });
   }
   function rendreVocal(vue) {
@@ -678,6 +701,15 @@
       if (p && p.catch) p.catch(function () { document.body.classList.add("plein-css"); syncPlein(); });
     } else { document.body.classList.add("plein-css"); syncPlein(); } // navigateur sans API Fullscreen
   });
+
+  // Masquer / afficher les barres (topbar + toolbar) pour agrandir le tableau.
+  function majBarres(cachees) {
+    document.body.classList.toggle("barres-cachees", cachees);
+    if (E["btn-barres-show"]) E["btn-barres-show"].hidden = !cachees;
+    reflowPlein();
+  }
+  if (E["btn-barres"]) E["btn-barres"].addEventListener("click", function () { majBarres(true); });
+  if (E["btn-barres-show"]) E["btn-barres-show"].addEventListener("click", function () { majBarres(false); });
   (function () {
     var s = document.getElementById("btn-sombre");
     if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
@@ -698,6 +730,7 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal();
+      if (document.body.classList.contains("barres-cachees")) { majBarres(false); return; }
       if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
       if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
       deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
