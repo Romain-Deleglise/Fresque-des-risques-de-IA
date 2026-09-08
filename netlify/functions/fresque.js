@@ -184,9 +184,22 @@ exports.handler = async (event) => {
 
     if (d.op === "etat") {
       const code = String(d.code || "").toUpperCase();
-      const r = await muter(st, code, (s) => { R.toucher(s, d.jeton); });
-      if (r.erreur) return json(r.erreur.statut, { refus: r.erreur });
-      const etat = R.vue(r.s);
+      const cur = await lire(st, code);
+      if (!cur) return json(404, { refus: { code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice." } });
+      const s = cur.s;
+      if (expiree(s)) { try { await st.delete(cle(code)); } catch (e) {} return json(404, { refus: { code: "session_inconnue", message: "Session terminée." } }); }
+      // Heartbeat de presence : on ne reecrit le blob que si vuLe est ancien
+      // (> 5 s), pour eviter un write a chaque poll (contention etag) et garder
+      // un polling rapide fluide. La presence (seuil 15 s) reste a jour.
+      const info = s.jetons[d.jeton];
+      if (info) {
+        const cible = info.role === "animateur" ? s.animateur : s.participants.find((p) => p.id === info.id);
+        if (cible && (!cible.connecte || Date.now() - (cible.vuLe || 0) > 5000)) {
+          cible.connecte = true; cible.vuLe = Date.now();
+          try { await ecrire(st, code, s, cur.etag); } catch (e) {}
+        }
+      }
+      const etat = R.vue(s);
       if (d.version && d.version === etat.version) return json(200, { inchange: true, version: etat.version });
       return json(200, { etat });
     }

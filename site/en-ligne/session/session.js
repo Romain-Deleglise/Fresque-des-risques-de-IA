@@ -129,7 +129,12 @@
   var API = "/.netlify/functions/fresque";
   var BASE = "../../";
   var PLAN_W = 4400, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
-  var POLL_MS = 900; // rafraichissement sous la seconde (reactivite)
+  // Polling adaptatif : rapide pendant l'activite (collaboration fluide),
+  // econome au repos. On garde un mode rapide quelques secondes apres chaque
+  // action locale ou changement recu.
+  var POLL_RAPIDE = 250, POLL_LENT = 1200, FENETRE_RAPIDE_MS = 4000;
+  var rapideJusqu = 0;
+  function activite() { rapideJusqu = Date.now() + FENETRE_RAPIDE_MS; }
 
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
@@ -307,15 +312,17 @@
       if (res.d && res.d.etat) appliquerEtat(res.d.etat);
       else if (res.d && res.d.refus) { flash(res.d.refus.message || S.sessionTerminee); }
     }).catch(function () { marquerConnexion(false); }).finally(function () {
-      pollTimer = setTimeout(boucle, POLL_MS);
+      pollTimer = setTimeout(boucle, Date.now() < rapideJusqu ? POLL_RAPIDE : POLL_LENT);
     });
   }
+  function pollerVite() { activite(); clearTimeout(pollTimer); pollTimer = setTimeout(boucle, 60); }
   function marquerConnexion(ok) { if (ok === hs) { hs = !ok; E["etat-conn"].classList.toggle("hs", !ok); } }
 
   /* ---------- Application de l'état serveur (déclaratif) ---------- */
   function appliquerEtat(vue) {
     if (!vue) return;
     if (vue.version < etat.version) return; // vieil état
+    if (vue.version !== etat.version) activite(); // changement reçu : on reste réactif
     etat.vue = vue; etat.version = vue.version;
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
@@ -692,9 +699,11 @@
   /* ---------- Agir (optimiste + envoi) ---------- */
   var envoiEnCours = false, file = [];
   function agir(intention) {
+    activite(); // action locale : on passe en mode reactif
     api("agir", { code: etat.code, jeton: etat.jeton, intention: intention }).then(function (res) {
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
       if (res.d && res.d.etat) appliquerEtat(res.d.etat);
+      pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
     }).catch(function () { marquerConnexion(false); });
   }
 
