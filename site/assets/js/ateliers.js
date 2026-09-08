@@ -16,7 +16,9 @@
     ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
     confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
     desisteOk: "You have been unregistered. Your seat is freed up.",
-    videCta: "Schedule a workshop"
+    videCta: "Schedule a workshop",
+    fTous: "All", fEnligne: "Online", fPresentiel: "In person", fFormat: "Format",
+    afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -29,7 +31,9 @@
     ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
     confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
     desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre.",
-    videCta: "Programmer un atelier"
+    videCta: "Programmer un atelier",
+    fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
+    afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres."
   };
   var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/demander-un-atelier/#vue-animer";
   function videHtml() {
@@ -122,18 +126,74 @@
   /* ---------- Liste + inscription (onglet Participer) ---------- */
   var liste = document.getElementById("liste-ateliers");
   if (liste) {
-    // Le calendrier de « Participer » (data-passes) montre aussi les ateliers
-    // récents (jusqu'à 7 j après), l'aperçu d'accueil seulement les à venir.
-    var montrePasses = liste.hasAttribute("data-passes");
+    // Le calendrier de « Participer » (data-passes) peut révéler les ateliers
+    // récents (jusqu'à 7 j après), masqués par défaut ; l'aperçu d'accueil ne
+    // montre que les à venir. Tri par défaut : du plus proche au plus lointain.
+    var passesDispo = liste.hasAttribute("data-passes");
     poster("liste", {}).then(function (res) {
       var arr = (res.d && res.d.ateliers) || [];
-      var avenir = arr.filter(function (a) { return a.ouvert; }).sort(function (x, y) { return x.quandMs - y.quandMs; });
-      var passes = arr.filter(function (a) { return !a.ouvert; }).sort(function (x, y) { return y.quandMs - x.quandMs; });
-      var show = montrePasses ? avenir.concat(passes) : avenir;
-      if (!show.length) { liste.innerHTML = videHtml(); return; }
-      liste.innerHTML = "";
-      show.forEach(function (a) { liste.appendChild(carte(a)); });
+      if (!arr.length) { liste.innerHTML = videHtml(); return; }
+      initListe(liste, arr, passesDispo);
     }).catch(function () { liste.innerHTML = videHtml(); });
+  }
+
+  // Construit la barre de filtres (format + passés) et gère le rendu filtré.
+  function initListe(liste, arr, passesDispo) {
+    var etat = { format: "tous", passes: false };
+    var avenirTous = arr.filter(function (a) { return a.ouvert; });
+    var passesTous = arr.filter(function (a) { return !a.ouvert; });
+    var modes = {}; arr.forEach(function (a) { modes[a.mode] = true; });
+    var multiFormats = Object.keys(modes).length > 1;
+
+    var barre = document.createElement("div");
+    barre.className = "ateliers-filtres";
+
+    // Segment de format (seulement s'il y a plusieurs formats).
+    if (multiFormats) {
+      var grp = document.createElement("div");
+      grp.className = "seg"; grp.setAttribute("role", "group"); grp.setAttribute("aria-label", T.fFormat);
+      [["tous", T.fTous], ["enligne", T.fEnligne], ["physique", T.fPresentiel]].forEach(function (o) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "seg-btn"; b.dataset.format = o[0]; b.textContent = o[1];
+        b.setAttribute("aria-pressed", o[0] === etat.format ? "true" : "false");
+        b.addEventListener("click", function () {
+          etat.format = o[0];
+          grp.querySelectorAll(".seg-btn").forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.format === o[0] ? "true" : "false"); });
+          rendre();
+        });
+        grp.appendChild(b);
+      });
+      barre.appendChild(grp);
+    }
+
+    // Bascule « afficher les passés » (seulement s'il y en a).
+    var lblPasses = null;
+    if (passesDispo && passesTous.length) {
+      lblPasses = document.createElement("label");
+      lblPasses.className = "filtre-passes";
+      var chk = document.createElement("input"); chk.type = "checkbox";
+      var txt = document.createElement("span");
+      lblPasses.appendChild(chk); lblPasses.appendChild(txt);
+      chk.addEventListener("change", function () { etat.passes = chk.checked; rendre(); });
+      barre.appendChild(lblPasses);
+    }
+
+    if (barre.childNodes.length) liste.parentNode.insertBefore(barre, liste);
+
+    function rendre() {
+      var okFmt = function (a) { return etat.format === "tous" || a.mode === etat.format; };
+      var avenir = avenirTous.filter(okFmt).sort(function (x, y) { return x.quandMs - y.quandMs; });
+      var passes = passesTous.filter(okFmt).sort(function (x, y) { return y.quandMs - x.quandMs; });
+      if (lblPasses) lblPasses.querySelector("span").textContent = " " + T.afficherPasses + " (" + passes.length + ")";
+      var show = etat.passes ? avenir.concat(passes) : avenir;
+      liste.innerHTML = "";
+      if (!show.length) {
+        var p = document.createElement("p"); p.className = "muted ateliers-aucun"; p.textContent = T.aucunResultat;
+        liste.appendChild(p); return;
+      }
+      show.forEach(function (a) { liste.appendChild(carte(a)); });
+    }
+    rendre();
   }
   function carte(a) {
     var el = document.createElement("article");
