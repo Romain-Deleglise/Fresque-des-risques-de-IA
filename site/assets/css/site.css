@@ -468,3 +468,9 @@ a.btn, a.btn:hover { text-decoration: none; }
 .filtre-passes { display: inline-flex; align-items: center; gap: 2px; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); cursor: pointer; user-select: none; }
 .filtre-passes input { width: 1.05em; height: 1.05em; accent-color: var(--accent); cursor: pointer; }
 .ateliers-aucun { padding: 22px 0; }
+
+/* Ligne de confiance (accueil) : projet gratuit, libre, sans traceur. */
+.confiance { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; }
+.confiance li { font-family: var(--f-ui); font-size: .78rem; font-weight: 600; color: var(--ink-doux); background: var(--bg-doux); border: 1px solid var(--ligne); border-radius: 999px; padding: 4px 11px; }
+.confiance li a { color: var(--accent-txt); text-decoration: none; }
+.confiance li a:hover { text-decoration: underline; }
