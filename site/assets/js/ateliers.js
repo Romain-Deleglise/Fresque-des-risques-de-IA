@@ -20,7 +20,7 @@
     fTous: "All", fEnligne: "Online", fPresentiel: "In person", fFormat: "Format",
     afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters.",
     recapCode: "Session code", recapOuvrir: "Open the online board", recapVisio: "Video-call link (shared with attendees)",
-    recapCopier: "Copy", recapCopie: "Copied", recapNote: "Keep this handy: it is also in your confirmation e-mail."
+    recapCopier: "Copy", recapCopie: "Copied", recapCopieNon: "Copy failed", recapNote: "Keep this handy: it is also in your confirmation e-mail."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -37,7 +37,7 @@
     fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
     afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres.",
     recapCode: "Code de session", recapOuvrir: "Ouvrir le tableau en ligne", recapVisio: "Lien de visioconférence (partagé avec les inscrit·es)",
-    recapCopier: "Copier", recapCopie: "Copié", recapNote: "Gardez-le sous la main : il est aussi dans votre e-mail de confirmation."
+    recapCopier: "Copier", recapCopie: "Copié", recapCopieNon: "Copie impossible", recapNote: "Gardez-le sous la main : il est aussi dans votre e-mail de confirmation."
   };
   var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/participer/#vue-animer";
   function videHtml() {
@@ -162,11 +162,31 @@
     else { var sp = document.createElement("span"); sp.className = "recap-val recap-code"; sp.textContent = affiche; l.appendChild(sp); }
     var b = document.createElement("button"); b.type = "button"; b.className = "recap-copier"; b.textContent = T.recapCopier;
     b.addEventListener("click", function () {
-      var done = function () { b.textContent = T.recapCopie; setTimeout(function () { b.textContent = T.recapCopier; }, 1600); };
-      try { navigator.clipboard.writeText(aCopier).then(done, done); } catch (e) { done(); }
+      copieRobuste(aCopier).then(function (ok) {
+        b.textContent = ok ? T.recapCopie : T.recapCopieNon;
+        setTimeout(function () { b.textContent = T.recapCopier; }, 1800);
+      });
     });
     l.appendChild(b);
     return l;
+  }
+  // Copie robuste : API moderne (HTTPS) avec repli execCommand (contexte non
+  // securise, ex. test via l'IP du serveur). true seulement si copie reelle.
+  function copieRobuste(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      return navigator.clipboard.writeText(txt).then(function () { return true; }, function () { return repliCopie(txt); });
+    }
+    return Promise.resolve(repliCopie(txt));
+  }
+  function repliCopie(txt) {
+    try {
+      var ta = document.createElement("textarea"); ta.value = txt;
+      ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
   }
 
   /* ---------- Liste + inscription (onglet Participer) ---------- */

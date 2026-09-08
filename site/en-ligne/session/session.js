@@ -24,7 +24,7 @@
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
-    copie: "copied ✓", lienCopie: "Link copied ✓",
+    copie: "copied ✓", lienCopie: "Link copied ✓", copieEchec: "Copy failed. Select the code and copy it manually.",
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
@@ -32,6 +32,7 @@
     coachAttente: "Waiting for the facilitator to add cards…",
     coachPrendre: "Take a card from the pool and place it on the board.",
     prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
+    poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
@@ -52,7 +53,7 @@
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
-    copie: "copié ✓", lienCopie: "Lien copié ✓",
+    copie: "copié ✓", lienCopie: "Lien copié ✓", copieEchec: "Copie impossible. Sélectionnez le code et copiez-le à la main.",
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
@@ -60,6 +61,7 @@
     coachAttente: "En attente que l'animateur mette des cartes à disposition…",
     coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
     prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
+    poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
@@ -445,20 +447,46 @@
 
   // Pool commun : cartes mises a disposition par l'animateur, visibles de tou·tes.
   // Un clic « Poser » place la carte sur la table (tout le monde). L'animateur
-  // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool.
+  // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool et
+  // regler la taille des cartes (retreci / agrandi), memorisee par navigateur.
   var poolReduit = false;
+  var POOL_TAILLES = [116, 150, 190, 240]; // largeurs possibles des cartes du pool
+  var poolTaille = 1;
+  try { var pt = parseInt(localStorage.getItem("fresque:pooltaille"), 10); if (pt >= 0 && pt < POOL_TAILLES.length) poolTaille = pt; } catch (e) {}
+  function appliquerTaillePool() {
+    var z = E["pool"]; if (z) z.style.setProperty("--pw", POOL_TAILLES[poolTaille] + "px");
+  }
+  function changerTaillePool(delta) {
+    poolTaille = Math.max(0, Math.min(POOL_TAILLES.length - 1, poolTaille + delta));
+    try { localStorage.setItem("fresque:pooltaille", String(poolTaille)); } catch (e) {}
+    appliquerTaillePool();
+    var z = E["pool"]; if (z) { var b = z.querySelector(".pool-moins"), p = z.querySelector(".pool-plus");
+      if (b) b.disabled = poolTaille === 0; if (p) p.disabled = poolTaille === POOL_TAILLES.length - 1; }
+  }
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
     z.innerHTML = "";
+    appliquerTaillePool();
     z.classList.toggle("vide", pool.length === 0 && !poolReduit);
-    // En-tete avec bascule replier / deplier.
+    // En-tete avec bascule replier / deplier et reglage de taille.
     var tete = document.createElement("div"); tete.className = "pool-tete";
     var tog = document.createElement("button"); tog.type = "button"; tog.className = "pool-toggle";
     tog.setAttribute("aria-expanded", poolReduit ? "false" : "true");
     tog.textContent = (poolReduit ? "▸ " : "▾ ") + S.poolTitre + " (" + pool.length + ")";
     tog.addEventListener("click", function () { poolReduit = !poolReduit; rendrePool(etat.vue || vue); });
     tete.appendChild(tog);
+    if (!poolReduit && pool.length) {
+      var moins = document.createElement("button"); moins.type = "button"; moins.className = "pool-taille pool-moins";
+      moins.textContent = "−"; moins.setAttribute("aria-label", S.poolReduire); moins.title = S.poolReduire;
+      moins.disabled = poolTaille === 0;
+      moins.addEventListener("click", function () { changerTaillePool(-1); });
+      var plus = document.createElement("button"); plus.type = "button"; plus.className = "pool-taille pool-plus";
+      plus.textContent = "+"; plus.setAttribute("aria-label", S.poolAgrandir); plus.title = S.poolAgrandir;
+      plus.disabled = poolTaille === POOL_TAILLES.length - 1;
+      plus.addEventListener("click", function () { changerTaillePool(1); });
+      tete.appendChild(moins); tete.appendChild(plus);
+    }
     z.appendChild(tete);
     if (poolReduit) return;
     if (!pool.length) {
@@ -875,9 +903,32 @@
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
   E["code-chip"].addEventListener("click", function () { copier(etat.code, E["code-chip"].querySelector(".copier")); });
   E["btn-partager"].addEventListener("click", function () { copier(location.origin + location.pathname + "?s=" + etat.code, null, E["btn-partager"]); });
-  function copier(txt, badge, btn) { try { navigator.clipboard.writeText(txt); } catch (e) {}
-    if (badge) { var t = badge.textContent; badge.textContent = S.copie; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
-    if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
+  function copier(txt, badge, btn) {
+    copieRobuste(txt).then(function (ok) {
+      if (!ok) { flash(S.copieEchec); return; } // on ne pretend pas avoir copie si ca a echoue
+      if (badge) { var t = badge.textContent; badge.textContent = S.copie; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
+      if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); }
+    });
+  }
+  // Copie robuste : API moderne (contexte securise HTTPS) avec repli sur
+  // execCommand (contexte non securise, ex. test via l'IP du serveur). Renvoie
+  // une promesse resolue a true seulement si la copie a reellement eu lieu.
+  function copieRobuste(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      return navigator.clipboard.writeText(txt).then(function () { return true; }, function () { return repliCopie(txt); });
+    }
+    return Promise.resolve(repliCopie(txt));
+  }
+  function repliCopie(txt) {
+    try {
+      var ta = document.createElement("textarea"); ta.value = txt;
+      ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
+  }
 
   document.addEventListener("keydown", function (e) {
     // Raccourcis d'outils (facon Excalidraw) : 1/2/3/4 (ou H/A/N). Ignores si on

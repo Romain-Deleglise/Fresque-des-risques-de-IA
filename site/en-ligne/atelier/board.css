@@ -175,7 +175,7 @@ a{color:var(--accent-txt);text-decoration:none}
 .pool{position:absolute;left:1rem;right:1rem;bottom:1rem;z-index:20;display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;pointer-events:none}
 .pool.vide{pointer-events:none}
 .pool-vide{pointer-events:auto;margin:0;font-family:var(--f-ui);font-size:.82rem;color:var(--gris);background:var(--surface);border:1px solid var(--ligne);border-radius:8px;padding:.4rem .7rem;box-shadow:var(--ombre)}
-.pool-carte{pointer-events:auto;width:150px;background:var(--surface);border:1px solid var(--ligne);border-top:3px solid var(--lot,var(--accent));border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
+.pool-carte{pointer-events:auto;width:var(--pw,150px);background:var(--surface);border:1px solid var(--ligne);border-top:3px solid var(--lot,var(--accent));border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
 .pool-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .pool-carte .vis img{width:100%;height:100%;object-fit:cover}
 .pool-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--lot,var(--accent));color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
@@ -268,7 +268,10 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 
 /* Pool : en-tete + bascule replier/deplier (pour tou·tes). */
 .pool{flex-direction:column;align-items:flex-start}
-.pool-tete{pointer-events:auto;margin-bottom:.3rem}
+.pool-tete{pointer-events:auto;margin-bottom:.3rem;display:flex;gap:.3rem;align-items:center}
+.pool-taille{width:1.7rem;height:1.7rem;border:1px solid var(--ligne);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;line-height:1;cursor:pointer;box-shadow:var(--ombre);display:grid;place-items:center;padding:0}
+.pool-taille:hover{border-color:var(--accent)}
+.pool-taille:disabled{opacity:.4;cursor:default}
 .pool-toggle{border:1px solid var(--ligne);background:var(--surface);color:var(--ink);border-radius:8px;padding:.25rem .6rem;font-family:var(--f-titre);font-weight:700;font-size:.85rem;cursor:pointer;box-shadow:var(--ombre)}
 .pool-toggle:hover{border-color:var(--accent)}
 .pool-cartes{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
