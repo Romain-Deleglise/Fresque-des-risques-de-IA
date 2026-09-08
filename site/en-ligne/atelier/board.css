@@ -278,3 +278,13 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 
 /* Encadre fixe au survol d'une carte (titre lisible meme dezoome). */
 .survol-carte{position:absolute;top:.6rem;left:50%;transform:translateX(-50%);z-index:40;pointer-events:none;background:var(--surface);border:1px solid var(--ligne);border-left:3px solid var(--accent);border-radius:8px;box-shadow:var(--ombre);padding:.35rem .7rem;font-family:var(--f-titre);font-weight:700;font-size:.95rem;color:var(--ink);max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Glisser-deposer depuis le pool : carte verrouillee (prise par un autre),
+   fantome qui suit le curseur, et surbrillance de la zone de depot. */
+.pool-carte.occupee{opacity:.55;filter:grayscale(.3)}
+.pool-carte.occupee .btn.primaire{cursor:not-allowed}
+.pool-verrou{position:absolute;bottom:4px;left:4px;right:4px;background:rgba(27,26,23,.82);color:#fff;font-family:var(--f-ui);font-size:.66rem;font-weight:600;padding:.12rem .3rem;border-radius:6px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pool-fantome{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%);width:96px;border-radius:9px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.35);opacity:.9;background:#14110d}
+.pool-fantome img{display:block;width:100%;height:60px;object-fit:cover}
+.pool-fantome span{position:absolute;top:3px;left:3px;background:var(--accent);color:#fff;font-family:var(--f-titre);font-size:.7rem;padding:.05rem .3rem;border-radius:4px}
+#scene.depot-actif{box-shadow:inset 0 0 0 3px var(--accent)}

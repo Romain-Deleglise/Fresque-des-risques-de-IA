@@ -104,5 +104,26 @@ r = R.appliquer(s, jAnim, { op: "ping", x: 999999, y: -50 });
 t("ping animateur, coordonnées bornées + nouvel id", s.ping.x <= 3200 && s.ping.y === 0 && s.ping.id !== idPing);
 t("ping exposé dans la vue", R.vue(s).ping && R.vue(s).ping.x === s.ping.x);
 
+// Reservation de carte du pool (verrou souple) + glisser-deposer a un point precis
+var s2 = R.creer("Ani", "ABCDEF").session;
+var jA = "ja"; s2.jetons[jA] = { role: "animateur", id: "a1" };
+var pj = R.rejoindre(s2, "Zoe"); var jZ = pj.jeton;
+R.appliquer(s2, jA, { op: "poolAjouter", n: 5 });
+r = R.appliquer(s2, jZ, { op: "reserverPool", n: 5 });
+t("un joueur reserve une carte du pool", r.ok && R.vue(s2).reservations["5"] === "Zoe");
+r = R.appliquer(s2, jA, { op: "reserverPool", n: 5 });
+t("carte reservee : un autre ne peut pas la prendre", r.refus && r.refus.code === "carte_occupee");
+r = R.appliquer(s2, jZ, { op: "libererPool", n: 5 });
+t("le proprietaire libere sa reservation", r.ok && !R.vue(s2).reservations["5"]);
+r = R.appliquer(s2, jZ, { op: "poserCarte", n: 5, pos: { x: 1000, y: 800 } });
+var posee = s2.tableau.cartes.find(function (c) { return c.n === 5; });
+t("glisser-deposer place la carte pres du point de depot", r.ok && posee && Math.abs(posee.x - (1000 - 80)) < 40 && Math.abs(posee.y - (800 - 75)) < 40);
+t("carte posee : plus dans le pool", s2.pool.indexOf(5) < 0);
+// Concurrence dure : deux prises simultanees, la seconde est refusee
+R.appliquer(s2, jA, { op: "poolAjouter", n: 7 });
+var r1 = R.appliquer(s2, jZ, { op: "poserCarte", n: 7, pos: { x: 500, y: 500 } });
+var r2 = R.appliquer(s2, jA, { op: "poserCarte", n: 7, pos: { x: 900, y: 900 } });
+t("prise concurrente : la seconde est refusee (hors_pool)", r1.ok && r2.refus && r2.refus.code === "hors_pool");
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

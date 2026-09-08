@@ -33,6 +33,7 @@
     coachPrendre: "Take a card from the pool and place it on the board.",
     prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
+    occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
@@ -62,6 +63,7 @@
     coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
     prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
+    occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
@@ -495,21 +497,99 @@
       z.appendChild(v); return;
     }
     var wrap = document.createElement("div"); wrap.className = "pool-cartes";
+    var reserv = vue.reservations || {};
+    var moiNom = nomMoi();
     pool.forEach(function (n) {
       var c = etat.cartes[n];
-      var d = document.createElement("div"); d.className = "pool-carte";
+      var d = document.createElement("div"); d.className = "pool-carte"; d.dataset.n = n;
       if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
-      if (c && c.titre) d.title = n + " · " + c.titre;
-      d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span></div>'
+      // Verrou : carte en cours de prise par quelqu'un d'autre.
+      var par = reserv[n];
+      var verrou = par && par !== moiNom;
+      if (verrou) d.classList.add("occupee");
+      d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
+        + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
         + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
-        + '<div class="pool-actions"><button class="btn primaire" data-a="poser">' + esc(S.prendre) + '</button>'
+        + '<div class="pool-actions"><button class="btn primaire" data-a="poser"' + (verrou ? ' disabled' : '') + '>' + esc(S.prendre) + '</button>'
         + (etat.role === "animateur" ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
         + '</div>';
-      d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
+      d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
+      var poser = d.querySelector('[data-a="poser"]');
+      poser.addEventListener("click", function (e) { e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
       var bx = d.querySelector('[data-a="retirer"]'); if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
+      // Glisser-deposer : depuis la carte du pool vers le tableau.
+      if (!verrou) d.addEventListener("pointerdown", function (e) { demarrerGlissePool(e, n, d); });
       wrap.appendChild(d);
     });
     z.appendChild(wrap);
+  }
+  function nomMoi() { return etat.role === "animateur" ? (etat.vue && etat.vue.animateur && etat.vue.animateur.prenom) || "" : (function () { var m = (etat.vue && etat.vue.participants || []).find(function (p) { return p.id === _idMoi; }); return m ? m.prenom : ""; })(); }
+
+  /* ---------- Glisser-deposer une carte du pool vers le tableau ----------
+     Fiabilite : au premier vrai mouvement on RESERVE la carte cote serveur (les
+     autres la voient verrouillee). Un fantome suit le curseur. Au relacher sur
+     le tableau, on POSE au point de depot (le serveur tranche : une seule prise
+     possible). Ailleurs, on LIBERE la reservation. Un clic simple (sans bouger)
+     ne declenche rien : c'est le bouton « Poser » qui agit. */
+  var glissePool = null;
+  function demarrerGlissePool(e, n, elCarte) {
+    if (e.button && e.button !== 0) return;
+    if (e.target.closest(".pool-actions") || e.target.closest(".pool-x")) return; // clics boutons
+    e.preventDefault();
+    glissePool = { n: n, x0: e.clientX, y0: e.clientY, bouge: false, reserve: false, fantome: null, refuse: false };
+    document.addEventListener("pointermove", glisserPoolMove, true);
+    document.addEventListener("pointerup", glisserPoolUp, true);
+    document.addEventListener("pointercancel", glisserPoolUp, true);
+  }
+  function glisserPoolMove(e) {
+    var g = glissePool; if (!g) return;
+    if (!g.bouge && Math.abs(e.clientX - g.x0) + Math.abs(e.clientY - g.y0) < 5) return;
+    if (!g.bouge) {
+      g.bouge = true;
+      // Reserver au serveur ; si refuse (deja pris), on annule le glissement.
+      api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
+        if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
+        else { g.reserve = true; if (res.d && res.d.etat) appliquerEtat(res.d.etat); }
+      }).catch(function () {});
+      g.fantome = document.createElement("div"); g.fantome.className = "pool-fantome";
+      var c = etat.cartes[g.n];
+      g.fantome.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span>' + g.n + "</span>";
+      document.body.appendChild(g.fantome);
+    }
+    if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
+    // Retour visuel : la scene s'illumine quand on survole une zone deposable.
+    E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
+  }
+  function glisserPoolUp(e) {
+    var g = glissePool; if (!g) return;
+    if (g.refuse) { finGlissePool(true); return; }
+    if (g.bouge && zoneDepot(e.clientX, e.clientY)) {
+      var w = versMonde(e.clientX, e.clientY);
+      agir({ op: "poserCarte", n: g.n, pos: { x: Math.round(w.x), y: Math.round(w.y) }, rect: rectVisible() });
+      finGlissePool(false); // la carte quitte le pool : pas besoin de liberer
+    } else {
+      // Depose hors du tableau (ou simple clic) : on relache la reservation.
+      if (g.bouge && g.reserve) agir({ op: "libererPool", n: g.n });
+      finGlissePool(false);
+    }
+  }
+  function finGlissePool(silence) {
+    var g = glissePool; glissePool = null;
+    document.removeEventListener("pointermove", glisserPoolMove, true);
+    document.removeEventListener("pointerup", glisserPoolUp, true);
+    document.removeEventListener("pointercancel", glisserPoolUp, true);
+    E.scene.classList.remove("depot-actif");
+    if (g && g.fantome) g.fantome.remove();
+  }
+  function surScene(cx, cy) { var r = rectScene(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
+  // Zone de depot valide : sur la scene, mais PAS au-dessus du pool ni des barres
+  // (sinon lacher la carte sur le pool la poserait par erreur). Deposer ailleurs
+  // que sur cette zone annule la prise et libere la reservation.
+  function zoneDepot(cx, cy) {
+    if (!surScene(cx, cy)) return false;
+    var el = document.elementFromPoint(cx, cy);
+    if (el && el.closest && (el.closest("#pool") || el.closest(".deck") || el.closest(".toolbar") || el.closest(".topbar") || el.closest(".pool-fantome"))) return false;
+    return true;
   }
 
   // Jeu complet (animateur) : clic pour mettre une carte dans le pool. Grisee si
