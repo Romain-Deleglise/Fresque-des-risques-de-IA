@@ -88,5 +88,13 @@ t("9e participant refusé", trop.refus && trop.refus.code === "session_pleine");
 const reprise = R.rejoindre(s, "Ana", j1.jeton);
 t("reprise via jeton acceptée même plein", reprise.role === "participant" && reprise.jeton === j1.jeton);
 
+// Exclusion d'un participant (animateur seulement)
+r = R.appliquer(s, j1.jeton, { op: "exclure", id: j2.id });
+t("participant ne peut pas exclure", r.refus && r.refus.code === "droit_insuffisant");
+const avantExcl = s.participants.length;
+R.appliquer(s, jAnim, { op: "exclure", id: j2.id });
+t("animateur exclut un participant", s.participants.length === avantExcl - 1 && !s.participants.some((p) => p.id === j2.id));
+t("jeton du participant exclu invalidé", !s.jetons[j2.jeton]);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

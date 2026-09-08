@@ -31,7 +31,8 @@
     coachPool: "Add cards to the shared pool (deck at the bottom) so the group can place them.",
     coachAttente: "Waiting for the facilitator to add cards…",
     coachPrendre: "Take a card from the pool and place it on the board.",
-    prendre: "Place on board", retirerPool: "Remove from pool",
+    prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
+    horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     poolVide: "Waiting for the facilitator to add cards to the pool.",
     poolVideAnim: "Add cards to the pool from the deck below.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
@@ -57,7 +58,8 @@
     coachPool: "Ajoutez des cartes au pool commun (le jeu, en bas) pour que le groupe les pose.",
     coachAttente: "En attente que l'animateur mette des cartes à disposition…",
     coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
-    prendre: "Poser sur le tableau", retirerPool: "Retirer du pool",
+    prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
+    horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
     poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
@@ -383,19 +385,27 @@
       if (compte[k] > 1) { vus[k] = (vus[k] || 0) + 1; return prenom + " ·" + vus[k]; }
       return prenom;
     }
+    var jeSuisAnim = etat.role === "animateur";
     function ligne(x, role, estMoi) {
       var li = document.createElement("li");
-      if (estMoi) li.className = "moi";
+      li.className = (estMoi ? "moi" : "") + (x.connecte ? "" : " hors");
       var suff = role === "anim"
         ? '<span class="anim">' + S.animateur + '</span>'
-        : '<span class="info">' + (x.carteEnMain != null ? S.carteN(x.carteEnMain) : (x.recues ? S.recues(x.recues) : "")) + '</span>';
+        : (x.connecte ? '' : '<span class="info hors-txt">' + esc(S.horsLigne) + '</span>');
+      // Bouton exclure (animateur, pour un participant).
+      var excl = (jeSuisAnim && role === "part")
+        ? '<button class="part-x" data-excl="' + esc(x.id) + '" title="' + esc(S.exclure) + '" aria-label="' + esc(S.exclure) + '">✕</button>' : '';
       li.innerHTML = '<span class="pastille' + (x.connecte ? '' : ' hs') + '"></span>'
         + '<span class="nom">' + esc(nomAffiche(x.prenom)) + '</span>'
         + (estMoi ? '<span class="moi-tag">' + S.vous + '</span>' : '')
-        + suff;
+        + suff + excl;
+      var bx = li.querySelector('[data-excl]');
+      if (bx) bx.addEventListener("click", function () {
+        if (window.confirm(S.confirmExclure(x.prenom))) agir({ op: "exclure", id: x.id });
+      });
       return li;
     }
-    ul.appendChild(ligne(vue.animateur, "anim", etat.role === "animateur"));
+    ul.appendChild(ligne(vue.animateur, "anim", jeSuisAnim));
     (vue.participants || []).forEach(function (p) {
       ul.appendChild(ligne(p, "part", p.id === _idMoi));
     });
@@ -409,17 +419,28 @@
 
   // Pool commun : cartes mises a disposition par l'animateur, visibles de tou·tes.
   // Un clic « Poser » place la carte sur la table (tout le monde). L'animateur
-  // peut aussi la retirer du pool (x).
+  // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool.
+  var poolReduit = false;
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
     z.innerHTML = "";
-    z.classList.toggle("vide", pool.length === 0);
+    z.classList.toggle("vide", pool.length === 0 && !poolReduit);
+    // En-tete avec bascule replier / deplier.
+    var tete = document.createElement("div"); tete.className = "pool-tete";
+    var tog = document.createElement("button"); tog.type = "button"; tog.className = "pool-toggle";
+    tog.setAttribute("aria-expanded", poolReduit ? "false" : "true");
+    tog.textContent = (poolReduit ? "▸ " : "▾ ") + S.poolTitre + " (" + pool.length + ")";
+    tog.addEventListener("click", function () { poolReduit = !poolReduit; rendrePool(etat.vue || vue); });
+    tete.appendChild(tog);
+    z.appendChild(tete);
+    if (poolReduit) return;
     if (!pool.length) {
       var v = document.createElement("p"); v.className = "pool-vide";
       v.textContent = etat.role === "animateur" ? S.poolVideAnim : S.poolVide;
       z.appendChild(v); return;
     }
+    var wrap = document.createElement("div"); wrap.className = "pool-cartes";
     pool.forEach(function (n) {
       var c = etat.cartes[n];
       var d = document.createElement("div"); d.className = "pool-carte";
@@ -432,8 +453,9 @@
         + '</div>';
       d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
       var bx = d.querySelector('[data-a="retirer"]'); if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
-      z.appendChild(d);
+      wrap.appendChild(d);
     });
+    z.appendChild(wrap);
   }
 
   // Jeu complet (animateur) : clic pour mettre une carte dans le pool. Grisee si
@@ -591,10 +613,17 @@
     var f = etat.vue.tableau.fleches.find(function (x) { return x.id === id; }); if (!f) return;
     editLib = document.createElement("input"); editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle || "";
     editLib.placeholder = S.libelle;
-    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
+    // Fond blanc + texte foncé fixe (sinon, en thème sombre, --ink est clair et
+    // le texte devient illisible sur le fond blanc).
+    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#ffffff;color:#1b1a17;width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
     var envoi = null;
-    editLib.addEventListener("input", function () { clearTimeout(envoi); var v = editLib.value; envoi = setTimeout(function () { agir({ op: "libellerFleche", id: id, libelle: v }); }, 400); });
+    function commitLib() { clearTimeout(envoi); agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
+    editLib._commit = commitLib;
+    editLib.addEventListener("input", function () { clearTimeout(envoi); envoi = setTimeout(commitLib, 350); });
+    editLib.addEventListener("change", commitLib);
+    editLib.addEventListener("keydown", function (e) { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commitLib(); deselect(); } });
     E.scene.appendChild(editLib);
+    setTimeout(function () { try { editLib.focus(); editLib.select(); } catch (e) {} }, 0);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
     bidir = document.createElement("button");
     bidir.className = "fleche-bidir"; bidir.textContent = "↔"; bidir.title = S.sensDouble;
@@ -607,6 +636,7 @@
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
+    if (editLib && editLib._commit) { try { editLib._commit(); } catch (e) {} } // valider le libellé en cours
     etat.sel = null; [croix, editLib, bidir].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = null; dessinerFleches();
   }
   function positionnerEditeurs() {

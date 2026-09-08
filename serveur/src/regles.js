@@ -6,6 +6,7 @@
 var ALPHABET = "ABCDEFGHJKMNPQRTUVWXYZ2346789"; // sans 0 O I 1 L S 5
 var MAX_PARTICIPANTS = 8;
 var MAX_POOL = 8;          // cartes maximum dans le pool commun (pour ne pas surcharger)
+var SEUIL_PRESENCE_MS = 15000; // au-dela, on considere la personne deconnectee
 var NB_CARTES = 38;        // cartes jouables 1..38 (la 0 est l'intro, hors jeu)
 var LIMITE_TEXTES = 200, LIMITE_FLECHES = 300;
 var LEN_PRENOM = 24, LEN_TEXTE = 280, LEN_LIBELLE = 40, LEN_VOCAL = 200;
@@ -86,12 +87,13 @@ function toucher(s, jeton) {
 function bump(s) { s.version++; }
 
 /* --- Vue publique (envoyée aux clients) ---------------------------------- */
+function present(x) { return !!x && x.connecte && (Date.now() - (x.vuLe || 0) < SEUIL_PRESENCE_MS); }
 function vue(s) {
   return {
     code: s.code, version: s.version, clos: s.clos, lienVocal: s.lienVocal,
-    animateur: { prenom: s.animateur.prenom, connecte: s.animateur.connecte },
+    animateur: { prenom: s.animateur.prenom, connecte: present(s.animateur) },
     participants: s.participants.map(function (p) {
-      return { id: p.id, prenom: p.prenom, connecte: p.connecte };
+      return { id: p.id, prenom: p.prenom, connecte: present(p) };
     }),
     pool: s.pool.slice(),
     tableau: s.tableau
@@ -204,6 +206,14 @@ function definirLienVocal(s, url) {
   s.lienVocal = url || null; bump(s); return { ok: true };
 }
 function clore(s) { s.clos = true; bump(s); return { ok: true }; }
+// Exclure un participant (animateur) : le retire et invalide ses jetons.
+function exclure(s, id) {
+  var avant = s.participants.length;
+  s.participants = s.participants.filter(function (p) { return p.id !== id; });
+  Object.keys(s.jetons).forEach(function (j) { if (s.jetons[j].role === "participant" && s.jetons[j].id === id) delete s.jetons[j]; });
+  if (s.participants.length !== avant) bump(s);
+  return { ok: true };
+}
 
 /* --- Aiguillage d'une intention ------------------------------------------ */
 function appliquer(s, jeton, intention) {
@@ -216,13 +226,14 @@ function appliquer(s, jeton, intention) {
 
   // Reservees a l'animateur : gerer le pool, retirer une carte de la table,
   // le lien vocal, clore la session.
-  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, retirerCarte: 1, definirLienVocal: 1, clore: 1 };
+  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, retirerCarte: 1, exclure: 1, definirLienVocal: 1, clore: 1 };
   if (actionsAnim[op] && !estAnim) return { refus: { code: "droit_insuffisant", message: "Réservé à l'animateur." } };
 
   switch (op) {
     case "poolAjouter": return poolAjouter(s, d.n);
     case "poolRetirer": return poolRetirer(s, d.n);
     case "retirerCarte": return retirerCarte(s, d.n);
+    case "exclure": return exclure(s, d.id);
     case "definirLienVocal": return definirLienVocal(s, d.url);
     case "clore": return clore(s);
     case "poserCarte": return poserCarte(s, d.n, d.rect); // prendre du pool -> table (tous)
