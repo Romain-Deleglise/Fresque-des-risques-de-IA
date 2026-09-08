@@ -27,6 +27,8 @@
 #   - RESEND_SEUIL_ALERTE : (optionnel) a partir de ce nombre d'envois dans la
 #     journee, un mail d'alerte previent l'equipe une fois par jour (defaut 80).
 #   - MAIL_ALERTE    : (optionnel) destinataire de l'alerte (defaut contact@pauseia.fr).
+#   - VISIO_BASE     : (optionnel) domaine des salons visio generes automatiquement,
+#     ex https://visio.pauseia.fr pour une instance auto-hebergee (defaut meet.jit.si).
 #   - SITE_URL       : URL publique du site pour les liens des e-mails,
 #     ex https://fresquedesrisquesdelia.org (defaut : ce domaine).
 #   - ADMIN_TOKEN    : cle secrete de l'espace d'administration (/admin/). Sans
