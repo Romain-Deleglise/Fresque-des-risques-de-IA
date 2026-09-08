@@ -56,6 +56,10 @@
 }
 
 * , *::before, *::after { box-sizing: border-box; }
+/* L'attribut [hidden] doit toujours masquer, meme sur les elements dont une
+   classe force display (ex. .btn { display:inline-flex } masquait mal le bouton
+   « Participer », affiche en double une fois le formulaire ouvert). */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);

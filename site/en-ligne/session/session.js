@@ -62,7 +62,7 @@
     document.title = "Session · The AI Risks Collage";
     var txt = {
       "#lobby h1": "Facilitate remotely",
-      ".lobby-sous": "One facilitator, up to eight participants, a shared board. No account.",
+      ".lobby-sous": "Run the collage remotely, on a board shared live in your browser. Nothing to install, no account.",
       "#lobby section:nth-of-type(1) h2": "Open a session",
       'label[for="anim-prenom"]': "Your first name",
       'label[for="anim-code"]': "Workshop code (optional)",
@@ -295,7 +295,7 @@
     if (vue.version < etat.version) return; // vieil état
     etat.vue = vue; etat.version = vue.version;
     E["pioche-n"].textContent = vue.piocheRestante;
-    E["nb-part"].textContent = vue.participants.length;
+    E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
     rendreMain(vue);
     rendreVocal(vue);
