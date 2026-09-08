@@ -35,8 +35,8 @@ function mailImminent(a) {
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">Votre atelier de la Fresque des risques de l\'IA <strong>commence dans environ 1 heure</strong> (' + h(dateLisible(a.date, a.heure)) + ').</p>';
   c += code;
-  if (a.visio) c += '<p style="margin:0 0 16px;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
-  if (a.mode === "enligne") c += '<p style="margin:0;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+  if (a.visio) c += '<p style="margin:0 0 16px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
+  if (a.mode === "enligne") c += '<p style="margin:0;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 

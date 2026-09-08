@@ -31,9 +31,9 @@ function mailHtml(contenu) {
     + '</div></body></html>';
 }
 
-// Bouton d'action (lien stylise).
+// Bouton d'action (lien stylise). Centre par le conteneur (text-align:center).
 function bouton(url, texte) {
-  return '<a href="' + h(url) + '" style="display:inline-block;background:#B3610F;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:8px;">' + h(texte) + '</a>';
+  return '<a href="' + h(url) + '" style="display:inline-block;background:#B3610F;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;line-height:1.2;padding:13px 26px;border-radius:9px;">' + h(texte) + '</a>';
 }
 
 module.exports = { h: h, dateLisible: dateLisible, mailHtml: mailHtml, bouton: bouton };
