@@ -132,7 +132,11 @@
   // Polling adaptatif : rapide pendant l'activite (collaboration fluide),
   // econome au repos. On garde un mode rapide quelques secondes apres chaque
   // action locale ou changement recu.
-  var POLL_RAPIDE = 250, POLL_LENT = 1200, FENETRE_RAPIDE_MS = 4000;
+  // Le serveur maintient la requete d'etat ouverte jusqu'a un changement
+  // ("hold-poll"), donc l'ecart entre deux requetes peut etre tres court : la
+  // requete elle-meme dure. On garde deux cadences de repli au cas ou la
+  // plateforme rende la main tout de suite (requete non tenue).
+  var POLL_RAPIDE = 100, POLL_LENT = 350, FENETRE_RAPIDE_MS = 4000;
   var rapideJusqu = 0;
   function activite() { rapideJusqu = Date.now() + FENETRE_RAPIDE_MS; }
 
@@ -551,6 +555,9 @@
     el.addEventListener("mouseenter", function () { montrerSurvol(n); });
     el.addEventListener("mouseleave", masquerSurvol);
     el.addEventListener("click", function (e) {
+      // Un vrai glissement se termine par un « click » parasite : on l'ignore
+      // pour ne pas selectionner / tracer une fleche par accident.
+      if (el._justDrag && Date.now() - el._justDrag < 320) { el._justDrag = 0; return; }
       if (estFleche(etat.outil)) { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
     });
@@ -570,24 +577,29 @@
   function masquerSurvol() { if (_survol) _survol.hidden = true; }
 
   function glisserCarte(el, n) {
-    var st = null;
+    var st = null, bouge = false;
     el.addEventListener("pointerdown", function (e) {
-      if (etat.outil !== "deplacer" || e.target.closest(".agr")) return;
-      e.stopPropagation(); el.setPointerCapture(e.pointerId); el.style.cursor = "grabbing";
-      etat.dragN = n; st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
+      if (etat.outil !== "deplacer" || e.target.closest(".agr") || (e.button && e.button !== 0)) return;
+      e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch (x) {} el.style.cursor = "grabbing";
+      etat.dragN = n; bouge = false; st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
     });
     el.addEventListener("pointermove", function (e) {
       if (!st) return;
+      if (!bouge && Math.abs(e.clientX - st.mx) + Math.abs(e.clientY - st.my) > 3) bouge = true;
       var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
       var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
       el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; dessinerFleches();
     });
-    el.addEventListener("pointerup", function (e) {
+    function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
       try { el.releasePointerCapture(e.pointerId); } catch (x) {}
       etat.dragN = null;
-      agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });
-    });
+      if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y }); }
+      // Annulation (pointercancel) : on ne touche pas au serveur, la carte
+      // reprend sa derniere position connue au prochain rendu.
+    }
+    el.addEventListener("pointerup", function (e) { fin(e, false); });
+    el.addEventListener("pointercancel", function (e) { fin(e, true); });
   }
 
   /* ---------- Flèches ---------- */
@@ -682,7 +694,10 @@
   function creerElTexte(t) {
     var el = document.createElement("div"); el.className = "c-texte"; el.dataset.id = t.id; el.textContent = t.contenu;
     el.addEventListener("pointerdown", function (e) { glisserTexte(e, el); });
-    el.addEventListener("click", function (e) { e.stopPropagation(); editerTexte(el); });
+    el.addEventListener("click", function (e) {
+      if (el._justDrag && Date.now() - el._justDrag < 320) { el._justDrag = 0; return; }
+      e.stopPropagation(); editerTexte(el);
+    });
     return el;
   }
   function editerTexte(el) {
@@ -694,12 +709,19 @@
     };
   }
   function glisserTexte(e, el) {
-    if (el.getAttribute("contenteditable") === "true" || etat.outil !== "deplacer") return;
-    e.stopPropagation(); el.setPointerCapture(e.pointerId); el._drag = true;
-    var st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
-    function mv(ev) { var x = st.x + (ev.clientX - st.mx) / etat.zoom, y = st.y + (ev.clientY - st.my) / etat.zoom; el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; }
-    function up(ev) { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el._drag = false; try { el.releasePointerCapture(ev.pointerId); } catch (x) {} agir({ op: "deplacerTexte", id: el._id, x: el._x, y: el._y }); }
-    el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up);
+    if (el.getAttribute("contenteditable") === "true" || etat.outil !== "deplacer" || (e.button && e.button !== 0)) return;
+    e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch (x) {} el._drag = true;
+    var bouge = false, st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
+    function mv(ev) { if (!bouge && Math.abs(ev.clientX - st.mx) + Math.abs(ev.clientY - st.my) > 3) bouge = true;
+      var x = st.x + (ev.clientX - st.mx) / etat.zoom, y = st.y + (ev.clientY - st.my) / etat.zoom; el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; }
+    function fin(ev, annule) {
+      el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", cancel);
+      el._drag = false; try { el.releasePointerCapture(ev.pointerId); } catch (x) {}
+      if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerTexte", id: el._id, x: el._x, y: el._y }); }
+    }
+    function up(ev) { fin(ev, false); }
+    function cancel(ev) { fin(ev, true); }
+    el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", cancel);
   }
   function creerNoteLocale(x, y) {
     // note temporaire éditable ; créée côté serveur au blur si non vide

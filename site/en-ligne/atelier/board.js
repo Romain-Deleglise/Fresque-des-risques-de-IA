@@ -80,7 +80,7 @@
     if (compte && compte.firstChild) compte.firstChild.nodeValue = "Deck: ";
     // ecran d'accueil (objectif)
     var iT = document.getElementById("intro-titre"); if (iT) iT.textContent = "Rebuild the map of AI risks";
-    var iB = document.querySelector(".intro-but"); if (iB) iB.textContent = "The goal: connect the 38 cards to build, step by step, a big-picture view — how AI works, what it can do, its risks, and the possible responses.";
+    var iB = document.querySelector(".intro-but"); if (iB) iB.textContent = "The goal: connect the 38 cards to build, step by step, a big-picture view: how AI works, what it can do, its risks, and the possible responses.";
     var iE = document.querySelector(".intro-etapes"); if (iE) iE.innerHTML =
       '<li><b>Draw</b> a card: they come in order, in lots (1 · how it works → 2 · capabilities → 3 · risks → 4 · major risks → 5 · responses).</li>'
       + '<li><b>Place</b> it on the board (the "Place" button or drag), then draw the next one.</li>'
