@@ -542,12 +542,13 @@
 
   function creerElCarte(n) {
     var c = etat.cartes[n]; var el = document.createElement("div"); el.className = "c-carte"; el.dataset.n = n;
-    // Info-bulle au survol : utile quand on est dezoome et que le titre est petit.
-    if (c && c.titre) el.title = n + " · " + c.titre;
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
+    // Encadre fixe au survol (utile quand on est dezoome).
+    el.addEventListener("mouseenter", function () { montrerSurvol(n); });
+    el.addEventListener("mouseleave", masquerSurvol);
     el.addEventListener("click", function (e) {
       if (estFleche(etat.outil)) { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
@@ -556,6 +557,16 @@
     return el;
   }
   function flashPose(el) { el.classList.add("pose-anim"); setTimeout(function () { el.classList.remove("pose-anim"); }, 700); }
+  // Encadre fixe (haut de la scene) qui affiche le titre de la carte survolee.
+  var _survol = null;
+  function montrerSurvol(n) {
+    var c = etat.cartes[n]; if (!c) return;
+    if (!_survol) { _survol = document.getElementById("survol-carte"); }
+    if (!_survol) return;
+    _survol.textContent = n + " · " + c.titre;
+    _survol.hidden = false;
+  }
+  function masquerSurvol() { if (_survol) _survol.hidden = true; }
 
   function glisserCarte(el, n) {
     var st = null;
@@ -816,6 +827,14 @@
     if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
 
   document.addEventListener("keydown", function (e) {
+    // Raccourcis d'outils (facon Excalidraw) : 1/2/3/4 (ou H/A/N). Ignores si on
+    // saisit du texte (champ, note editable).
+    var cible = e.target, saisie = cible && (cible.tagName === "INPUT" || cible.tagName === "TEXTAREA" || cible.getAttribute && cible.getAttribute("contenteditable") === "true");
+    if (!saisie && !e.ctrlKey && !e.metaKey && !e.altKey && !E.modal.classList.contains("on")) {
+      var raccourcis = { "1": "deplacer", "h": "deplacer", "2": "fleche", "a": "fleche", "3": "fleche2", "b": "fleche2", "4": "texte", "n": "texte" };
+      var o = raccourcis[e.key.toLowerCase()];
+      if (o) { e.preventDefault(); setOutil(o); return; }
+    }
     if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal();
       if (document.body.classList.contains("barres-cachees")) { majBarres(false); return; }
       if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }

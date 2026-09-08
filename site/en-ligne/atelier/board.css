@@ -264,3 +264,6 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 .pool-toggle{border:1px solid var(--ligne);background:var(--surface);color:var(--ink);border-radius:8px;padding:.25rem .6rem;font-family:var(--f-titre);font-weight:700;font-size:.85rem;cursor:pointer;box-shadow:var(--ombre)}
 .pool-toggle:hover{border-color:var(--accent)}
 .pool-cartes{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
+
+/* Encadre fixe au survol d'une carte (titre lisible meme dezoome). */
+.survol-carte{position:absolute;top:.6rem;left:50%;transform:translateX(-50%);z-index:40;pointer-events:none;background:var(--surface);border:1px solid var(--ligne);border-left:3px solid var(--accent);border-radius:8px;box-shadow:var(--ombre);padding:.35rem .7rem;font-family:var(--f-titre);font-weight:700;font-size:.95rem;color:var(--ink);max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
