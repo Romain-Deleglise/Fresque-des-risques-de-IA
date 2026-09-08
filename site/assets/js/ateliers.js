@@ -35,7 +35,7 @@
     fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
     afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres."
   };
-  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/demander-un-atelier/#vue-animer";
+  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/participer/#vue-animer";
   function videHtml() {
     return '<div class="ateliers-vide"><p class="muted">' + esc(T.aucun) + "</p>"
       + '<a class="btn btn-2" href="' + HREF_PROG + '">' + esc(T.videCta) + "</a></div>";

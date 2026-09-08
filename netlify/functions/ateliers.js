@@ -187,13 +187,13 @@ function mailDesistParticipant(a, prenom) {
   l.push("");
   l.push("Votre désinscription de l'atelier du " + dateLisible(a.date, a.heure) + " est bien prise en compte. Votre place est de nouveau libre.");
   l.push("");
-  l.push("Au plaisir de vous accueillir à un prochain atelier : " + LIEN + "/demander-un-atelier/");
+  l.push("Au plaisir de vous accueillir à un prochain atelier : " + LIEN + "/participer/");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(prenom) + ',</p>';
   c += '<p style="margin:0 0 16px;">Votre désinscription de l\'atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong> est bien prise en compte. Votre place est de nouveau libre.</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/demander-un-atelier/", "Voir les autres ateliers") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/", "Voir les autres ateliers") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 function mailDesistAnimateur(a, prenom) {
@@ -222,14 +222,14 @@ function mailAnnulation(a) {
   l.push("");
   l.push("L'atelier de la Fresque des risques de l'IA prévu le " + dateLisible(a.date, a.heure) + " a été annulé par l'organisateur·ice. Il n'aura pas lieu.");
   l.push("");
-  l.push("Désolé pour le désagrément. D'autres ateliers sont proposés sur " + LIEN + "/demander-un-atelier/");
+  l.push("Désolé pour le désagrément. D'autres ateliers sont proposés sur " + LIEN + "/participer/");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA prévu le <strong>' + h(dateLisible(a.date, a.heure)) + '</strong> a été <strong>annulé</strong> par l\'organisateur·ice. Il n\'aura pas lieu.</p>';
   c += '<p style="margin:0 0 18px;color:#4a473f;">Désolé pour le désagrément. D\'autres ateliers sont proposés sur le site.</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/demander-un-atelier/", "Voir les ateliers programmés") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/", "Voir les ateliers programmés") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -262,7 +262,7 @@ function mailDeplacement(a, ancien) {
 
 function mailAnimateur(a) {
   const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code;
-  const annulUrl = LIEN + "/demander-un-atelier/?annuler=" + a.code + "&t=" + (a.annulToken || "");
+  const annulUrl = LIEN + "/participer/?annuler=" + a.code + "&t=" + (a.annulToken || "");
   const visibilite = a.visibilite === "prive"
     ? "Votre atelier est privé : il n'apparaît pas dans la liste publique, à vous de communiquer le code aux personnes que vous invitez."
     : "Votre atelier est public : il apparaît dans l'onglet Participer, où chacun peut s'inscrire.";
@@ -294,7 +294,7 @@ function mailAnimateur(a) {
   }
   l.push("Une erreur de saisie ? Vous pouvez annuler cet atelier ici (ne transmettez pas ce lien) :");
   l.push(annulUrl);
-  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/demander-un-atelier/#vue-animer");
+  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/participer/#vue-animer");
   l.push("");
   l.push("À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -315,7 +315,7 @@ function mailAnimateur(a) {
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/demander-un-atelier/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/participer/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
@@ -323,7 +323,7 @@ function mailAnimateur(a) {
 function mailParticipant(a, participant) {
   const prenom = participant.prenom;
   const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code;
-  const desistUrl = LIEN + "/demander-un-atelier/?desister=" + a.code + "&p=" + (participant.token || "");
+  const desistUrl = LIEN + "/participer/?desister=" + a.code + "&p=" + (participant.token || "");
 
   const l = [];
   l.push("Bonjour " + prenom + ",");
