@@ -113,7 +113,7 @@ function expiree(s) {
 async function muter(st, code, fn) {
   for (let essai = 0; essai < 6; essai++) {
     const cur = await lire(st, code);
-    if (!cur) return { erreur: { statut: 404, code: "session_inconnue", message: "Code inconnu ou session terminée." } };
+    if (!cur) return { erreur: { statut: 404, code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice. Vérifiez le code et réessayez peu avant le début." } };
     if (expiree(cur.s)) { try { await st.delete(cle(code)); } catch (e) {} return { erreur: { statut: 404, code: "session_inconnue", message: "Session terminée." } }; }
     const out = fn(cur.s);
     const w = await ecrire(st, code, cur.s, cur.etag);

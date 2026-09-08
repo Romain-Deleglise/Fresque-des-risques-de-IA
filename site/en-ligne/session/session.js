@@ -25,6 +25,7 @@
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓",
+    plein: "Fullscreen", quitterPlein: "Exit fullscreen",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
     coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
@@ -47,6 +48,7 @@
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓",
+    plein: "Plein écran", quitterPlein: "Quitter le plein écran",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
     coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
@@ -63,6 +65,8 @@
       ".lobby-sous": "One facilitator, up to eight participants, a shared board. No account.",
       "#lobby section:nth-of-type(1) h2": "Open a session",
       'label[for="anim-prenom"]': "Your first name",
+      'label[for="anim-code"]': "Workshop code (optional)",
+      "#aide-ouvrir": "Scheduled a workshop? Enter the code from your e-mail to open that session: your registrants can join with the same code. Otherwise leave it blank.",
       "#btn-creer": "Open the session",
       ".lobby-sep span": "or",
       "#lobby section:nth-of-type(2) h2": "Join",
@@ -86,7 +90,8 @@
       ["#btn-passer", "title", "Advance the turn without dealing"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
-      ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"]
+      ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
+      ["#anim-code", "placeholder", "Leave blank for an auto code"]
     ];
     attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
     document.querySelectorAll(".marque").forEach(function (m) {
@@ -115,7 +120,7 @@
   var POLL_MS = 2500;
 
   var E = {}; // éléments DOM
-  ["lobby","app","anim-prenom","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
+  ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
    "code-val","code-chip","btn-partager","pioche-n","nb-part","etat-conn","carte0-txt",
    "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
@@ -142,8 +147,17 @@
       body: JSON.stringify(Object.assign({ op: op }, extra)) })
       .then(function (r) { return r.json().then(function (d) { return { http: r.ok, d: d }; }); });
   }
-  function jetonStocke(code) { try { return localStorage.getItem("fresque:" + code); } catch (e) { return null; } }
-  function stockerJeton(code, j) { try { localStorage.setItem("fresque:" + code, j); } catch (e) {} }
+  // Identite par ONGLET (sessionStorage) : deux onglets d'un meme navigateur
+  // sont deux participant·es distinct·es. La reprise apres rechargement d'un
+  // onglet reste possible (sessionStorage survit au reload). En plus, le jeton
+  // de l'animateur est garde en localStorage pour lui permettre de rouvrir sa
+  // session apres avoir ferme l'onglet (lien ?ouvrir= de l'e-mail).
+  function jetonTab(code) { try { return sessionStorage.getItem("fresque:" + code); } catch (e) { return null; } }
+  function stockerJetonTab(code, j) { try { sessionStorage.setItem("fresque:" + code, j); } catch (e) {} }
+  function jetonAnim(code) { try { return localStorage.getItem("fresque:anim:" + code); } catch (e) { return null; } }
+  function stockerJetonAnim(code, j) { try { localStorage.setItem("fresque:anim:" + code, j); } catch (e) {} }
+  // Enregistre le jeton recu apres creation/jonction (onglet + anim si role animateur).
+  function memoriser(code, jeton, role) { stockerJetonTab(code, jeton); if (role === "animateur") stockerJetonAnim(code, jeton); }
 
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
@@ -152,17 +166,22 @@
   E["btn-creer"].addEventListener("click", function () {
     var prenom = (E["anim-prenom"].value || "").trim();
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
+    // Code de l'atelier saisi (ou pre-rempli par ?ouvrir=) : la session s'ouvre
+    // AVEC ce code, pour que les inscrit·es la rejoignent. Vide = code auto.
+    var code = ((E["anim-code"] && E["anim-code"].value) || codeSouhaite || "").trim().toUpperCase();
+    if (code && !/^[A-Z0-9]{6}$/.test(code)) { lobbyMsg(S.code6, "err"); return; }
     E["btn-creer"].disabled = true; lobbyMsg(S.creation);
-    api("creer", { prenom: prenom, code: codeSouhaite || undefined }).then(function (res) {
+    api("creer", { prenom: prenom, code: code || undefined }).then(function (res) {
       E["btn-creer"].disabled = false;
       if (res.d && res.d.existe) { // la session existe deja : on rejoint (reprise animateur si jeton connu)
-        api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jetonStocke(res.d.code) }).then(function (r2) {
-          if (r2.d && r2.d.jeton) { stockerJeton(res.d.code, r2.d.jeton); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
+        var jr = jetonTab(res.d.code) || jetonAnim(res.d.code);
+        api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jr }).then(function (r2) {
+          if (r2.d && r2.d.jeton) { memoriser(res.d.code, r2.d.jeton, r2.d.role); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
           else lobbyMsg((r2.d && r2.d.refus && r2.d.refus.message) || S.echec, "err");
         }).catch(function () { lobbyMsg(S.indispoMoment, "err"); });
         return;
       }
-      if (res.d && res.d.code) { stockerJeton(res.d.code, res.d.jeton); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
+      if (res.d && res.d.code) { memoriser(res.d.code, res.d.jeton, res.d.role); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
       else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
     }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
   });
@@ -175,9 +194,11 @@
     if (code.length !== 6) { lobbyMsg(S.code6, "err"); return; }
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
     E["btn-rejoindre"].disabled = true; lobbyMsg(S.connexion);
-    api("rejoindre", { code: code, prenom: prenom, jeton: jetonStocke(code) }).then(function (res) {
+    // On ne reutilise QUE le jeton de cet onglet (sessionStorage) : un 2e onglet
+    // du meme navigateur rejoint donc comme une personne distincte.
+    api("rejoindre", { code: code, prenom: prenom, jeton: jetonTab(code) }).then(function (res) {
       E["btn-rejoindre"].disabled = false;
-      if (res.d && res.d.jeton) { stockerJeton(code, res.d.jeton); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+      if (res.d && res.d.jeton) { memoriser(code, res.d.jeton, res.d.role); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || S.codeInconnu, "err");
     }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
@@ -185,10 +206,10 @@
   // reprise auto si ?s=CODE et jeton stocké
   (function () {
     var m = new URLSearchParams(location.search).get("s");
-    if (m) { E["join-code"].value = m.toUpperCase();
-      var j = jetonStocke(m.toUpperCase());
-      if (j) api("rejoindre", { code: m.toUpperCase(), jeton: j }).then(function (res) {
-        if (res.d && res.d.jeton) { stockerJeton(m.toUpperCase(), res.d.jeton); demarrer(m.toUpperCase(), res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+    if (m) { m = m.toUpperCase(); E["join-code"].value = m;
+      var j = jetonTab(m); // reprise de CET onglet uniquement
+      if (j) api("rejoindre", { code: m, jeton: j }).then(function (res) {
+        if (res.d && res.d.jeton) { memoriser(m, res.d.jeton, res.d.role); demarrer(m, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
       }).catch(function(){});
     }
   })();
@@ -201,15 +222,16 @@
     if (pre) { E["join-code"].value = pre; try { E["join-prenom"].focus(); } catch (e) {} }
     var o = (params.get("ouvrir") || "").toUpperCase();
     if (!o) return;
-    var j = jetonStocke(o);
+    codeSouhaite = o;
+    if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
+    var j = jetonTab(o) || jetonAnim(o); // reprise : cet onglet, sinon jeton animateur garde
     if (j) { // l'animateur a deja ouvert la session : on reprend
       api("rejoindre", { code: o, jeton: j }).then(function (res) {
-        if (res.d && res.d.jeton) { stockerJeton(o, res.d.jeton); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-        else { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
-      }).catch(function () { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); });
+        if (res.d && res.d.jeton) { memoriser(o, res.d.jeton, res.d.role); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+        else { lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
+      }).catch(function () { lobbyMsg(S.ouvrirAtelier(o)); });
       return;
     }
-    codeSouhaite = o;
     lobbyMsg(S.ouvrirAtelier(o));
     try { E["anim-prenom"].focus(); } catch (e) {}
   })();
@@ -221,6 +243,8 @@
     document.body.classList.add("role-" + role);
     E.lobby.hidden = true; E.app.hidden = false;
     E["code-val"].textContent = code;
+    // URL de reprise pour cet onglet : un rechargement rejoint la meme place.
+    try { history.replaceState(null, "", location.pathname + "?s=" + code); } catch (e) {}
     demarrerQuandCartes(vue, 0);
   }
   // Les cartes (data/cartes.json) sont indispensables au rendu du tableau.
@@ -629,7 +653,31 @@
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
-  E["btn-plein"].addEventListener("click", function () { document.body.classList.toggle("plein"); setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 50); });
+  // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
+  // repli sur une classe CSS si l'API n'est pas disponible.
+  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 60); }
+  function syncPlein() {
+    var actif = !!(document.fullscreenElement || document.webkitFullscreenElement) || document.body.classList.contains("plein-css");
+    document.body.classList.toggle("plein", actif);
+    if (E["btn-plein"]) { E["btn-plein"].setAttribute("aria-pressed", actif ? "true" : "false"); E["btn-plein"].textContent = actif ? S.quitterPlein : S.plein; }
+    reflowPlein();
+  }
+  document.addEventListener("fullscreenchange", syncPlein);
+  document.addEventListener("webkitfullscreenchange", syncPlein);
+  E["btn-plein"].addEventListener("click", function () {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var sortie = document.exitFullscreen || document.webkitExitFullscreen;
+      if (sortie) { try { sortie.call(document); } catch (e) {} }
+      return;
+    }
+    if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
+    var el = document.documentElement;
+    var demande = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (demande) {
+      var p; try { p = demande.call(el); } catch (e) { p = null; }
+      if (p && p.catch) p.catch(function () { document.body.classList.add("plein-css"); syncPlein(); });
+    } else { document.body.classList.add("plein-css"); syncPlein(); } // navigateur sans API Fullscreen
+  });
   (function () {
     var s = document.getElementById("btn-sombre");
     if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
@@ -649,7 +697,10 @@
     if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal(); if (document.body.classList.contains("plein")) { document.body.classList.remove("plein"); setTimeout(function(){clampPan();applyView();dessinerFleches();},50); return; } deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
+    if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal();
+      if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
+      if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
+      deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();

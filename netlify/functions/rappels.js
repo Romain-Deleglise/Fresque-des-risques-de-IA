@@ -48,8 +48,8 @@ function mailRappel(a) {
   c += '<p style="margin:0 0 16px;">Rappel : votre atelier de la Fresque des risques de l\'IA a lieu <strong>bientôt</strong>.</p>';
   c += info + code;
   if (noms.length) c += '<p style="margin:0 0 16px;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
-  if (a.visio) c += '<p style="margin:0 0 12px;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
-  if (a.mode === "enligne") c += '<p style="margin:0;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+  if (a.visio) c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
+  if (a.mode === "enligne") c += '<p style="margin:0;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }

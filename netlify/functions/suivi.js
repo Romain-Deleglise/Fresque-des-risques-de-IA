@@ -46,7 +46,7 @@ function contenuSuivi() {
   c += '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:16px 18px;margin:0 0 8px;">';
   c += '<p style="margin:0 0 8px;font-weight:700;color:#9a4d0f;">Et si vous animiez à votre tour ?</p>';
   c += '<p style="margin:0 0 14px;color:#4a473f;">La fresque grandit surtout par ses animateurs. Pas besoin d\'être expert : le guide vous prépare, et vous programmez votre atelier en quelques minutes.</p>';
-  c += '<p style="margin:0;">' + bouton(programmer, "Programmer un atelier") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(programmer, "Programmer un atelier") + '</p>';
   c += '</div>';
   c += '<p style="margin:12px 0 0;font-size:13px;color:#8a8577;">Ou d\'abord <a href="' + h(guide) + '" style="color:#8a8577;">télécharger le guide d\'animation</a>.</p>';
 

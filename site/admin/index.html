@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administration · La Fresque des risques de l'IA</title>
+  <link rel="icon" type="image/png" sizes="64x64" href="../assets/img/social/favicon.png">
+  <link rel="stylesheet" href="../assets/css/fonts.css">
+  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin">
+  <header class="admin-entete">
+    <div class="wrap">
+      <span class="admin-marque">Administration <span>Fresque des risques de l'IA</span></span>
+      <div class="admin-actions-tete">
+        <button type="button" id="btn-rafraichir" class="btn-mini" hidden>Rafraîchir</button>
+        <button type="button" id="btn-quitter" class="btn-mini" hidden>Se déconnecter</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap admin-main">
+    <!-- Écran de connexion -->
+    <section id="ecran-cle" class="carte-cle">
+      <h1>Espace d'administration</h1>
+      <p class="muted">Suivi des contacts et statistiques des ateliers. Accès réservé à l'équipe.</p>
+      <form id="form-cle" novalidate>
+        <label>Clé d'accès
+          <input type="password" id="champ-cle" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn-1" type="submit">Entrer</button>
+        <p id="cle-msg" class="msg" role="status" aria-live="polite"></p>
+      </form>
+      <p class="note-rgpd">Les données affichées ici sont des coordonnées personnelles. Ne les utilisez que pour le suivi des ateliers, dans le respect des personnes et du RGPD.</p>
+    </section>
+
+    <!-- Tableau de bord -->
+    <section id="ecran-bord" hidden>
+      <div id="stats" class="stats-grille" aria-live="polite"></div>
+
+      <div class="panneaux">
+        <div class="panneau">
+          <h2>Ateliers par mois</h2>
+          <div id="graph-mois" class="graph"></div>
+        </div>
+        <div class="panneau">
+          <h2>Répartition</h2>
+          <div id="graph-repartition" class="graph"></div>
+        </div>
+      </div>
+
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Contacts <span id="compte-contacts" class="pastille"></span></h2>
+          <div class="table-outils">
+            <input type="search" id="recherche" placeholder="Rechercher un nom, un e-mail…" aria-label="Rechercher">
+            <select id="filtre-role" aria-label="Filtrer par rôle">
+              <option value="tous">Tous</option>
+              <option value="animateur">Animateur·ices</option>
+              <option value="participant">Participant·es</option>
+              <option value="actifs">Non désinscrit·es</option>
+            </select>
+            <button type="button" id="btn-copier" class="btn-mini">Copier les e-mails</button>
+            <button type="button" id="btn-csv" class="btn-mini">Exporter (CSV)</button>
+          </div>
+        </div>
+        <div class="table-enrobe">
+          <table class="table-contacts">
+            <thead>
+              <tr>
+                <th>Prénom</th><th>E-mail</th><th>Rôle</th>
+                <th class="num">Ateliers</th><th>Dernier contact</th><th>Statut</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="corps-contacts"></tbody>
+          </table>
+          <p id="vide-contacts" class="muted" hidden>Aucun contact pour l'instant. Les animateur·ices et participant·es apparaîtront ici dès les premières inscriptions.</p>
+        </div>
+      </div>
+
+      <p class="note-rgpd">
+        Base légale : intérêt légitime de l'association (développer la fresque et assurer le suivi des ateliers).
+        Toute personne peut demander sa désinscription ou l'effacement de ses données à
+        <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a> ; utilisez les actions ci-dessus pour y donner suite.
+      </p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="../assets/js/admin.js" defer></script>
+</body>
+</html>

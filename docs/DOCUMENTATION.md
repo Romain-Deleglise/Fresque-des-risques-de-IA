@@ -134,7 +134,9 @@ Fonctions serverless Netlify (/.netlify/functions/*)
 │
 ├── scripts/
 │   ├── valider-cartes.mjs    # Valide cartes.json (39 entrées, 0..38, 1 intro)
-│   ├── generer-images.py     # Génère les WebP des cartes (Pillow)
+│   ├── generer-cartes-web.py # Génère les WebP des cartes depuis les PDF (ghostscript + Pillow)
+│   ├── generer-planche.py    # Planche d'impression A4 (pikepdf + compression)
+│   ├── generer-images.py     # Ancien générateur WebP (sources image, Pillow)
 │   └── audit-a11y.mjs        # Audit accessibilité (axe-core + Playwright)
 │
 ├── contenus/                 # Sources des cartes (PDF, illustrations) - non publié
@@ -263,15 +265,19 @@ carte, dans `contenus/cartes/`). Pour chaque carte on produit, en WebP :
 - recto HD (`assets/img/cartes-hd/`),
 - verso HD (`assets/img/cartes-verso/`).
 
-Rendu haute définition (DPI 320, qualité 92) pour que le texte du verso reste
-net. Le script historique `scripts/generer-images.py` (Pillow) couvre le cas
-« sources image » ; le rendu depuis les PDF utilise ghostscript + Pillow.
+Rendu haute définition (DPI 320, qualité WebP 95) pour que le texte du verso
+reste net et sans halo sur les fonds noirs. Script :
+`scripts/generer-cartes-web.py` (ghostscript + Pillow, lit les PDF de
+`contenus/cartes/`). Le script historique `scripts/generer-images.py` (Pillow,
+sources image aplaties sur blanc) est conservé pour référence.
 
 ### 6.3 Téléchargements (`site/telechargements/`)
 
 - `fresque-des-risques-de-l-ia-cartes.pdf` : **planche d'impression** A4,
   4 cartes par feuille, recto/verso en vis-à-vis pour une impression duplex
-  « bord long » (20 pages, ~5 Mo).
+  « bord long » (20 pages, ~6 Mo). Généré par `scripts/generer-planche.py`
+  (imposition pikepdf + compression JPEG q97). Une marge de sécurité entoure
+  la planche pour éviter le rognage haut/bas à l'impression « taille réelle ».
 - `guide-animateur-fresque-des-risques-de-l-ia.pdf` : guide d'animation.
 
 Le bouton « Télécharger » de la navigation pointe directement sur le PDF des
@@ -349,6 +355,27 @@ Mesure d'audience **sans cookie ni traceur**, même origine. `collect` reçoit u
 vue de page anonyme et l'agrège par jour dans le magasin `audience` (aucune IP
 stockée, aucun identifiant de visiteur : exemptée de consentement CNIL).
 `stats` (GET) lit les agrégats ; l'accès peut être protégé par `AUDIENCE_KEY`.
+
+### 7.4b Contacts et administration : `admin.js` (+ `lib/contacts.js`)
+
+Registre durable des contacts, séparé des ateliers (qui sont purgés 7 j après
+leur date). `lib/contacts.js` tient le magasin Blobs `fresque-contacts` : une
+entrée par e-mail (clé = empreinte SHA-256 de l'adresse), alimentée par
+`ateliers.js` à la programmation (rôle animateur·ice) et à l'inscription (rôle
+participant·e), en **best-effort** (une panne du registre ne bloque jamais une
+inscription). Chaque entrée garde le prénom, les rôles, le nombre d'ateliers,
+les dates de premier/dernier contact, l'historique (borné) et un indicateur de
+désinscription.
+
+`admin.js` est l'API de l'espace `/admin/`, **protégée par `ADMIN_TOKEN`**
+(comparaison à temps constant ; sans la variable, la fonction renvoie 503). Elle
+fournit les statistiques agrégées (nombre d'ateliers, animateur·ices,
+participant·es, répartition en ligne/présentiel, ateliers par mois), la liste
+des contacts, l'export CSV, et la désinscription/effacement d'un contact (droits
+RGPD). La page `site/admin/` (non indexée, `Disallow` dans `robots.txt`) affiche
+un tableau de bord ; sa clé est saisie à la connexion et gardée le temps de
+l'onglet. Base légale : intérêt légitime, avec mention au moment de la collecte
+et effacement sur demande (voir les mentions légales).
 
 ### 7.5 Newsletter : `subscribe.js`
 
@@ -558,6 +585,7 @@ dans le dépôt) :
 | `MAIL_REPONSE` | mail.js | (optionnel) Reply-To, ex. `contact@pauseia.fr` |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
+| `ADMIN_TOKEN` | admin.js | Clé secrète de l'espace `/admin/`. Sans elle, l'espace est désactivé (503) |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |
@@ -587,7 +615,8 @@ node --test serveur/tests/ateliers.test.mjs
 node scripts/valider-cartes.mjs
 ```
 
-Régénérer les visuels des cartes : voir `scripts/generer-images.py`
+Régénérer les visuels web des cartes : `scripts/generer-cartes-web.py` ;
+la planche d'impression : `scripts/generer-planche.py`
 (dépend de Pillow ; le rendu depuis les PDF utilise ghostscript).
 
 ---
