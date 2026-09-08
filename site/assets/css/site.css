@@ -456,7 +456,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 .atelier-form .msg.err { color: var(--err); }
 
 /* Mention d'information sur les donnees personnelles, sous les formulaires. */
-.rgpd-note { font-size: .8rem; line-height: 1.55; color: var(--gris-clair); max-width: 46rem; margin-top: 16px; }
+.rgpd-note { font-size: .8rem; line-height: 1.55; color: var(--gris); max-width: 46rem; margin-top: 16px; }
 
 /* Barre de filtres des ateliers programmes (format + passes). */
 .ateliers-filtres { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin: 0 0 20px; }
