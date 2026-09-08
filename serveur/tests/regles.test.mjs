@@ -18,6 +18,8 @@ t("animateur sans main", s.animateur.carteEnMain === undefined);
 const j1 = R.rejoindre(s, "Ana");
 const j2 = R.rejoindre(s, "Bo");
 t("2 participants", s.participants.length === 2);
+t("jonctions distinctes = jetons distincts", j1.jeton && j2.jeton && j1.jeton !== j2.jeton);
+t("jonctions distinctes = identifiants distincts", j1.id !== j2.id);
 t("jetons distincts", j1.jeton && j2.jeton && j1.jeton !== j2.jeton);
 
 // Distribution dans l'ordre
