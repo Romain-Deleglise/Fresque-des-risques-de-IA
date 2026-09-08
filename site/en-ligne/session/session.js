@@ -63,6 +63,8 @@
       ".lobby-sous": "One facilitator, up to eight participants, a shared board. No account.",
       "#lobby section:nth-of-type(1) h2": "Open a session",
       'label[for="anim-prenom"]': "Your first name",
+      'label[for="anim-code"]': "Workshop code (optional)",
+      "#aide-ouvrir": "Scheduled a workshop? Enter the code from your e-mail to open that session: your registrants can join with the same code. Otherwise leave it blank.",
       "#btn-creer": "Open the session",
       ".lobby-sep span": "or",
       "#lobby section:nth-of-type(2) h2": "Join",
@@ -86,7 +88,8 @@
       ["#btn-passer", "title", "Advance the turn without dealing"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
-      ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"]
+      ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
+      ["#anim-code", "placeholder", "Leave blank for an auto code"]
     ];
     attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
     document.querySelectorAll(".marque").forEach(function (m) {
@@ -115,7 +118,7 @@
   var POLL_MS = 2500;
 
   var E = {}; // éléments DOM
-  ["lobby","app","anim-prenom","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
+  ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
    "code-val","code-chip","btn-partager","pioche-n","nb-part","etat-conn","carte0-txt",
    "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
@@ -152,8 +155,12 @@
   E["btn-creer"].addEventListener("click", function () {
     var prenom = (E["anim-prenom"].value || "").trim();
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
+    // Code de l'atelier saisi (ou pre-rempli par ?ouvrir=) : la session s'ouvre
+    // AVEC ce code, pour que les inscrit·es la rejoignent. Vide = code auto.
+    var code = ((E["anim-code"] && E["anim-code"].value) || codeSouhaite || "").trim().toUpperCase();
+    if (code && !/^[A-Z0-9]{6}$/.test(code)) { lobbyMsg(S.code6, "err"); return; }
     E["btn-creer"].disabled = true; lobbyMsg(S.creation);
-    api("creer", { prenom: prenom, code: codeSouhaite || undefined }).then(function (res) {
+    api("creer", { prenom: prenom, code: code || undefined }).then(function (res) {
       E["btn-creer"].disabled = false;
       if (res.d && res.d.existe) { // la session existe deja : on rejoint (reprise animateur si jeton connu)
         api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jetonStocke(res.d.code) }).then(function (r2) {
@@ -201,15 +208,16 @@
     if (pre) { E["join-code"].value = pre; try { E["join-prenom"].focus(); } catch (e) {} }
     var o = (params.get("ouvrir") || "").toUpperCase();
     if (!o) return;
+    codeSouhaite = o;
+    if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
     var j = jetonStocke(o);
     if (j) { // l'animateur a deja ouvert la session : on reprend
       api("rejoindre", { code: o, jeton: j }).then(function (res) {
         if (res.d && res.d.jeton) { stockerJeton(o, res.d.jeton); demarrer(o, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-        else { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
-      }).catch(function () { codeSouhaite = o; lobbyMsg(S.ouvrirAtelier(o)); });
+        else { lobbyMsg(S.ouvrirAtelier(o)); try { E["anim-prenom"].focus(); } catch (e) {} }
+      }).catch(function () { lobbyMsg(S.ouvrirAtelier(o)); });
       return;
     }
-    codeSouhaite = o;
     lobbyMsg(S.ouvrirAtelier(o));
     try { E["anim-prenom"].focus(); } catch (e) {}
   })();

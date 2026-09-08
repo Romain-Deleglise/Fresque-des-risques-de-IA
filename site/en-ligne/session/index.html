@@ -39,7 +39,10 @@
         <h2>Ouvrir une session</h2>
         <label for="anim-prenom">Votre prénom</label>
         <input id="anim-prenom" type="text" maxlength="24" placeholder="Prénom" autocomplete="given-name">
+        <label for="anim-code">Code de l'atelier <span class="opt">(optionnel)</span></label>
+        <input id="anim-code" type="text" maxlength="6" placeholder="Laisser vide pour un code auto" autocomplete="off" style="text-transform:uppercase">
         <button class="btn primaire large" id="btn-creer">Ouvrir la session</button>
+        <p class="aide-lobby" id="aide-ouvrir">Vous avez programmé un atelier ? Saisissez le code reçu par e-mail pour ouvrir cette session : vos inscrit·es pourront la rejoindre avec le même code. Sinon, laissez vide.</p>
       </section>
       <div class="lobby-sep" aria-hidden="true"><span>ou</span></div>
       <section>
