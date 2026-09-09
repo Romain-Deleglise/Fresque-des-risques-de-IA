@@ -258,12 +258,21 @@
   }
   (function () {
     var params = new URLSearchParams(location.search);
+    var preNom = params.get("prenom") || ""; // prenom pre-rempli via le lien de l'e-mail
     var pre = (params.get("code") || "").toUpperCase();
-    if (pre) { E["join-code"].value = pre; lobbyRole("participant"); try { E["join-prenom"].focus(); } catch (e) {} }
+    if (pre) {
+      E["join-code"].value = pre;
+      if (preNom) E["join-prenom"].value = preNom;
+      lobbyRole("participant");
+      // Si tout est pre-rempli, on place le focus sur le bouton Rejoindre : il ne
+      // reste qu'un clic (on arrive direct sur la bonne session).
+      try { (preNom ? E["btn-rejoindre"] : E["join-prenom"]).focus(); } catch (e) {}
+    }
     var o = (params.get("ouvrir") || "").toUpperCase();
     if (!o) return;
     lobbyRole("animateur");
     codeSouhaite = o;
+    if (preNom && E["anim-prenom"]) E["anim-prenom"].value = preNom;
     if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
     var j = jetonAnim(o) || jetonTab(o); // reprise : jeton animateur en priorite
     if (j) { // l'animateur a deja ouvert la session : on reprend

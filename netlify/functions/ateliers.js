@@ -262,7 +262,7 @@ function mailDeplacement(a, ancien) {
 }
 
 function mailAnimateur(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code;
+  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code + "&prenom=" + encodeURIComponent(a.animateur.prenom || "");
   const annulUrl = LIEN + "/participer/?annuler=" + a.code + "&t=" + (a.annulToken || "");
   const visibilite = a.visibilite === "prive"
     ? "Votre atelier est privé : il n'apparaît pas dans la liste publique, à vous de communiquer le code aux personnes que vous invitez."
@@ -328,7 +328,7 @@ function mailAnimateur(a) {
 
 function mailParticipant(a, participant) {
   const prenom = participant.prenom;
-  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code;
+  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code + "&prenom=" + encodeURIComponent(prenom || "");
   const desistUrl = LIEN + "/participer/?desister=" + a.code + "&p=" + (participant.token || "");
 
   const l = [];
