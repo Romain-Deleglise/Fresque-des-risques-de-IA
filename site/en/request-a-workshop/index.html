@@ -126,33 +126,38 @@
           <p class="muted rgpd-note">Your first name and e-mail are kept by Pause IA to manage your workshops and for any follow-up. Erasure on request at <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a> (see the <a href="../../en/legal/">legal notice</a>).</p>
         </form>
 
-        <div class="annuler-atelier">
-          <h3>Move a workshop</h3>
-          <p class="muted">A change of date? Enter the code, the facilitator's e-mail and the new date: registrants are notified automatically.</p>
-          <form id="form-deplacer" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
-              <label>New date<input name="date" type="date" required></label>
-              <label>New time<input name="heure" type="time" required></label>
-            </div>
-            <button class="btn btn-noir" type="submit">Move this workshop</button>
-            <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
+        <details class="gerer-atelier" id="gerer">
+          <summary>Manage an existing workshop (move or cancel)</summary>
+          <p class="muted">Use the session code from your confirmation e-mail. Note: that same e-mail already has a one-click cancel link.</p>
 
-        <div class="annuler-atelier">
-          <h3>Cancel a workshop</h3>
-          <p class="muted">Made a mistake? Enter the session code and the facilitator's e-mail to remove it from the list. (The link in your e-mail also cancels it in one click.)</p>
-          <form id="form-annuler" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>Facilitator's e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
-            </div>
-            <button class="btn btn-noir" type="submit">Cancel this workshop</button>
-            <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
+          <div class="gerer-bloc">
+            <h3>Move (change the date)</h3>
+            <p class="muted">Enter the code, the facilitator's e-mail and the new date: registrants are notified automatically.</p>
+            <form id="form-deplacer" class="form-atelier" novalidate>
+              <div class="grille-champs">
+                <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+                <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                <label>New date<input name="date" type="date" required></label>
+                <label>New time<input name="heure" type="time" required></label>
+              </div>
+              <button class="btn btn-noir" type="submit">Move this workshop</button>
+              <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="gerer-bloc">
+            <h3>Cancel</h3>
+            <p class="muted">Enter the session code and the facilitator's e-mail to remove it from the list.</p>
+            <form id="form-annuler" class="form-atelier" novalidate>
+              <div class="grille-champs">
+                <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
+                <label>Facilitator's e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+              </div>
+              <button class="btn btn-noir" type="submit">Cancel this workshop</button>
+              <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+        </details>
       </div>
     </section>
 

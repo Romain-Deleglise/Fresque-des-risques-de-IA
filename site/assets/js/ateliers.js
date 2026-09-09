@@ -74,6 +74,13 @@
     bP.addEventListener("click", function () { voir(false, true); });
     bA.addEventListener("click", function () { voir(true, true); });
     if (location.hash === "#vue-animer") voir(true);
+    // Lien de l'e-mail « gérer / déplacer » : on montre la vue animer, on ouvre
+    // le bloc repliable et on le fait défiler à vue (parcours sans friction).
+    if (location.hash === "#gerer") {
+      voir(true);
+      var g = document.getElementById("gerer");
+      if (g) { g.open = true; try { g.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { g.scrollIntoView(); } }
+    }
   }
 
   /* ---------- Formulaire animateur : programmer un atelier ---------- */
@@ -128,8 +135,9 @@
     });
   }
 
-  // Recapitulatif affiche a l'animateur des la creation : code, lien d'ouverture
-  // du tableau, et lien de visio (perso ou genere) qu'il peut copier / partager.
+  // Recapitulatif compact affiche a l'animateur des la creation : juste le code
+  // (copiable) et un lien pour ouvrir le tableau. Le reste (visio, guide...) est
+  // deja dans l'e-mail de confirmation, on ne le duplique pas ici.
   function recapAtelier(a) {
     if (!a || !a.code) return;
     var hote = document.getElementById("recap-atelier");
@@ -141,16 +149,10 @@
     }
     hote.innerHTML = "";
     var ouvrir = "/en-ligne/session/?ouvrir=" + encodeURIComponent(a.code);
-    // Ligne code
     hote.appendChild(ligneRecap(T.recapCode, a.code, a.code));
-    // Bouton ouvrir le tableau (en ligne surtout, mais toujours utile)
-    var pA = document.createElement("p"); pA.style.margin = "10px 0";
+    var pA = document.createElement("p"); pA.style.margin = "10px 0 0";
     var bA = document.createElement("a"); bA.className = "btn"; bA.href = ouvrir; bA.target = "_blank"; bA.rel = "noopener";
     bA.textContent = T.recapOuvrir; pA.appendChild(bA); hote.appendChild(pA);
-    // Lien visio (si present)
-    if (a.visio) hote.appendChild(ligneRecap(T.recapVisio, a.visio, a.visio, true));
-    var note = document.createElement("p"); note.className = "muted"; note.style.fontSize = ".85rem"; note.style.margin = "6px 0 0";
-    note.textContent = T.recapNote; hote.appendChild(note);
     try { hote.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
   }
   // Une ligne « libellé : valeur » avec bouton Copier (valeur copiee au presse-papier).
