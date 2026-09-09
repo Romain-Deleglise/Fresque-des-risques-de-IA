@@ -1321,9 +1321,12 @@
     var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = true; // plus de main individuelle
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
-  E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });
+  // Retourner : le bouton ET le clic sur la carte retournent. stopPropagation
+  // sur les boutons de la barre, sinon le clic remonte a .carte-grande et
+  // annule aussitot le retournement (double bascule).
+  E["modal-flip"].addEventListener("click", function (e) { e.stopPropagation(); E["carte-grande"].classList.toggle("flip"); });
   E["carte-grande"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); }); // clic = retourner
-  E["modal-close"].addEventListener("click", fermerModal);
+  E["modal-close"].addEventListener("click", function (e) { e.stopPropagation(); fermerModal(); });
   E.modal.addEventListener("click", function (e) { if (e.target === E.modal) fermerModal(); });
 
   /* ---------- utilitaires ---------- */
