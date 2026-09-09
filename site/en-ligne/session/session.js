@@ -34,6 +34,7 @@
     prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
     occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
+    versPool: "↩ To the pool", versReserve: "✕ To my deck",
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
@@ -64,6 +65,7 @@
     prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
     occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
+    versPool: "↩ Remettre au pool", versReserve: "✕ Dans ma réserve",
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
@@ -769,7 +771,7 @@
   }
 
   /* ---------- Sélection flèche : libellé + suppression ---------- */
-  var croix = null, editLib = null, bidir = null;
+  var croix = null, editLib = null, bidir = null, barreCarte = null;
   function selFleche(id) {
     deselect(); etat.sel = { type: "fleche", id: id }; dessinerFleches();
     var f = etat.vue.tableau.fleches.find(function (x) { return x.id === id; }); if (!f) return;
@@ -790,12 +792,26 @@
     // Le sens de la fleche se choisit a la creation (outils « lien » / « lien ↔ »).
     positionnerEditeurs();
   }
-  function selCarte(n, el) { deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel"); }
+  function selCarte(n, el) {
+    deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel");
+    // L'animateur peut reprendre une carte posee : la remettre au pool commun, ou
+    // dans sa reserve (le jeu complet). Petite barre d'actions au-dessus de la carte.
+    if (etat.role === "animateur") {
+      barreCarte = document.createElement("div"); barreCarte.className = "carte-actions";
+      var bPool = document.createElement("button"); bPool.type = "button"; bPool.className = "btn mini"; bPool.textContent = S.versPool;
+      bPool.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "retirerCarte", n: n, dest: "pool" }); deselect(); });
+      var bRes = document.createElement("button"); bRes.type = "button"; bRes.className = "btn mini"; bRes.textContent = S.versReserve;
+      bRes.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "retirerCarte", n: n }); deselect(); });
+      barreCarte.appendChild(bPool); barreCarte.appendChild(bRes);
+      E.scene.appendChild(barreCarte);
+      positionnerEditeurs();
+    }
+  }
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
     if (editLib && editLib._commit) { try { editLib._commit(); } catch (e) {} } // valider le libellé en cours
-    etat.sel = null; [croix, editLib, bidir].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = null; dessinerFleches();
+    etat.sel = null; [croix, editLib, bidir, barreCarte].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = barreCarte = null; dessinerFleches();
   }
   function positionnerEditeurs() {
     if (etat.sel && etat.sel.type === "fleche") {
@@ -804,6 +820,15 @@
         if (croix) { croix.style.left = px + "px"; croix.style.top = (py - 16) + "px"; }
         if (bidir) { bidir.style.left = (px - 30) + "px"; bidir.style.top = (py - 16) + "px"; }
         if (editLib) { editLib.style.left = (px + 14) + "px"; editLib.style.top = (py - 14) + "px"; } }
+    } else if (etat.sel && etat.sel.type === "carte" && barreCarte) {
+      var c = etat.elCartes[etat.sel.n];
+      if (c) {
+        var cx = etat.panX + (c._x || 0) * etat.zoom;
+        var cy = etat.panY + (c._y || 0) * etat.zoom;
+        var haut = cy - 38;
+        barreCarte.style.left = cx + "px";
+        barreCarte.style.top = (haut < 4 ? cy + (c.offsetHeight * etat.zoom) + 6 : haut) + "px";
+      }
     }
   }
 

@@ -125,5 +125,17 @@ var r1 = R.appliquer(s2, jZ, { op: "poserCarte", n: 7, pos: { x: 500, y: 500 } }
 var r2 = R.appliquer(s2, jA, { op: "poserCarte", n: 7, pos: { x: 900, y: 900 } });
 t("prise concurrente : la seconde est refusee (hors_pool)", r1.ok && r2.refus && r2.refus.code === "hors_pool");
 
+// Animateur : remettre une carte de la table vers le pool, ou vers la reserve
+var s3 = R.creer("Ani", "GHIJKL").session;
+var jA3 = "ja3"; s3.jetons[jA3] = { role: "animateur", id: "a1" };
+R.appliquer(s3, jA3, { op: "poolAjouter", n: 10 });
+R.appliquer(s3, jA3, { op: "poserCarte", n: 10, pos: { x: 800, y: 800 } });
+R.appliquer(s3, jA3, { op: "poolAjouter", n: 11 });
+R.appliquer(s3, jA3, { op: "poserCarte", n: 11, pos: { x: 1200, y: 800 } });
+r = R.appliquer(s3, jA3, { op: "retirerCarte", n: 10, dest: "pool" });
+t("carte de la table remise au pool", r.ok && s3.pool.indexOf(10) >= 0 && !s3.tableau.cartes.some(function (c) { return c.n === 10; }));
+r = R.appliquer(s3, jA3, { op: "retirerCarte", n: 11 });
+t("carte de la table remise en reserve (hors pool et hors table)", r.ok && s3.pool.indexOf(11) < 0 && !s3.tableau.cartes.some(function (c) { return c.n === 11; }));
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

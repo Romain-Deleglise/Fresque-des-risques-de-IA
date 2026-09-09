@@ -212,9 +212,18 @@ function deplacerCarte(s, n, x, y) {
   var c = s.tableau.cartes.find(function (c) { return c.n === n; }); if (!c) return { refus: { code: "carte_absente" } };
   c.x = borne(+x || 0, 0, PLAN_W - 150); c.y = borne(+y || 0, 0, PLAN_H - 150); bump(s); return { ok: true };
 }
-function retirerCarte(s, n) {
+// Retire une carte de la table (animateur). `dest` : "pool" pour la remettre
+// dans le pool commun, sinon elle retourne dans la reserve (le jeu complet, ou
+// elle redevient disponible). Les fleches liees a la carte sont supprimees.
+function retirerCarte(s, n, dest) {
+  n = +n;
+  if (!surTable(s, n)) return { ok: true };
+  if (dest === "pool" && !dansPool(s, n) && s.pool.length >= MAX_POOL) {
+    return { refus: { code: "pool_plein", message: "Le pool est plein. Retirez-en une avant d'y remettre une carte." } };
+  }
   s.tableau.cartes = s.tableau.cartes.filter(function (c) { return c.n !== n; });
   s.tableau.fleches = s.tableau.fleches.filter(function (f) { return f.de !== n && f.vers !== n; });
+  if (dest === "pool" && carteJouable(n) && !dansPool(s, n)) s.pool.push(n);
   bump(s); return { ok: true };
 }
 function creerFleche(s, de, vers, bidir) {
@@ -294,7 +303,7 @@ function appliquer(s, jeton, intention) {
   switch (op) {
     case "poolAjouter": return poolAjouter(s, d.n);
     case "poolRetirer": return poolRetirer(s, d.n);
-    case "retirerCarte": return retirerCarte(s, d.n);
+    case "retirerCarte": return retirerCarte(s, d.n, d.dest);
     case "exclure": return exclure(s, d.id);
     case "definirLienVocal": return definirLienVocal(s, d.url);
     case "clore": return clore(s);
