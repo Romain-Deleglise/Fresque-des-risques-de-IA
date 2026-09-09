@@ -32,7 +32,7 @@ free -h                           # regarder la colonne "available"
 ```
 
 Il faut viser **au moins ~2 Go disponibles** ("available") avant de lancer
-Jitsi (les limites ci-dessous plafonnent Jitsi a ~1,9 Go).
+Jitsi (les limites ci-dessous plafonnent Jitsi a ~3 Go).
 
 ---
 
@@ -114,8 +114,8 @@ sans toucher au code (repli sur meet.jit.si si la variable est absente).
 
 Dans `docker-compose.yml`, chaque service Jitsi a :
 
-- `mem_limit` : plafond de RAM (web 160m, prosody 320m, jicofo 400m, jvb 1024m,
-  total ~1,9 Go). Jitsi ne pourra jamais grignoter la RAM des autres apps ;
+- `mem_limit` : plafond de RAM (web 160m, prosody 320m, jicofo 512m, jvb 2048m,
+  total ~3 Go). Jitsi ne pourra jamais grignoter la RAM des autres apps ;
   s'il atteint son plafond, c'est **lui** qui rame ou redemarre, pas CiviCRM.
 - `cpu_shares: 512` : moitie moins que le defaut (1024) des autres conteneurs.
   Sous forte charge CPU, l'ordonnanceur **favorise les autres services**.

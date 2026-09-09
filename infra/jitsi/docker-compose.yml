@@ -92,7 +92,7 @@ services:
       - TZ=${TZ}
       # Plafond de flux video relayes par conference : limite la charge au pic.
       - JICOFO_ENABLE_AUTO_OWNER=1
-    mem_limit: 400m
+    mem_limit: 512m
     cpu_shares: 512
     depends_on:
       - prosody
@@ -121,7 +121,7 @@ services:
       # suivre qui parle sans saturer un petit serveur.
       - JVB_OPTS=--apis=,
       - CHANNEL_LAST_N=4
-    mem_limit: 1024m
+    mem_limit: 2048m
     cpu_shares: 512
     depends_on:
       - prosody
