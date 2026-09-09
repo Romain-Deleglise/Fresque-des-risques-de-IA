@@ -294,3 +294,22 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 .carte-actions{position:absolute;z-index:35;display:flex;gap:.3rem}
 .carte-actions .btn.mini{padding:.3rem .55rem;font-size:.78rem;border-radius:7px;background:var(--surface);box-shadow:var(--ombre);white-space:nowrap}
 .carte-actions .btn.mini:hover{border-color:var(--accent);color:var(--accent-txt-fort)}
+
+/* Tutoriel guide (coach-marks) : projecteur sur un element + bulle numerotee. */
+.tuto-fond{position:fixed;inset:0;z-index:200}
+.tuto-fond.centre{background:rgba(20,17,13,.55)}
+.tuto-halo{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(20,17,13,.55);transition:left .18s ease,top .18s ease,width .18s ease,height .18s ease;pointer-events:none}
+.tuto-bulle{position:absolute;z-index:201;width:300px;max-width:86vw;background:var(--surface);color:var(--ink);border:1px solid var(--ligne);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.4);padding:1rem 1.1rem}
+.tuto-num{font-family:var(--f-ui);font-size:.72rem;font-weight:700;color:var(--accent-txt-fort);letter-spacing:.05em;margin-bottom:.2rem}
+.tuto-titre{font-family:var(--f-titre);font-size:1.25rem;line-height:1.1;margin:0 0 .35rem;color:var(--ink)}
+.tuto-texte{font-family:var(--f-ui);font-size:.9rem;line-height:1.5;color:var(--ink-doux);margin:0 0 .95rem}
+.tuto-actions{display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.tuto-passer{background:none;border:0;color:var(--gris);font-family:var(--f-ui);font-size:.82rem;cursor:pointer;text-decoration:underline;padding:.2rem}
+.tuto-passer:hover{color:var(--ink)}
+.tuto-suivant{padding:.5rem 1.1rem}
+.tuto-fleche{position:absolute;width:0;height:0}
+.tuto-bulle.place-bottom .tuto-fleche{top:-9px;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:9px solid var(--surface)}
+.tuto-bulle.place-top .tuto-fleche{bottom:-9px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:9px solid var(--surface)}
+.tuto-bulle.place-right .tuto-fleche{left:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:9px solid var(--surface)}
+.tuto-bulle.place-left .tuto-fleche{right:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:9px solid var(--surface)}
+.tuto-bulle.place-centre .tuto-fleche{display:none}

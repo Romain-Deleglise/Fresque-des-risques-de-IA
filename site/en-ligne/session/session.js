@@ -35,6 +35,22 @@
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
     occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
     versPool: "↩ To the pool", versReserve: "✕ To my deck",
+    tutoSuivant: "Next", tutoTerminer: "Got it", tutoPasser: "Skip", tutoRevoir: "Replay the tutorial",
+    tutoPart: [
+      { titre: "Welcome!", texte: "You'll build the AI-risks fresco together, live on this shared board. Here's the gist in a few steps." },
+      { cible: "#pool", place: "top", titre: "Cards to place", texte: "The facilitator makes cards available here. Take one: drag it onto the board, or click « Place »." },
+      { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note (double-click the board)." },
+      { cible: "#z-tout", place: "bottom", titre: "Find your way", texte: "Zoom with the wheel or + / −. « Fit all » recenters. Hover a card to read its title when zoomed out." },
+      { cible: "#btn-participants", place: "bottom", titre: "The group", texte: "See who's connected here. Need a reminder? The ? button reopens this help anytime. Enjoy the workshop!" }
+    ],
+    tutoAnim: [
+      { titre: "You're the facilitator", texte: "You run the session. Here's how to hand out cards and guide the group." },
+      { cible: "#deck", place: "top", titre: "Your deck", texte: "The whole deck is here, at the bottom. Click a card to make it available in the shared pool." },
+      { cible: "#pool", place: "top", titre: "The shared pool", texte: "The shared pool (8 cards max): players take cards from here to place them on the board. Remove one with ✕." },
+      { titre: "Take a card back", texte: "Select a placed card to take it back: return it to the pool, or to your own deck." },
+      { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note." },
+      { cible: "#code-chip", place: "bottom", titre: "Invite the group", texte: "Share this code (or « Copy the link ») so people can join. The video-call link is in the e-mail. Enjoy!" }
+    ],
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
@@ -66,6 +82,22 @@
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
     occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
     versPool: "↩ Remettre au pool", versReserve: "✕ Dans ma réserve",
+    tutoSuivant: "Suivant", tutoTerminer: "C'est parti", tutoPasser: "Passer le tuto", tutoRevoir: "Revoir le tutoriel",
+    tutoPart: [
+      { titre: "Bienvenue !", texte: "Vous allez construire la Fresque des risques de l'IA avec le groupe, en direct sur ce tableau partagé. L'essentiel en quelques étapes." },
+      { cible: "#pool", place: "top", titre: "Les cartes à poser", texte: "L'animateur·ice met des cartes à disposition ici. Prenez-en une : glissez-la sur le tableau, ou cliquez « Poser »." },
+      { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note (double-clic sur le tableau)." },
+      { cible: "#z-tout", place: "bottom", titre: "Se repérer", texte: "Zoomez à la molette ou avec + / −. « Tout voir » recadre. Survolez une carte pour lire son titre quand vous êtes loin." },
+      { cible: "#btn-participants", place: "bottom", titre: "Le groupe", texte: "Voyez qui est connecté ici. Le bouton ? rouvre cette aide à tout moment. Bon atelier !" }
+    ],
+    tutoAnim: [
+      { titre: "Vous animez", texte: "Vous animez la session. Voici comment distribuer les cartes et guider le groupe." },
+      { cible: "#deck", place: "top", titre: "Votre réserve", texte: "Tout le jeu est ici, en bas. Cliquez une carte pour la mettre à disposition dans le pool commun." },
+      { cible: "#pool", place: "top", titre: "Le pool commun", texte: "Le pool commun (8 cartes max) : les participant·es y prennent les cartes pour les poser. Retirez-en une avec ✕." },
+      { titre: "Reprendre une carte", texte: "Sélectionnez une carte posée pour la reprendre : la remettre au pool, ou dans votre réserve." },
+      { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note." },
+      { cible: "#code-chip", place: "bottom", titre: "Inviter le groupe", texte: "Partagez ce code (ou « Copier le lien ») pour que le groupe rejoigne. Le lien visio, lui, est dans l'e-mail. Bon atelier !" }
+    ],
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
@@ -307,6 +339,8 @@
       centrer(); appliquerEtat(vue); setOutil("deplacer");
       flash(etat.role === "animateur" ? S.partagezCode(etat.code) : S.attenteCarte);
       boucle();
+      // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
+      setTimeout(function () { lancerTuto(false); }, 450);
     }).catch(function () {
       if (essai < 5) {
         flash(S.connexion);
@@ -404,7 +438,107 @@
     document.addEventListener("click", function (e) {
       if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) maj(false);
     });
+    var revoir = document.getElementById("revoir-tuto");
+    if (revoir) { revoir.textContent = S.tutoRevoir; revoir.addEventListener("click", function () { maj(false); lancerTuto(true); }); }
   })();
+
+  /* ---------- Tutoriel guidé (coach-marks) -----------------------------------
+     Une visite guidée au premier lancement, distincte selon le rôle (animateur
+     ou participant). Chaque étape éclaire un élément (projecteur via box-shadow),
+     avec une bulle numérotée, une flèche vers l'élément, « Suivant » et
+     « Passer ». Rejouable depuis le panneau d'aide. Robustesse : on ne garde que
+     les étapes dont la cible est visible ; repositionnement au redimensionnement ;
+     aucune interaction avec le jeu pendant la visite (fond qui capte les clics). */
+  var tuto = null; // { steps, i, fond, halo, bulle, role, onResize }
+  function tutoVu(role) { try { return localStorage.getItem("fresque:tuto:" + role) === "1"; } catch (e) { return false; } }
+  function marquerTutoVu(role) { try { localStorage.setItem("fresque:tuto:" + role, "1"); } catch (e) {} }
+  function cibleVisible(sel) {
+    if (!sel) return true; // étape sans cible (centrée)
+    var el = document.querySelector(sel);
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+  function lancerTuto(force) {
+    var role = etat.role === "animateur" ? "animateur" : "participant";
+    if (!force && tutoVu(role)) return;
+    var source = role === "animateur" ? (S.tutoAnim || []) : (S.tutoPart || []);
+    var steps = source.filter(function (st) { return cibleVisible(st.cible); });
+    if (!steps.length) return;
+    fermerTuto();
+    var fond = document.createElement("div"); fond.className = "tuto-fond"; fond.id = "tuto-fond";
+    var halo = document.createElement("div"); halo.className = "tuto-halo"; fond.appendChild(halo);
+    var bulle = document.createElement("div"); bulle.className = "tuto-bulle";
+    bulle.innerHTML = '<span class="tuto-fleche"></span>'
+      + '<div class="tuto-num"></div><h3 class="tuto-titre"></h3><p class="tuto-texte"></p>'
+      + '<div class="tuto-actions"><button type="button" class="tuto-passer"></button>'
+      + '<button type="button" class="tuto-suivant btn primaire"></button></div>';
+    fond.appendChild(bulle);
+    document.body.appendChild(fond);
+    tuto = { steps: steps, i: 0, fond: fond, halo: halo, bulle: bulle, role: role };
+    bulle.querySelector(".tuto-passer").addEventListener("click", function (e) { e.stopPropagation(); finirTuto(); });
+    bulle.querySelector(".tuto-suivant").addEventListener("click", function (e) { e.stopPropagation(); etapeSuivante(); });
+    fond.addEventListener("click", function (e) { if (e.target === fond || e.target === halo) etapeSuivante(); });
+    tuto.onResize = function () { if (tuto) montrerEtape(tuto.i); };
+    window.addEventListener("resize", tuto.onResize);
+    montrerEtape(0);
+  }
+  function montrerEtape(i) {
+    if (!tuto) return;
+    var st = tuto.steps[i]; if (!st) return;
+    tuto.i = i;
+    var b = tuto.bulle, n = tuto.steps.length;
+    b.querySelector(".tuto-num").textContent = (i + 1) + " / " + n;
+    b.querySelector(".tuto-titre").textContent = st.titre || "";
+    b.querySelector(".tuto-texte").textContent = st.texte || "";
+    b.querySelector(".tuto-suivant").textContent = (i === n - 1) ? S.tutoTerminer : S.tutoSuivant;
+    b.querySelector(".tuto-passer").textContent = S.tutoPasser;
+    b.querySelector(".tuto-passer").style.visibility = (i === n - 1) ? "hidden" : "visible";
+    positionnerTuto(st.cible ? document.querySelector(st.cible) : null, st.place || "bottom");
+  }
+  function positionnerTuto(cibleEl, place) {
+    var b = tuto.bulle, halo = tuto.halo, fond = tuto.fond, fl = b.querySelector(".tuto-fleche");
+    b.className = "tuto-bulle"; // reset des classes place-*
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var bw = b.offsetWidth, bh = b.offsetHeight;
+    if (!cibleEl) { // étape centrée, pas de cible
+      halo.style.display = "none"; fond.classList.add("centre");
+      b.classList.add("place-centre");
+      b.style.left = Math.round((vw - bw) / 2) + "px";
+      b.style.top = Math.round((vh - bh) / 2) + "px";
+      return;
+    }
+    fond.classList.remove("centre");
+    var r = cibleEl.getBoundingClientRect(), pad = 6;
+    halo.style.display = "block";
+    halo.style.left = (r.left - pad) + "px"; halo.style.top = (r.top - pad) + "px";
+    halo.style.width = (r.width + pad * 2) + "px"; halo.style.height = (r.height + pad * 2) + "px";
+    var gap = 16, pos = place;
+    if (pos === "bottom" && r.bottom + gap + bh > vh) pos = "top";
+    else if (pos === "top" && r.top - gap - bh < 0) pos = "bottom";
+    else if (pos === "left" && r.left - gap - bw < 0) pos = "right";
+    else if (pos === "right" && r.right + gap + bw > vw) pos = "left";
+    var left, top;
+    if (pos === "bottom") { top = r.bottom + gap; left = r.left + r.width / 2 - bw / 2; }
+    else if (pos === "top") { top = r.top - gap - bh; left = r.left + r.width / 2 - bw / 2; }
+    else if (pos === "left") { left = r.left - gap - bw; top = r.top + r.height / 2 - bh / 2; }
+    else { left = r.right + gap; top = r.top + r.height / 2 - bh / 2; }
+    left = Math.max(8, Math.min(vw - bw - 8, left));
+    top = Math.max(8, Math.min(vh - bh - 8, top));
+    b.style.left = Math.round(left) + "px"; b.style.top = Math.round(top) + "px";
+    b.classList.add("place-" + pos);
+    var tcx = r.left + r.width / 2, tcy = r.top + r.height / 2;
+    if (pos === "bottom" || pos === "top") { fl.style.left = Math.max(14, Math.min(bw - 14, tcx - left)) + "px"; fl.style.top = ""; }
+    else { fl.style.top = Math.max(14, Math.min(bh - 14, tcy - top)) + "px"; fl.style.left = ""; }
+  }
+  function etapeSuivante() { if (!tuto) return; if (tuto.i >= tuto.steps.length - 1) finirTuto(); else montrerEtape(tuto.i + 1); }
+  function finirTuto() { if (tuto) marquerTutoVu(tuto.role); fermerTuto(); }
+  function fermerTuto() {
+    if (!tuto) return;
+    if (tuto.onResize) window.removeEventListener("resize", tuto.onResize);
+    if (tuto.fond && tuto.fond.parentNode) tuto.fond.parentNode.removeChild(tuto.fond);
+    tuto = null;
+  }
 
   /* ---------- Participants / vocal / main ---------- */
   function moi() { if (etat.role !== "participant") return null; return (etat.vue.participants || []).find(function (p) { return p.id === idMoi(); }); }
@@ -1045,6 +1179,13 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    // Pendant le tutoriel : Entrée/→/Espace = étape suivante, Échap = fermer ;
+    // on bloque les autres raccourcis pour rester focalisé sur la visite.
+    if (tuto) {
+      if (e.key === "Escape") { e.preventDefault(); finirTuto(); }
+      else if (e.key === "Enter" || e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); etapeSuivante(); }
+      return;
+    }
     // Raccourcis d'outils (facon Excalidraw) : 1/2/3/4 (ou H/A/N). Ignores si on
     // saisit du texte (champ, note editable).
     var cible = e.target, saisie = cible && (cible.tagName === "INPUT" || cible.tagName === "TEXTAREA" || cible.getAttribute && cible.getAttribute("contenteditable") === "true");
