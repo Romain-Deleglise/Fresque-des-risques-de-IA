@@ -549,6 +549,12 @@
     return _idMoi;
   }
   function rendreParticipants(vue) {
+    // Garde : ne reconstruit la liste que si elle a reellement change (evite le
+    // churn DOM a chaque changement de version, ex. quand un autre deplace une carte).
+    var sig = (vue.animateur ? vue.animateur.prenom + ":" + (vue.animateur.connecte ? 1 : 0) : "")
+      + "|" + (vue.participants || []).map(function (p) { return p.id + ":" + p.prenom + ":" + (p.connecte ? 1 : 0); }).join(",")
+      + "|" + etat.role + "|" + _idMoi;
+    if (sig === etat._sigPart) return; etat._sigPart = sig;
     var ul = E["liste-part"]; ul.innerHTML = "";
     // Distinguer les homonymes : si un prénom apparaît plusieurs fois, on
     // numérote les occurrences (Antoine ·1, Antoine ·2) pour que tout le monde
@@ -587,6 +593,7 @@
     });
   }
   function rendreVocal(vue) {
+    if (vue.lienVocal === etat._sigVocal) return; etat._sigVocal = vue.lienVocal;
     if (vue.lienVocal) { E["vocal-lien"].hidden = false; E["vocal-lien"].href = vue.lienVocal; if (E["vocal-url"]) E["vocal-url"].value = vue.lienVocal; }
     else E["vocal-lien"].hidden = true;
   }
@@ -614,6 +621,13 @@
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
+    // Garde : on ne reconstruit le pool que si son contenu, ses reservations, le
+    // pli ou la taille ont change (sinon churn DOM inutile a chaque version).
+    var res = vue.reservations || {};
+    var sig = pool.join(",") + "|" + Object.keys(res).sort().map(function (k) { return k + ":" + res[k]; }).join(",")
+      + "|" + (poolReduit ? 1 : 0) + "|" + poolTaille + "|" + etat.role + "|" + (nomMoi() || "");
+    if (sig === etat._sigPool) { appliquerTaillePool(); return; }
+    etat._sigPool = sig;
     z.innerHTML = "";
     appliquerTaillePool();
     z.classList.toggle("vide", pool.length === 0 && !poolReduit);
@@ -842,7 +856,7 @@
       if (!bouge && Math.abs(e.clientX - st.mx) + Math.abs(e.clientY - st.my) > 3) bouge = true;
       var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
       var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
-      el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; dessinerFleches();
+      el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; majFleches();
     });
     function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
@@ -872,6 +886,14 @@
   function bord(c, tx, ty) { var dx = tx - c.x, dy = ty - c.y; if (!dx && !dy) return { x: c.x, y: c.y };
     var hw = c.w / 2 + 4, hh = c.h / 2 + 4; var s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
     return { x: c.x + dx * s, y: c.y + dy * s }; }
+  // Redessin des fleches coalesce sur une frame d'animation : pendant un
+  // glissement, un zoom ou un deplacement, on peut appeler majFleches() a chaque
+  // evenement pointeur sans reconstruire le SVG plusieurs fois par frame.
+  var _flechesRAF = 0;
+  function majFleches() {
+    if (_flechesRAF) return;
+    _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); });
+  }
   function dessinerFleches() {
     if (!etat.vue) return;
     var defs = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
@@ -1115,7 +1137,7 @@
     etat.panX = pw <= r.width ? (r.width - pw) / 2 : Math.min(0, Math.max(r.width - pw, etat.panX));
     etat.panY = ph <= r.height ? (r.height - ph) / 2 : Math.min(0, Math.max(r.height - ph, etat.panY)); }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
-  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); dessinerFleches(); }
+  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
   function toutVoir() { var r = rectScene(); etat.zoom = Math.max(0.38, Math.min(r.width / PLAN_W, r.height / PLAN_H)); etat.panX = (r.width - PLAN_W * etat.zoom) / 2; etat.panY = (r.height - PLAN_H * etat.zoom) / 2; clampPan(); applyView(); dessinerFleches(); }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }
@@ -1133,7 +1155,7 @@
     if (!fondScene(e.target)) return;
     var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y);
   });
-  E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
+  E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); majFleches(); });
   // Curseur en direct : on diffuse sa position (throttlee) en permanence, meme
   // pendant un glissement de carte (l'evenement remonte jusqu'a la scene).
   E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); });
@@ -1287,7 +1309,7 @@
       deselect();
     }
   });
-  window.addEventListener("resize", function () { clampPan(); applyView(); dessinerFleches(); });
+  window.addEventListener("resize", function () { clampPan(); applyView(); majFleches(); });
 
   /* ---------- Modal ---------- */
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
