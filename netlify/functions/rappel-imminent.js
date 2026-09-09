@@ -16,27 +16,31 @@ const T_MAX = 80 * 60 * 1000;   // pas apres 80 min
 function store() { return getStore({ name: "fresque-ateliers" }); }
 
 function mailImminent(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/";
+  const lienRejoindre = LIEN + "/en-ligne/session/?code=" + a.code;  // participant·es
+  const lienOuvrir = LIEN + "/en-ligne/session/?ouvrir=" + a.code;   // animateur·ice
   const l = [];
   l.push("Bonjour,");
   l.push("");
   l.push("Votre atelier de la Fresque des risques de l'IA commence bientôt (dans environ 1 heure).");
   l.push("");
   l.push("Heure : " + dateLisible(a.date, a.heure));
-  l.push("Code de session : " + a.code);
   if (a.visio) l.push("Visioconférence : " + a.visio);
-  if (a.mode === "enligne") { l.push("Tableau en ligne : " + sessionUrl); }
+  if (a.mode === "enligne") {
+    l.push("Participant·es, rejoignez le tableau : " + lienRejoindre);
+    l.push("Animateur·ice, ouvrez votre session : " + lienOuvrir);
+  }
   l.push("");
   l.push("À tout de suite,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
 
-  var code = '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 16px;text-align:center;"><div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div><div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(a.code) + '</div></div>';
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">Votre atelier de la Fresque des risques de l\'IA <strong>commence dans environ 1 heure</strong> (' + h(dateLisible(a.date, a.heure)) + ').</p>';
-  c += code;
   if (a.visio) c += '<p style="margin:0 0 16px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
-  if (a.mode === "enligne") c += '<p style="margin:0;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+  if (a.mode === "enligne") {
+    c += '<p style="margin:0 0 8px;text-align:center;">' + bouton(lienRejoindre, "Rejoindre le tableau en ligne") + '</p>';
+    c += '<p style="margin:0;text-align:center;font-size:13px;color:#8a8577;">Vous animez ? <a href="' + h(lienOuvrir) + '" style="color:#B3610F;">Ouvrez votre session ici</a>.</p>';
+  }
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 

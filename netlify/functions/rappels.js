@@ -15,7 +15,8 @@ const FENETRE_MS = 26 * 60 * 60 * 1000;
 function store() { return getStore({ name: "fresque-ateliers" }); }
 
 function mailRappel(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/";
+  const lienRejoindre = LIEN + "/en-ligne/session/?code=" + a.code;  // participant·es
+  const lienOuvrir = LIEN + "/en-ligne/session/?ouvrir=" + a.code;   // animateur·ice
   const noms = (a.participants || []).map((p) => p.prenom).filter(Boolean);
 
   const l = [];
@@ -26,11 +27,13 @@ function mailRappel(a) {
   l.push("Date : " + dateLisible(a.date, a.heure));
   l.push("Format : " + (a.mode === "enligne" ? "en ligne" : "en présentiel"));
   if (a.mode === "physique") { l.push("Lieu : " + a.lieu); if (a.adresse) l.push("Adresse : " + a.adresse); }
-  l.push("Code de session : " + a.code);
   if (a.visio) l.push("Visioconférence : " + a.visio);
   if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
   l.push("");
-  if (a.mode === "enligne") { l.push("Rejoignez le tableau en ligne avec ce code :"); l.push(sessionUrl); }
+  if (a.mode === "enligne") {
+    l.push("Participant·es, rejoignez le tableau en ligne d'un clic : " + lienRejoindre);
+    l.push("Animateur·ice, ouvrez votre session : " + lienOuvrir);
+  }
   l.push("");
   l.push("À tout bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -41,15 +44,17 @@ function mailRappel(a) {
   info += row("Format", a.mode === "enligne" ? "En ligne" : "En présentiel");
   if (a.mode === "physique") { info += row("Lieu", a.lieu || ""); if (a.adresse) info += row("Adresse", a.adresse); }
   info += "</table>";
-  var code = '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 16px;text-align:center;"><div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div><div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(a.code) + '</div></div>';
 
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">Rappel : votre atelier de la Fresque des risques de l\'IA a lieu <strong>bientôt</strong>.</p>';
-  c += info + code;
+  c += info;
   if (noms.length) c += '<p style="margin:0 0 16px;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
   if (a.visio) c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
-  if (a.mode === "enligne") c += '<p style="margin:0;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+  if (a.mode === "enligne") {
+    c += '<p style="margin:0 0 8px;text-align:center;">' + bouton(lienRejoindre, "Rejoindre le tableau en ligne") + '</p>';
+    c += '<p style="margin:0;text-align:center;font-size:13px;color:#8a8577;">Vous animez ? <a href="' + h(lienOuvrir) + '" style="color:#B3610F;">Ouvrez votre session ici</a>.</p>';
+  }
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
