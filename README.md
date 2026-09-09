@@ -22,9 +22,13 @@ service) :
    Fresque en ligne, guide, mentions légales. 100 % statique, aucun framework.
 2. **Programmation d'ateliers** : liste publique, inscriptions et e-mails
    transactionnels (fonction `ateliers` + Resend).
-3. **Fresque en ligne** : tableau collaboratif (solo et multi-participants) via
-   la fonction `fresque` et Netlify Blobs.
-4. **Extras** : newsletter (CiviCRM), mesure d'audience sans cookie.
+3. **Fresque en ligne** : tableau collaboratif multi-participants via la fonction
+   `fresque` et Netlify Blobs (pool commun de cartes, flèches, notes, curseurs en
+   direct, temps réel par « hold-poll »).
+4. **Services auto-hébergés** (`infra/`) : visioconférence Jitsi et relais de
+   curseurs WebSocket, sur le serveur Pause IA, tous deux optionnels.
+5. **Extras** : registre de contacts + espace `/admin/`, newsletter (CiviCRM),
+   mesure d'audience sans cookie.
 
 Principes : sobriété, vie privée par défaut (aucun cookie ni traceur tiers),
 CSP stricte (aucune requête externe), accessibilité WCAG 2.1 AA, bilingue FR/EN.
