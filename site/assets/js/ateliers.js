@@ -6,7 +6,7 @@
   var en = (document.documentElement.lang || "fr").indexOf("en") === 0;
   var T = en ? {
     envoi: "Sending…", erreur: "Something went wrong. Please try again.", indispo: "Service unavailable. Please try again later.",
-    codeOk: "Workshop scheduled. Session code: ", mailOk: " Everything (links, video call) is in the confirmation e-mail we just sent you.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
+    codeOk: "Workshop scheduled. Session code: ", mailOk: " All the details are in the confirmation e-mail we just sent you.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
     inscritOk: "You're registered! Session code: ", places: function (n, m) { return n + " / " + m + " registered"; },
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.", passe: "Past",
     participer: "Register", annuler: "Cancel",
@@ -21,7 +21,7 @@
     afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
-    codeOk: "Atelier programmé. Code de session : ", mailOk: " Tout (liens, visio) est dans l'e-mail de confirmation qui vient de vous être envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
+    codeOk: "Atelier programmé. Code de session : ", mailOk: " Tous les détails sont dans l'e-mail de confirmation qui vient de vous être envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
     inscritOk: "Inscription confirmée ! Code de session : ", places: function (n, m) { return n + " / " + m + " inscrits"; },
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.", passe: "Passé",
     participer: "Participer", annuler: "Annuler",
