@@ -341,6 +341,7 @@
       boucle();
       // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
       setTimeout(function () { lancerTuto(false); }, 450);
+      connecterCurseurs(); // curseurs en direct (optionnel, sans blocage)
     }).catch(function () {
       if (essai < 5) {
         flash(S.connexion);
@@ -1037,6 +1038,74 @@
     setTimeout(function () { el.remove(); }, 1300);
   }
 
+  /* ---------- Curseurs en direct (relais WebSocket) --------------------------
+     Temps reel via un petit relais auto-heberge. ENTIEREMENT OPTIONNEL : si le
+     relais est injoignable, bloque, ou tombe, le jeu continue normalement (aucune
+     erreur, aucun blocage). Reconnexion automatique avec backoff borne. Chaque
+     curseur distant est une fleche + prenom, contre-mise a l'echelle du zoom,
+     effacee apres 5 s sans nouvelle ou a la deconnexion. Masquable. */
+  var CURSEURS_WS = "wss://curseurs.pauseia.fr";
+  var curs = { ws: null, els: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
+  try { curs.montrer = localStorage.getItem("curseurs-off") !== "1"; } catch (e) {}
+  function connecterCurseurs() {
+    if (curs.ferme || !etat.code || typeof WebSocket === "undefined") return;
+    if (curs.ws && (curs.ws.readyState === 0 || curs.ws.readyState === 1)) return;
+    var ws;
+    try {
+      ws = new WebSocket(CURSEURS_WS + "/?code=" + encodeURIComponent(etat.code) + "&nom=" + encodeURIComponent(nomMoi() || ""));
+    } catch (e) { planifierReconnexionCurseurs(); return; }
+    curs.ws = ws;
+    ws.onopen = function () { curs.essais = 0; };
+    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirCurseur(m); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+    ws.onclose = function () { curs.ws = null; planifierReconnexionCurseurs(); };
+  }
+  function planifierReconnexionCurseurs() {
+    if (curs.ferme) return;
+    clearTimeout(curs.reconn);
+    // backoff : 2s, 4s, 8s... plafonne a 30s, pour ne jamais marteler le relais.
+    var delai = Math.min(30000, 2000 * Math.pow(2, Math.min(curs.essais, 4)));
+    curs.essais++;
+    curs.reconn = setTimeout(connecterCurseurs, delai);
+  }
+  function envoyerCurseur(cx, cy) {
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
+    var w = versMonde(cx, cy);
+    try { ws.send(JSON.stringify({ t: "c", x: Math.round(w.x), y: Math.round(w.y) })); } catch (e) {}
+  }
+  function recevoirCurseur(m) {
+    if (!m || !m.id) return;
+    if (m.t === "leave") { enleverCurseur(m.id); return; }
+    if (m.t !== "c") return;
+    curs.vus[m.id] = Date.now();
+    var el = curs.els[m.id];
+    if (!el) { el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el); }
+    el.style.left = (+m.x || 0) + "px"; el.style.top = (+m.y || 0) + "px";
+    el.hidden = !curs.montrer;
+  }
+  function creerCurseur(id, nom) {
+    var el = document.createElement("div"); el.className = "curseur-live";
+    var coul = couleurCurseur(id);
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="1.3"/></svg>'
+      + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
+    el.hidden = !curs.montrer;
+    return el;
+  }
+  function couleurCurseur(id) {
+    var p = ["#E8811C", "#2f7d4f", "#3b6ea5", "#8a4fb3", "#c1444e", "#1d8a9c", "#b5771a"];
+    var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return p[h % p.length];
+  }
+  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; }
+  setInterval(function () { var now = Date.now(); for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); } }, 2000);
+  function basculerCurseurs() {
+    curs.montrer = !curs.montrer;
+    try { localStorage.setItem("curseurs-off", curs.montrer ? "0" : "1"); } catch (e) {}
+    for (var id in curs.els) curs.els[id].hidden = !curs.montrer;
+    var b = document.getElementById("btn-curseurs"); if (b) b.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+  }
+
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
@@ -1065,6 +1134,9 @@
     var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y);
   });
   E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
+  // Curseur en direct : on diffuse sa position (throttlee) en permanence, meme
+  // pendant un glissement de carte (l'evenement remonte jusqu'a la scene).
+  E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 
@@ -1120,6 +1192,14 @@
   }
   if (E["btn-barres"]) E["btn-barres"].addEventListener("click", function () { majBarres(true); });
   if (E["btn-barres-show"]) E["btn-barres-show"].addEventListener("click", function () { majBarres(false); });
+  (function () {
+    var bc = document.getElementById("btn-curseurs");
+    if (!bc) return;
+    bc.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+    bc.addEventListener("click", basculerCurseurs);
+  })();
+  // Prevenir les autres a la fermeture de l'onglet (retrait immediat du curseur).
+  window.addEventListener("beforeunload", function () { curs.ferme = true; try { if (curs.ws) curs.ws.close(); } catch (e) {} });
   (function () {
     var s = document.getElementById("btn-sombre");
     if (s) {

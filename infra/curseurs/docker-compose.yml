@@ -1,0 +1,20 @@
+# Relais WebSocket des curseurs en direct. Leger et sans etat.
+# Sur le reseau "web" (partage avec Caddy) ; pas de port publie : Caddy l'atteint
+# par son nom de conteneur. Limites basses : en cas de tension, ce service cede
+# avant les autres (et le site fonctionne meme sans lui).
+services:
+  curseurs:
+    build: .
+    container_name: curseurs
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - TZ=Europe/Paris
+    mem_limit: 128m
+    cpu_shares: 256
+    networks:
+      web: {}
+
+networks:
+  web:
+    external: true

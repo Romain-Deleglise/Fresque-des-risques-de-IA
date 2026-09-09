@@ -313,3 +313,9 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 .tuto-bulle.place-right .tuto-fleche{left:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:9px solid var(--surface)}
 .tuto-bulle.place-left .tuto-fleche{right:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:9px solid var(--surface)}
 .tuto-bulle.place-centre .tuto-fleche{display:none}
+
+/* Curseurs en direct des autres joueurs (relais WebSocket). Contre-mis a
+   l'echelle du zoom (--iz) pour garder une taille ecran constante. */
+.curseur-live{position:absolute;z-index:19;pointer-events:none;transform:scale(var(--iz,1));transform-origin:top left;transition:left .08s linear,top .08s linear;will-change:left,top}
+.curseur-live svg{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.curseur-nom{position:absolute;left:16px;top:12px;font-family:var(--f-ui);font-weight:600;font-size:.66rem;color:#fff;padding:.05rem .34rem;border-radius:7px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}

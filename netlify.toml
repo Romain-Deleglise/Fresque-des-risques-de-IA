@@ -95,9 +95,9 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     # CSP : interdit scripts et polices tiers, aucune requete externe.
-    # connect-src 'self' : a etendre a l'origine du service de sessions
-    # (et wss:) quand la Fresque en ligne sera branchee (B3.6).
-    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    # connect-src : 'self' (fonctions Netlify) + le relais WebSocket des curseurs
+    # en direct (temps reel), auto-heberge sur le serveur de dev.
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self' wss://curseurs.pauseia.fr; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 # Cache avec revalidation. IMPORTANT : les fichiers gardent un nom stable
 # (site.css, cartes.js...) sans empreinte de version, donc on NE met PAS
