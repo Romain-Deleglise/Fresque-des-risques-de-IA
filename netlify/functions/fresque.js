@@ -184,10 +184,41 @@ exports.handler = async (event) => {
 
     if (d.op === "etat") {
       const code = String(d.code || "").toUpperCase();
-      const r = await muter(st, code, (s) => { R.toucher(s, d.jeton); });
-      if (r.erreur) return json(r.erreur.statut, { refus: r.erreur });
-      const etat = R.vue(r.s);
-      if (d.version && d.version === etat.version) return json(200, { inchange: true, version: etat.version });
+      let cur = await lire(st, code);
+      if (!cur) return json(404, { refus: { code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice." } });
+      let s = cur.s;
+      if (expiree(s)) { try { await st.delete(cle(code)); } catch (e) {} return json(404, { refus: { code: "session_inconnue", message: "Session terminée." } }); }
+      // Heartbeat de presence : on ne reecrit le blob que si vuLe est ancien
+      // (> 5 s), pour eviter un write a chaque poll (contention etag) et garder
+      // un polling rapide fluide. La presence (seuil 15 s) reste a jour.
+      const info = s.jetons[d.jeton];
+      if (info) {
+        const cible = info.role === "animateur" ? s.animateur : s.participants.find((p) => p.id === info.id);
+        if (cible && (!cible.connecte || Date.now() - (cible.vuLe || 0) > 5000)) {
+          cible.connecte = true; cible.vuLe = Date.now();
+          try { const w = await ecrire(st, code, s, cur.etag); if (w && w.modified === false) { cur = await lire(st, code); if (cur) s = cur.s; } } catch (e) {}
+        }
+      }
+      let etat = R.vue(s);
+      // Attente maintenue ("hold-poll") : si le client est deja a jour, on ne
+      // renvoie pas tout de suite « inchange ». On garde la requete ouverte et on
+      // relit l'etat a petits intervalles jusqu'a ce que la version change (une
+      // action d'un·e autre joueur·se) ou qu'un court delai s'ecoule. Resultat :
+      // les autres voient l'action en ~0,3 s au lieu d'attendre le prochain
+      // sondage, tout en divisant le nombre de requetes (une requete tenue vaut
+      // des dizaines de sondages). Le client se rabat sur un sondage bref si la
+      // plateforme coupe la requete.
+      if (d.version && d.version === etat.version) {
+        const finAvant = Date.now() + 6000;   // marge sous la limite de la fonction
+        while (Date.now() < finAvant) {
+          await new Promise((r) => setTimeout(r, 350));
+          const c2 = await lire(st, code);
+          if (!c2) break;                       // session supprimee entre-temps
+          const e2 = R.vue(c2.s);
+          if (e2.version !== d.version) { return json(200, { etat: e2 }); }
+        }
+        return json(200, { inchange: true, version: etat.version });
+      }
       return json(200, { etat });
     }
 

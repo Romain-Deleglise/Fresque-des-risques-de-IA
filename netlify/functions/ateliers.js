@@ -15,7 +15,7 @@ const L = require("../../serveur/src/limites.js");
 const mail = require("./lib/mail.js");
 const C = require("./lib/contacts.js");
 const G = require("./lib/gabarit.js");
-const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
+const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton, boutonSecondaire = G.boutonSecondaire;
 
 // URL publique du site (variable d'environnement SITE_URL dans Netlify).
 const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
@@ -96,14 +96,15 @@ function boiteCompteur(n, max) {
 // Prenoms des inscrits sous forme de pastilles.
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
 // Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.
-function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
+// Secondaire : l'action principale reste le tableau en ligne.
+function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
 function texteVisio(a) { return a && a.visio ? "Visioconférence : " + a.visio : ""; }
 
 // Bouton pour qu'un participant écrive à l'animateur·ice (mailto pré-rempli).
 function boutonContactAnimateur(a) {
   if (!a || !a.animateur || !a.animateur.mail) return "";
   var sujet = encodeURIComponent("Question sur l'atelier du " + dateLisible(a.date, a.heure) + " (code " + a.code + ")");
-  return '<p style="margin:0 0 16px;text-align:center;">' + bouton("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
+  return '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
 }
 // Bouton pour que l'animateur écrive à tou·tes les inscrit·es (adresses en Cci).
 function boutonEcrireInscrits(a) {
@@ -187,13 +188,13 @@ function mailDesistParticipant(a, prenom) {
   l.push("");
   l.push("Votre désinscription de l'atelier du " + dateLisible(a.date, a.heure) + " est bien prise en compte. Votre place est de nouveau libre.");
   l.push("");
-  l.push("Au plaisir de vous accueillir à un prochain atelier : " + LIEN + "/demander-un-atelier/");
+  l.push("Au plaisir de vous accueillir à un prochain atelier : " + LIEN + "/participer/");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(prenom) + ',</p>';
   c += '<p style="margin:0 0 16px;">Votre désinscription de l\'atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong> est bien prise en compte. Votre place est de nouveau libre.</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/demander-un-atelier/", "Voir les autres ateliers") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/", "Voir les autres ateliers") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 function mailDesistAnimateur(a, prenom) {
@@ -222,14 +223,14 @@ function mailAnnulation(a) {
   l.push("");
   l.push("L'atelier de la Fresque des risques de l'IA prévu le " + dateLisible(a.date, a.heure) + " a été annulé par l'organisateur·ice. Il n'aura pas lieu.");
   l.push("");
-  l.push("Désolé pour le désagrément. D'autres ateliers sont proposés sur " + LIEN + "/demander-un-atelier/");
+  l.push("Désolé pour le désagrément. D'autres ateliers sont proposés sur " + LIEN + "/participer/");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA prévu le <strong>' + h(dateLisible(a.date, a.heure)) + '</strong> a été <strong>annulé</strong> par l\'organisateur·ice. Il n\'aura pas lieu.</p>';
   c += '<p style="margin:0 0 18px;color:#4a473f;">Désolé pour le désagrément. D\'autres ateliers sont proposés sur le site.</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/demander-un-atelier/", "Voir les ateliers programmés") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/", "Voir les ateliers programmés") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -261,8 +262,8 @@ function mailDeplacement(a, ancien) {
 }
 
 function mailAnimateur(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code;
-  const annulUrl = LIEN + "/demander-un-atelier/?annuler=" + a.code + "&t=" + (a.annulToken || "");
+  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code + "&prenom=" + encodeURIComponent(a.animateur.prenom || "");
+  const annulUrl = LIEN + "/participer/?annuler=" + a.code + "&t=" + (a.annulToken || "");
   const visibilite = a.visibilite === "prive"
     ? "Votre atelier est privé : il n'apparaît pas dans la liste publique, à vous de communiquer le code aux personnes que vous invitez."
     : "Votre atelier est public : il apparaît dans l'onglet Participer, où chacun peut s'inscrire.";
@@ -294,7 +295,7 @@ function mailAnimateur(a) {
   }
   l.push("Une erreur de saisie ? Vous pouvez annuler cet atelier ici (ne transmettez pas ce lien) :");
   l.push(annulUrl);
-  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/demander-un-atelier/#vue-animer");
+  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/participer/#vue-animer");
   l.push("");
   l.push("À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -305,25 +306,30 @@ function mailAnimateur(a) {
   c += '<p style="margin:0 0 18px;">Votre atelier de la Fresque des risques de l\'IA est bien programmé. Voici le récapitulatif.</p>';
   c += tableauInfos(a);
   c += boiteCode(a.code);
+  // Action principale d'abord (le jour J) : ouvrir le tableau. Puis la visio
+  // (secondaire), puis le guide (secondaire) : hierarchie claire.
+  if (a.mode === "enligne") {
+    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez le tableau en ligne et créez la session avec ce code.</p>';
+    c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
+  }
   c += boutonVisio(a);
   c += '<p style="margin:0 0 18px;color:#4a473f;">' + h(visibilite) + '</p>';
   c += '<p style="margin:0 0 12px;">Pour préparer votre animation, appuyez-vous sur le guide. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail.</p>';
-  c += '<p style="margin:0 0 20px;text-align:center;">' + bouton(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
+  c += '<p style="margin:0 0 20px;text-align:center;">' + boutonSecondaire(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
   if (a.mode === "enligne") {
-    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez le tableau en ligne et créez la session avec ce code. Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe.</p>';
-    c += '<p style="margin:0 0 20px;text-align:center;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
+    c += '<p style="margin:0 0 18px;color:#4a473f;">Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe' + (a.visio ? ", ou utilisez la visio ci-dessus" : "") + '.</p>';
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/demander-un-atelier/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/participer/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
 function mailParticipant(a, participant) {
   const prenom = participant.prenom;
-  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code;
-  const desistUrl = LIEN + "/demander-un-atelier/?desister=" + a.code + "&p=" + (participant.token || "");
+  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code + "&prenom=" + encodeURIComponent(prenom || "");
+  const desistUrl = LIEN + "/participer/?desister=" + a.code + "&p=" + (participant.token || "");
 
   const l = [];
   l.push("Bonjour " + prenom + ",");
@@ -384,9 +390,14 @@ exports.handler = async (event) => {
       if (!code) return json(500, { erreur: { code: "code", message: "Impossible de générer un code." } });
       const a = v.atelier; a.code = code; a.participants = []; a.creeLe = Date.now();
       a.annulToken = R.jetonAleatoire();
-      // Visio générée automatiquement : un salon Jitsi Meet gratuit, sans compte.
-      // Le nom de salon est long et aléatoire (non devinable de l'extérieur).
-      if (a.visioAuto) { a.visio = "https://meet.jit.si/FresqueRisquesIA-" + code + "-" + R.jetonAleatoire(); delete a.visioAuto; }
+      // Visio générée automatiquement : un salon dont le nom est long et aléatoire
+      // (non devinable de l'extérieur). Le domaine est configurable via VISIO_BASE
+      // (ex. une instance auto-hébergée), avec repli sur l'instance publique.
+      if (a.visioAuto) {
+        var base = (process.env.VISIO_BASE || "https://meet.jit.si").replace(/\/+$/, "");
+        a.visio = base + "/FresqueRisquesIA-" + code + "-" + R.jetonAleatoire();
+        delete a.visioAuto;
+      }
       await st.setJSON(cle(code), a);
       purger(st);
       // Registre durable des contacts (best-effort, ne bloque pas la creation).

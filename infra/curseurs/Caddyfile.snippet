@@ -1,0 +1,9 @@
+# A AJOUTER dans /opt/volunteer-apps/caddy/Caddyfile, puis :
+#   cd /opt/volunteer-apps/caddy && sudo docker compose restart caddy
+#
+# Caddy termine le HTTPS et proxy-passe vers le relais. Le "reverse_proxy" gere
+# tout seul la mise a niveau WebSocket (wss://curseurs.pauseia.fr -> ws interne).
+
+curseurs.pauseia.fr {
+	reverse_proxy curseurs:8080
+}

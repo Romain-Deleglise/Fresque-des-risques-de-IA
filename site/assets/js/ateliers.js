@@ -18,7 +18,9 @@
     desisteOk: "You have been unregistered. Your seat is freed up.",
     videCta: "Schedule a workshop",
     fTous: "All", fEnligne: "Online", fPresentiel: "In person", fFormat: "Format",
-    afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters."
+    afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters.",
+    recapCode: "Session code", recapOuvrir: "Open the online board", recapVisio: "Video-call link (shared with attendees)",
+    recapCopier: "Copy", recapCopie: "Copied", recapCopieNon: "Copy failed", recapNote: "Keep this handy: it is also in your confirmation e-mail."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
@@ -33,9 +35,11 @@
     desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre.",
     videCta: "Programmer un atelier",
     fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
-    afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres."
+    afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres.",
+    recapCode: "Code de session", recapOuvrir: "Ouvrir le tableau en ligne", recapVisio: "Lien de visioconférence (partagé avec les inscrit·es)",
+    recapCopier: "Copier", recapCopie: "Copié", recapCopieNon: "Copie impossible", recapNote: "Gardez-le sous la main : il est aussi dans votre e-mail de confirmation."
   };
-  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/demander-un-atelier/#vue-animer";
+  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/participer/#vue-animer";
   function videHtml() {
     return '<div class="ateliers-vide"><p class="muted">' + esc(T.aucun) + "</p>"
       + '<a class="btn btn-2" href="' + HREF_PROG + '">' + esc(T.videCta) + "</a></div>";
@@ -112,6 +116,7 @@
         if (res.ok && res.d.code) {
           msg.className = "msg ok";
           msg.textContent = T.codeOk + res.d.code + (res.d.emailEnvoye ? T.mailOk : T.mailNon);
+          recapAtelier(res.d.atelier || { code: res.d.code });
           form.reset(); majMode();
         } else {
           msg.className = "msg err";
@@ -121,6 +126,67 @@
       }).catch(function () { msg.className = "msg err"; msg.textContent = T.indispo; })
         .finally(function () { if (btn) btn.disabled = false; });
     });
+  }
+
+  // Recapitulatif affiche a l'animateur des la creation : code, lien d'ouverture
+  // du tableau, et lien de visio (perso ou genere) qu'il peut copier / partager.
+  function recapAtelier(a) {
+    if (!a || !a.code) return;
+    var hote = document.getElementById("recap-atelier");
+    if (!hote) {
+      hote = document.createElement("div"); hote.id = "recap-atelier"; hote.className = "recap-atelier";
+      var ancre = document.getElementById("prog-msg");
+      if (ancre && ancre.parentNode) ancre.parentNode.insertBefore(hote, ancre.nextSibling);
+      else (document.getElementById("vue-animer") || document.body).appendChild(hote);
+    }
+    hote.innerHTML = "";
+    var ouvrir = "/en-ligne/session/?ouvrir=" + encodeURIComponent(a.code);
+    // Ligne code
+    hote.appendChild(ligneRecap(T.recapCode, a.code, a.code));
+    // Bouton ouvrir le tableau (en ligne surtout, mais toujours utile)
+    var pA = document.createElement("p"); pA.style.margin = "10px 0";
+    var bA = document.createElement("a"); bA.className = "btn"; bA.href = ouvrir; bA.target = "_blank"; bA.rel = "noopener";
+    bA.textContent = T.recapOuvrir; pA.appendChild(bA); hote.appendChild(pA);
+    // Lien visio (si present)
+    if (a.visio) hote.appendChild(ligneRecap(T.recapVisio, a.visio, a.visio, true));
+    var note = document.createElement("p"); note.className = "muted"; note.style.fontSize = ".85rem"; note.style.margin = "6px 0 0";
+    note.textContent = T.recapNote; hote.appendChild(note);
+    try { hote.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+  }
+  // Une ligne « libellé : valeur » avec bouton Copier (valeur copiee au presse-papier).
+  function ligneRecap(libelle, affiche, aCopier, estLien) {
+    var l = document.createElement("div"); l.className = "recap-ligne";
+    var lab = document.createElement("span"); lab.className = "recap-lab"; lab.textContent = libelle + " : ";
+    l.appendChild(lab);
+    if (estLien) { var av = document.createElement("a"); av.href = affiche; av.target = "_blank"; av.rel = "noopener"; av.className = "recap-val"; av.textContent = affiche; l.appendChild(av); }
+    else { var sp = document.createElement("span"); sp.className = "recap-val recap-code"; sp.textContent = affiche; l.appendChild(sp); }
+    var b = document.createElement("button"); b.type = "button"; b.className = "recap-copier"; b.textContent = T.recapCopier;
+    b.addEventListener("click", function () {
+      copieRobuste(aCopier).then(function (ok) {
+        b.textContent = ok ? T.recapCopie : T.recapCopieNon;
+        setTimeout(function () { b.textContent = T.recapCopier; }, 1800);
+      });
+    });
+    l.appendChild(b);
+    return l;
+  }
+  // Copie robuste : API moderne (HTTPS) avec repli execCommand (contexte non
+  // securise, ex. test via l'IP du serveur). true seulement si copie reelle.
+  function copieRobuste(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      return navigator.clipboard.writeText(txt).then(function () { return true; }, function () { return repliCopie(txt); });
+    }
+    return Promise.resolve(repliCopie(txt));
+  }
+  function repliCopie(txt) {
+    try {
+      var ta = document.createElement("textarea"); ta.value = txt;
+      ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
   }
 
   /* ---------- Liste + inscription (onglet Participer) ---------- */
@@ -206,7 +272,8 @@
       '<div class="atelier-tete"><span class="atelier-mode">' + (a.mode === "enligne" ? T.enligne : T.presentiel) + '</span>' + etat + "</div>" +
       "<h3>" + titre + "</h3>" +
       '<p class="atelier-quand">' + esc(fmtDate(a.date, a.heure)) + "</p>" +
-      '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>";
+      '<p class="atelier-lieu muted">' + lieu + (a.animateur ? " · " + esc(a.animateur) : "") + "</p>" +
+      (a.description ? '<p class="atelier-desc">' + esc(a.description) + "</p>" : "");
     if (a.ouvert && !a.complet) {
       var btn = document.createElement("button");
       btn.className = "btn btn-1"; btn.type = "button"; btn.textContent = T.participer;

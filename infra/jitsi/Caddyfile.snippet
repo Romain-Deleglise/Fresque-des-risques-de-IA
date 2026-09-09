@@ -1,0 +1,16 @@
+# A AJOUTER dans le Caddyfile existant (/opt/volunteer-apps/caddy/Caddyfile),
+# puis : cd /opt/volunteer-apps/caddy && sudo docker compose restart caddy
+#
+# Caddy termine le HTTPS (Let's Encrypt automatique) et relaie vers le conteneur
+# "web" de Jitsi, joignable par son nom sur le reseau Docker "web".
+# Le nom du conteneur depend du dossier du compose : par defaut Compose prefixe
+# par le nom du projet (dossier). Ici le service s'appelle "web" ; on l'atteint
+# via l'alias reseau du conteneur. Si le nom ne resout pas, utiliser le nom
+# complet du conteneur affiche par : sudo docker ps  (ex. jitsi-web-1).
+
+visio.pauseia.fr {
+	reverse_proxy jitsi-web-1:80
+}
+
+# Note : "jitsi-web-1" suppose que le dossier du compose s'appelle "jitsi".
+# Verifier avec `sudo docker ps` et ajuster si besoin.

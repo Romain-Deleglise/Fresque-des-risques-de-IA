@@ -21,6 +21,14 @@
 #     aucun e-mail n'est envoye ; le code s'affiche a l'ecran).
 #   - MAIL_FROM      : expediteur verifie, ex "Fresque des risques de l'IA <atelier@pauseia.fr>"
 #   - MAIL_REPONSE   : (optionnel) Reply-To, ex contact@pauseia.fr
+#   - RESEND_MAX_JOUR : (optionnel) plafond d'envois par jour (defaut 95), garde-fou
+#     sous la limite du compte Resend. Au-dela, l'envoi est refuse proprement.
+#   - RESEND_MAX_MOIS : (optionnel) plafond d'envois par mois (defaut 2500).
+#   - RESEND_SEUIL_ALERTE : (optionnel) a partir de ce nombre d'envois dans la
+#     journee, un mail d'alerte previent l'equipe une fois par jour (defaut 80).
+#   - MAIL_ALERTE    : (optionnel) destinataire de l'alerte (defaut contact@pauseia.fr).
+#   - VISIO_BASE     : (optionnel) domaine des salons visio generes automatiquement,
+#     ex https://visio.pauseia.fr pour une instance auto-hebergee (defaut meet.jit.si).
 #   - SITE_URL       : URL publique du site pour les liens des e-mails,
 #     ex https://fresquedesrisquesdelia.org (defaut : ce domaine).
 #   - ADMIN_TOKEN    : cle secrete de l'espace d'administration (/admin/). Sans
@@ -46,6 +54,19 @@
 
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.
+
+# Ancienne URL de la page « Participer » renommee : redirection permanente.
+[[redirects]]
+  from = "/demander-un-atelier/*"
+  to = "/participer/:splat"
+  status = 301
+
+# Le mode solo de la Fresque en ligne a ete retire (la fresque se joue en groupe).
+# On redirige l'ancienne URL vers la page de presentation plutot qu'un 404.
+[[redirects]]
+  from = "/en-ligne/atelier/*"
+  to = "/en-ligne/"
+  status = 301
 
 # Redirection du domaine .fr vers le domaine principal .org (301 permanent).
 # Le .fr est un alias du site sur Netlify ; sans regle explicite, Netlify sert
@@ -81,9 +102,9 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     # CSP : interdit scripts et polices tiers, aucune requete externe.
-    # connect-src 'self' : a etendre a l'origine du service de sessions
-    # (et wss:) quand la Fresque en ligne sera branchee (B3.6).
-    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    # connect-src : 'self' (fonctions Netlify) + le relais WebSocket des curseurs
+    # en direct (temps reel), auto-heberge sur le serveur de dev.
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self' wss://curseurs.pauseia.fr; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 # Cache avec revalidation. IMPORTANT : les fichiers gardent un nom stable
 # (site.css, cartes.js...) sans empreinte de version, donc on NE met PAS

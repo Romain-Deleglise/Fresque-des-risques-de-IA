@@ -24,13 +24,37 @@
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
-    copie: "copied ✓", lienCopie: "Link copied ✓",
-    plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)",
+    copie: "copied ✓", lienCopie: "Link copied ✓", copieEchec: "Copy failed. Select the code and copy it manually.",
+    plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
     coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
-    coachDistribuer: "Deal a card to participants: “Deal” (or “To everyone”).",
-    coachAttente: "Waiting for a card from the facilitator…",
-    coachPoser: "Drag your card onto the board to place it.",
+    coachPool: "Add cards to the shared pool (deck at the bottom) so the group can place them.",
+    coachAttente: "Waiting for the facilitator to add cards…",
+    coachPrendre: "Take a card from the pool and place it on the board.",
+    prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
+    poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
+    occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
+    versPool: "↩ To the pool", versReserve: "✕ To my deck",
+    tutoSuivant: "Next", tutoTerminer: "Got it", tutoPasser: "Skip", tutoRevoir: "Replay the tutorial",
+    tutoPart: [
+      { titre: "Welcome!", texte: "You'll build the AI-risks fresco together, live on this shared board. Here's the gist in a few steps." },
+      { cible: "#pool", place: "top", titre: "Cards to place", texte: "The facilitator makes cards available here. Take one: drag it onto the board, or click « Place »." },
+      { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note (double-click the board)." },
+      { cible: "#z-tout", place: "bottom", titre: "Find your way", texte: "Zoom with the wheel or + / −. « Fit all » recenters. Hover a card to read its title when zoomed out." },
+      { cible: "#btn-participants", place: "bottom", titre: "The group", texte: "See who's connected here. Need a reminder? The ? button reopens this help anytime. Enjoy the workshop!" }
+    ],
+    tutoAnim: [
+      { titre: "You're the facilitator", texte: "You run the session. Here's how to hand out cards and guide the group." },
+      { cible: "#deck", place: "top", titre: "Your deck", texte: "The whole deck is here, at the bottom. Click a card to make it available in the shared pool." },
+      { cible: "#pool", place: "top", titre: "The shared pool", texte: "The shared pool (8 cards max): players take cards from here to place them on the board. Remove one with ✕." },
+      { titre: "Take a card back", texte: "Select a placed card to take it back: return it to the pool, or to your own deck." },
+      { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note." },
+      { cible: "#code-chip", place: "bottom", titre: "Invite the group", texte: "Share this code (or « Copy the link ») so people can join. The video-call link is in the e-mail. Enjoy!" }
+    ],
+    horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
+    titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
+    poolVide: "Waiting for the facilitator to add cards to the pool.",
+    poolVideAnim: "Add cards to the pool from the deck below.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
@@ -47,13 +71,37 @@
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
-    copie: "copié ✓", lienCopie: "Lien copié ✓",
-    plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)",
+    copie: "copié ✓", lienCopie: "Lien copié ✓", copieEchec: "Copie impossible. Sélectionnez le code et copiez-le à la main.",
+    plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
     coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
-    coachDistribuer: "Distribuez une carte aux participant·es : « Distribuer » (ou « À tous »).",
-    coachAttente: "En attente d'une carte de l'animateur…",
-    coachPoser: "Glissez votre carte sur le tableau pour la placer.",
+    coachPool: "Ajoutez des cartes au pool commun (le jeu, en bas) pour que le groupe les pose.",
+    coachAttente: "En attente que l'animateur mette des cartes à disposition…",
+    coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
+    prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
+    poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
+    occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
+    versPool: "↩ Remettre au pool", versReserve: "✕ Dans ma réserve",
+    tutoSuivant: "Suivant", tutoTerminer: "C'est parti", tutoPasser: "Passer le tuto", tutoRevoir: "Revoir le tutoriel",
+    tutoPart: [
+      { titre: "Bienvenue !", texte: "Vous allez construire la Fresque des risques de l'IA avec le groupe, en direct sur ce tableau partagé. L'essentiel en quelques étapes." },
+      { cible: "#pool", place: "top", titre: "Les cartes à poser", texte: "L'animateur·ice met des cartes à disposition ici. Prenez-en une : glissez-la sur le tableau, ou cliquez « Poser »." },
+      { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note (double-clic sur le tableau)." },
+      { cible: "#z-tout", place: "bottom", titre: "Se repérer", texte: "Zoomez à la molette ou avec + / −. « Tout voir » recadre. Survolez une carte pour lire son titre quand vous êtes loin." },
+      { cible: "#btn-participants", place: "bottom", titre: "Le groupe", texte: "Voyez qui est connecté ici. Le bouton ? rouvre cette aide à tout moment. Bon atelier !" }
+    ],
+    tutoAnim: [
+      { titre: "Vous animez", texte: "Vous animez la session. Voici comment distribuer les cartes et guider le groupe." },
+      { cible: "#deck", place: "top", titre: "Votre réserve", texte: "Tout le jeu est ici, en bas. Cliquez une carte pour la mettre à disposition dans le pool commun." },
+      { cible: "#pool", place: "top", titre: "Le pool commun", texte: "Le pool commun (8 cartes max) : les participant·es y prennent les cartes pour les poser. Retirez-en une avec ✕." },
+      { titre: "Reprendre une carte", texte: "Sélectionnez une carte posée pour la reprendre : la remettre au pool, ou dans votre réserve." },
+      { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note." },
+      { cible: "#code-chip", place: "bottom", titre: "Inviter le groupe", texte: "Partagez ce code (ou « Copier le lien ») pour que le groupe rejoigne. Le lien visio, lui, est dans l'e-mail. Bon atelier !" }
+    ],
+    horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
+    titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
+    poolVide: "En attente que l'animateur mette des cartes dans le pool.",
+    poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
@@ -62,7 +110,7 @@
     document.title = "Session · The AI Risks Collage";
     var txt = {
       "#lobby h1": "Facilitate remotely",
-      ".lobby-sous": "One facilitator, up to eight participants, a shared board. No account.",
+      ".lobby-sous": "Run the collage remotely, on a board shared live in your browser. Nothing to install, no account.",
       "#lobby section:nth-of-type(1) h2": "Open a session",
       'label[for="anim-prenom"]': "Your first name",
       'label[for="anim-code"]': "Workshop code (optional)",
@@ -74,8 +122,7 @@
       'label[for="join-prenom"]': "Your first name",
       "#btn-rejoindre": "Join",
       "#btn-partager": "Copy the link",
-      "#btn-distribuer": "Deal", "#btn-passer": "Skip", "#btn-distribuer-tous": "To everyone",
-      '.tool[data-outil="fleche"]': "Link", '.tool[data-outil="texte"]': "Note",
+      "#deck-titre": "Card deck", "#deck-toggle": "Deck",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
       "#panneau .panneau-tete h3": "Participants",
@@ -88,11 +135,14 @@
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
       ["#code-chip", "title", "Copy the code"], ["#etat-conn", "title", "Connection"],
-      ["#btn-passer", "title", "Advance the turn without dealing"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
-      ["#anim-code", "placeholder", "Leave blank for an auto code"]
+      ["#anim-code", "placeholder", "Leave blank for an auto code"],
+      ['.tool[data-outil="deplacer"]', "title", "Hand: move and pan the board"], ['.tool[data-outil="deplacer"]', "aria-label", "Hand: move and pan the board"],
+      ['.tool[data-outil="fleche"]', "title", "Link: click the source card, then the target"], ['.tool[data-outil="fleche"]', "aria-label", "Link two cards"],
+      ['.tool[data-outil="fleche2"]', "title", "Two-way link: click one card, then the other"], ['.tool[data-outil="fleche2"]', "aria-label", "Two-way link"],
+      ['.tool[data-outil="texte"]', "title", "Note: click the board to write"], ['.tool[data-outil="texte"]', "aria-label", "Add a note"]
     ];
     attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
     document.querySelectorAll(".marque").forEach(function (m) {
@@ -100,7 +150,6 @@
     });
     var setFirst = function (sel, v) { var el = document.querySelector(sel); if (el && el.firstChild) el.firstChild.nodeValue = v; };
     setFirst("#code-chip", "Code ");            // « Code <b> »
-    setFirst("#pioche-info", "Deck: ");         // « Pioche : <b> »
     setFirst("#btn-participants", "Participants (");
     var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
     var ret = document.querySelector(".lobby-retour");
@@ -118,13 +167,22 @@
   var API = "/.netlify/functions/fresque";
   var BASE = "../../";
   var PLAN_W = 4400, PLAN_H = 2200, ZMIN = 0.20, ZMAX = 1.60, ZSTEP = 1.25, ZWHEEL = 1.06;
-  var POLL_MS = 2500;
+  // Polling adaptatif : rapide pendant l'activite (collaboration fluide),
+  // econome au repos. On garde un mode rapide quelques secondes apres chaque
+  // action locale ou changement recu.
+  // Le serveur maintient la requete d'etat ouverte jusqu'a un changement
+  // ("hold-poll"), donc l'ecart entre deux requetes peut etre tres court : la
+  // requete elle-meme dure. On garde deux cadences de repli au cas ou la
+  // plateforme rende la main tout de suite (requete non tenue).
+  var POLL_RAPIDE = 100, POLL_LENT = 350, FENETRE_RAPIDE_MS = 4000;
+  var rapideJusqu = 0;
+  function activite() { rapideJusqu = Date.now() + FENETRE_RAPIDE_MS; }
 
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
-   "code-val","code-chip","btn-partager","pioche-n","nb-part","etat-conn","carte0-txt",
-   "scene","monde","fleches","main-zone","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
-   "btn-distribuer","btn-passer","btn-distribuer-tous","btn-participants","panneau","fermer-panneau",
+   "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
+   "scene","monde","fleches","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
+   "btn-participants","panneau","fermer-panneau",
    "btn-barres","btn-barres-show",
    "liste-part","vocal-url","btn-vocal","vocal-lien","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
@@ -221,13 +279,34 @@
 
   // Liens des e-mails : ?ouvrir=CODE (animateur, ouvre/reprend l'atelier reserve),
   // ?code=CODE (participant, pre-remplit le code a rejoindre).
+  // Lobby mono-role : depuis un lien d'e-mail, on n'affiche que la colonne utile
+  // (le role est deja decide dans le mail), pour ne pas hesiter animer/participer.
+  function lobbyRole(role) {
+    document.body.classList.add("lobby-solo", role === "animateur" ? "lobby-animateur" : "lobby-participant");
+    var h1 = document.querySelector("#lobby h1");
+    var sous = document.querySelector(".lobby-sous");
+    if (role === "participant") {
+      if (h1) h1.textContent = S.titreRejoindre;
+      if (sous) sous.textContent = S.sousRejoindre;
+    }
+  }
   (function () {
     var params = new URLSearchParams(location.search);
+    var preNom = params.get("prenom") || ""; // prenom pre-rempli via le lien de l'e-mail
     var pre = (params.get("code") || "").toUpperCase();
-    if (pre) { E["join-code"].value = pre; try { E["join-prenom"].focus(); } catch (e) {} }
+    if (pre) {
+      E["join-code"].value = pre;
+      if (preNom) E["join-prenom"].value = preNom;
+      lobbyRole("participant");
+      // Si tout est pre-rempli, on place le focus sur le bouton Rejoindre : il ne
+      // reste qu'un clic (on arrive direct sur la bonne session).
+      try { (preNom ? E["btn-rejoindre"] : E["join-prenom"]).focus(); } catch (e) {}
+    }
     var o = (params.get("ouvrir") || "").toUpperCase();
     if (!o) return;
+    lobbyRole("animateur");
     codeSouhaite = o;
+    if (preNom && E["anim-prenom"]) E["anim-prenom"].value = preNom;
     if (E["anim-code"]) E["anim-code"].value = o; // rendre le code visible côté « Ouvrir »
     var j = jetonAnim(o) || jetonTab(o); // reprise : jeton animateur en priorite
     if (j) { // l'animateur a deja ouvert la session : on reprend
@@ -260,6 +339,9 @@
       centrer(); appliquerEtat(vue); setOutil("deplacer");
       flash(etat.role === "animateur" ? S.partagezCode(etat.code) : S.attenteCarte);
       boucle();
+      // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
+      setTimeout(function () { lancerTuto(false); }, 450);
+      connecterCurseurs(); // curseurs en direct (optionnel, sans blocage)
     }).catch(function () {
       if (essai < 5) {
         flash(S.connexion);
@@ -284,22 +366,25 @@
       if (res.d && res.d.etat) appliquerEtat(res.d.etat);
       else if (res.d && res.d.refus) { flash(res.d.refus.message || S.sessionTerminee); }
     }).catch(function () { marquerConnexion(false); }).finally(function () {
-      pollTimer = setTimeout(boucle, POLL_MS);
+      pollTimer = setTimeout(boucle, Date.now() < rapideJusqu ? POLL_RAPIDE : POLL_LENT);
     });
   }
+  function pollerVite() { activite(); clearTimeout(pollTimer); pollTimer = setTimeout(boucle, 60); }
   function marquerConnexion(ok) { if (ok === hs) { hs = !ok; E["etat-conn"].classList.toggle("hs", !ok); } }
 
   /* ---------- Application de l'état serveur (déclaratif) ---------- */
   function appliquerEtat(vue) {
     if (!vue) return;
     if (vue.version < etat.version) return; // vieil état
+    if (vue.version !== etat.version) activite(); // changement reçu : on reste réactif
     etat.vue = vue; etat.version = vue.version;
-    E["pioche-n"].textContent = vue.piocheRestante;
-    E["nb-part"].textContent = vue.participants.length;
+    E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
-    rendreMain(vue);
+    rendrePool(vue);
+    rendreDeck(vue);
     rendreVocal(vue);
     rendreTableau(vue.tableau);
+    rendrePing(vue.ping);
     majCoach();
     if (vue.clos) { flash(S.sessionClose); }
   }
@@ -324,13 +409,14 @@
     var v = etat.vue; if (!v) return null;
     var tab = v.tableau || {}, cartes = tab.cartes || [], fleches = tab.fleches || [];
     if (fleches.length >= 1) return null; // un lien cree : le principe est saisi
+    var pool = v.pool || [];
     if (etat.role === "animateur") {
       if ((v.participants || []).length === 0) return S.coachPartager(etat.code);
-      if (cartes.length === 0) return S.coachDistribuer;
+      if (pool.length === 0 && cartes.length === 0) return S.coachPool;
       if (cartes.length >= 2) return S.coachRelier;
       return null;
     }
-    if (maCarte() != null) return S.coachPoser;
+    if (pool.length > 0 && cartes.length === 0) return S.coachPrendre;
     if (cartes.length === 0) return S.coachAttente;
     if (cartes.length >= 2) return S.coachRelier;
     return null;
@@ -353,7 +439,107 @@
     document.addEventListener("click", function (e) {
       if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) maj(false);
     });
+    var revoir = document.getElementById("revoir-tuto");
+    if (revoir) { revoir.textContent = S.tutoRevoir; revoir.addEventListener("click", function () { maj(false); lancerTuto(true); }); }
   })();
+
+  /* ---------- Tutoriel guidé (coach-marks) -----------------------------------
+     Une visite guidée au premier lancement, distincte selon le rôle (animateur
+     ou participant). Chaque étape éclaire un élément (projecteur via box-shadow),
+     avec une bulle numérotée, une flèche vers l'élément, « Suivant » et
+     « Passer ». Rejouable depuis le panneau d'aide. Robustesse : on ne garde que
+     les étapes dont la cible est visible ; repositionnement au redimensionnement ;
+     aucune interaction avec le jeu pendant la visite (fond qui capte les clics). */
+  var tuto = null; // { steps, i, fond, halo, bulle, role, onResize }
+  function tutoVu(role) { try { return localStorage.getItem("fresque:tuto:" + role) === "1"; } catch (e) { return false; } }
+  function marquerTutoVu(role) { try { localStorage.setItem("fresque:tuto:" + role, "1"); } catch (e) {} }
+  function cibleVisible(sel) {
+    if (!sel) return true; // étape sans cible (centrée)
+    var el = document.querySelector(sel);
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+  function lancerTuto(force) {
+    var role = etat.role === "animateur" ? "animateur" : "participant";
+    if (!force && tutoVu(role)) return;
+    var source = role === "animateur" ? (S.tutoAnim || []) : (S.tutoPart || []);
+    var steps = source.filter(function (st) { return cibleVisible(st.cible); });
+    if (!steps.length) return;
+    fermerTuto();
+    var fond = document.createElement("div"); fond.className = "tuto-fond"; fond.id = "tuto-fond";
+    var halo = document.createElement("div"); halo.className = "tuto-halo"; fond.appendChild(halo);
+    var bulle = document.createElement("div"); bulle.className = "tuto-bulle";
+    bulle.innerHTML = '<span class="tuto-fleche"></span>'
+      + '<div class="tuto-num"></div><h3 class="tuto-titre"></h3><p class="tuto-texte"></p>'
+      + '<div class="tuto-actions"><button type="button" class="tuto-passer"></button>'
+      + '<button type="button" class="tuto-suivant btn primaire"></button></div>';
+    fond.appendChild(bulle);
+    document.body.appendChild(fond);
+    tuto = { steps: steps, i: 0, fond: fond, halo: halo, bulle: bulle, role: role };
+    bulle.querySelector(".tuto-passer").addEventListener("click", function (e) { e.stopPropagation(); finirTuto(); });
+    bulle.querySelector(".tuto-suivant").addEventListener("click", function (e) { e.stopPropagation(); etapeSuivante(); });
+    fond.addEventListener("click", function (e) { if (e.target === fond || e.target === halo) etapeSuivante(); });
+    tuto.onResize = function () { if (tuto) montrerEtape(tuto.i); };
+    window.addEventListener("resize", tuto.onResize);
+    montrerEtape(0);
+  }
+  function montrerEtape(i) {
+    if (!tuto) return;
+    var st = tuto.steps[i]; if (!st) return;
+    tuto.i = i;
+    var b = tuto.bulle, n = tuto.steps.length;
+    b.querySelector(".tuto-num").textContent = (i + 1) + " / " + n;
+    b.querySelector(".tuto-titre").textContent = st.titre || "";
+    b.querySelector(".tuto-texte").textContent = st.texte || "";
+    b.querySelector(".tuto-suivant").textContent = (i === n - 1) ? S.tutoTerminer : S.tutoSuivant;
+    b.querySelector(".tuto-passer").textContent = S.tutoPasser;
+    b.querySelector(".tuto-passer").style.visibility = (i === n - 1) ? "hidden" : "visible";
+    positionnerTuto(st.cible ? document.querySelector(st.cible) : null, st.place || "bottom");
+  }
+  function positionnerTuto(cibleEl, place) {
+    var b = tuto.bulle, halo = tuto.halo, fond = tuto.fond, fl = b.querySelector(".tuto-fleche");
+    b.className = "tuto-bulle"; // reset des classes place-*
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var bw = b.offsetWidth, bh = b.offsetHeight;
+    if (!cibleEl) { // étape centrée, pas de cible
+      halo.style.display = "none"; fond.classList.add("centre");
+      b.classList.add("place-centre");
+      b.style.left = Math.round((vw - bw) / 2) + "px";
+      b.style.top = Math.round((vh - bh) / 2) + "px";
+      return;
+    }
+    fond.classList.remove("centre");
+    var r = cibleEl.getBoundingClientRect(), pad = 6;
+    halo.style.display = "block";
+    halo.style.left = (r.left - pad) + "px"; halo.style.top = (r.top - pad) + "px";
+    halo.style.width = (r.width + pad * 2) + "px"; halo.style.height = (r.height + pad * 2) + "px";
+    var gap = 16, pos = place;
+    if (pos === "bottom" && r.bottom + gap + bh > vh) pos = "top";
+    else if (pos === "top" && r.top - gap - bh < 0) pos = "bottom";
+    else if (pos === "left" && r.left - gap - bw < 0) pos = "right";
+    else if (pos === "right" && r.right + gap + bw > vw) pos = "left";
+    var left, top;
+    if (pos === "bottom") { top = r.bottom + gap; left = r.left + r.width / 2 - bw / 2; }
+    else if (pos === "top") { top = r.top - gap - bh; left = r.left + r.width / 2 - bw / 2; }
+    else if (pos === "left") { left = r.left - gap - bw; top = r.top + r.height / 2 - bh / 2; }
+    else { left = r.right + gap; top = r.top + r.height / 2 - bh / 2; }
+    left = Math.max(8, Math.min(vw - bw - 8, left));
+    top = Math.max(8, Math.min(vh - bh - 8, top));
+    b.style.left = Math.round(left) + "px"; b.style.top = Math.round(top) + "px";
+    b.classList.add("place-" + pos);
+    var tcx = r.left + r.width / 2, tcy = r.top + r.height / 2;
+    if (pos === "bottom" || pos === "top") { fl.style.left = Math.max(14, Math.min(bw - 14, tcx - left)) + "px"; fl.style.top = ""; }
+    else { fl.style.top = Math.max(14, Math.min(bh - 14, tcy - top)) + "px"; fl.style.left = ""; }
+  }
+  function etapeSuivante() { if (!tuto) return; if (tuto.i >= tuto.steps.length - 1) finirTuto(); else montrerEtape(tuto.i + 1); }
+  function finirTuto() { if (tuto) marquerTutoVu(tuto.role); fermerTuto(); }
+  function fermerTuto() {
+    if (!tuto) return;
+    if (tuto.onResize) window.removeEventListener("resize", tuto.onResize);
+    if (tuto.fond && tuto.fond.parentNode) tuto.fond.parentNode.removeChild(tuto.fond);
+    tuto = null;
+  }
 
   /* ---------- Participants / vocal / main ---------- */
   function moi() { if (etat.role !== "participant") return null; return (etat.vue.participants || []).find(function (p) { return p.id === idMoi(); }); }
@@ -363,6 +549,12 @@
     return _idMoi;
   }
   function rendreParticipants(vue) {
+    // Garde : ne reconstruit la liste que si elle a reellement change (evite le
+    // churn DOM a chaque changement de version, ex. quand un autre deplace une carte).
+    var sig = (vue.animateur ? vue.animateur.prenom + ":" + (vue.animateur.connecte ? 1 : 0) : "")
+      + "|" + (vue.participants || []).map(function (p) { return p.id + ":" + p.prenom + ":" + (p.connecte ? 1 : 0); }).join(",")
+      + "|" + etat.role + "|" + _idMoi;
+    if (sig === etat._sigPart) return; etat._sigPart = sig;
     var ul = E["liste-part"]; ul.innerHTML = "";
     // Distinguer les homonymes : si un prénom apparaît plusieurs fois, on
     // numérote les occurrences (Antoine ·1, Antoine ·2) pour que tout le monde
@@ -375,78 +567,220 @@
       if (compte[k] > 1) { vus[k] = (vus[k] || 0) + 1; return prenom + " ·" + vus[k]; }
       return prenom;
     }
+    var jeSuisAnim = etat.role === "animateur";
     function ligne(x, role, estMoi) {
       var li = document.createElement("li");
-      if (estMoi) li.className = "moi";
+      li.className = (estMoi ? "moi" : "") + (x.connecte ? "" : " hors");
       var suff = role === "anim"
         ? '<span class="anim">' + S.animateur + '</span>'
-        : '<span class="info">' + (x.carteEnMain != null ? S.carteN(x.carteEnMain) : (x.recues ? S.recues(x.recues) : "")) + '</span>';
+        : (x.connecte ? '' : '<span class="info hors-txt">' + esc(S.horsLigne) + '</span>');
+      // Bouton exclure (animateur, pour un participant).
+      var excl = (jeSuisAnim && role === "part")
+        ? '<button class="part-x" data-excl="' + esc(x.id) + '" title="' + esc(S.exclure) + '" aria-label="' + esc(S.exclure) + '">✕</button>' : '';
       li.innerHTML = '<span class="pastille' + (x.connecte ? '' : ' hs') + '"></span>'
         + '<span class="nom">' + esc(nomAffiche(x.prenom)) + '</span>'
         + (estMoi ? '<span class="moi-tag">' + S.vous + '</span>' : '')
-        + suff;
+        + suff + excl;
+      var bx = li.querySelector('[data-excl]');
+      if (bx) bx.addEventListener("click", function () {
+        if (window.confirm(S.confirmExclure(x.prenom))) agir({ op: "exclure", id: x.id });
+      });
       return li;
     }
-    ul.appendChild(ligne(vue.animateur, "anim", etat.role === "animateur"));
+    ul.appendChild(ligne(vue.animateur, "anim", jeSuisAnim));
     (vue.participants || []).forEach(function (p) {
       ul.appendChild(ligne(p, "part", p.id === _idMoi));
     });
   }
   function rendreVocal(vue) {
+    if (vue.lienVocal === etat._sigVocal) return; etat._sigVocal = vue.lienVocal;
     if (vue.lienVocal) { E["vocal-lien"].hidden = false; E["vocal-lien"].href = vue.lienVocal; if (E["vocal-url"]) E["vocal-url"].value = vue.lienVocal; }
     else E["vocal-lien"].hidden = true;
   }
-  function rendreMain(vue) {
-    var mz = E["main-zone"]; mz.innerHTML = "";
-    var p = etat.role === "participant" ? (vue.participants.find(function (x) { return x.id === _idMoi; })) : null;
-    if (!p || p.carteEnMain == null) return;
-    var c = etat.cartes[p.carteEnMain]; if (!c) return;
-    var d = document.createElement("div"); d.className = "main-carte a-poser";
-    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="num">' + c.n + '</span>'
-      + '<button class="agr" data-a="voir" aria-label="' + S.agrandirCarte + '" title="' + S.agrandir + '">⤢</button></div>'
-      + '<div class="tit">' + esc(c.titre) + '</div>'
-      + '<div class="actions"><button class="btn primaire" data-a="poser">' + S.poser + '</button></div>';
-    d.querySelector('[data-a="poser"]').addEventListener("click", function (e) { e.stopPropagation(); poserMain(); });
-    d.querySelector('[data-a="voir"]').addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(p.carteEnMain); });
-    activerGlisserMain(d, p.carteEnMain);
-    mz.appendChild(d);
+  // Couleur par lot (aide l'animateur a voir ou il en est dans la partie).
+  var LOT_COULEUR = { 1: "#E8811C", 2: "#2f7d4f", 3: "#3b6ea5", 4: "#8a4fb3", 5: "#c1444e" };
+
+  // Pool commun : cartes mises a disposition par l'animateur, visibles de tou·tes.
+  // Un clic « Poser » place la carte sur la table (tout le monde). L'animateur
+  // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool et
+  // regler la taille des cartes (retreci / agrandi), memorisee par navigateur.
+  var poolReduit = false;
+  var POOL_TAILLES = [116, 150, 190, 240]; // largeurs possibles des cartes du pool
+  var poolTaille = 1;
+  try { var pt = parseInt(localStorage.getItem("fresque:pooltaille"), 10); if (pt >= 0 && pt < POOL_TAILLES.length) poolTaille = pt; } catch (e) {}
+  function appliquerTaillePool() {
+    var z = E["pool"]; if (z) z.style.setProperty("--pw", POOL_TAILLES[poolTaille] + "px");
   }
-  // Glisser la carte tenue vers le tableau ; clic simple = agrandir.
-  // Ecoute au niveau document : le relachement est capte ou que soit le curseur.
-  function activerGlisserMain(d, n) {
-    d.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0 || e.target.closest("button")) return;
-      var x0 = e.clientX, y0 = e.clientY, bougé = false;
-      function mv(ev) {
-        if (!bougé && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 6) {
-          bougé = true; d.classList.add("glisse"); d.classList.remove("a-poser");
-        }
-        if (bougé) { d.style.left = (ev.clientX - d.offsetWidth / 2) + "px"; d.style.top = (ev.clientY - 24) + "px"; }
-      }
-      function up(ev) {
-        document.removeEventListener("pointermove", mv, true);
-        document.removeEventListener("pointerup", up, true);
-        if (!bougé) { ouvrirModal(n); return; }
-        var r = rectScene();
-        if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-          var w = versMonde(ev.clientX, ev.clientY);
-          agir({ op: "poser", n: n, rect: { x: w.x - 90, y: w.y - 75, largeur: 200, hauteur: 200 } });
-        }
-        if (etat.vue) rendreMain(etat.vue);
-      }
-      document.addEventListener("pointermove", mv, true);
-      document.addEventListener("pointerup", up, true);
+  function changerTaillePool(delta) {
+    poolTaille = Math.max(0, Math.min(POOL_TAILLES.length - 1, poolTaille + delta));
+    try { localStorage.setItem("fresque:pooltaille", String(poolTaille)); } catch (e) {}
+    appliquerTaillePool();
+    var z = E["pool"]; if (z) { var b = z.querySelector(".pool-moins"), p = z.querySelector(".pool-plus");
+      if (b) b.disabled = poolTaille === 0; if (p) p.disabled = poolTaille === POOL_TAILLES.length - 1; }
+  }
+  function rendrePool(vue) {
+    var z = E["pool"]; if (!z) return;
+    var pool = vue.pool || [];
+    // Garde : on ne reconstruit le pool que si son contenu, ses reservations, le
+    // pli ou la taille ont change (sinon churn DOM inutile a chaque version).
+    var res = vue.reservations || {};
+    var sig = pool.join(",") + "|" + Object.keys(res).sort().map(function (k) { return k + ":" + res[k]; }).join(",")
+      + "|" + (poolReduit ? 1 : 0) + "|" + poolTaille + "|" + etat.role + "|" + (nomMoi() || "");
+    if (sig === etat._sigPool) { appliquerTaillePool(); return; }
+    etat._sigPool = sig;
+    z.innerHTML = "";
+    appliquerTaillePool();
+    z.classList.toggle("vide", pool.length === 0 && !poolReduit);
+    // En-tete avec bascule replier / deplier et reglage de taille.
+    var tete = document.createElement("div"); tete.className = "pool-tete";
+    var tog = document.createElement("button"); tog.type = "button"; tog.className = "pool-toggle";
+    tog.setAttribute("aria-expanded", poolReduit ? "false" : "true");
+    tog.textContent = (poolReduit ? "▸ " : "▾ ") + S.poolTitre + " (" + pool.length + ")";
+    tog.addEventListener("click", function () { poolReduit = !poolReduit; rendrePool(etat.vue || vue); });
+    tete.appendChild(tog);
+    if (!poolReduit && pool.length) {
+      var moins = document.createElement("button"); moins.type = "button"; moins.className = "pool-taille pool-moins";
+      moins.textContent = "−"; moins.setAttribute("aria-label", S.poolReduire); moins.title = S.poolReduire;
+      moins.disabled = poolTaille === 0;
+      moins.addEventListener("click", function () { changerTaillePool(-1); });
+      var plus = document.createElement("button"); plus.type = "button"; plus.className = "pool-taille pool-plus";
+      plus.textContent = "+"; plus.setAttribute("aria-label", S.poolAgrandir); plus.title = S.poolAgrandir;
+      plus.disabled = poolTaille === POOL_TAILLES.length - 1;
+      plus.addEventListener("click", function () { changerTaillePool(1); });
+      tete.appendChild(moins); tete.appendChild(plus);
+    }
+    z.appendChild(tete);
+    if (poolReduit) return;
+    if (!pool.length) {
+      var v = document.createElement("p"); v.className = "pool-vide";
+      v.textContent = etat.role === "animateur" ? S.poolVideAnim : S.poolVide;
+      z.appendChild(v); return;
+    }
+    var wrap = document.createElement("div"); wrap.className = "pool-cartes";
+    var reserv = vue.reservations || {};
+    var moiNom = nomMoi();
+    pool.forEach(function (n) {
+      var c = etat.cartes[n];
+      var d = document.createElement("div"); d.className = "pool-carte"; d.dataset.n = n;
+      if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+      // Verrou : carte en cours de prise par quelqu'un d'autre.
+      var par = reserv[n];
+      var verrou = par && par !== moiNom;
+      if (verrou) d.classList.add("occupee");
+      d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
+        + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
+        + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
+        + '<div class="pool-actions"><button class="btn primaire" data-a="poser"' + (verrou ? ' disabled' : '') + '>' + esc(S.prendre) + '</button>'
+        + (etat.role === "animateur" ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
+        + '</div>';
+      d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
+      var poser = d.querySelector('[data-a="poser"]');
+      poser.addEventListener("click", function (e) { e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
+      var bx = d.querySelector('[data-a="retirer"]'); if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
+      // Glisser-deposer : depuis la carte du pool vers le tableau.
+      if (!verrou) d.addEventListener("pointerdown", function (e) { demarrerGlissePool(e, n, d); });
+      wrap.appendChild(d);
     });
+    z.appendChild(wrap);
   }
-  // Carte tenue par moi (participant), ou null.
-  function maCarte() {
-    if (etat.role !== "participant" || !etat.vue) return null;
-    var p = (etat.vue.participants || []).find(function (x) { return x.id === _idMoi; });
-    return p && p.carteEnMain != null ? p.carteEnMain : null;
+  function nomMoi() { return etat.role === "animateur" ? (etat.vue && etat.vue.animateur && etat.vue.animateur.prenom) || "" : (function () { var m = (etat.vue && etat.vue.participants || []).find(function (p) { return p.id === _idMoi; }); return m ? m.prenom : ""; })(); }
+
+  /* ---------- Glisser-deposer une carte du pool vers le tableau ----------
+     Fiabilite : au premier vrai mouvement on RESERVE la carte cote serveur (les
+     autres la voient verrouillee). Un fantome suit le curseur. Au relacher sur
+     le tableau, on POSE au point de depot (le serveur tranche : une seule prise
+     possible). Ailleurs, on LIBERE la reservation. Un clic simple (sans bouger)
+     ne declenche rien : c'est le bouton « Poser » qui agit. */
+  var glissePool = null;
+  function demarrerGlissePool(e, n, elCarte) {
+    if (e.button && e.button !== 0) return;
+    if (e.target.closest(".pool-actions") || e.target.closest(".pool-x")) return; // clics boutons
+    e.preventDefault();
+    glissePool = { n: n, x0: e.clientX, y0: e.clientY, bouge: false, reserve: false, fantome: null, refuse: false };
+    document.addEventListener("pointermove", glisserPoolMove, true);
+    document.addEventListener("pointerup", glisserPoolUp, true);
+    document.addEventListener("pointercancel", glisserPoolUp, true);
   }
-  function poserMain() {
-    var n = maCarte(); if (n == null) return;
-    agir({ op: "poser", n: n, rect: rectVisible() });
+  function glisserPoolMove(e) {
+    var g = glissePool; if (!g) return;
+    if (!g.bouge && Math.abs(e.clientX - g.x0) + Math.abs(e.clientY - g.y0) < 5) return;
+    if (!g.bouge) {
+      g.bouge = true;
+      // Reserver au serveur ; si refuse (deja pris), on annule le glissement.
+      api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
+        if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
+        else { g.reserve = true; if (res.d && res.d.etat) appliquerEtat(res.d.etat); }
+      }).catch(function () {});
+      g.fantome = document.createElement("div"); g.fantome.className = "pool-fantome";
+      var c = etat.cartes[g.n];
+      g.fantome.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span>' + g.n + "</span>";
+      document.body.appendChild(g.fantome);
+    }
+    if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
+    // Retour visuel : la scene s'illumine quand on survole une zone deposable.
+    E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
+  }
+  function glisserPoolUp(e) {
+    var g = glissePool; if (!g) return;
+    if (g.refuse) { finGlissePool(true); return; }
+    if (g.bouge && zoneDepot(e.clientX, e.clientY)) {
+      var w = versMonde(e.clientX, e.clientY);
+      agir({ op: "poserCarte", n: g.n, pos: { x: Math.round(w.x), y: Math.round(w.y) }, rect: rectVisible() });
+      finGlissePool(false); // la carte quitte le pool : pas besoin de liberer
+    } else {
+      // Depose hors du tableau (ou simple clic) : on relache la reservation.
+      if (g.bouge && g.reserve) agir({ op: "libererPool", n: g.n });
+      finGlissePool(false);
+    }
+  }
+  function finGlissePool(silence) {
+    var g = glissePool; glissePool = null;
+    document.removeEventListener("pointermove", glisserPoolMove, true);
+    document.removeEventListener("pointerup", glisserPoolUp, true);
+    document.removeEventListener("pointercancel", glisserPoolUp, true);
+    E.scene.classList.remove("depot-actif");
+    if (g && g.fantome) g.fantome.remove();
+  }
+  function surScene(cx, cy) { var r = rectScene(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
+  // Zone de depot valide : sur la scene, mais PAS au-dessus du pool ni des barres
+  // (sinon lacher la carte sur le pool la poserait par erreur). Deposer ailleurs
+  // que sur cette zone annule la prise et libere la reservation.
+  function zoneDepot(cx, cy) {
+    if (!surScene(cx, cy)) return false;
+    var el = document.elementFromPoint(cx, cy);
+    if (el && el.closest && (el.closest("#pool") || el.closest(".deck") || el.closest(".toolbar") || el.closest(".topbar") || el.closest(".pool-fantome"))) return false;
+    return true;
+  }
+
+  // Jeu complet (animateur) : clic pour mettre une carte dans le pool. Grisee si
+  // deja dans le pool ou posee. Construit une seule fois, etat mis a jour ensuite.
+  var deckFait = false;
+  function construireDeck() {
+    var z = E["deck-cartes"]; if (!z || deckFait) return; deckFait = true;
+    for (var n = 1; n <= 38; n++) {
+      var c = etat.cartes[n]; if (!c) continue;
+      var b = document.createElement("button"); b.type = "button"; b.className = "deck-carte"; b.dataset.n = n;
+      b.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+      b.title = n + " · " + c.titre;
+      b.innerHTML = '<span class="dn">' + n + '</span><span class="dt">' + esc(c.titre) + '</span>';
+      b.addEventListener("click", function () { agir({ op: "poolAjouter", n: +this.dataset.n }); });
+      z.appendChild(b);
+    }
+  }
+  function rendreDeck(vue) {
+    if (etat.role !== "animateur") return;
+    construireDeck();
+    var z = E["deck-cartes"]; if (!z) return;
+    var etatCarte = {};
+    (vue.pool || []).forEach(function (n) { etatCarte[n] = "pool"; });
+    ((vue.tableau && vue.tableau.cartes) || []).forEach(function (c) { etatCarte[c.n] = "table"; });
+    Array.prototype.forEach.call(z.children, function (b) {
+      var st = etatCarte[+b.dataset.n];
+      b.classList.toggle("en-pool", st === "pool");
+      b.classList.toggle("en-table", st === "table");
+      b.disabled = !!st;
+    });
+    if (E["deck-compte"]) E["deck-compte"].textContent = (vue.pool || []).length + " / 8";
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
@@ -485,41 +819,63 @@
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
+    // Encadre fixe au survol (utile quand on est dezoome).
+    el.addEventListener("mouseenter", function () { montrerSurvol(n); });
+    el.addEventListener("mouseleave", masquerSurvol);
     el.addEventListener("click", function (e) {
-      if (etat.outil === "fleche") { e.stopPropagation(); clicFleche(n, el); }
+      // Un vrai glissement se termine par un « click » parasite : on l'ignore
+      // pour ne pas selectionner / tracer une fleche par accident.
+      if (el._justDrag && Date.now() - el._justDrag < 320) { el._justDrag = 0; return; }
+      if (estFleche(etat.outil)) { e.stopPropagation(); clicFleche(n, el); }
       else if (etat.role === "animateur") { selCarte(n, el); }
     });
     glisserCarte(el, n);
     return el;
   }
   function flashPose(el) { el.classList.add("pose-anim"); setTimeout(function () { el.classList.remove("pose-anim"); }, 700); }
+  // Encadre fixe (haut de la scene) qui affiche le titre de la carte survolee.
+  var _survol = null;
+  function montrerSurvol(n) {
+    var c = etat.cartes[n]; if (!c) return;
+    if (!_survol) { _survol = document.getElementById("survol-carte"); }
+    if (!_survol) return;
+    _survol.textContent = n + " · " + c.titre;
+    _survol.hidden = false;
+  }
+  function masquerSurvol() { if (_survol) _survol.hidden = true; }
 
   function glisserCarte(el, n) {
-    var st = null;
+    var st = null, bouge = false;
     el.addEventListener("pointerdown", function (e) {
-      if (etat.outil !== "deplacer" || e.target.closest(".agr")) return;
-      e.stopPropagation(); el.setPointerCapture(e.pointerId); el.style.cursor = "grabbing";
-      etat.dragN = n; st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
+      if (etat.outil !== "deplacer" || e.target.closest(".agr") || (e.button && e.button !== 0)) return;
+      e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch (x) {} el.style.cursor = "grabbing";
+      etat.dragN = n; bouge = false; st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
     });
     el.addEventListener("pointermove", function (e) {
       if (!st) return;
+      if (!bouge && Math.abs(e.clientX - st.mx) + Math.abs(e.clientY - st.my) > 3) bouge = true;
       var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
       var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
-      el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; dessinerFleches();
+      el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; majFleches();
     });
-    el.addEventListener("pointerup", function (e) {
+    function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
       try { el.releasePointerCapture(e.pointerId); } catch (x) {}
       etat.dragN = null;
-      agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });
-    });
+      if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y }); }
+      // Annulation (pointercancel) : on ne touche pas au serveur, la carte
+      // reprend sa derniere position connue au prochain rendu.
+    }
+    el.addEventListener("pointerup", function (e) { fin(e, false); });
+    el.addEventListener("pointercancel", function (e) { fin(e, true); });
   }
 
   /* ---------- Flèches ---------- */
+  function estFleche(o) { return o === "fleche" || o === "fleche2"; }
   function clicFleche(n, el) {
     if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
-    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: false }); annulerFleche(); setOutil("deplacer"); }
+    else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: etat.outil === "fleche2" }); annulerFleche(); setOutil("deplacer"); }
   }
   function annulerFleche() { if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart"); etat.flecheDepart = null; }
 
@@ -530,6 +886,14 @@
   function bord(c, tx, ty) { var dx = tx - c.x, dy = ty - c.y; if (!dx && !dy) return { x: c.x, y: c.y };
     var hw = c.w / 2 + 4, hh = c.h / 2 + 4; var s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
     return { x: c.x + dx * s, y: c.y + dy * s }; }
+  // Redessin des fleches coalesce sur une frame d'animation : pendant un
+  // glissement, un zoom ou un deplacement, on peut appeler majFleches() a chaque
+  // evenement pointeur sans reconstruire le SVG plusieurs fois par frame.
+  var _flechesRAF = 0;
+  function majFleches() {
+    if (_flechesRAF) return;
+    _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); });
+  }
   function dessinerFleches() {
     if (!etat.vue) return;
     var defs = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
@@ -564,29 +928,47 @@
   }
 
   /* ---------- Sélection flèche : libellé + suppression ---------- */
-  var croix = null, editLib = null, bidir = null;
+  var croix = null, editLib = null, bidir = null, barreCarte = null;
   function selFleche(id) {
     deselect(); etat.sel = { type: "fleche", id: id }; dessinerFleches();
     var f = etat.vue.tableau.fleches.find(function (x) { return x.id === id; }); if (!f) return;
     editLib = document.createElement("input"); editLib.type = "text"; editLib.maxLength = 40; editLib.value = f.libelle || "";
     editLib.placeholder = S.libelle;
-    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#fff;color:var(--ink);width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
+    // Fond blanc + texte foncé fixe (sinon, en thème sombre, --ink est clair et
+    // le texte devient illisible sur le fond blanc).
+    editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#ffffff;color:#1b1a17;width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
     var envoi = null;
-    editLib.addEventListener("input", function () { clearTimeout(envoi); var v = editLib.value; envoi = setTimeout(function () { agir({ op: "libellerFleche", id: id, libelle: v }); }, 400); });
+    function commitLib() { clearTimeout(envoi); agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
+    editLib._commit = commitLib;
+    editLib.addEventListener("input", function () { clearTimeout(envoi); envoi = setTimeout(commitLib, 350); });
+    editLib.addEventListener("change", commitLib);
+    editLib.addEventListener("keydown", function (e) { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commitLib(); deselect(); } });
     E.scene.appendChild(editLib);
+    setTimeout(function () { try { editLib.focus(); editLib.select(); } catch (e) {} }, 0);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
-    bidir = document.createElement("button");
-    bidir.className = "fleche-bidir"; bidir.textContent = "↔"; bidir.title = S.sensDouble;
-    bidir.setAttribute("aria-pressed", f.bidir ? "true" : "false");
-    bidir.addEventListener("click", function () { agir({ op: "bidirFleche", id: id }); });
-    E.scene.appendChild(bidir);
+    // Le sens de la fleche se choisit a la creation (outils « lien » / « lien ↔ »).
     positionnerEditeurs();
   }
-  function selCarte(n, el) { deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel"); }
+  function selCarte(n, el) {
+    deselect(); etat.sel = { type: "carte", n: n }; el.classList.add("sel");
+    // L'animateur peut reprendre une carte posee : la remettre au pool commun, ou
+    // dans sa reserve (le jeu complet). Petite barre d'actions au-dessus de la carte.
+    if (etat.role === "animateur") {
+      barreCarte = document.createElement("div"); barreCarte.className = "carte-actions";
+      var bPool = document.createElement("button"); bPool.type = "button"; bPool.className = "btn mini"; bPool.textContent = S.versPool;
+      bPool.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "retirerCarte", n: n, dest: "pool" }); deselect(); });
+      var bRes = document.createElement("button"); bRes.type = "button"; bRes.className = "btn mini"; bRes.textContent = S.versReserve;
+      bRes.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "retirerCarte", n: n }); deselect(); });
+      barreCarte.appendChild(bPool); barreCarte.appendChild(bRes);
+      E.scene.appendChild(barreCarte);
+      positionnerEditeurs();
+    }
+  }
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
-    etat.sel = null; [croix, editLib, bidir].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = null; dessinerFleches();
+    if (editLib && editLib._commit) { try { editLib._commit(); } catch (e) {} } // valider le libellé en cours
+    etat.sel = null; [croix, editLib, bidir, barreCarte].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = barreCarte = null; dessinerFleches();
   }
   function positionnerEditeurs() {
     if (etat.sel && etat.sel.type === "fleche") {
@@ -595,6 +977,15 @@
         if (croix) { croix.style.left = px + "px"; croix.style.top = (py - 16) + "px"; }
         if (bidir) { bidir.style.left = (px - 30) + "px"; bidir.style.top = (py - 16) + "px"; }
         if (editLib) { editLib.style.left = (px + 14) + "px"; editLib.style.top = (py - 14) + "px"; } }
+    } else if (etat.sel && etat.sel.type === "carte" && barreCarte) {
+      var c = etat.elCartes[etat.sel.n];
+      if (c) {
+        var cx = etat.panX + (c._x || 0) * etat.zoom;
+        var cy = etat.panY + (c._y || 0) * etat.zoom;
+        var haut = cy - 38;
+        barreCarte.style.left = cx + "px";
+        barreCarte.style.top = (haut < 4 ? cy + (c.offsetHeight * etat.zoom) + 6 : haut) + "px";
+      }
     }
   }
 
@@ -602,7 +993,10 @@
   function creerElTexte(t) {
     var el = document.createElement("div"); el.className = "c-texte"; el.dataset.id = t.id; el.textContent = t.contenu;
     el.addEventListener("pointerdown", function (e) { glisserTexte(e, el); });
-    el.addEventListener("click", function (e) { e.stopPropagation(); editerTexte(el); });
+    el.addEventListener("click", function (e) {
+      if (el._justDrag && Date.now() - el._justDrag < 320) { el._justDrag = 0; return; }
+      e.stopPropagation(); editerTexte(el);
+    });
     return el;
   }
   function editerTexte(el) {
@@ -614,12 +1008,19 @@
     };
   }
   function glisserTexte(e, el) {
-    if (el.getAttribute("contenteditable") === "true" || etat.outil !== "deplacer") return;
-    e.stopPropagation(); el.setPointerCapture(e.pointerId); el._drag = true;
-    var st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
-    function mv(ev) { var x = st.x + (ev.clientX - st.mx) / etat.zoom, y = st.y + (ev.clientY - st.my) / etat.zoom; el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; }
-    function up(ev) { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el._drag = false; try { el.releasePointerCapture(ev.pointerId); } catch (x) {} agir({ op: "deplacerTexte", id: el._id, x: el._x, y: el._y }); }
-    el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up);
+    if (el.getAttribute("contenteditable") === "true" || etat.outil !== "deplacer" || (e.button && e.button !== 0)) return;
+    e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch (x) {} el._drag = true;
+    var bouge = false, st = { mx: e.clientX, my: e.clientY, x: el._x || 0, y: el._y || 0 };
+    function mv(ev) { if (!bouge && Math.abs(ev.clientX - st.mx) + Math.abs(ev.clientY - st.my) > 3) bouge = true;
+      var x = st.x + (ev.clientX - st.mx) / etat.zoom, y = st.y + (ev.clientY - st.my) / etat.zoom; el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; }
+    function fin(ev, annule) {
+      el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", cancel);
+      el._drag = false; try { el.releasePointerCapture(ev.pointerId); } catch (x) {}
+      if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerTexte", id: el._id, x: el._x, y: el._y }); }
+    }
+    function up(ev) { fin(ev, false); }
+    function cancel(ev) { fin(ev, true); }
+    el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", cancel);
   }
   function creerNoteLocale(x, y) {
     // note temporaire éditable ; créée côté serveur au blur si non vide
@@ -631,10 +1032,100 @@
   /* ---------- Agir (optimiste + envoi) ---------- */
   var envoiEnCours = false, file = [];
   function agir(intention) {
+    activite(); // action locale : on passe en mode reactif
     api("agir", { code: etat.code, jeton: etat.jeton, intention: intention }).then(function (res) {
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
       if (res.d && res.d.etat) appliquerEtat(res.d.etat);
+      pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
     }).catch(function () { marquerConnexion(false); });
+  }
+
+  /* ---------- Ping (cercle qui s'agrandit) ---------- */
+  // Un seul ping courant cote serveur ; on n'anime que s'il est recent et pas
+  // deja vu (par id), et jamais le sien (deja anime au clic).
+  var dernierPing = 0;
+  function rendrePing(p) {
+    if (!p || !p.id || p.id === dernierPing) return;
+    dernierPing = p.id;
+    if (Date.now() - (p.ts || 0) > 4000) return; // trop vieux (on vient d'arriver)
+    montrerPing(p.x, p.y, p.par || "");
+  }
+  function montrerPing(x, y, nom) {
+    var el = document.createElement("div");
+    el.className = "ping";
+    el.style.left = x + "px"; el.style.top = y + "px";
+    var c = document.createElement("span"); c.className = "ping-cercle"; el.appendChild(c);
+    if (nom) { var t = document.createElement("span"); t.className = "ping-nom"; t.textContent = nom; el.appendChild(t); }
+    E.monde.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1300);
+  }
+
+  /* ---------- Curseurs en direct (relais WebSocket) --------------------------
+     Temps reel via un petit relais auto-heberge. ENTIEREMENT OPTIONNEL : si le
+     relais est injoignable, bloque, ou tombe, le jeu continue normalement (aucune
+     erreur, aucun blocage). Reconnexion automatique avec backoff borne. Chaque
+     curseur distant est une fleche + prenom, contre-mise a l'echelle du zoom,
+     effacee apres 5 s sans nouvelle ou a la deconnexion. Masquable. */
+  var CURSEURS_WS = "wss://curseurs.pauseia.fr";
+  var curs = { ws: null, els: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
+  try { curs.montrer = localStorage.getItem("curseurs-off") !== "1"; } catch (e) {}
+  function connecterCurseurs() {
+    if (curs.ferme || !etat.code || typeof WebSocket === "undefined") return;
+    if (curs.ws && (curs.ws.readyState === 0 || curs.ws.readyState === 1)) return;
+    var ws;
+    try {
+      ws = new WebSocket(CURSEURS_WS + "/?code=" + encodeURIComponent(etat.code) + "&nom=" + encodeURIComponent(nomMoi() || ""));
+    } catch (e) { planifierReconnexionCurseurs(); return; }
+    curs.ws = ws;
+    ws.onopen = function () { curs.essais = 0; };
+    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirCurseur(m); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+    ws.onclose = function () { curs.ws = null; planifierReconnexionCurseurs(); };
+  }
+  function planifierReconnexionCurseurs() {
+    if (curs.ferme) return;
+    clearTimeout(curs.reconn);
+    // backoff : 2s, 4s, 8s... plafonne a 30s, pour ne jamais marteler le relais.
+    var delai = Math.min(30000, 2000 * Math.pow(2, Math.min(curs.essais, 4)));
+    curs.essais++;
+    curs.reconn = setTimeout(connecterCurseurs, delai);
+  }
+  function envoyerCurseur(cx, cy) {
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
+    var w = versMonde(cx, cy);
+    try { ws.send(JSON.stringify({ t: "c", x: Math.round(w.x), y: Math.round(w.y) })); } catch (e) {}
+  }
+  function recevoirCurseur(m) {
+    if (!m || !m.id) return;
+    if (m.t === "leave") { enleverCurseur(m.id); return; }
+    if (m.t !== "c") return;
+    curs.vus[m.id] = Date.now();
+    var el = curs.els[m.id];
+    if (!el) { el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el); }
+    el.style.left = (+m.x || 0) + "px"; el.style.top = (+m.y || 0) + "px";
+    el.hidden = !curs.montrer;
+  }
+  function creerCurseur(id, nom) {
+    var el = document.createElement("div"); el.className = "curseur-live";
+    var coul = couleurCurseur(id);
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="1.3"/></svg>'
+      + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
+    el.hidden = !curs.montrer;
+    return el;
+  }
+  function couleurCurseur(id) {
+    var p = ["#E8811C", "#2f7d4f", "#3b6ea5", "#8a4fb3", "#c1444e", "#1d8a9c", "#b5771a"];
+    var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return p[h % p.length];
+  }
+  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; }
+  setInterval(function () { var now = Date.now(); for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); } }, 2000);
+  function basculerCurseurs() {
+    curs.montrer = !curs.montrer;
+    try { localStorage.setItem("curseurs-off", curs.montrer ? "0" : "1"); } catch (e) {}
+    for (var id in curs.els) curs.els[id].hidden = !curs.montrer;
+    var b = document.getElementById("btn-curseurs"); if (b) b.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
   }
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
@@ -646,7 +1137,7 @@
     etat.panX = pw <= r.width ? (r.width - pw) / 2 : Math.min(0, Math.max(r.width - pw, etat.panX));
     etat.panY = ph <= r.height ? (r.height - ph) / 2 : Math.min(0, Math.max(r.height - ph, etat.panY)); }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
-  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); dessinerFleches(); }
+  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
   function toutVoir() { var r = rectScene(); etat.zoom = Math.max(0.38, Math.min(r.width / PLAN_W, r.height / PLAN_H)); etat.panX = (r.width - PLAN_W * etat.zoom) / 2; etat.panY = (r.height - PLAN_H * etat.zoom) / 2; clampPan(); applyView(); dessinerFleches(); }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }
@@ -664,14 +1155,27 @@
     if (!fondScene(e.target)) return;
     var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y);
   });
-  E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); dessinerFleches(); });
+  E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); majFleches(); });
+  // Curseur en direct : on diffuse sa position (throttlee) en permanence, meme
+  // pendant un glissement de carte (l'evenement remonte jusqu'a la scene).
+  E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 
+  // Ping : clic droit sur le tableau -> cercle qui s'agrandit chez tout le monde,
+  // pour attirer l'attention (emprunte a Excalidraw / Foundry). On evite le menu
+  // contextuel du navigateur et on borne au plan.
+  E.scene.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    var w = versMonde(e.clientX, e.clientY);
+    agir({ op: "ping", x: Math.round(w.x), y: Math.round(w.y) });
+    montrerPing(w.x, w.y, S.vous || "");
+  });
+
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
-    E.scene.classList.toggle("outil-fleche", o === "fleche"); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
-    flash(o === "fleche" ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
+    E.scene.classList.toggle("outil-fleche", estFleche(o)); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
+    flash(estFleche(o) ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
@@ -711,29 +1215,92 @@
   if (E["btn-barres"]) E["btn-barres"].addEventListener("click", function () { majBarres(true); });
   if (E["btn-barres-show"]) E["btn-barres-show"].addEventListener("click", function () { majBarres(false); });
   (function () {
+    var bc = document.getElementById("btn-curseurs");
+    if (!bc) return;
+    bc.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+    bc.addEventListener("click", basculerCurseurs);
+  })();
+  // Prevenir les autres a la fermeture de l'onglet (retrait immediat du curseur).
+  window.addEventListener("beforeunload", function () { curs.ferme = true; try { if (curs.ws) curs.ws.close(); } catch (e) {} });
+  (function () {
     var s = document.getElementById("btn-sombre");
-    if (s) s.addEventListener("click", function () { var on = document.body.classList.toggle("sombre"); this.setAttribute("aria-pressed", on ? "true" : "false"); });
+    if (s) {
+      // Etat initial selon le theme (le CSS reagit a canvas-noir / canvas-blanc).
+      var noirDepart = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var attr = document.documentElement.getAttribute("data-theme");
+      if (attr === "dark") noirDepart = true; else if (attr === "light") noirDepart = false;
+      function appliquerCanvas(noir) {
+        document.body.classList.toggle("canvas-noir", noir);
+        document.body.classList.toggle("canvas-blanc", !noir);
+        s.setAttribute("aria-pressed", noir ? "true" : "false");
+        s.textContent = noir ? S.fondBlanc : S.fondNoir; // le bouton propose l'action inverse
+        try { dessinerFleches(); } catch (e) {}
+      }
+      appliquerCanvas(noirDepart);
+      s.addEventListener("click", function () { appliquerCanvas(!document.body.classList.contains("canvas-noir")); });
+    }
     var e = document.getElementById("btn-export");
     if (e) e.addEventListener("click", exporterImage);
   })();
-  E["btn-distribuer"].addEventListener("click", function () { agir({ op: "distribuer" }); });
-  E["btn-passer"].addEventListener("click", function () { agir({ op: "passerAuSuivant" }); });
-  E["btn-distribuer-tous"].addEventListener("click", function () { agir({ op: "distribuerATous" }); });
+  // Deck (animateur) : replier / deplier le jeu complet en bas de l'ecran.
+  if (E["deck-toggle"] && E["deck"]) E["deck-toggle"].addEventListener("click", function () {
+    var replie = E["deck"].classList.toggle("replie");
+    this.setAttribute("aria-expanded", replie ? "false" : "true");
+    reflowPlein();
+  });
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
   E["code-chip"].addEventListener("click", function () { copier(etat.code, E["code-chip"].querySelector(".copier")); });
   E["btn-partager"].addEventListener("click", function () { copier(location.origin + location.pathname + "?s=" + etat.code, null, E["btn-partager"]); });
-  function copier(txt, badge, btn) { try { navigator.clipboard.writeText(txt); } catch (e) {}
-    if (badge) { var t = badge.textContent; badge.textContent = S.copie; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
-    if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); } }
+  function copier(txt, badge, btn) {
+    copieRobuste(txt).then(function (ok) {
+      if (!ok) { flash(S.copieEchec); return; } // on ne pretend pas avoir copie si ca a echoue
+      if (badge) { var t = badge.textContent; badge.textContent = S.copie; badge.classList.add("copie-ok"); setTimeout(function () { badge.textContent = t; badge.classList.remove("copie-ok"); }, 1500); }
+      if (btn) { var b = btn.textContent; btn.textContent = S.lienCopie; setTimeout(function () { btn.textContent = b; }, 1500); }
+    });
+  }
+  // Copie robuste : API moderne (contexte securise HTTPS) avec repli sur
+  // execCommand (contexte non securise, ex. test via l'IP du serveur). Renvoie
+  // une promesse resolue a true seulement si la copie a reellement eu lieu.
+  function copieRobuste(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      return navigator.clipboard.writeText(txt).then(function () { return true; }, function () { return repliCopie(txt); });
+    }
+    return Promise.resolve(repliCopie(txt));
+  }
+  function repliCopie(txt) {
+    try {
+      var ta = document.createElement("textarea"); ta.value = txt;
+      ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
+  }
 
   document.addEventListener("keydown", function (e) {
+    // Pendant le tutoriel : Entrée/→/Espace = étape suivante, Échap = fermer ;
+    // on bloque les autres raccourcis pour rester focalisé sur la visite.
+    if (tuto) {
+      if (e.key === "Escape") { e.preventDefault(); finirTuto(); }
+      else if (e.key === "Enter" || e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); etapeSuivante(); }
+      return;
+    }
+    // Raccourcis d'outils (facon Excalidraw) : 1/2/3/4 (ou H/A/N). Ignores si on
+    // saisit du texte (champ, note editable).
+    var cible = e.target, saisie = cible && (cible.tagName === "INPUT" || cible.tagName === "TEXTAREA" || cible.getAttribute && cible.getAttribute("contenteditable") === "true");
+    if (!saisie && !e.ctrlKey && !e.metaKey && !e.altKey && !E.modal.classList.contains("on")) {
+      var raccourcis = { "1": "deplacer", "h": "deplacer", "2": "fleche", "a": "fleche", "3": "fleche2", "b": "fleche2", "4": "texte", "n": "texte" };
+      var o = raccourcis[e.key.toLowerCase()];
+      if (o) { e.preventDefault(); setOutil(o); return; }
+    }
     if (e.key === "Escape") { if (E.modal.classList.contains("on")) return fermerModal();
       if (document.body.classList.contains("barres-cachees")) { majBarres(false); return; }
       if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
       if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
-      deselect(); annulerFleche(); if (etat.outil === "fleche") setOutil("deplacer"); }
+      deselect(); annulerFleche(); if (estFleche(etat.outil)) setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();
@@ -742,7 +1309,7 @@
       deselect();
     }
   });
-  window.addEventListener("resize", function () { clampPan(); applyView(); dessinerFleches(); });
+  window.addEventListener("resize", function () { clampPan(); applyView(); majFleches(); });
 
   /* ---------- Modal ---------- */
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
@@ -751,13 +1318,15 @@
     var vface = E["carte-grande"].querySelector(".verso");
     if (c.image && c.image.verso) { E["mg-vimg"].src = BASE + (c.image.verso.carte || c.image.verso.grand); E["mg-vimg"].alt = c.titre + ". " + (c.verso || []).join(" "); vface.classList.add("a-image"); }
     else { E["mg-vimg"].removeAttribute("src"); vface.classList.remove("a-image"); }
-    var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = (maCarte() !== n);
+    var mpo = document.getElementById("modal-poser"); if (mpo) mpo.hidden = true; // plus de main individuelle
     E["carte-grande"].classList.remove("flip"); E.modal.classList.add("on"); }
   function fermerModal() { E.modal.classList.remove("on"); }
-  E["modal-flip"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); });
+  // Retourner : le bouton ET le clic sur la carte retournent. stopPropagation
+  // sur les boutons de la barre, sinon le clic remonte a .carte-grande et
+  // annule aussitot le retournement (double bascule).
+  E["modal-flip"].addEventListener("click", function (e) { e.stopPropagation(); E["carte-grande"].classList.toggle("flip"); });
   E["carte-grande"].addEventListener("click", function () { E["carte-grande"].classList.toggle("flip"); }); // clic = retourner
-  E["modal-close"].addEventListener("click", fermerModal);
-  (function () { var mpo = document.getElementById("modal-poser"); if (mpo) mpo.addEventListener("click", function () { poserMain(); fermerModal(); }); })();
+  E["modal-close"].addEventListener("click", function (e) { e.stopPropagation(); fermerModal(); });
   E.modal.addEventListener("click", function (e) { if (e.target === E.modal) fermerModal(); });
 
   /* ---------- utilitaires ---------- */
@@ -802,7 +1371,7 @@
     var W = maxx - minx, H = maxy - miny, scale = Math.max(0.5, Math.min(2, 2400 / W));
     var cv = document.createElement("canvas"); cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
     var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
-    ctx.fillStyle = document.body.classList.contains("sombre") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
+    ctx.fillStyle = document.body.classList.contains("canvas-noir") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
 
     var idx = {};
     fleches.forEach(function (f) {

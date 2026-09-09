@@ -1,0 +1,135 @@
+# Jitsi Meet auto-heberge pour la Fresque des risques de l'IA.
+# Pense pour le serveur de dev Pause IA (Docker + Caddy, reseau externe "web").
+#
+# Objectifs :
+#  - visio.pauseia.fr servie par Caddy (le service "web" ci-dessous ecoute en
+#    HTTP interne ; Caddy fait le HTTPS et le proxy, voir Caddyfile.snippet).
+#  - Le pont video (jvb) publie le port UDP 10000 (a ouvrir dans le firewall).
+#  - Limites de RAM et priorite CPU basses : en cas de tension sur la machine,
+#    c'est Jitsi qui ralentit en premier, pas CiviCRM / Vaultwarden / les bots.
+#
+# Toutes les variables sont dans .env (copier env.example -> .env et generer les
+# mots de passe : voir README). Les volumes de config sont sous ${CONFIG}.
+
+services:
+  web:
+    image: jitsi/web:${JITSI_TAG:-stable}
+    restart: unless-stopped
+    networks:
+      web: {}          # reseau externe partage avec Caddy (proxy HTTPS)
+      meet.jitsi: {}   # reseau interne Jitsi
+    volumes:
+      - ${CONFIG}/web:/config:Z
+      - ${CONFIG}/web/crontabs:/var/spool/cron/crontabs:Z
+      - ${CONFIG}/transcripts:/usr/share/jitsi-meet/transcripts:Z
+    environment:
+      - ENABLE_LETSENCRYPT=0          # Caddy gere le HTTPS, pas Jitsi
+      - ENABLE_HTTP_REDIRECT=0
+      - ENABLE_XMPP_WEBSOCKET=1
+      - DISABLE_HTTPS=1               # ecoute en HTTP interne (derriere Caddy)
+      - PUBLIC_URL=${PUBLIC_URL}
+      - TZ=${TZ}
+      - JVB_PREFER_SCTP=0
+      # Confort et economie de ressources pour des ateliers (le focus est le
+      # tableau, pas la video) :
+      - START_AUDIO_ONLY=0
+      - ENABLE_P2P=1                  # 2 personnes : liaison directe, pas de pont
+      - RESOLUTION=480                # plafond de resolution envoyee (economise CPU/BP)
+      - RESOLUTION_MIN=180
+      - CONSTRAINTS_VIDEO_HEIGHT_IDEAL=480
+      - ENABLE_NOISY_MIC_DETECTION=1
+    mem_limit: 160m
+    cpu_shares: 512                   # < 1024 (defaut des autres services) : cede le CPU
+    depends_on:
+      - prosody
+
+  prosody:
+    image: jitsi/prosody:${JITSI_TAG:-stable}
+    restart: unless-stopped
+    expose:
+      - "5222"
+      - "5347"
+      - "5280"
+    volumes:
+      - ${CONFIG}/prosody/config:/config:Z
+      - ${CONFIG}/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+    environment:
+      - AUTH_TYPE=internal
+      - ENABLE_AUTH=0                 # salons ouverts (nom long/aleatoire genere par le site)
+      - ENABLE_GUESTS=1
+      - PUBLIC_URL=${PUBLIC_URL}
+      - TZ=${TZ}
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - JICOFO_COMPONENT_SECRET=${JICOFO_COMPONENT_SECRET}
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+    mem_limit: 320m
+    cpu_shares: 512
+    networks:
+      meet.jitsi:
+        aliases:
+          - xmpp.meet.jitsi
+
+  jicofo:
+    image: jitsi/jicofo:${JITSI_TAG:-stable}
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG}/jicofo:/config:Z
+    environment:
+      - ENABLE_AUTH=0
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - JICOFO_COMPONENT_SECRET=${JICOFO_COMPONENT_SECRET}
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD}
+      - TZ=${TZ}
+      # Plafond de flux video relayes par conference : limite la charge au pic.
+      - JICOFO_ENABLE_AUTO_OWNER=1
+    mem_limit: 512m
+    cpu_shares: 512
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi: {}
+
+  jvb:
+    image: jitsi/jvb:${JITSI_TAG:-stable}
+    restart: unless-stopped
+    ports:
+      - "${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp"   # media : a ouvrir dans le firewall
+    volumes:
+      - ${CONFIG}/jvb:/config:Z
+    environment:
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD}
+      - JVB_PORT=${JVB_PORT:-10000}
+      - JVB_ADVERTISE_IPS=${SERVER_PUBLIC_IP}
+      - PUBLIC_URL=${PUBLIC_URL}
+      - TZ=${TZ}
+      # Nombre max de flux video relayes par participant : plafonne la charge du
+      # pont (les autres apparaissent en vignette figee au-dela). 4 suffit pour
+      # suivre qui parle sans saturer un petit serveur.
+      - JVB_OPTS=--apis=,
+      - CHANNEL_LAST_N=4
+    mem_limit: 2048m
+    cpu_shares: 512
+    depends_on:
+      - prosody
+    networks:
+      meet.jitsi: {}
+
+networks:
+  web:
+    external: true      # meme reseau que Caddy et les autres apps
+  meet.jitsi:
+    driver: bridge

@@ -194,10 +194,19 @@
       .map(function (c) { return c.mail; });
     if (!mails.length) { toast("Aucune adresse à copier."); return; }
     var txt = mails.join(", ");
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(function () { toast(mails.length + " adresse(s) copiée(s)."); },
-        function () { toast("Copie impossible."); });
-    } else { toast("Copie non supportée par ce navigateur."); }
+    var okMsg = function () { toast(mails.length + " adresse(s) copiée(s)."); };
+    var repli = function () {
+      try {
+        var ta = document.createElement("textarea"); ta.value = txt;
+        ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta); ok ? okMsg() : toast("Copie impossible.");
+      } catch (e) { toast("Copie impossible."); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(txt).then(okMsg, repli);
+    } else { repli(); }
   });
 
   $("btn-csv").addEventListener("click", function () {

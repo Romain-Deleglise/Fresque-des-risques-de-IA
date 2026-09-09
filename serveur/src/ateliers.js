@@ -5,7 +5,7 @@
 
 var MAX_ENLIGNE = 8;        // 8 participants max par session en ligne
 var MAX_PHYSIQUE = 16;      // 2 tables x 8, conseil d'animation
-var LEN_PRENOM = 24, LEN_TITRE = 80, LEN_LIEU = 120, LEN_ADRESSE = 200, LEN_MAIL = 160, LEN_VISIO = 300;
+var LEN_PRENOM = 24, LEN_TITRE = 80, LEN_LIEU = 120, LEN_ADRESSE = 200, LEN_MAIL = 160, LEN_VISIO = 300, LEN_DESCRIPTION = 400;
 var RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var LIMITE_INSCRIPTION_MS = 30 * 60 * 1000;   // inscriptions closes 30 min apres le debut
 
@@ -41,6 +41,7 @@ function valider(d) {
   var a = {
     mode: mode,
     titre: tronque(d.titre, LEN_TITRE),
+    description: tronque(d.description, LEN_DESCRIPTION),
     animateur: { prenom: prenom, mail: mail },
     date: date, heure: heure, quandMs: quand,
     visibilite: visibilite,
@@ -148,6 +149,7 @@ function vuePublique(a) {
     code: a.code,
     mode: a.mode,
     titre: a.titre || "",
+    description: a.description || "",
     animateur: a.animateur ? a.animateur.prenom : "",
     date: a.date, heure: a.heure, quandMs: a.quandMs,
     lieu: a.mode === "physique" ? (a.lieu || "") : "",
@@ -164,7 +166,10 @@ function vueConfirmation(a) {
     code: a.code, mode: a.mode, titre: a.titre || "",
     date: a.date, heure: a.heure,
     lieu: a.mode === "physique" ? (a.lieu || "") : "",
-    adresse: a.mode === "physique" ? (a.adresse || "") : ""
+    adresse: a.mode === "physique" ? (a.adresse || "") : "",
+    // Visio (lien perso ou salon genere automatiquement) pour l'afficher a
+    // l'animateur des la creation, afin qu'il puisse le copier / partager.
+    visio: a.visio || ""
   };
 }
 

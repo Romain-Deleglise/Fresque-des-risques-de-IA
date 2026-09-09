@@ -32,7 +32,7 @@
       La Fresque des risques de l'IA
     </a>
     <h1>Animer à distance</h1>
-    <p class="lobby-sous">Un animateur, jusqu'à huit participants, un tableau partagé. Aucun compte.</p>
+    <p class="lobby-sous">Animez la fresque à distance, sur un tableau partagé en direct dans le navigateur. Rien à installer, aucun compte.</p>
 
     <div class="lobby-cols">
       <section>
@@ -69,7 +69,6 @@
     <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">…</b> <span class="copier">copier</span></span>
     <button class="btn" id="btn-partager">Copier le lien</button>
     <span class="spacer"></span>
-    <span class="compte anim-only" id="pioche-info">Pioche : <b id="pioche-n">…</b></span>
     <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
     <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
     <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
@@ -77,15 +76,19 @@
   </div>
 
   <div class="toolbar" role="toolbar" aria-label="Outils">
-    <div class="groupe anim-only" id="commandes-anim" role="group" aria-label="Distribution">
-      <button class="btn primaire" id="btn-distribuer">Distribuer</button>
-      <button class="btn" id="btn-passer" title="Avancer le tour sans distribuer">Passer</button>
-      <button class="btn" id="btn-distribuer-tous">À chacun</button>
-    </div>
-    <span class="sep-min anim-only"></span>
-    <div class="groupe" role="group" aria-label="Outil">
-      <button class="btn tool" data-outil="fleche" aria-pressed="false" title="Relier deux cartes : cliquez la carte de départ, puis la carte d'arrivée">Lien</button>
-      <button class="btn tool" data-outil="texte" aria-pressed="false" title="Ajouter une note : cliquez le tableau (ou double-cliquez une zone vide)">Note</button>
+    <div class="seg-outils" role="group" aria-label="Outils">
+      <button class="btn tool ico" data-outil="deplacer" aria-pressed="true" aria-label="Main : déplacer et naviguer" title="Main : déplacer et naviguer sur le tableau">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 11V5.6a1.4 1.4 0 0 1 2.8 0V11"/><path d="M10.8 11V4.6a1.4 1.4 0 0 1 2.8 0V11"/><path d="M13.6 11.2V6a1.4 1.4 0 0 1 2.8 0v6"/><path d="M8 11V9.2a1.4 1.4 0 0 0-2.8 0V13c0 3.3 2.6 6 6 6h1.1a5 5 0 0 0 5-5v-1"/></svg>
+      </button>
+      <button class="btn tool ico" data-outil="fleche" aria-pressed="false" aria-label="Relier deux cartes" title="Relier : cliquez la carte de départ, puis la carte d'arrivée">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h14"/><path d="M13 7l6 5-6 5"/></svg>
+      </button>
+      <button class="btn tool ico" data-outil="fleche2" aria-pressed="false" aria-label="Relier à double sens" title="Relier à double sens : cliquez une carte, puis l'autre">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h12"/><path d="M9 7l-5 5 5 5"/><path d="M15 7l5 5-5 5"/></svg>
+      </button>
+      <button class="btn tool ico" data-outil="texte" aria-pressed="false" aria-label="Ajouter une note" title="Note : cliquez le tableau pour écrire">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3v3.2L11.5 16H20a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"/></svg>
+      </button>
     </div>
     <span class="sep"></span>
     <div class="groupe" role="group" aria-label="Zoom">
@@ -95,6 +98,7 @@
       <button class="btn" id="z-tout">Tout voir</button>
     </div>
     <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
+    <button class="btn tool" id="btn-curseurs" aria-pressed="true" title="Afficher ou masquer les curseurs des autres">Curseurs</button>
     <button class="btn" id="btn-barres" title="Masquer les barres pour agrandir le tableau">Masquer les barres</button>
     <button class="btn" id="btn-plein">Plein écran</button>
   </div>
@@ -102,12 +106,14 @@
   <button class="btn barres-show" id="btn-barres-show" hidden title="Afficher les barres">Afficher les barres</button>
 
   <div class="scene" id="scene">
+    <div class="survol-carte" id="survol-carte" hidden></div>
     <div class="aide" id="aide"></div>
     <div id="monde">
       <div class="plan-bord"></div>
       <svg id="fleches" viewBox="0 0 4400 2200"></svg>
     </div>
-    <div class="pioche" id="main-zone"></div>
+    <!-- Pool commun (visible de tou·tes) : cartes proposées par l'animateur -->
+    <div class="pool" id="pool" aria-live="polite"></div>
 
     <!-- Panneau participants -->
     <aside class="panneau" id="panneau" hidden>
@@ -128,12 +134,25 @@
       <p class="aide-intro" id="carte0-txt">…</p>
       <ul class="aide-liste" id="aide-liste">
         <li><b>Déplacer :</b> glissez une carte pour la déplacer ; glissez une zone vide pour vous déplacer.</li>
-        <li><b>Cartes :</b> l'animateur distribue ; posez votre carte. Le bouton ⤢ l'agrandit.</li>
+        <li><b>Cartes :</b> l'animateur met des cartes dans le pool commun (en bas) ; chacun·e clique « Poser » pour l'amener sur le tableau. Le bouton ⤢ agrandit une carte.</li>
         <li><b>Liens :</b> cliquez « Lien », puis la carte de départ et la carte d'arrivée. Sélectionnez une flèche pour l'annoter, la supprimer ou la passer en double sens (↔).</li>
         <li><b>Notes :</b> double-cliquez sur une zone vide du tableau ; glissez pour déplacer, videz pour supprimer.</li>
         <li><b>Vue :</b> molette pour zoomer ; zoom et déplacement sont propres à chacun. « Tout voir » recadre.</li>
       </ul>
+      <button class="btn" id="revoir-tuto" style="margin-top:.9rem;width:100%;justify-content:center">Revoir le tutoriel</button>
     </aside>
+  </div>
+
+  <!-- Jeu complet (animateur) : cliquer une carte l'ajoute au pool commun -->
+  <div class="deck anim-only" id="deck">
+    <div class="deck-tete">
+      <button type="button" class="deck-toggle" id="deck-toggle" aria-expanded="true">
+        <span id="deck-titre">Jeu de cartes</span>
+        <span class="deck-compte" id="deck-compte">0 / 8</span>
+      </button>
+      <span class="deck-aide" id="deck-aide">Cliquez une carte pour l'ajouter au pool commun (8 max), que tout le monde peut poser.</span>
+    </div>
+    <div class="deck-cartes" id="deck-cartes"></div>
   </div>
 </div>
 

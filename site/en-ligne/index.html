@@ -33,7 +33,7 @@
       <nav class="nav" aria-label="Navigation principale">
         <a class="lien-ap" href="../a-propos/">À propos</a>
         <a class="" href="../devenir-animateur/">Animer</a>
-        <a class="" href="../demander-un-atelier/">Participer</a>
+        <a class="" href="../participer/">Participer</a>
         <a class="actif" href="../en-ligne/">Fresque en ligne<span class="bientot">essai</span></a>
         <a href="../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" class="btn-nav" download>Télécharger</a>
         <a class="lang" href="../en/online/" hreflang="en" lang="en">EN</a>
@@ -51,43 +51,51 @@
 
     <section class="section">
       <div class="wrap">
-        <p class="intro-modes">Deux façons d'utiliser la Fresque en ligne. Choisissez la vôtre :</p>
-        <div class="modes">
-          <div class="mode">
-            <span class="mode-tag">À plusieurs · jusqu'à 8</span>
-            <h2>Ouvrir une session en direct</h2>
-            <p>Lancez le tableau <strong>tout de suite</strong> : vous ouvrez une session, partagez un code court, et les participant·es rejoignent avec un prénom pour construire la fresque ensemble, en temps réel. Pour un atelier <strong>à date fixe avec inscriptions</strong>, <a href="../demander-un-atelier/#vue-animer">programmez-le à l'avance</a> et ouvrez la session le jour J avec le code reçu.</p>
-            <a class="btn btn-1" href="session/">Ouvrir une session</a>
-          </div>
-          <div class="mode">
-            <span class="mode-tag">Seul·e · sans compte</span>
-            <h2>Découvrir ou s'entraîner</h2>
-            <p>Un mode solo pour prendre en main le tableau et les cartes, sans participants ni inscription. Idéal pour découvrir l'atelier ou préparer une animation.</p>
-            <a class="btn btn-2" href="atelier/">Essayer en solo</a>
-          </div>
-        </div>
-
         <div class="prose">
+          <p class="lede">La Fresque en ligne, c'est l'atelier de la Fresque des risques de l'IA joué <strong>à distance</strong>, sur un tableau partagé en direct dans le navigateur. Une personne anime, jusqu'à huit participant·es construisent la fresque ensemble, en temps réel, sans rien installer ni créer de compte.</p>
+
+          <h2 style="margin-top:2.4rem">À quoi ça sert</h2>
+          <ul>
+            <li><strong>Réunir un groupe à distance</strong> quand se retrouver autour d'une table n'est pas possible.</li>
+            <li><strong>Aucune installation</strong> : tout se passe dans le navigateur, sur ordinateur.</li>
+            <li><strong>En temps réel</strong> : chacun·e voit la fresque se construire, carte après carte.</li>
+            <li><strong>Entièrement gratuit et open source</strong>, sans compte, sans publicité, sans pistage.</li>
+          </ul>
+
+          <h2 style="margin-top:2.4rem">Comment ça se passe</h2>
+          <ul>
+            <li>Une personne <strong>programme un atelier en ligne</strong> (date, heure, nombre de places).</li>
+            <li>Les participant·es <strong>s'inscrivent</strong> et reçoivent un e-mail avec leur lien : un clic le jour J pour rejoindre.</li>
+            <li>Le jour venu, l'animateur·ice met des cartes à disposition dans un pool commun ; chacun·e les pose sur le tableau, on les relie, on ajoute des notes, et on discute en visio.</li>
+          </ul>
+
+          <div class="cta-enligne" style="margin-top:2rem;display:flex;flex-wrap:wrap;gap:.8rem;align-items:center">
+            <a class="btn btn-1" href="../participer/#vue-animer">Programmer un atelier en ligne</a>
+            <a class="btn btn-2" href="../participer/">S'inscrire à un atelier</a>
+          </div>
+          <p class="muted" style="margin-top:.9rem;font-size:.92rem">Vous avez déjà reçu un code ou un lien par e-mail ? <a href="session/">Ouvrir ou rejoindre la session</a>.</p>
+
           <div class="avis" role="status" style="margin-top:2.4rem">
             <p><strong>La Fresque en ligne est en version d'essai.</strong> Le service est jeune :
               <a href="mailto:contact@pauseia.fr?subject=Retour%20sur%20la%20Fresque%20en%20ligne">un bug, une idée ? Écrivez-nous</a>.</p>
           </div>
 
-          <h2 style="margin-top:2.4rem">Comment ça marche</h2>
-          <p>Une expérience pensée pour rester simple, sans compte ni installation :</p>
-          <ul>
-            <li>L'animateur·ice ouvre une session et partage un code court avec le groupe.</li>
-            <li>Les participant·es rejoignent avec ce code et un prénom, rien de plus.</li>
-            <li>Les cartes sont distribuées, une par une ou à chacun, puis posées sur un tableau partagé.</li>
-            <li>On relie les cartes, on ajoute des notes ; la voix passe par un salon externe (Discord, Google Meet…).</li>
-          </ul>
+          <h2 style="margin-top:2.4rem">La visioconférence</h2>
+          <p>
+            Quand un atelier est programmé avec la visio intégrée, elle passe par
+            <strong>notre propre instance de Jitsi Meet</strong>, un logiciel libre et open source
+            que nous hébergeons nous-mêmes : pas de compte, pas de service d'un grand groupe, pas de
+            pistage, et un salon au lien unique supprimé après l'atelier. Chacun·e reste libre
+            d'utiliser un autre outil (Discord, Google Meet…) en collant son propre lien.
+          </p>
 
           <h2 style="margin-top:2.4rem">Vos données</h2>
           <p>
-            Aucun compte, aucune adresse e-mail : seul le prénom saisi pour rejoindre une session
-            est utilisé, le temps de l'atelier. Les sessions sont automatiquement supprimées après
-            quelques heures d'inactivité. Voir les
-            <a href="../mentions-legales/">mentions légales</a>.
+            Pour rejoindre le tableau en direct, seul votre <strong>prénom</strong> est utilisé, le
+            temps de l'atelier ; les sessions sont automatiquement supprimées après quelques heures
+            d'inactivité. L'inscription à un atelier programmé utilise votre <strong>e-mail</strong>,
+            conservé par Pause IA pour la gestion de l'atelier et effaçable sur simple demande. Détails
+            dans les <a href="../mentions-legales/">mentions légales</a>.
           </p>
 
           <h2 style="margin-top:2.4rem">Préférez le présentiel ?</h2>
@@ -111,7 +119,7 @@
         <ul>
           <li><a href="../a-propos/">À propos</a></li>
           <li><a href="../devenir-animateur/">Animer</a></li>
-          <li><a href="../demander-un-atelier/">Participer à un atelier</a></li>
+          <li><a href="../participer/">Participer à un atelier</a></li>
           <li><a href="../en-ligne/">Fresque en ligne</a></li>
         </ul>
       </div>

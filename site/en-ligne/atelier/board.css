@@ -36,6 +36,10 @@
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-texte);overflow:hidden}
 button{font-family:var(--f-ui);cursor:pointer}
+/* Empeche la selection de texte (halo bleu) pendant les glissers ; on la
+   reautorise dans les champs et notes editables. */
+body{-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
 a{color:var(--accent-txt);text-decoration:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
@@ -89,6 +93,12 @@ a{color:var(--accent-txt);text-decoration:none}
 .toolbar .sep{flex:1}
 .tool{border:1px solid transparent;background:transparent}
 .tool[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
+/* Barre d'outils facon Excalidraw : petites icones (main, lien, lien double, note). */
+.toolbar .seg-outils{display:inline-flex;gap:.15rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:10px;padding:.2rem}
+.tool.ico{width:2.15rem;height:2.15rem;padding:0;display:grid;place-items:center;border-radius:8px;color:var(--ink);cursor:pointer}
+.tool.ico svg{width:1.2rem;height:1.2rem;display:block}
+.tool.ico:hover:not([aria-pressed="true"]){background:var(--surface)}
+.tool.ico[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
 .zoom-niv{font-family:var(--f-ui);font-size:.82rem;min-width:3rem;text-align:center;color:var(--gris)}
 
 /* Scène (canvas clair) */
@@ -106,7 +116,10 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .c-carte .vis img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .c-carte .num{position:absolute;top:5px;left:5px;width:21px;height:21px;border-radius:5px;background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;font-family:var(--f-titre);font-size:.85rem}
-.c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
+/* La poignee d'agrandissement grossit un peu quand on dezoome (contre-echelle
+   plafonnee via --iz=1/zoom) pour rester cliquable ; sous 50 % elle est masquee
+   (voir #monde.loin) au profit du double-clic et de l'info-bulle. */
+.c-carte .agr{position:absolute;top:5px;right:5px;width:calc(21px * min(1.9, var(--iz,1)));height:calc(21px * min(1.9, var(--iz,1)));border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:calc(.75rem * min(1.9, var(--iz,1)))}
 .c-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
 /* --- Lisibilite au dezoom (#monde.loin, sous 50 %) ----------------------
@@ -130,6 +143,14 @@ a{color:var(--accent-txt);text-decoration:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,129,28,.5)}100%{box-shadow:0 0 0 18px rgba(232,129,28,0)}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
 
+/* Ping : cercle qui s'agrandit puis s'efface, place aux coordonnees du monde.
+   Contre-mis a l'echelle (--iz) pour rester visible quel que soit le zoom. */
+.ping{position:absolute;z-index:45;pointer-events:none;transform:translate(-50%,-50%) scale(min(2.6,var(--iz,1)))}
+.ping-cercle{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid var(--accent);animation:ping-onde 1.2s ease-out forwards}
+.ping-nom{position:absolute;left:14px;top:-10px;background:var(--accent);color:#fff;font-family:var(--f-titre);font-weight:700;font-size:.7rem;padding:.08rem .35rem;border-radius:6px;white-space:nowrap;animation:ping-nom 1.2s ease-out forwards}
+@keyframes ping-onde{0%{transform:scale(.3);opacity:.9}100%{transform:scale(3.4);opacity:0}}
+@keyframes ping-nom{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
+
 /* Flèches */
 #fleches{position:absolute;top:0;left:0;width:4400px;height:2200px;overflow:visible;pointer-events:none}
 #fleches .hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
@@ -149,19 +170,36 @@ a{color:var(--accent-txt);text-decoration:none}
 .texte-croix{position:absolute;width:20px;height:20px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.75rem;transform:translate(-50%,-50%);z-index:5}
 
 /* Main / pioche (solo) */
-.pioche{position:absolute;left:1rem;bottom:1rem;z-index:20;display:flex;gap:.5rem;align-items:flex-end}
-.main-carte{width:150px;background:var(--surface);border:1px solid var(--ligne);border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
-.main-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
-.main-carte .vis img{width:100%;height:100%;object-fit:cover}
-.main-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
-.main-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.8rem;color:var(--ink);padding:.35rem .45rem}
-.main-carte{cursor:grab}
-.main-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem;cursor:pointer}
-.main-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
-.main-carte .actions{display:flex;gap:.3rem;padding:.15rem .4rem .45rem}
-.main-carte .actions .btn{flex:1;justify-content:center;font-size:.8rem;padding:.4rem .3rem}
-.main-carte .pousser{font-family:var(--f-ui);font-weight:600;font-size:.72rem;text-align:center;color:var(--accent-txt);background:var(--doux);padding:.35rem .4rem;border-top:1px solid var(--ligne)}
-.main-carte.glisse{position:fixed;z-index:60;width:150px;cursor:grabbing;transform:rotate(-3deg);box-shadow:0 18px 40px rgba(27,26,23,.35);opacity:.96}
+/* --- Pool commun (bas de la scene) : cartes proposees par l'animateur ------
+   Tout le monde le voit ; un clic « Poser » amene la carte sur le tableau. */
+.pool{position:absolute;left:1rem;right:1rem;bottom:1rem;z-index:20;display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;pointer-events:none}
+.pool.vide{pointer-events:none}
+.pool-vide{pointer-events:auto;margin:0;font-family:var(--f-ui);font-size:.82rem;color:var(--gris);background:var(--surface);border:1px solid var(--ligne);border-radius:8px;padding:.4rem .7rem;box-shadow:var(--ombre)}
+.pool-carte{pointer-events:auto;width:var(--pw,150px);background:var(--surface);border:1px solid var(--ligne);border-top:3px solid var(--lot,var(--accent));border-radius:10px;box-shadow:var(--ombre);overflow:hidden}
+.pool-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
+.pool-carte .vis img{width:100%;height:100%;object-fit:cover}
+.pool-carte .num{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:5px;background:var(--lot,var(--accent));color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.8rem}
+.pool-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.8rem;line-height:1.05;color:var(--ink);padding:.35rem .45rem}
+.pool-carte .pool-actions{display:flex;gap:.3rem;align-items:stretch;padding:.15rem .4rem .45rem}
+.pool-carte .pool-actions .btn{flex:1;justify-content:center;font-size:.78rem;padding:.4rem .3rem}
+.pool-carte .pool-x{border:1px solid var(--ligne);background:var(--doux);color:var(--gris);border-radius:7px;width:2rem;cursor:pointer}
+.pool-carte .pool-x:hover{color:var(--err);border-color:var(--err)}
+
+/* --- Deck (animateur) : jeu complet, replie/deplie en bas de l'ecran ------- */
+.deck{flex:0 0 auto;flex-direction:column;background:var(--surface);border-top:1px solid var(--ligne);box-shadow:0 -6px 20px rgba(0,0,0,.06);max-height:34vh}
+.deck.replie .deck-cartes{display:none}
+.deck-tete{display:flex;align-items:center;gap:.8rem;padding:.4rem .8rem;flex-wrap:wrap}
+.deck-toggle{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--ligne);background:var(--doux);border-radius:8px;padding:.35rem .7rem;font-family:var(--f-titre);font-weight:700;font-size:.95rem;color:var(--ink);cursor:pointer}
+.deck-compte{font-family:var(--f-ui);font-weight:600;font-size:.78rem;color:var(--accent-txt);background:var(--accent-doux);border-radius:999px;padding:.05rem .5rem}
+.deck-aide{font-family:var(--f-ui);font-size:.78rem;color:var(--gris)}
+.deck-cartes{display:flex;flex-wrap:wrap;gap:.35rem;padding:.2rem .8rem .7rem;overflow:auto}
+.deck-carte{display:flex;align-items:center;gap:.4rem;max-width:15rem;border:1px solid var(--ligne);border-left:4px solid var(--lot,var(--accent));background:var(--doux);border-radius:7px;padding:.3rem .5rem;cursor:pointer;font-family:var(--f-ui);text-align:left}
+.deck-carte:hover:not(:disabled){background:var(--surface);border-color:var(--lot,var(--accent))}
+.deck-carte .dn{font-family:var(--f-titre);font-weight:700;color:var(--lot,var(--accent));min-width:1.3rem}
+.deck-carte .dt{font-size:.8rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deck-carte:disabled{opacity:.4;cursor:default}
+.deck-carte.en-table{opacity:.5}
+.deck-carte.en-pool{opacity:.6;box-shadow:inset 0 0 0 1px var(--lot,var(--accent))}
 
 /* Aide / légende */
 
@@ -180,9 +218,6 @@ a{color:var(--accent-txt);text-decoration:none}
 .coach .coach-x:hover{background:rgba(0,0,0,.34)}
 @media(max-width:760px){.coach{font-size:.82rem}}
 
-/* Carte en main a poser : mise en evidence discrete. */
-.main-carte.a-poser{animation:posePulse 1.6s ease-in-out infinite}
-@keyframes posePulse{0%,100%{box-shadow:var(--ombre)}50%{box-shadow:0 0 0 3px var(--accent),var(--ombre)}}
 .aide:empty{display:none}
 .aide:not(:empty){opacity:.92}
 
@@ -230,3 +265,57 @@ body.canvas-noir .plan-bord{background:#191510;border-color:#2a2620}
 body.canvas-noir .aide{background:#000}
 body.canvas-blanc .scene{background:#f4f2ec;background-image:radial-gradient(circle,#e2ddd2 1px,transparent 1px)}
 body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
+
+/* Pool : en-tete + bascule replier/deplier (pour tou·tes). */
+.pool{flex-direction:column;align-items:flex-start}
+.pool-tete{pointer-events:auto;margin-bottom:.3rem;display:flex;gap:.3rem;align-items:center}
+.pool-taille{width:1.7rem;height:1.7rem;border:1px solid var(--ligne);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;line-height:1;cursor:pointer;box-shadow:var(--ombre);display:grid;place-items:center;padding:0}
+.pool-taille:hover{border-color:var(--accent)}
+.pool-taille:disabled{opacity:.4;cursor:default}
+.pool-toggle{border:1px solid var(--ligne);background:var(--surface);color:var(--ink);border-radius:8px;padding:.25rem .6rem;font-family:var(--f-titre);font-weight:700;font-size:.85rem;cursor:pointer;box-shadow:var(--ombre)}
+.pool-toggle:hover{border-color:var(--accent)}
+.pool-cartes{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
+
+/* Encadre fixe au survol d'une carte (titre lisible meme dezoome). */
+.survol-carte{position:absolute;top:.6rem;left:50%;transform:translateX(-50%);z-index:40;pointer-events:none;background:var(--surface);border:1px solid var(--ligne);border-left:3px solid var(--accent);border-radius:8px;box-shadow:var(--ombre);padding:.35rem .7rem;font-family:var(--f-titre);font-weight:700;font-size:.95rem;color:var(--ink);max-width:80%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Glisser-deposer depuis le pool : carte verrouillee (prise par un autre),
+   fantome qui suit le curseur, et surbrillance de la zone de depot. */
+.pool-carte.occupee{opacity:.55;filter:grayscale(.3)}
+.pool-carte.occupee .btn.primaire{cursor:not-allowed}
+.pool-verrou{position:absolute;bottom:4px;left:4px;right:4px;background:rgba(27,26,23,.82);color:#fff;font-family:var(--f-ui);font-size:.66rem;font-weight:600;padding:.12rem .3rem;border-radius:6px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pool-fantome{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-50%);width:96px;border-radius:9px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.35);opacity:.9;background:#14110d}
+.pool-fantome img{display:block;width:100%;height:60px;object-fit:cover}
+.pool-fantome span{position:absolute;top:3px;left:3px;background:var(--accent);color:#fff;font-family:var(--f-titre);font-size:.7rem;padding:.05rem .3rem;border-radius:4px}
+#scene.depot-actif{box-shadow:inset 0 0 0 3px var(--accent)}
+
+/* Barre d'actions d'une carte posee, pour l'animateur : la remettre au pool ou
+   dans sa reserve. Flotte au-dessus de la carte (coordonnees ecran). */
+.carte-actions{position:absolute;z-index:35;display:flex;gap:.3rem}
+.carte-actions .btn.mini{padding:.3rem .55rem;font-size:.78rem;border-radius:7px;background:var(--surface);box-shadow:var(--ombre);white-space:nowrap}
+.carte-actions .btn.mini:hover{border-color:var(--accent);color:var(--accent-txt-fort)}
+
+/* Tutoriel guide (coach-marks) : projecteur sur un element + bulle numerotee. */
+.tuto-fond{position:fixed;inset:0;z-index:200}
+.tuto-fond.centre{background:rgba(20,17,13,.55)}
+.tuto-halo{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(20,17,13,.55);transition:left .18s ease,top .18s ease,width .18s ease,height .18s ease;pointer-events:none}
+.tuto-bulle{position:absolute;z-index:201;width:300px;max-width:86vw;background:var(--surface);color:var(--ink);border:1px solid var(--ligne);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.4);padding:1rem 1.1rem}
+.tuto-num{font-family:var(--f-ui);font-size:.72rem;font-weight:700;color:var(--accent-txt-fort);letter-spacing:.05em;margin-bottom:.2rem}
+.tuto-titre{font-family:var(--f-titre);font-size:1.25rem;line-height:1.1;margin:0 0 .35rem;color:var(--ink)}
+.tuto-texte{font-family:var(--f-ui);font-size:.9rem;line-height:1.5;color:var(--ink-doux);margin:0 0 .95rem}
+.tuto-actions{display:flex;justify-content:space-between;align-items:center;gap:.6rem}
+.tuto-passer{background:none;border:0;color:var(--gris);font-family:var(--f-ui);font-size:.82rem;cursor:pointer;text-decoration:underline;padding:.2rem}
+.tuto-passer:hover{color:var(--ink)}
+.tuto-suivant{padding:.5rem 1.1rem}
+.tuto-fleche{position:absolute;width:0;height:0}
+.tuto-bulle.place-bottom .tuto-fleche{top:-9px;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:9px solid var(--surface)}
+.tuto-bulle.place-top .tuto-fleche{bottom:-9px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:9px solid var(--surface)}
+.tuto-bulle.place-right .tuto-fleche{left:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:9px solid var(--surface)}
+.tuto-bulle.place-left .tuto-fleche{right:-9px;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:9px solid var(--surface)}
+.tuto-bulle.place-centre .tuto-fleche{display:none}
+
+/* Curseurs en direct des autres joueurs (relais WebSocket). Contre-mis a
+   l'echelle du zoom (--iz) pour garder une taille ecran constante. */
+.curseur-live{position:absolute;z-index:19;pointer-events:none;transform:scale(var(--iz,1));transform-origin:top left;transition:left .08s linear,top .08s linear;will-change:left,top}
+.curseur-live svg{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.curseur-nom{position:absolute;left:16px;top:12px;font-family:var(--f-ui);font-weight:600;font-size:.66rem;color:#fff;padding:.05rem .34rem;border-radius:7px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}

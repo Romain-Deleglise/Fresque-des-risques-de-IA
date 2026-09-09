@@ -1,0 +1,9 @@
+{
+  "name": "fresque-curseurs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Relais WebSocket des curseurs en direct de la Fresque en ligne",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}
