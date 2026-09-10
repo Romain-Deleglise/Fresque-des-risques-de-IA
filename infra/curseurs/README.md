@@ -56,6 +56,25 @@ Côté site : rien à faire de plus. Le client se connecte automatiquement à
 « Curseurs » de la barre d'outils permet à chacun·e de masquer/afficher les
 curseurs des autres.
 
+## Mettre a jour (apres un changement de `server.js`)
+
+Le relais tourne dans un conteneur construit a partir de ce dossier : il ne se
+met pas a jour tout seul quand le depot du site change. Apres une modification
+de `server.js` (par exemple l'ajout des messages temps reel `maj`, `fl`, `lib`,
+`note`), il faut recopier le fichier sur le serveur et reconstruire :
+
+```bash
+cd /opt/volunteer-apps/apps/curseurs
+# recopier server.js (et package.json / Dockerfile s'ils ont change) depuis le depot
+sudo docker compose up -d --build
+sudo docker compose ps                   # "curseurs" doit etre Up (recemment demarre)
+sudo docker compose logs --tail 20 curseurs
+```
+
+La coupure dure quelques secondes. Les clients se reconnectent seuls (backoff
+2 s, 4 s, 8 s...) et, entre-temps, le site continue de fonctionner : la
+propagation retombe simplement sur le sondage HTTP.
+
 ## Commandes utiles
 
 ```bash
