@@ -69,6 +69,7 @@
     <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">…</b> <span class="copier">copier</span></span>
     <button class="btn" id="btn-partager">Copier le lien</button>
     <span class="spacer"></span>
+    <a class="btn visio-top" id="visio-top" href="#" target="_blank" rel="noopener" hidden title="Rejoindre la visioconférence de l'atelier">🎧 Visio</a>
     <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
     <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
     <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
@@ -111,6 +112,9 @@
     <div id="monde">
       <div class="plan-bord"></div>
       <svg id="fleches" viewBox="0 0 4400 2200"></svg>
+      <!-- Traces ephemeres (fleche en cours de trace, la sienne et celle des
+           autres) : couche separee pour ne pas reconstruire les vraies fleches. -->
+      <svg id="fleches-live" viewBox="0 0 4400 2200" aria-hidden="true"></svg>
     </div>
     <!-- Pool commun (visible de tou·tes) : cartes proposées par l'animateur -->
     <div class="pool" id="pool" aria-live="polite"></div>

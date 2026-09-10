@@ -55,6 +55,15 @@
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
     poolVide: "Waiting for the facilitator to add cards to the pool.",
     poolVideAnim: "Add cards to the pool from the deck below.",
+    poolRemplirTxt: "Fill", poolViderTxt: "Empty",
+    poolRemplirT: "Fill the pool with the next available cards",
+    poolViderT: "Take every card out of the pool",
+    confirmVider: "Take every card out of the pool?",
+    poolDeplacer: "Move the pool panel",
+    poolCaseVide: "free slot",
+    reserveGlisser: "Drag a card onto the pool, or click it",
+    curseursOn: "Other people's cursors: shown", curseursOff: "Other people's cursors: hidden",
+    flecheEchap: "Click the target card (Esc cancels).",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
@@ -102,6 +111,15 @@
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
     poolVide: "En attente que l'animateur mette des cartes dans le pool.",
     poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
+    poolRemplirTxt: "Remplir", poolViderTxt: "Vider",
+    poolRemplirT: "Compléter le pool avec les cartes suivantes",
+    poolViderT: "Enlever toutes les cartes du pool",
+    confirmVider: "Enlever toutes les cartes du pool ?",
+    poolDeplacer: "Déplacer le panneau du pool",
+    poolCaseVide: "emplacement libre",
+    reserveGlisser: "Glissez une carte sur le pool, ou cliquez-la",
+    curseursOn: "Curseurs des autres : affichés", curseursOff: "Curseurs des autres : masqués",
+    flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
@@ -181,10 +199,10 @@
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
    "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
-   "scene","monde","fleches","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
+   "scene","monde","fleches","fleches-live","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-participants","panneau","fermer-panneau",
    "btn-barres","btn-barres-show",
-   "liste-part","vocal-url","btn-vocal","vocal-lien","legende","modal","carte-grande","modal-flip",
+   "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
   });
@@ -198,6 +216,7 @@
     zoom: 1, panX: 0, panY: 0, outil: "deplacer",
     sel: null, flecheDepart: null,
     dragN: null,           // carte en cours de glissement (on ignore le serveur)
+    attente: 0,            // actions locales en vol (rendu optimiste en cours)
     elCartes: {}, elTextes: {},
   };
 
@@ -373,9 +392,14 @@
   function marquerConnexion(ok) { if (ok === hs) { hs = !ok; E["etat-conn"].classList.toggle("hs", !ok); } }
 
   /* ---------- Application de l'état serveur (déclaratif) ---------- */
-  function appliquerEtat(vue) {
+  function appliquerEtat(vue, force) {
     if (!vue) return;
     if (vue.version < etat.version) return; // vieil état
+    // Rendu optimiste en cours : un etat de MEME version precede forcement notre
+    // action locale ; l'appliquer ferait clignoter l'ecran (la carte reviendrait
+    // dans le pool le temps d'un aller-retour). On l'ignore, la reponse de
+    // l'action (force) ou la version suivante fera foi.
+    if (!force && vue.version === etat.version && etat.attente > 0) return;
     if (vue.version !== etat.version) activite(); // changement reçu : on reste réactif
     etat.vue = vue; etat.version = vue.version;
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
@@ -596,6 +620,13 @@
     if (vue.lienVocal === etat._sigVocal) return; etat._sigVocal = vue.lienVocal;
     if (vue.lienVocal) { E["vocal-lien"].hidden = false; E["vocal-lien"].href = vue.lienVocal; if (E["vocal-url"]) E["vocal-url"].value = vue.lienVocal; }
     else E["vocal-lien"].hidden = true;
+    // Le lien visio se voit AUSSI dans la barre du haut : c'est la premiere
+    // chose qu'on cherche une fois dans le tableau, il ne doit pas etre cache
+    // derriere le panneau des participants.
+    if (E["visio-top"]) {
+      E["visio-top"].hidden = !vue.lienVocal;
+      if (vue.lienVocal) E["visio-top"].href = vue.lienVocal;
+    }
   }
   // Couleur par lot (aide l'animateur a voir ou il en est dans la partie).
   var LOT_COULEUR = { 1: "#E8811C", 2: "#2f7d4f", 3: "#3b6ea5", 4: "#8a4fb3", 5: "#c1444e" };
@@ -605,19 +636,65 @@
   // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool et
   // regler la taille des cartes (retreci / agrandi), memorisee par navigateur.
   var poolReduit = false;
-  var POOL_TAILLES = [116, 150, 190, 240]; // largeurs possibles des cartes du pool
+  var POOL_TAILLES = [92, 116, 150, 190]; // largeurs possibles des cases du pool
   var poolTaille = 1;
+  var MAX_POOL = 8;                        // doit rester aligne sur serveur/src/regles.js
   try { var pt = parseInt(localStorage.getItem("fresque:pooltaille"), 10); if (pt >= 0 && pt < POOL_TAILLES.length) poolTaille = pt; } catch (e) {}
+  try { poolReduit = localStorage.getItem("fresque:poolreduit") === "1"; } catch (e) {}
   function appliquerTaillePool() {
     var z = E["pool"]; if (z) z.style.setProperty("--pw", POOL_TAILLES[poolTaille] + "px");
   }
   function changerTaillePool(delta) {
     poolTaille = Math.max(0, Math.min(POOL_TAILLES.length - 1, poolTaille + delta));
     try { localStorage.setItem("fresque:pooltaille", String(poolTaille)); } catch (e) {}
-    appliquerTaillePool();
+    appliquerTaillePool(); placerPool();
     var z = E["pool"]; if (z) { var b = z.querySelector(".pool-moins"), p = z.querySelector(".pool-plus");
       if (b) b.disabled = poolTaille === 0; if (p) p.disabled = poolTaille === POOL_TAILLES.length - 1; }
   }
+
+  /* ---------- Panneau du pool : librement deplacable ------------------------
+     Le pool n'est plus une rangee collee en bas : c'est un panneau que chacun
+     place ou il veut sur son ecran (la position est personnelle, memorisee par
+     navigateur), repliable, avec 8 emplacements fixes (2 de large, 4 de haut)
+     pour que la disposition ne bouge pas quand les cartes vont et viennent. */
+  var poolPos = null;
+  try { poolPos = JSON.parse(localStorage.getItem("fresque:poolpos") || "null"); } catch (e) { poolPos = null; }
+  function placerPool() {
+    var z = E["pool"], r = rectScene(); if (!z || !r.width) return;
+    var w = z.offsetWidth || 260, h = z.offsetHeight || 200;
+    if (!poolPos) poolPos = { x: 16, y: Math.max(8, r.height - h - 16) }; // en bas a gauche par defaut
+    // Toujours au moins l'en-tete accessible, meme apres redimensionnement.
+    var x = Math.max(4, Math.min(r.width - Math.min(w, 120) - 4, poolPos.x));
+    var y = Math.max(4, Math.min(r.height - 34, poolPos.y));
+    z.style.left = Math.round(x) + "px"; z.style.top = Math.round(y) + "px";
+    // La grille defile plutot que de deborder sous la reserve : on lui donne la
+    // hauteur reellement disponible entre l'en-tete du panneau et le bas de la scene.
+    var g = z.querySelector(".pool-grille");
+    if (g) g.style.maxHeight = Math.max(120, r.height - y - 58) + "px";
+  }
+  function memoriserPoolPos() { try { localStorage.setItem("fresque:poolpos", JSON.stringify(poolPos)); } catch (e) {} }
+  function glisserPanneauPool(e, poignee) {
+    if (e.button && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    var z = E["pool"], r = rectScene();
+    var d = { mx: e.clientX, my: e.clientY, x: z.offsetLeft, y: z.offsetTop };
+    try { poignee.setPointerCapture(e.pointerId); } catch (x) {}
+    function mv(ev) {
+      poolPos = { x: d.x + (ev.clientX - d.mx), y: d.y + (ev.clientY - d.my) };
+      placerPool();
+    }
+    function fin(ev) {
+      poignee.removeEventListener("pointermove", mv);
+      poignee.removeEventListener("pointerup", fin);
+      poignee.removeEventListener("pointercancel", fin);
+      try { poignee.releasePointerCapture(ev.pointerId); } catch (x) {}
+      poolPos = { x: z.offsetLeft, y: z.offsetTop }; memoriserPoolPos();
+    }
+    poignee.addEventListener("pointermove", mv);
+    poignee.addEventListener("pointerup", fin);
+    poignee.addEventListener("pointercancel", fin);
+  }
+
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
@@ -627,18 +704,49 @@
     var sig = pool.join(",") + "|" + Object.keys(res).sort().map(function (k) { return k + ":" + res[k]; }).join(",")
       + "|" + (poolReduit ? 1 : 0) + "|" + poolTaille + "|" + etat.role + "|" + (nomMoi() || "");
     if (sig === etat._sigPool) { appliquerTaillePool(); return; }
+    // Pendant un glisser depuis le pool, on NE RECONSTRUIT PAS le panneau :
+    // reserver la carte change l'etat, donc le rendu detruisait l'element que la
+    // main est en train de deplacer, et le depot se perdait (le fameux « parfois
+    // le glisser-deposer ne marche pas »). On rejouera au relachement.
+    if (glissePool && glissePool.bouge) { etat._sigPool = null; return; }
     etat._sigPool = sig;
     z.innerHTML = "";
+    z.classList.toggle("replie", poolReduit);
     appliquerTaillePool();
-    z.classList.toggle("vide", pool.length === 0 && !poolReduit);
-    // En-tete avec bascule replier / deplier et reglage de taille.
+
+    var anim = etat.role === "animateur";
     var tete = document.createElement("div"); tete.className = "pool-tete";
+    var poignee = document.createElement("button");
+    poignee.type = "button"; poignee.className = "pool-poignee";
+    poignee.setAttribute("aria-label", S.poolDeplacer); poignee.title = S.poolDeplacer;
+    poignee.innerHTML = "<span aria-hidden='true'>⠿</span>";
+    poignee.addEventListener("pointerdown", function (e) { glisserPanneauPool(e, poignee); });
+    tete.appendChild(poignee);
+
     var tog = document.createElement("button"); tog.type = "button"; tog.className = "pool-toggle";
     tog.setAttribute("aria-expanded", poolReduit ? "false" : "true");
-    tog.textContent = (poolReduit ? "▸ " : "▾ ") + S.poolTitre + " (" + pool.length + ")";
-    tog.addEventListener("click", function () { poolReduit = !poolReduit; rendrePool(etat.vue || vue); });
+    tog.textContent = (poolReduit ? "▸ " : "▾ ") + S.poolTitre + " " + pool.length + "/" + MAX_POOL;
+    tog.addEventListener("click", function () {
+      poolReduit = !poolReduit;
+      try { localStorage.setItem("fresque:poolreduit", poolReduit ? "1" : "0"); } catch (e) {}
+      etat._sigPool = null; rendrePool(etat.vue || vue); placerPool();
+    });
     tete.appendChild(tog);
-    if (!poolReduit && pool.length) {
+
+    if (!poolReduit) {
+      if (anim) {
+        // Remplir / vider le pool d'un geste : l'animateur n'a plus a cliquer
+        // les cartes une par une pour lancer ou nettoyer une manche.
+        var rem = document.createElement("button"); rem.type = "button"; rem.className = "pool-act";
+        rem.textContent = S.poolRemplirTxt; rem.title = S.poolRemplirT;
+        rem.disabled = pool.length >= MAX_POOL;
+        rem.addEventListener("click", function () { agir({ op: "poolRemplir" }); });
+        var vid = document.createElement("button"); vid.type = "button"; vid.className = "pool-act";
+        vid.textContent = S.poolViderTxt; vid.title = S.poolViderT;
+        vid.disabled = pool.length === 0;
+        vid.addEventListener("click", function () { if (window.confirm(S.confirmVider)) agir({ op: "poolVider" }); });
+        tete.appendChild(rem); tete.appendChild(vid);
+      }
       var moins = document.createElement("button"); moins.type = "button"; moins.className = "pool-taille pool-moins";
       moins.textContent = "−"; moins.setAttribute("aria-label", S.poolReduire); moins.title = S.poolReduire;
       moins.disabled = poolTaille === 0;
@@ -650,53 +758,99 @@
       tete.appendChild(moins); tete.appendChild(plus);
     }
     z.appendChild(tete);
-    if (poolReduit) return;
-    if (!pool.length) {
-      var v = document.createElement("p"); v.className = "pool-vide";
-      v.textContent = etat.role === "animateur" ? S.poolVideAnim : S.poolVide;
-      z.appendChild(v); return;
-    }
-    var wrap = document.createElement("div"); wrap.className = "pool-cartes";
+    if (poolReduit) { placerPool(); return; }
+
+    // Grille de 8 emplacements FIXES (2 x 4) : les cases vides restent visibles,
+    // donc rien ne se decale quand une carte part ou arrive.
+    var grille = document.createElement("div"); grille.className = "pool-grille";
     var reserv = vue.reservations || {};
     var moiNom = nomMoi();
-    pool.forEach(function (n) {
-      var c = etat.cartes[n];
-      var d = document.createElement("div"); d.className = "pool-carte"; d.dataset.n = n;
-      if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
-      // Verrou : carte en cours de prise par quelqu'un d'autre.
-      var par = reserv[n];
-      var verrou = par && par !== moiNom;
-      if (verrou) d.classList.add("occupee");
-      d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
-        + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
-        + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
-        + '<div class="pool-actions"><button class="btn primaire" data-a="poser"' + (verrou ? ' disabled' : '') + '>' + esc(S.prendre) + '</button>'
-        + (etat.role === "animateur" ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
-        + '</div>';
-      d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
-      var poser = d.querySelector('[data-a="poser"]');
-      poser.addEventListener("click", function (e) { e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() }); });
-      var bx = d.querySelector('[data-a="retirer"]'); if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
-      // Glisser-deposer : depuis la carte du pool vers le tableau.
-      if (!verrou) d.addEventListener("pointerdown", function (e) { demarrerGlissePool(e, n, d); });
-      wrap.appendChild(d);
+    for (var i = 0; i < MAX_POOL; i++) {
+      var case_ = document.createElement("div"); case_.className = "pool-case";
+      var n = pool[i];
+      if (n == null) {
+        case_.classList.add("libre");
+        case_.setAttribute("aria-label", S.poolCaseVide);
+        grille.appendChild(case_);
+        continue;
+      }
+      precharger(n);
+      case_.appendChild(carteDePool(n, reserv[n], moiNom, anim));
+      grille.appendChild(case_);
+    }
+    z.appendChild(grille);
+    if (!pool.length) {
+      var v = document.createElement("p"); v.className = "pool-vide";
+      v.textContent = anim ? S.poolVideAnim : S.poolVide;
+      z.appendChild(v);
+    }
+    placerPool();
+  }
+  function carteDePool(n, par, moiNom, anim) {
+    var c = etat.cartes[n];
+    var d = document.createElement("div"); d.className = "pool-carte"; d.dataset.n = n;
+    if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+    var verrou = par && par !== moiNom;   // carte en cours de prise par quelqu'un d'autre
+    if (verrou) d.classList.add("occupee");
+    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
+      + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
+      + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
+      + '<div class="pool-actions"><button class="btn primaire" data-a="poser" title="' + esc(S.prendre) + '"' + (verrou ? ' disabled' : '') + '>' + esc(S.poser) + '</button>'
+      + (anim ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
+      + '</div>';
+    d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
+    d.querySelector('[data-a="poser"]').addEventListener("click", function (e) {
+      e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() });
     });
-    z.appendChild(wrap);
+    var bx = d.querySelector('[data-a="retirer"]');
+    if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
+    if (!verrou) d.addEventListener("pointerdown", function (e) { demarrerGlissePool(e, n, d); });
+    return d;
   }
   function nomMoi() { return etat.role === "animateur" ? (etat.vue && etat.vue.animateur && etat.vue.animateur.prenom) || "" : (function () { var m = (etat.vue && etat.vue.participants || []).find(function (p) { return p.id === _idMoi; }); return m ? m.prenom : ""; })(); }
 
-  /* ---------- Glisser-deposer une carte du pool vers le tableau ----------
-     Fiabilite : au premier vrai mouvement on RESERVE la carte cote serveur (les
-     autres la voient verrouillee). Un fantome suit le curseur. Au relacher sur
-     le tableau, on POSE au point de depot (le serveur tranche : une seule prise
-     possible). Ailleurs, on LIBERE la reservation. Un clic simple (sans bouger)
-     ne declenche rien : c'est le bouton « Poser » qui agit. */
+  /* ---------- Glisser-deposer : pool <-> tableau, reserve <-> pool ----------
+     Fiabilite : le pointeur est CAPTURE par l'element saisi, donc on recoit
+     toujours le relachement, meme si le curseur passe au-dessus d'un autre
+     panneau. La zone de depot est calculee geometriquement (rectangles), sans
+     `elementFromPoint` : c'est ce qui faisait echouer un depot sur deux quand un
+     element se trouvait sous le curseur (fantome, info-bulle, bord de panneau).
+     Au premier vrai mouvement on RESERVE la carte cote serveur (les autres la
+     voient verrouillee). Au relacher sur le tableau, on POSE au point de depot
+     (le serveur tranche : une seule prise possible). Ailleurs, on LIBERE. */
   var glissePool = null;
+  function dansRect(cx, cy, el) {
+    if (!el || el.hidden || !el.offsetParent) return false;
+    var r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return false;
+    return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+  }
+  function surScene(cx, cy) { var r = rectScene(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
+  // Zone de depot valide : sur la scene, mais PAS au-dessus du pool, de la
+  // reserve, des barres ni des panneaux (sinon lacher la carte la-dessus la
+  // poserait par erreur sous le panneau).
+  function zoneDepot(cx, cy) {
+    if (!surScene(cx, cy)) return false;
+    var obstacles = [E["pool"], E["deck"], E["panneau"], document.querySelector(".toolbar"), document.querySelector(".topbar"), document.getElementById("aide-pop")];
+    for (var i = 0; i < obstacles.length; i++) { if (dansRect(cx, cy, obstacles[i])) return false; }
+    return true;
+  }
+  function surPool(cx, cy) { return dansRect(cx, cy, E["pool"]); }
+  function surDeck(cx, cy) { return dansRect(cx, cy, E["deck"]); }
+  function fantome(n) {
+    var c = etat.cartes[n];
+    var f = document.createElement("div"); f.className = "pool-fantome";
+    f.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span>' + n + "</span>";
+    document.body.appendChild(f);
+    return f;
+  }
   function demarrerGlissePool(e, n, elCarte) {
     if (e.button && e.button !== 0) return;
     if (e.target.closest(".pool-actions") || e.target.closest(".pool-x")) return; // clics boutons
     e.preventDefault();
-    glissePool = { n: n, x0: e.clientX, y0: e.clientY, bouge: false, reserve: false, fantome: null, refuse: false };
+    glissePool = { n: n, x0: e.clientX, y0: e.clientY, bouge: false, reserve: false, fantome: null, refuse: false, el: elCarte, pid: e.pointerId };
+    // Ecouteurs sur le DOCUMENT (et non sur la carte) : ils survivent a une
+    // reconstruction du panneau et au passage du curseur sur un autre element.
     document.addEventListener("pointermove", glisserPoolMove, true);
     document.addEventListener("pointerup", glisserPoolUp, true);
     document.addEventListener("pointercancel", glisserPoolUp, true);
@@ -708,64 +862,112 @@
       g.bouge = true;
       // Reserver au serveur ; si refuse (deja pris), on annule le glissement.
       api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
+        if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
-        else { g.reserve = true; if (res.d && res.d.etat) appliquerEtat(res.d.etat); }
+        else { g.reserve = true; envoyerWS({ t: "maj" }); if (res.d && res.d.etat) appliquerEtat(res.d.etat, true); }
       }).catch(function () {});
-      g.fantome = document.createElement("div"); g.fantome.className = "pool-fantome";
-      var c = etat.cartes[g.n];
-      g.fantome.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span>' + g.n + "</span>";
-      document.body.appendChild(g.fantome);
+      g.fantome = fantome(g.n);
+      if (g.el) g.el.classList.add("en-glisse");
     }
     if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
-    // Retour visuel : la scene s'illumine quand on survole une zone deposable.
+    // Retour visuel : la scene s'illumine quand on survole une zone deposable ;
+    // la reserve s'illumine quand on va y renvoyer la carte.
     E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
+    if (E["deck"]) E["deck"].classList.toggle("depot-actif", surDeck(e.clientX, e.clientY));
   }
   function glisserPoolUp(e) {
     var g = glissePool; if (!g) return;
     if (g.refuse) { finGlissePool(true); return; }
-    if (g.bouge && zoneDepot(e.clientX, e.clientY)) {
+    if (g.bouge && surDeck(e.clientX, e.clientY) && etat.role === "animateur") {
+      agir({ op: "poolRetirer", n: g.n });          // renvoyee dans la reserve
+    } else if (g.bouge && zoneDepot(e.clientX, e.clientY)) {
       var w = versMonde(e.clientX, e.clientY);
       agir({ op: "poserCarte", n: g.n, pos: { x: Math.round(w.x), y: Math.round(w.y) }, rect: rectVisible() });
-      finGlissePool(false); // la carte quitte le pool : pas besoin de liberer
-    } else {
-      // Depose hors du tableau (ou simple clic) : on relache la reservation.
-      if (g.bouge && g.reserve) agir({ op: "libererPool", n: g.n });
-      finGlissePool(false);
+    } else if (g.bouge && g.reserve) {
+      agir({ op: "libererPool", n: g.n });          // depose ailleurs : on relache la prise
     }
+    finGlissePool(false);
   }
   function finGlissePool(silence) {
     var g = glissePool; glissePool = null;
     document.removeEventListener("pointermove", glisserPoolMove, true);
     document.removeEventListener("pointerup", glisserPoolUp, true);
     document.removeEventListener("pointercancel", glisserPoolUp, true);
+    if (g && g.el) g.el.classList.remove("en-glisse");
     E.scene.classList.remove("depot-actif");
+    if (E["deck"]) E["deck"].classList.remove("depot-actif");
     if (g && g.fantome) g.fantome.remove();
-  }
-  function surScene(cx, cy) { var r = rectScene(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
-  // Zone de depot valide : sur la scene, mais PAS au-dessus du pool ni des barres
-  // (sinon lacher la carte sur le pool la poserait par erreur). Deposer ailleurs
-  // que sur cette zone annule la prise et libere la reservation.
-  function zoneDepot(cx, cy) {
-    if (!surScene(cx, cy)) return false;
-    var el = document.elementFromPoint(cx, cy);
-    if (el && el.closest && (el.closest("#pool") || el.closest(".deck") || el.closest(".toolbar") || el.closest(".topbar") || el.closest(".pool-fantome"))) return false;
-    return true;
+    // Le panneau a pu se perimer pendant le glissement : on le rejoue.
+    if (etat.vue) { etat._sigPool = null; rendrePool(etat.vue); }
   }
 
-  // Jeu complet (animateur) : clic pour mettre une carte dans le pool. Grisee si
-  // deja dans le pool ou posee. Construit une seule fois, etat mis a jour ensuite.
+  /* ---------- Reserve (animateur) : le jeu complet, illustre ----------------
+     Clic OU glisser-deposer vers le pool. Les cartes sont montrees avec leur
+     illustration, comme dans le pool : on reconnait une carte a son image bien
+     avant de lire son titre. */
   var deckFait = false;
   function construireDeck() {
     var z = E["deck-cartes"]; if (!z || deckFait) return; deckFait = true;
     for (var n = 1; n <= 38; n++) {
       var c = etat.cartes[n]; if (!c) continue;
-      var b = document.createElement("button"); b.type = "button"; b.className = "deck-carte"; b.dataset.n = n;
+      var b = document.createElement("div"); b.className = "deck-carte"; b.dataset.n = n;
+      b.setAttribute("role", "button"); b.tabIndex = 0;
       b.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
-      b.title = n + " · " + c.titre;
-      b.innerHTML = '<span class="dn">' + n + '</span><span class="dt">' + esc(c.titre) + '</span>';
-      b.addEventListener("click", function () { agir({ op: "poolAjouter", n: +this.dataset.n }); });
+      b.title = n + " · " + c.titre + " : " + S.reserveGlisser;
+      b.innerHTML = '<span class="dvis"><img alt="" loading="lazy" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="dn">' + n + '</span></span>'
+        + '<span class="dt">' + esc(c.titre) + '</span>';
+      b.addEventListener("click", function () { if (!this.classList.contains("indispo")) agir({ op: "poolAjouter", n: +this.dataset.n }); });
+      b.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault(); if (!this.classList.contains("indispo")) agir({ op: "poolAjouter", n: +this.dataset.n });
+      });
+      b.addEventListener("pointerdown", function (e) { demarrerGlisseDeck(e, +this.dataset.n, this); });
       z.appendChild(b);
     }
+  }
+  // Glisser une carte de la reserve vers le pool (ou directement sur le tableau,
+  // ce qui la met au pool puis la pose).
+  var glisseDeck = null;
+  function demarrerGlisseDeck(e, n, el) {
+    if (e.button && e.button !== 0) return;
+    if (el.classList.contains("indispo")) return;
+    e.preventDefault();
+    glisseDeck = { n: n, x0: e.clientX, y0: e.clientY, bouge: false, fantome: null, el: el, pid: e.pointerId };
+    document.addEventListener("pointermove", glisserDeckMove, true);
+    document.addEventListener("pointerup", glisserDeckUp, true);
+    document.addEventListener("pointercancel", glisserDeckUp, true);
+  }
+  function glisserDeckMove(e) {
+    var g = glisseDeck; if (!g) return;
+    if (!g.bouge && Math.abs(e.clientX - g.x0) + Math.abs(e.clientY - g.y0) < 5) return;
+    if (!g.bouge) { g.bouge = true; g.fantome = fantome(g.n); g.el.classList.add("en-glisse"); }
+    g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px";
+    if (E["pool"]) E["pool"].classList.toggle("depot-actif", surPool(e.clientX, e.clientY));
+  }
+  function glisserDeckUp(e) {
+    var g = glisseDeck; if (!g) return;
+    var surLePool = g.bouge && surPool(e.clientX, e.clientY);
+    finGlisseDeck();
+    if (surLePool) agir({ op: "poolAjouter", n: g.n });
+    else if (g.bouge && !g.dejaClic && zoneDepot(e.clientX, e.clientY)) {
+      // Lachee sur le tableau : elle passe par le pool (regle du jeu) puis se pose.
+      var w = versMonde(e.clientX, e.clientY);
+      var n = g.n, pos = { x: Math.round(w.x), y: Math.round(w.y) };
+      agir({ op: "poolAjouter", n: n }, function (d) {
+        if (d && d.refus) return;
+        agir({ op: "poserCarte", n: n, pos: pos, rect: rectVisible() });
+      });
+    }
+  }
+  function finGlisseDeck() {
+    var g = glisseDeck; glisseDeck = null;
+    document.removeEventListener("pointermove", glisserDeckMove, true);
+    document.removeEventListener("pointerup", glisserDeckUp, true);
+    document.removeEventListener("pointercancel", glisserDeckUp, true);
+    if (!g) return;
+    g.el.classList.remove("en-glisse");
+    if (g.fantome) g.fantome.remove();
+    if (E["pool"]) E["pool"].classList.remove("depot-actif");
   }
   function rendreDeck(vue) {
     if (etat.role !== "animateur") return;
@@ -778,9 +980,10 @@
       var st = etatCarte[+b.dataset.n];
       b.classList.toggle("en-pool", st === "pool");
       b.classList.toggle("en-table", st === "table");
-      b.disabled = !!st;
+      b.classList.toggle("indispo", !!st);
+      b.setAttribute("aria-disabled", st ? "true" : "false");
     });
-    if (E["deck-compte"]) E["deck-compte"].textContent = (vue.pool || []).length + " / 8";
+    if (E["deck-compte"]) E["deck-compte"].textContent = (vue.pool || []).length + " / " + MAX_POOL;
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
@@ -790,7 +993,7 @@
     tab.cartes.forEach(function (c) {
       vus[c.n] = 1;
       var el = etat.elCartes[c.n];
-      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); }
+      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); precharger(c.n); }
       if (etat.dragN !== c.n) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
     });
     Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) { etat.elCartes[n].remove(); delete etat.elCartes[n]; } });
@@ -873,11 +1076,31 @@
   /* ---------- Flèches ---------- */
   function estFleche(o) { return o === "fleche" || o === "fleche2"; }
   function clicFleche(n, el) {
-    if (!etat.flecheDepart) { etat.flecheDepart = { n: n, el: el }; el.classList.add("depart"); flash(S.cliquezArrivee); }
+    if (!etat.flecheDepart) {
+      etat.flecheDepart = { n: n, el: el }; el.classList.add("depart");
+      etat.flecheCurseur = centreCarte(n); dessinerFlechesLive();
+      flash(S.flecheEchap);
+    }
     else if (etat.flecheDepart.n === n) { annulerFleche(); }
     else { agir({ op: "creerFleche", de: etat.flecheDepart.n, vers: n, bidir: etat.outil === "fleche2" }); annulerFleche(); setOutil("deplacer"); }
   }
-  function annulerFleche() { if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart"); etat.flecheDepart = null; }
+  function annulerFleche() {
+    if (etat.flecheDepart) etat.flecheDepart.el.classList.remove("depart");
+    etat.flecheDepart = null; etat.flecheCurseur = null;
+    envoyerWS({ t: "fl0" }); dessinerFlechesLive();
+  }
+  // Trace elastique : entre le 1er et le 2e clic, une ligne suit le curseur. Elle
+  // est rendue LOCALEMENT (aucune attente du serveur) et relayee aux autres en
+  // ephemere, pour qu'ils voient le lien se construire en direct.
+  function suivreFleche(cx, cy) {
+    if (!etat.flecheDepart) return;
+    var w = versMonde(cx, cy);
+    etat.flecheCurseur = { x: w.x, y: w.y };
+    dessinerFlechesLive();
+    var now = Date.now();
+    if (now - (etat._flTs || 0) < 55) return; etat._flTs = now;
+    envoyerWS({ t: "fl", de: etat.flecheDepart.n, x: Math.round(w.x), y: Math.round(w.y) });
+  }
 
   function centreCarte(n) {
     var el = etat.elCartes[n]; if (!el) return null;
@@ -892,7 +1115,7 @@
   var _flechesRAF = 0;
   function majFleches() {
     if (_flechesRAF) return;
-    _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); });
+    _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); dessinerFlechesLive(); });
   }
   function dessinerFleches() {
     if (!etat.vue) return;
@@ -927,6 +1150,22 @@
     positionnerEditeurs();
   }
 
+  // Couche ephemere : les fleches en cours de trace (la mienne et celles des
+  // autres). Separee de #fleches pour ne jamais reconstruire les vraies fleches.
+  function dessinerFlechesLive() {
+    var L = E["fleches-live"]; if (!L) return;
+    var html = "";
+    if (etat.flecheDepart && etat.flecheCurseur) html += traitLive(etat.flecheDepart.n, etat.flecheCurseur.x, etat.flecheCurseur.y, "#E8811C");
+    for (var id in flLive) { var f = flLive[id]; html += traitLive(f.de, f.x, f.y, couleurCurseur(id)); }
+    L.innerHTML = html;
+  }
+  function traitLive(de, x, y, coul) {
+    var A = centreCarte(de); if (!A) return "";
+    var p = bord(A, x, y);
+    return '<path class="fl-live" d="M' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ' L' + x.toFixed(1) + ',' + y.toFixed(1) + '" stroke="' + coul + '"/>'
+      + '<circle class="fl-live-pt" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" fill="' + coul + '"/>';
+  }
+
   /* ---------- Sélection flèche : libellé + suppression ---------- */
   var croix = null, editLib = null, bidir = null, barreCarte = null;
   function selFleche(id) {
@@ -937,10 +1176,14 @@
     // Fond blanc + texte foncé fixe (sinon, en thème sombre, --ink est clair et
     // le texte devient illisible sur le fond blanc).
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#ffffff;color:#1b1a17;width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
-    var envoi = null;
-    function commitLib() { clearTimeout(envoi); agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
+    function commitLib() { agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
     editLib._commit = commitLib;
-    editLib.addEventListener("input", function () { clearTimeout(envoi); envoi = setTimeout(commitLib, 350); });
+    editLib.addEventListener("input", function () {
+      // 1) tout de suite chez les autres (ephemere) ; 2) memoire serveur, etalee.
+      envoyerWS({ t: "lib", cid: id, v: editLib.value });
+      libelleEnDirect(id, editLib.value);
+      frappe("lib:" + id, 220, commitLib);
+    });
     editLib.addEventListener("change", commitLib);
     editLib.addEventListener("keydown", function (e) { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commitLib(); deselect(); } });
     E.scene.appendChild(editLib);
@@ -1000,9 +1243,23 @@
     return el;
   }
   function editerTexte(el) {
+    // Note toute neuve, pas encore enregistree cote serveur : c'est
+    // creerNoteLocale qui pilote la frappe (et la creation). On ne remplace pas
+    // ses gestionnaires, sinon la note n'est jamais creee.
+    if (!el._id) { try { el.focus(); } catch (e) {} return; }
     el.setAttribute("contenteditable", "true"); el.focus();
     var sel = window.getSelection(), rng = document.createRange(); rng.selectNodeContents(el); rng.collapse(false); sel.removeAllRanges(); sel.addRange(rng);
-    el.onblur = function () { el.removeAttribute("contenteditable");
+    el.oninput = function () {
+      if (!el._id) return;
+      // Frappe en direct chez les autres, enregistrement serveur etale. On ne
+      // pousse jamais un contenu vide en cours de frappe : cote serveur, une note
+      // videe est supprimee (ce que l'on ne veut qu'au relachement, au blur).
+      envoyerWS({ t: "note", cid: el._id, v: el.textContent, x: el._x || 0, y: el._y || 0 });
+      frappe("note:" + el._id, 250, function () {
+        var c = el.textContent.trim(); if (c) agir({ op: "modifierTexte", id: el._id, contenu: c });
+      });
+    };
+    el.onblur = function () { el.removeAttribute("contenteditable"); el.oninput = null;
       var v = el.textContent.trim();
       agir({ op: "modifierTexte", id: el._id, contenu: v });
     };
@@ -1022,22 +1279,102 @@
     function cancel(ev) { fin(ev, true); }
     el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", cancel);
   }
+  // Nouvelle note : l'element est cree localement avec tous ses comportements,
+  // puis enregistre cote serveur DES LA PREMIERE SAISIE (et non au blur). C'est
+  // ce qui permet aux autres de voir la note s'ecrire au fur et a mesure : sans
+  // identifiant, il n'y a rien a relayer.
   function creerNoteLocale(x, y) {
-    // note temporaire éditable ; créée côté serveur au blur si non vide
-    var el = document.createElement("div"); el.className = "c-texte"; el.style.left = x + "px"; el.style.top = y + "px";
+    var el = creerElTexte({ id: "", x: x, y: y, contenu: "" });
+    el.style.left = x + "px"; el.style.top = y + "px"; el._x = x; el._y = y;
     el.setAttribute("contenteditable", "true"); E.monde.appendChild(el); el.focus();
-    el.onblur = function () { var v = el.textContent.trim(); el.remove(); if (v) agir({ op: "creerTexte", x: x, y: y, contenu: v }); };
+    var enCours = false;
+    el.oninput = function () {
+      var v = el.textContent;
+      if (el._id) {
+        envoyerWS({ t: "note", cid: el._id, v: v, x: el._x || 0, y: el._y || 0 });
+        frappe("note:" + el._id, 250, function () {
+          var c = el.textContent.trim(); if (c) agir({ op: "modifierTexte", id: el._id, contenu: c });
+        });
+        return;
+      }
+      if (enCours || !v.trim()) return;
+      enCours = true;
+      agir({ op: "creerTexte", x: x, y: y, contenu: v }, function (d) {
+        var id = d && d.resultat && d.resultat.id;
+        enCours = false;
+        if (!id) return;
+        el._id = id; el.dataset.id = id; etat.elTextes[id] = el;
+        if (el.getAttribute("contenteditable") === "true") el.oninput();  // rattraper la frappe
+      });
+    };
+    el.onblur = function () {
+      el.removeAttribute("contenteditable"); el.oninput = null;
+      var v = el.textContent.trim();
+      if (el._id) { agir({ op: "modifierTexte", id: el._id, contenu: v }); return; }
+      el.remove();
+      if (v) agir({ op: "creerTexte", x: x, y: y, contenu: v });
+    };
   }
 
-  /* ---------- Agir (optimiste + envoi) ---------- */
-  var envoiEnCours = false, file = [];
-  function agir(intention) {
+  /* ---------- Agir (optimiste + envoi) ----------------------------------
+     Trois choses, dans cet ordre :
+       1. rendu LOCAL immediat (appliquerOptimiste) : celui qui agit ne doit
+          jamais attendre le serveur pour voir son geste ;
+       2. envoi de l'intention (le serveur reste l'autorite et peut refuser) ;
+       3. pousse « maj » aux autres via le relais WebSocket : ils relisent l'etat
+          tout de suite au lieu d'attendre leur prochain sondage. */
+  function agir(intention, apres) {
     activite(); // action locale : on passe en mode reactif
+    appliquerOptimiste(intention);
+    etat.attente++;
     api("agir", { code: etat.code, jeton: etat.jeton, intention: intention }).then(function (res) {
+      etat.attente = Math.max(0, etat.attente - 1);
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
-      if (res.d && res.d.etat) appliquerEtat(res.d.etat);
+      // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
+      // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
+      // doublon.
+      if (apres) { try { apres(res.d || {}); } catch (e) {} }
+      if (res.d && res.d.etat) appliquerEtat(res.d.etat, true);
+      envoyerWS({ t: "maj" });
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
-    }).catch(function () { marquerConnexion(false); });
+    }).catch(function () { etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false); });
+  }
+
+  // Applique localement, tout de suite, l'effet visible d'une intention. Le
+  // serveur tranchera (il peut refuser : pool plein, carte deja prise...) et sa
+  // reponse remet tout d'aplomb. On ne traite que les operations dont l'attente
+  // se voit ; les autres (deplacement, fleche...) sont deja rendues sur place.
+  function appliquerOptimiste(d) {
+    var v = etat.vue; if (!v || !d) return;
+    var tab = v.tableau || (v.tableau = { cartes: [], fleches: [], textes: [] });
+    if (!v.pool) v.pool = [];
+    var n = +d.n;
+    function horsPool(k) { var i = v.pool.indexOf(k); if (i >= 0) v.pool.splice(i, 1); }
+    function surTable(k) { return tab.cartes.some(function (c) { return c.n === k; }); }
+    function libre(k) { return v.pool.indexOf(k) < 0 && !surTable(k); }
+    switch (d.op) {
+      case "poolAjouter": if (libre(n) && v.pool.length < 8) v.pool.push(n); break;
+      case "poolRetirer": horsPool(n); break;
+      case "poolVider": v.pool = []; break;
+      case "poolRemplir":
+        for (var k = 1; k <= 38 && v.pool.length < 8; k++) { if (libre(k)) v.pool.push(k); }
+        break;
+      case "poserCarte":
+        horsPool(n);
+        // Point de depot connu (glisser-deposer) : on pose la carte a l'endroit
+        // exact, avec le meme centrage que le serveur (pas de saut a la reponse).
+        if (d.pos && !surTable(n)) tab.cartes.push({ n: n, x: Math.round(d.pos.x - 80), y: Math.round(d.pos.y - 75) });
+        break;
+      case "retirerCarte":
+        tab.cartes = tab.cartes.filter(function (c) { return c.n !== n; });
+        tab.fleches = tab.fleches.filter(function (f) { return f.de !== n && f.vers !== n; });
+        if (d.dest === "pool" && v.pool.indexOf(n) < 0 && v.pool.length < 8) v.pool.push(n);
+        break;
+      case "supprimerFleche": tab.fleches = tab.fleches.filter(function (f) { return f.id !== d.id; }); break;
+      case "supprimerTexte": tab.textes = tab.textes.filter(function (t) { return t.id !== d.id; }); break;
+      default: return; // rien de visible a anticiper
+    }
+    rendrePool(v); rendreDeck(v); rendreTableau(tab);
   }
 
   /* ---------- Ping (cercle qui s'agrandit) ---------- */
@@ -1060,15 +1397,18 @@
     setTimeout(function () { el.remove(); }, 1300);
   }
 
-  /* ---------- Curseurs en direct (relais WebSocket) --------------------------
-     Temps reel via un petit relais auto-heberge. ENTIEREMENT OPTIONNEL : si le
-     relais est injoignable, bloque, ou tombe, le jeu continue normalement (aucune
-     erreur, aucun blocage). Reconnexion automatique avec backoff borne. Chaque
-     curseur distant est une fleche + prenom, contre-mise a l'echelle du zoom,
-     effacee apres 5 s sans nouvelle ou a la deconnexion. Masquable. */
+  /* ---------- Temps reel : relais WebSocket ----------------------------------
+     Un petit relais auto-heberge repete des messages EPHEMERES entre les membres
+     de la session : curseurs, trace de fleche en cours, frappe en direct, et un
+     simple « maj » qui dit aux autres de relire l'etat tout de suite (le serveur
+     Blobs reste l'autorite et la memoire ; le relais ne fait que supprimer
+     l'attente du sondage). ENTIEREMENT OPTIONNEL : si le relais est injoignable,
+     bloque, ou tombe, le jeu continue normalement (aucune erreur, aucun blocage,
+     on retombe simplement sur le sondage). Reconnexion avec backoff borne. */
   var CURSEURS_WS = "wss://curseurs.pauseia.fr";
-  var curs = { ws: null, els: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
+  var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
   try { curs.montrer = localStorage.getItem("curseurs-off") !== "1"; } catch (e) {}
+  var flLive = {};   // traces de fleche en cours des autres : id -> { de, x, y, ts }
   function connecterCurseurs() {
     if (curs.ferme || !etat.code || typeof WebSocket === "undefined") return;
     if (curs.ws && (curs.ws.readyState === 0 || curs.ws.readyState === 1)) return;
@@ -1078,7 +1418,7 @@
     } catch (e) { planifierReconnexionCurseurs(); return; }
     curs.ws = ws;
     ws.onopen = function () { curs.essais = 0; };
-    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirCurseur(m); };
+    ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirRelais(m); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
     ws.onclose = function () { curs.ws = null; planifierReconnexionCurseurs(); };
   }
@@ -1090,26 +1430,65 @@
     curs.essais++;
     curs.reconn = setTimeout(connecterCurseurs, delai);
   }
+  // Envoi non bloquant : si le relais n'est pas la, on ne fait rien (le sondage
+  // suffit, en un peu moins direct).
+  function envoyerWS(obj) {
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    try { ws.send(JSON.stringify(obj)); } catch (e) {}
+  }
   function envoyerCurseur(cx, cy) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
     var w = versMonde(cx, cy);
-    try { ws.send(JSON.stringify({ t: "c", x: Math.round(w.x), y: Math.round(w.y) })); } catch (e) {}
+    envoyerWS({ t: "c", x: Math.round(w.x), y: Math.round(w.y) });
   }
-  function recevoirCurseur(m) {
+  function recevoirRelais(m) {
     if (!m || !m.id) return;
-    if (m.t === "leave") { enleverCurseur(m.id); return; }
-    if (m.t !== "c") return;
+    switch (m.t) {
+      case "leave": enleverCurseur(m.id); delete flLive[m.id]; dessinerFlechesLive(); return;
+      case "maj": pollerVite(); return;                 // quelqu'un a agi : on relit tout de suite
+      case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
+      case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
+      case "lib": libelleEnDirect(m.cid, m.v); return;
+      case "note": noteEnDirect(m.cid, m.v, m.x, m.y); return;
+      case "c": break;
+      default: return;
+    }
     curs.vus[m.id] = Date.now();
     var el = curs.els[m.id];
-    if (!el) { el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el); }
-    el.style.left = (+m.x || 0) + "px"; el.style.top = (+m.y || 0) + "px";
+    var x = +m.x || 0, y = +m.y || 0;
+    if (!el) {
+      el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el);
+      curs.pos[m.id] = { x: x, y: y, tx: x, ty: y };   // premiere position : pas d'interpolation
+    } else {
+      var p = curs.pos[m.id]; p.tx = x; p.ty = y;
+    }
     el.hidden = !curs.montrer;
+    lancerLissage();
+  }
+  // Lissage des curseurs distants : au lieu de « teleporter » l'element a chaque
+  // message (saccade desagreable, voire mal au coeur), on glisse vers la derniere
+  // position connue a chaque frame. Le retard ajoute est de l'ordre de 2 frames.
+  var animCurs = 0;
+  function lancerLissage() { if (!animCurs) animCurs = requestAnimationFrame(lisserCurseurs); }
+  function lisserCurseurs() {
+    animCurs = 0;
+    var encore = false;
+    for (var id in curs.els) {
+      var p = curs.pos[id]; if (!p) continue;
+      var dx = p.tx - p.x, dy = p.ty - p.y;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.x = p.tx; p.y = p.ty; }
+      else { p.x += dx * 0.25; p.y += dy * 0.25; encore = true; }
+      curs.els[id].style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px) scale(var(--iz,1))";
+    }
+    if (encore) animCurs = requestAnimationFrame(lisserCurseurs);
   }
   function creerCurseur(id, nom) {
     var el = document.createElement("div"); el.className = "curseur-live";
     var coul = couleurCurseur(id);
-    el.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="1.3"/></svg>'
+    // Contour blanc ET ombre foncee : la fleche et l'etiquette restent lisibles
+    // quel que soit le fond du tableau (clair, sombre, image de carte).
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="2"/></svg>'
       + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
     el.hidden = !curs.montrer;
     return el;
@@ -1119,13 +1498,49 @@
     var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     return p[h % p.length];
   }
-  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; }
-  setInterval(function () { var now = Date.now(); for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); } }, 2000);
+  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; delete curs.pos[id]; }
+  setInterval(function () {
+    var now = Date.now(), bouge = false;
+    for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); }
+    for (var f in flLive) { if (now - flLive[f].ts > 4000) { delete flLive[f]; bouge = true; } }
+    if (bouge) dessinerFlechesLive();
+  }, 2000);
   function basculerCurseurs() {
     curs.montrer = !curs.montrer;
     try { localStorage.setItem("curseurs-off", curs.montrer ? "0" : "1"); } catch (e) {}
     for (var id in curs.els) curs.els[id].hidden = !curs.montrer;
-    var b = document.getElementById("btn-curseurs"); if (b) b.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+    var b = document.getElementById("btn-curseurs");
+    if (b) {
+      b.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+      b.title = curs.montrer ? S.curseursOn : S.curseursOff;
+    }
+    flash(curs.montrer ? S.curseursOn : S.curseursOff);
+  }
+
+  /* ---------- Frappe en direct (libelles de fleche, notes) -------------------
+     Le texte des autres s'affiche AU FUR ET A MESURE de leur frappe : chaque
+     saisie est relayee en ephemere (WebSocket) et appliquee tout de suite chez
+     les autres, pendant que l'enregistrement serveur, lui, est etale (throttle)
+     pour ne pas ecrire a chaque touche. */
+  function libelleEnDirect(id, v) {
+    if (!id || !etat.vue) return;
+    var f = (etat.vue.tableau.fleches || []).find(function (x) { return x.id === id; });
+    if (!f) return;
+    f.libelle = String(v == null ? "" : v);
+    dessinerFleches();
+  }
+  function noteEnDirect(id, v, x, y) {
+    if (!id || !etat.vue) return;
+    var t = (etat.vue.tableau.textes || []).find(function (o) { return o.id === id; });
+    if (!t) { t = { id: id, x: +x || 0, y: +y || 0, contenu: "" }; etat.vue.tableau.textes.push(t); }
+    t.contenu = String(v == null ? "" : v);
+    rendreTableau(etat.vue.tableau);
+  }
+  // Envoi throttle vers le serveur (memoire) + envoi immediat au relais (vue).
+  function frappe(cle, ms, fn) {
+    frappe.t = frappe.t || {};
+    if (frappe.t[cle]) return;                    // un envoi est deja programme
+    frappe.t[cle] = setTimeout(function () { delete frappe.t[cle]; fn(); }, ms);
   }
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
@@ -1158,7 +1573,7 @@
   E.scene.addEventListener("pointermove", function (e) { if (!pan) return; etat.panX = pan.px + (e.clientX - pan.mx); etat.panY = pan.py + (e.clientY - pan.my); clampPan(); applyView(); majFleches(); });
   // Curseur en direct : on diffuse sa position (throttlee) en permanence, meme
   // pendant un glissement de carte (l'evenement remonte jusqu'a la scene).
-  E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); });
+  E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); suivreFleche(e.clientX, e.clientY); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 
@@ -1172,6 +1587,13 @@
     montrerPing(w.x, w.y, S.vous || "");
   });
 
+  // Echap : annule un trace de fleche en cours (et referme la selection).
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); }
+    else deselect();
+  });
+
   /* ---------- Barres / boutons ---------- */
   function setOutil(o) { etat.outil = o; document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.outil === o ? "true" : "false"); });
     E.scene.classList.toggle("outil-fleche", estFleche(o)); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
@@ -1182,10 +1604,13 @@
   E["z-tout"].addEventListener("click", toutVoir);
   // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
   // repli sur une classe CSS si l'API n'est pas disponible.
-  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); }, 60); }
+  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive(); placerPool(); }, 60); }
   function syncPlein() {
     var actif = !!(document.fullscreenElement || document.webkitFullscreenElement) || document.body.classList.contains("plein-css");
     document.body.classList.toggle("plein", actif);
+    // En plein ecran on GARDE la barre d'outils : elle est justement ce dont on
+    // a besoin quand tout l'ecran est au tableau.
+    if (actif && document.body.classList.contains("barres-cachees")) majBarres(false);
     if (E["btn-plein"]) { E["btn-plein"].setAttribute("aria-pressed", actif ? "true" : "false"); E["btn-plein"].textContent = actif ? S.quitterPlein : S.plein; }
     reflowPlein();
   }
@@ -1218,6 +1643,7 @@
     var bc = document.getElementById("btn-curseurs");
     if (!bc) return;
     bc.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
+    bc.title = curs.montrer ? S.curseursOn : S.curseursOff;
     bc.addEventListener("click", basculerCurseurs);
   })();
   // Prevenir les autres a la fermeture de l'onglet (retrait immediat du curseur).
@@ -1225,11 +1651,18 @@
   (function () {
     var s = document.getElementById("btn-sombre");
     if (s) {
-      // Etat initial selon le theme (le CSS reagit a canvas-noir / canvas-blanc).
+      // Le bouton bascule le theme de TOUTE LA PAGE (barres, panneaux, cartes,
+      // tableau), pas seulement le canevas : c'est bien ce qu'on attend d'un
+      // bouton « fond noir ». On pose data-theme sur <html> (le CSS de board.css
+      // y reagit deja) et on memorise le choix sous la meme cle que le reste du
+      // site ("theme"), pour rester coherent d'une page a l'autre.
+      var racine = document.documentElement;
       var noirDepart = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      var attr = document.documentElement.getAttribute("data-theme");
+      var memo = null; try { memo = localStorage.getItem("theme"); } catch (e) {}
+      var attr = racine.getAttribute("data-theme") || memo;
       if (attr === "dark") noirDepart = true; else if (attr === "light") noirDepart = false;
       function appliquerCanvas(noir) {
+        racine.setAttribute("data-theme", noir ? "dark" : "light");
         document.body.classList.toggle("canvas-noir", noir);
         document.body.classList.toggle("canvas-blanc", !noir);
         s.setAttribute("aria-pressed", noir ? "true" : "false");
@@ -1237,7 +1670,11 @@
         try { dessinerFleches(); } catch (e) {}
       }
       appliquerCanvas(noirDepart);
-      s.addEventListener("click", function () { appliquerCanvas(!document.body.classList.contains("canvas-noir")); });
+      s.addEventListener("click", function () {
+        var noir = !document.body.classList.contains("canvas-noir");
+        try { localStorage.setItem("theme", noir ? "dark" : "light"); } catch (e) {}
+        appliquerCanvas(noir);
+      });
     }
     var e = document.getElementById("btn-export");
     if (e) e.addEventListener("click", exporterImage);
@@ -1311,7 +1748,21 @@
   });
   window.addEventListener("resize", function () { clampPan(); applyView(); majFleches(); });
 
+  window.addEventListener("resize", function () { placerPool(); });
+
   /* ---------- Modal ---------- */
+  // Prechargement discret des grandes images : sans lui, ouvrir une carte
+  // attendait le telechargement de son visuel plein format (le « delai quand on
+  // clique sur une carte »). On precharge celles qui sont deja sous les yeux
+  // (pool + tableau), au moment ou elles y arrivent.
+  var precharge = {};
+  function precharger(n) {
+    var c = etat.cartes[n]; if (!c || !c.image || precharge[n]) return;
+    precharge[n] = 1;
+    var src = c.image.carte || c.image.grand; if (src) { var i = new Image(); i.src = BASE + src; }
+    var v = c.image.verso && (c.image.verso.carte || c.image.verso.grand);
+    if (v) { var j = new Image(); j.src = BASE + v; }
+  }
   function ouvrirModal(n) { var c = etat.cartes[n]; if (!c) return;
     E["mg-img"].src = BASE + (c.image ? (c.image.carte || c.image.grand) : ""); E["mg-num"].textContent = n; E["mg-tit"].textContent = c.titre; E["mg-vtit"].textContent = c.titre;
     E["mg-verso"].innerHTML = ""; (c.verso || []).forEach(function (p) { var el = document.createElement("p"); el.textContent = /\[A COMPLETER\]/i.test(p) ? S.texteAVenir : p; E["mg-verso"].appendChild(el); });

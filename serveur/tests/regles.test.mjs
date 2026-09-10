@@ -137,5 +137,29 @@ t("carte de la table remise au pool", r.ok && s3.pool.indexOf(10) >= 0 && !s3.ta
 r = R.appliquer(s3, jA3, { op: "retirerCarte", n: 11 });
 t("carte de la table remise en reserve (hors pool et hors table)", r.ok && s3.pool.indexOf(11) < 0 && !s3.tableau.cartes.some(function (c) { return c.n === 11; }));
 
+// Remplir / vider le pool d'un geste (animateur)
+var s4 = R.creer("Ani", "MNPQRT").session;
+var jA4 = "ja4"; s4.jetons[jA4] = { role: "animateur", id: "a1" };
+r = R.appliquer(s4, jA4, { op: "poolRemplir" });
+t("remplir le pool : 8 cartes d'un coup", r.ok && s4.pool.length === 8 && s4.pool[0] === 1);
+r = R.appliquer(s4, jA4, { op: "poolRemplir" });
+t("remplir un pool deja plein n'ajoute rien", r.ok && s4.pool.length === 8);
+R.appliquer(s4, jA4, { op: "poserCarte", n: 1, pos: { x: 400, y: 400 } });
+r = R.appliquer(s4, jA4, { op: "poolRemplir" });
+t("remplir complete sans reprendre une carte posee", r.ok && s4.pool.length === 8 && s4.pool.indexOf(1) < 0);
+r = R.appliquer(s4, jA4, { op: "poolVider" });
+t("vider le pool : plus aucune carte", r.ok && s4.pool.length === 0);
+var pj4 = R.rejoindre(s4, "Lea");
+r = R.appliquer(s4, pj4.jeton, { op: "poolVider" });
+t("vider le pool est reserve a l'animateur", r.refus && r.refus.code === "droit_insuffisant");
+r = R.appliquer(s4, jA4, { op: "poolRemplir", ns: [30, 31] });
+t("remplir avec une liste explicite respecte l'ordre", r.ok && s4.pool.join(",") === "30,31");
+
+// Lien de visioconference injecte a l'ouverture (atelier programme)
+var sv = R.creer("Ani", "UVWXYZ", "https://visio.pauseia.fr/Salon").session;
+t("le lien visio de l'atelier est repris dans la session", R.vue(sv).lienVocal === "https://visio.pauseia.fr/Salon");
+var sv2 = R.creer("Ani", "UVWXY2", "http://pas-https").session;
+t("un lien visio non https est ignore", R.vue(sv2).lienVocal === null);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

@@ -1,10 +1,14 @@
-# Relais des curseurs en direct (serveur de dev Pause IA)
+# Relais temps réel (serveur de dev Pause IA)
 
-Petit service WebSocket qui répète les positions de curseur entre les membres
-d'une même session de la Fresque en ligne. **Sans état, sans données
-conservées.** Si ce service est arrêté ou injoignable, **le site continue de
-fonctionner normalement** : le client se dégrade en silence (pas de curseurs,
-rien d'autre ne change).
+Petit service WebSocket qui répète des messages **éphémères** entre les membres
+d'une même session de la Fresque en ligne : positions de curseur, tracé de
+flèche en cours, frappe en direct (libellés, notes), et un simple `{t:"maj"}`
+qui dit aux autres de relire l'état tout de suite au lieu d'attendre leur
+prochain sondage. **Sans état, sans données conservées** : l'autorité et la
+mémoire du tableau restent côté Netlify Blobs. Si ce service est arrêté ou
+injoignable, **le site continue de fonctionner normalement** : le client se
+dégrade en silence (pas de curseurs, propagation un peu moins directe via le
+sondage, rien d'autre ne change).
 
 Servi sur `wss://curseurs.pauseia.fr`, derrière Caddy, à côté des autres apps.
 

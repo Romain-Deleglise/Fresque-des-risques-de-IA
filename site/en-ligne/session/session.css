@@ -31,6 +31,8 @@
 .code-chip{font-family:var(--f-ui);font-size:.85rem;color:var(--gris);cursor:pointer;border:1px solid var(--ligne);border-radius:999px;padding:.25rem .7rem}
 .code-chip b{color:var(--ink);letter-spacing:.08em}
 .code-chip .copier{color:var(--accent-txt);font-size:.75rem;margin-left:.3rem}
+.visio-top{color:var(--ink);border-color:var(--accent);font-weight:700}
+.visio-top:hover{background:var(--accent-doux)}
 .etat-conn{font-size:1.2rem;color:#2f7d4f;line-height:1}
 .etat-conn.hs{color:#c1444e}
 .sep-min{width:1px;height:1.6rem;background:var(--ligne)}

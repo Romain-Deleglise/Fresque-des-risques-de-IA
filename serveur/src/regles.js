@@ -26,10 +26,11 @@ function nouveauCode(codesExistants) {
   return null;
 }
 function borne(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function lienVocalValide(u) { return !!u && /^https:\/\//i.test(String(u)); }
 function tronque(s, n) { return String(s == null ? "" : s).slice(0, n); }
 
 /* --- Création / entrée --------------------------------------------------- */
-function creer(prenom, code) {
+function creer(prenom, code, lienVocal) {
   var jeton = jetonAleatoire();
   var idAnim = "a1";
   return {
@@ -41,7 +42,7 @@ function creer(prenom, code) {
       participants: [],
       pool: [],           // cartes mises a disposition par l'animateur (max MAX_POOL)
       reservations: {},   // { n: { par, ts } } : carte en cours de prise par un joueur
-      lienVocal: null,
+      lienVocal: lienVocalValide(lienVocal) ? tronque(lienVocal, LEN_VOCAL) : null,
       tableau: { cartes: [], fleches: [], textes: [] },
       seq: 1,
       clos: false,
@@ -128,6 +129,30 @@ function poolAjouter(s, n) {
   if (s.pool.length >= MAX_POOL) return { refus: { code: "pool_plein", message: "Le pool est plein (" + MAX_POOL + " cartes). Retirez-en une d'abord." } };
   s.pool.push(n); bump(s);
   return { ok: true, resultat: { n: n } };
+}
+// Vider le pool d'un coup (animateur) : les cartes retournent dans la reserve.
+function poolVider(s) {
+  if (!s.pool.length) return { ok: true };
+  s.pool.forEach(function (n) { libererReservation(s, n); });
+  s.pool = [];
+  bump(s);
+  return { ok: true };
+}
+// Remplir le pool (animateur) : complete jusqu'a MAX_POOL avec les prochaines
+// cartes disponibles (ni deja dans le pool, ni posees sur la table), par ordre
+// croissant. Une liste explicite `ns` peut etre fournie (ordre respecte).
+function poolRemplir(s, ns) {
+  var ajoutees = [];
+  var candidats = [];
+  if (Array.isArray(ns)) { candidats = ns.map(Number); }
+  else { for (var n = 1; n <= NB_CARTES; n++) candidats.push(n); }
+  for (var i = 0; i < candidats.length && s.pool.length < MAX_POOL; i++) {
+    var c = candidats[i];
+    if (!carteJouable(c) || dansPool(s, c) || surTable(s, c)) continue;
+    s.pool.push(c); ajoutees.push(c);
+  }
+  if (ajoutees.length) bump(s);
+  return { ok: true, resultat: { ajoutees: ajoutees } };
 }
 function poolRetirer(s, n) {
   n = +n;
@@ -297,12 +322,14 @@ function appliquer(s, jeton, intention) {
 
   // Reservees a l'animateur : gerer le pool, retirer une carte de la table,
   // le lien vocal, clore la session.
-  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, retirerCarte: 1, exclure: 1, definirLienVocal: 1, clore: 1 };
+  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, poolVider: 1, poolRemplir: 1, retirerCarte: 1, exclure: 1, definirLienVocal: 1, clore: 1 };
   if (actionsAnim[op] && !estAnim) return { refus: { code: "droit_insuffisant", message: "Réservé à l'animateur." } };
 
   switch (op) {
     case "poolAjouter": return poolAjouter(s, d.n);
     case "poolRetirer": return poolRetirer(s, d.n);
+    case "poolVider": return poolVider(s);
+    case "poolRemplir": return poolRemplir(s, d.ns);
     case "retirerCarte": return retirerCarte(s, d.n, d.dest);
     case "exclure": return exclure(s, d.id);
     case "definirLienVocal": return definirLienVocal(s, d.url);

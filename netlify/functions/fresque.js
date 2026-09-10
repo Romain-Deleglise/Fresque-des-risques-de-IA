@@ -26,6 +26,7 @@ const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
 const BALAYAGE_MS = 15 * 60 * 1000;
 
 function store() { return getStore({ name: "fresque-sessions" }); }
+function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
 const json = (statut, corps) => ({
@@ -93,8 +94,35 @@ async function balayer(st) {
   } catch (e) {}
 }
 
+// Lien de visioconference d'un atelier programme (store des ateliers). Toujours
+// optionnel : si l'atelier n'existe pas ou que le store est indisponible, on
+// ouvre la session sans lien (aucune erreur visible).
+async function visioAtelier(code) {
+  try {
+    const res = await lireBrut(storeAteliers(), "atelier:" + code);
+    const v = res && res.data && res.data.visio;
+    return typeof v === "string" && /^https:\/\//i.test(v) ? v : null;
+  } catch (e) { return null; }
+}
+// LECTURE EN COHERENCE FORTE. Par defaut, Netlify Blobs sert des lectures
+// « eventuellement coherentes » : apres l'ecriture de A, la lecture de B peut
+// renvoyer l'ancienne valeur pendant plusieurs secondes. C'etait la cause des
+// ~5 s de latence ressentis sur TOUTES les actions (la boucle d'attente relisait
+// en boucle une valeur perimee). En coherence forte, la lecture voit toujours la
+// derniere ecriture : la propagation retombe au temps d'un aller-retour.
+// Repli : si la plateforme refuse la coherence forte sur ce type de fonction,
+// on le constate UNE fois et on repasse en lecture normale pour toute la duree
+// de l'instance (le service continue de marcher, simplement moins direct).
+let fort = true;
+async function lireBrut(st, k) {
+  if (fort) {
+    try { return await st.getWithMetadata(k, { type: "json", consistency: "strong" }); }
+    catch (e) { fort = false; }
+  }
+  return st.getWithMetadata(k, { type: "json" });
+}
 async function lire(st, code) {
-  const res = await st.getWithMetadata(cle(code), { type: "json" });
+  const res = await lireBrut(st, cle(code));
   return res ? { s: res.data, etag: res.etag } : null;
 }
 async function ecrire(st, code, s, etag) {
@@ -155,7 +183,9 @@ exports.handler = async (event) => {
         if (!exist) code = cand;
       }
       if (!code) return json(500, { error: "Impossible de créer la session." });
-      const c = R.creer(prenom, code);
+      // Lien visio de l'atelier programme : l'animateur le retrouve dans le
+      // tableau (panneau Participants) sans avoir a rouvrir son e-mail.
+      const c = R.creer(prenom, code, await visioAtelier(code));
       c.session.jetons[c.jeton] = { role: "animateur", id: c.idAnim };
       await ecrire(st, code, c.session, null);
       return json(200, { code, jeton: c.jeton, role: "animateur", etat: R.vue(c.session) });
@@ -209,9 +239,9 @@ exports.handler = async (event) => {
       // des dizaines de sondages). Le client se rabat sur un sondage bref si la
       // plateforme coupe la requete.
       if (d.version && d.version === etat.version) {
-        const finAvant = Date.now() + 6000;   // marge sous la limite de la fonction
+        const finAvant = Date.now() + 8000;   // marge sous la limite de la fonction
         while (Date.now() < finAvant) {
-          await new Promise((r) => setTimeout(r, 350));
+          await new Promise((r) => setTimeout(r, 120));
           const c2 = await lire(st, code);
           if (!c2) break;                       // session supprimee entre-temps
           const e2 = R.vue(c2.s);

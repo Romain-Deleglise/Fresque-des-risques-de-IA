@@ -290,8 +290,9 @@ du hero.
 
 Toutes reçoivent un POST JSON `{ op, ... }` (sauf `stats`, en GET), répondent en
 JSON, et appellent `connectLambda(event)` en tête de handler (nécessaire à
-Netlify Blobs sur les fonctions classiques). Aucune n'utilise `consistency:
-"strong"` (incompatible avec ce type de fonction).
+Netlify Blobs sur les fonctions classiques). Seule `fresque.js` lit en
+`consistency: "strong"` (indispensable au temps réel : voir 7.2), avec repli
+automatique en lecture normale si la plateforme la refuse.
 
 ### 7.1 `ateliers.js` - programmation et inscriptions
 
@@ -322,8 +323,26 @@ fourni par l'animateur, validé) ou `aucune`.
 ### 7.2 `fresque.js` - sessions temps réel
 
 Magasin Blobs : `fresque-sessions`. Règles pures : `serveur/src/regles.js`.
-Le serveur est l'autorité ; le client interroge périodiquement (polling ~2,5 s,
-tolérance 5-10 s).
+Le serveur est l'autorité.
+
+**Propagation temps réel** (trois mécanismes qui se cumulent, chacun facultatif) :
+
+1. **Lectures en cohérence forte** (`consistency: "strong"`). Par défaut, Blobs
+   sert des lectures éventuellement cohérentes : après l'écriture de A, la
+   lecture de B pouvait renvoyer l'ancienne valeur pendant plusieurs secondes.
+   C'était la cause des ~5 s de latence sur toutes les actions. Repli
+   automatique en lecture normale si la plateforme la refuse.
+2. **Attente maintenue** (« hold-poll ») : l'op `etat` garde la requête ouverte
+   jusqu'à un changement de version (relecture toutes les 120 ms, 8 s max).
+3. **Pousse WebSocket** : après chaque action, le client émet un `{t:"maj"}` sur
+   le relais (`infra/curseurs/`) ; les autres relisent l'état immédiatement.
+
+Côté client, toute action est en plus rendue **localement d'abord** (optimistic
+UI) : celui qui agit ne dépend jamais d'un aller-retour pour voir son geste.
+
+À l'ouverture d'un atelier programmé (code réservé), le lien de visioconférence
+de l'atelier est repris dans la session (`lienVocal`), pour que l'animateur le
+retrouve dans le panneau Participants sans rouvrir son e-mail.
 
 | Op | Entrée | Sortie |
 |---|---|---|
@@ -479,7 +498,27 @@ Deux surfaces partagent la même feuille de style (`en-ligne/atelier/board.css`)
   (`board.js`). Piochage, pose, liens, notes, zoom, plein écran, export image.
 - **Multi** (`en-ligne/session/`) : lobby (créer / rejoindre) puis tableau
   partagé (`session.js`). Rôles animateur/participant, distribution des cartes,
-  panneau participants, salon vocal externe (Discord, Meet), polling ~2,5 s.
+  panneau participants, salon vocal (repris de l'atelier, ou saisi).
+
+Temps réel (voir 7.2 pour le serveur) :
+
+- **Rendu optimiste** : poser une carte, remplir / vider le pool, retirer une
+  carte sont affichés localement avant la confirmation serveur.
+- **Flèches** : dès le premier clic, une ligne élastique suit le curseur, chez
+  soi et chez les autres ; les cartes montrent un halo d'accroche au survol en
+  mode « lien ».
+- **Frappe en direct** : libellés de flèche et notes s'affichent au fur et à
+  mesure chez les autres (relais éphémère), l'enregistrement serveur est étalé.
+- **Curseurs** : positions relayées et **interpolées** à chaque frame (plus de
+  saccade) ; flèche et prénom cerclés de blanc pour rester lisibles sur tout
+  fond ; masquables (bouton « Curseurs »).
+- **Pool** : panneau flottant déplaçable et repliable, grille de **8
+  emplacements fixes** (2 x 4), taille des cartes réglable, boutons
+  « Remplir » / « Vider » pour l'animateur, glisser-déposer réserve <-> pool et
+  pool -> tableau.
+- **Réserve** (animateur) : jeu complet illustré, une rangée qui défile.
+- **Thème** : le bouton « Fond noir » bascule **toute la page** (`data-theme`
+  sur `<html>`, mémorisé sous la clé `theme` comme le reste du site).
 
 Robustesse : le démarrage du tableau ne dépend pas d'un chargement unique sans
 filet (réessais + message clair) ; le lobby est lisible en thème sombre.
