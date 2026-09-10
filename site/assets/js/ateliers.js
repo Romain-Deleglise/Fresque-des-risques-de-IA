@@ -6,7 +6,7 @@
   var en = (document.documentElement.lang || "fr").indexOf("en") === 0;
   var T = en ? {
     envoi: "Sending…", erreur: "Something went wrong. Please try again.", indispo: "Service unavailable. Please try again later.",
-    codeOk: "Workshop scheduled.", mailOk: " A confirmation e-mail has been sent: it holds every link you need.", mailNon: " (E-mail sending is not set up yet: keep the link below.)",
+    codeOk: "Workshop scheduled.", mailOk: " All the details are in the confirmation e-mail we just sent you.", mailNon: " (E-mail sending is not set up yet: keep the link below.)",
     inscritOk: "You're registered!", places: function (n, m) { return n + " / " + m + " registered"; },
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.", passe: "Past",
     participer: "Register", annuler: "Cancel",
@@ -27,7 +27,7 @@
     lienInconnu: "This link does not match any workshop (it may have been cancelled)."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
-    codeOk: "Atelier programmé.", mailOk: " Un e-mail de confirmation a été envoyé : il contient tous vos liens.", mailNon: " (L'envoi d'e-mail n'est pas encore configuré : gardez le lien ci-dessous.)",
+    codeOk: "Atelier programmé.", mailOk: " Tous les détails sont dans l'e-mail de confirmation qui vient de vous être envoyé.", mailNon: " (L'envoi d'e-mail n'est pas encore configuré : gardez le lien ci-dessous.)",
     inscritOk: "Inscription confirmée !", places: function (n, m) { return n + " / " + m + " inscrits"; },
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.", passe: "Passé",
     participer: "Participer", annuler: "Annuler",
