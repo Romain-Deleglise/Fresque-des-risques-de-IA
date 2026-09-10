@@ -70,7 +70,11 @@ function valider(d) {
 function validerInscription(atelier, d) {
   d = d || {};
   if (!atelier) return err("atelier_inconnu", "Cet atelier n'existe pas ou plus.");
-  if (atelier.visibilite === "prive") return err("atelier_prive", "Cet atelier est privé : demandez le code à l'animateur.");
+  // Un atelier prive n'apparait pas dans la liste publique : on ne peut l'atteindre
+  // qu'avec son lien de participation (/participer/?atelier=CODE), et le code y
+  // fait office de laissez-passer. Le refuser ici rendait tout atelier prive
+  // impossible a rejoindre. La force brute reste bloquee par la limitation de
+  // debit et par le compteur de codes inconnus cote fonction.
   if (!inscriptionOuverte(atelier)) return err("trop_tard", "Les inscriptions sont closes : l'atelier a déjà commencé.");
   var prenom = tronque(d.prenom, LEN_PRENOM);
   if (!prenom) return err("prenom_manquant", "Indiquez votre prénom.");

@@ -117,12 +117,6 @@ function boiteLienPartage(url) {
     + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;text-align:center;">Lien de participation à partager</div>'
     + '<div style="margin-top:6px;text-align:center;word-break:break-all;"><a href="' + h(url) + '" style="color:#9a4d0f;font-weight:700;font-size:14px;text-decoration:none;">' + h(url) + '</a></div></div>';
 }
-// Lien discret « vous animez ? » : glisse en bas des e-mails envoyes a la fois
-// a l'animateur et aux inscrit·es (rappels, deplacement).
-function lienAnimateurDiscret(a) {
-  return '<p style="margin:10px 0 0;color:#8a8577;font-size:13px;text-align:center;">Vous animez cet atelier ? '
-    + '<a href="' + h(lienOuvrir(a, a.animateur && a.animateur.prenom)) + '" style="color:#B3610F;">Ouvrez votre session</a>.</p>';
-}
 // Encadre "compteur d'inscrits" avec petite barre de progression (email-safe).
 function boiteCompteur(n, max) {
   var m = parseInt(max, 10) || 0;
@@ -260,6 +254,29 @@ function mailDesistAnimateur(a, prenom) {
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
+// Annulation : l'animateur·ice vient de l'annuler (on le lui confirme), les
+// inscrit·es l'apprennent (on s'en excuse et on leur propose autre chose).
+function mailAnnulationAnimateur(a, prevenus) {
+  const quand = dateLisible(a.date, a.heure);
+  const l = [];
+  l.push("Bonjour " + ((a.animateur && a.animateur.prenom) || "") + ",");
+  l.push("");
+  l.push("Votre atelier du " + quand + " est annulé. Il n'apparaît plus dans la liste des ateliers.");
+  l.push(prevenus ? (prevenus + " inscrit·e" + (prevenus > 1 ? "s ont" : " a") + " été prévenu·e" + (prevenus > 1 ? "s" : "") + " par e-mail.") : "Il n'y avait aucun inscrit·e à prévenir.");
+  l.push("");
+  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/participer/#vue-animer");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h((a.animateur && a.animateur.prenom) || "") + ',</p>';
+  c += '<p style="margin:0 0 16px;">Votre atelier du <strong>' + h(quand) + '</strong> est <strong>annulé</strong>. Il n\'apparaît plus dans la liste des ateliers.</p>';
+  c += '<p style="margin:0 0 18px;color:#4a473f;">' + (prevenus
+    ? h(String(prevenus)) + ' inscrit·e' + (prevenus > 1 ? 's ont' : ' a') + ' été prévenu·e' + (prevenus > 1 ? 's' : '') + ' par e-mail.'
+    : 'Il n\'y avait aucun inscrit·e à prévenir.') + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/#vue-animer", "Programmer un autre atelier") + '</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+
 // E-mail envoye aux inscrits quand l'animateur annule l'atelier.
 function mailAnnulation(a) {
   const l = [];
@@ -278,31 +295,64 @@ function mailAnnulation(a) {
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
-// E-mail envoye aux inscrits (et a l'animateur) quand l'atelier est deplace.
-function mailDeplacement(a, ancien) {
-  const sessionUrl = lienRejoindre(a);
+// Deplacement : DEUX e-mails distincts. L'animateur·ice a deplace l'atelier
+// (on le lui confirme, avec son lien d'ouverture et de gestion) ; les inscrit·es
+// le subissent (on leur explique, avec leur lien pour rejoindre et de quoi se
+// desinscrire). Rien de commun a part les dates.
+function blocDates(ancien, nouveau) {
+  return '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(nouveau) + '</td></tr></table>';
+}
+function mailDeplacementAnimateur(a, ancien) {
+  const nouveau = dateLisible(a.date, a.heure);
   const l = [];
-  l.push("Bonjour,");
+  l.push("Bonjour " + ((a.animateur && a.animateur.prenom) || "") + ",");
   l.push("");
-  l.push("L'atelier de la Fresque des risques de l'IA a été déplacé.");
+  l.push("Votre atelier a bien été déplacé. Les inscrit·es viennent d'être prévenu·es.");
   l.push("Ancienne date : " + ancien);
-  l.push("Nouvelle date : " + dateLisible(a.date, a.heure));
+  l.push("Nouvelle date : " + nouveau);
+  l.push("Inscrits : " + ((a.participants || []).length) + " / " + a.maxParticipants);
   if (a.visio) l.push("Visioconférence : " + a.visio);
-  if (a.mode === "enligne") l.push("Rejoindre le tableau en ligne : " + sessionUrl);
-  l.push("Vous animez cet atelier ? Ouvrez votre session : " + lienOuvrir(a, a.animateur && a.animateur.prenom));
+  if (a.mode === "enligne") l.push("Le jour J, ouvrez votre session : " + lienOuvrir(a, a.animateur && a.animateur.prenom));
+  l.push("Besoin de déplacer à nouveau ou d'annuler ? " + lienGerer(a));
   l.push("");
   l.push("Une nouvelle invitation calendrier est jointe. À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h((a.animateur && a.animateur.prenom) || "") + ',</p>';
+  c += '<p style="margin:0 0 16px;">Votre atelier a bien été <strong>déplacé</strong>. Les inscrit·es viennent d\'être prévenu·es.</p>';
+  c += blocDates(ancien, nouveau);
+  c += boiteCompteur((a.participants || []).length, a.maxParticipants);
+  if (a.mode === "enligne") c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(lienOuvrir(a, a.animateur && a.animateur.prenom), "Ouvrir ma session") + '</p>';
+  c += boutonVisio(a);
+  c += '<p style="margin:0 0 12px;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail.</p>';
+  c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer à nouveau ou d\'annuler</a> ? Les inscrit·es seront prévenu·es.</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+function mailDeplacementParticipants(a, ancien) {
+  const nouveau = dateLisible(a.date, a.heure);
+  const sessionUrl = lienRejoindre(a);
+  const l = [];
+  l.push("Bonjour,");
+  l.push("");
+  l.push("L'atelier de la Fresque des risques de l'IA auquel vous êtes inscrit·e a été déplacé.");
+  l.push("Ancienne date : " + ancien);
+  l.push("Nouvelle date : " + nouveau);
+  if (a.visio) l.push("Visioconférence : " + a.visio);
+  if (a.mode === "enligne") l.push("Rejoindre le tableau en ligne (un clic, rien à saisir) : " + sessionUrl);
+  l.push("");
+  l.push("Une nouvelle invitation calendrier est jointe. Si cette date ne vous convient pas, vous pouvez vous désinscrire depuis votre e-mail de confirmation.");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
-  c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA a été <strong>déplacé</strong>.</p>';
-  c += '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
-    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
-    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(dateLisible(a.date, a.heure)) + '</td></tr></table>';
+  c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA auquel vous êtes inscrit·e a été <strong>déplacé</strong>.</p>';
+  c += blocDates(ancien, nouveau);
   if (a.mode === "enligne") c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   c += boutonVisio(a);
   c += '<p style="margin:0;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail. Si cette nouvelle date ne vous convient pas, vous pouvez vous désinscrire depuis votre e-mail de confirmation.</p>';
-  c += lienAnimateurDiscret(a);
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -521,9 +571,12 @@ exports.handler = async (event) => {
       await st.delete(cle(code));
       // Prévenir les inscrits (en Cci pour ne pas exposer les adresses).
       const inscrits = (av.participants || []).map((p) => p.mail).filter(Boolean);
+      // Confirmation a l'animateur·ice, information aux inscrit·es (Cci seul).
+      const maa = mailAnnulationAnimateur(av, inscrits.length);
+      try { await mail.envoi({ to: av.animateur.mail, subject: "Votre atelier est annulé", text: maa.text, html: maa.html }); } catch (e) {}
       if (inscrits.length) {
         const mc = mailAnnulation(av);
-        try { await mail.envoi({ to: av.animateur.mail, bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
+        try { await mail.envoi({ bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
       }
       return json(200, { annule: true, prevenus: inscrits.length });
     }
@@ -543,8 +596,15 @@ exports.handler = async (event) => {
         const w = await st.setJSON(cle(code), a, { onlyIfMatch: res.etag });
         if (w && w.modified === false) continue; // concurrence : on rejoue
         const inscrits = (a.participants || []).map((p) => p.mail).filter(Boolean);
-        const md = mailDeplacement(a, ancien);
-        try { await mail.envoi({ to: a.animateur.mail, bcc: inscrits, subject: "Atelier déplacé : Fresque des risques de l'IA", text: md.text, html: md.html, attachments: [pieceIcs(a)] }); } catch (e) {}
+        // Deux e-mails : confirmation a l'animateur·ice, information aux
+        // inscrit·es (en Cci seul, personne n'expose personne).
+        const ics = pieceIcs(a);
+        const mda = mailDeplacementAnimateur(a, ancien);
+        try { await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier a été déplacé", text: mda.text, html: mda.html, attachments: [ics] }); } catch (e) {}
+        if (inscrits.length) {
+          const mdp = mailDeplacementParticipants(a, ancien);
+          try { await mail.envoi({ bcc: inscrits, subject: "Atelier déplacé : Fresque des risques de l'IA", text: mdp.text, html: mdp.html, attachments: [ics] }); } catch (e) {}
+        }
         return json(200, { deplace: true, prevenus: inscrits.length, atelier: A.vueConfirmation(a) });
       }
       return json(409, { erreur: { code: "conflit", message: "Réessayez dans un instant." } });

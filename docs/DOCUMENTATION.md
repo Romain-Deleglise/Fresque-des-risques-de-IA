@@ -303,7 +303,7 @@ Magasin Blobs : `fresque-ateliers`. Règles pures : `serveur/src/ateliers.js`.
 | `programmer` | mode, prénom/mail animateur, date, heure, max, visibilité, (lieu/adresse), (titre), (visioMode/visioUrl) | Crée l'atelier, génère un code de session, envoie l'e-mail de confirmation + invitation `.ics` |
 | `liste` | - | Renvoie les ateliers publics visibles au calendrier (7 j après le début), chacun avec un drapeau `ouvert` |
 | `voir` | code | Renvoie la fiche d'UN atelier, même privé : c'est le lien de participation (`?atelier=CODE`) qui fait office de laissez-passer. Limité en débit, avec un compteur dédié aux codes inconnus |
-| `inscrire` | code, prénom, mail | Inscrit un·e participant·e (jusqu'à 30 min après le début), envoie confirmation + notifie l'animateur |
+| `inscrire` | code, prénom, mail | Inscrit un·e participant·e (jusqu'à 30 min après le début), envoie confirmation + notifie l'animateur. Fonctionne aussi pour un atelier privé : le code, connu par le lien de participation, fait office de laissez-passer |
 | `annuler` | code, token OU mail animateur | Supprime l'atelier, prévient les inscrit·es |
 | `reprogrammer` | code, token/mail, nouvelle date/heure | Déplace l'atelier, réinitialise les rappels, prévient les inscrit·es avec un nouvel `.ics` |
 | `desister` | code, token participant | Retire un·e participant·e, confirme + notifie l'animateur |
@@ -486,10 +486,14 @@ Les adresses e-mail ne sont **jamais** exposées dans les vues publiques
 
 Tous partagent le gabarit `lib/gabarit.js` (en-tête orange, carte blanche, pied
 Pause IA) et existent en version HTML + texte brut. **Aucun n'affiche de code** :
-chaque destinataire reçoit le lien qui correspond à son rôle (voir 7.2). Les
-e-mails envoyés à la fois à l'animateur et aux inscrit·es (rappels, déplacement)
-portent le bouton « Rejoindre » et, en dessous, un lien discret « Vous animez cet
-atelier ? Ouvrez votre session ».
+chaque destinataire reçoit le lien qui correspond à son rôle (voir 7.2).
+
+**Un e-mail = un rôle.** Aucun envoi n'est mixte : quand un événement concerne
+l'animateur·ice et les inscrit·es (rappels, déplacement, annulation), ce sont
+deux e-mails distincts, avec un texte, un objet et des liens propres à chacun.
+L'e-mail collectif part en **Cci seul** (`bcc` sans `to`) : `lib/mail.js` met
+alors l'expéditeur comme destinataire visible, donc personne n'y voit l'adresse
+de personne, pas même celle de l'animateur·ice.
 
 | E-mail | Déclencheur | Destinataire | Contenu clé |
 |---|---|---|---|
@@ -498,10 +502,14 @@ atelier ? Ouvrez votre session ».
 | Notification inscription | `inscrire` | Animateur | Compteur d'inscrits, prénoms cliquables (mailto), bouton « écrire à tou·tes » (Cci) |
 | Désinscription (participant) | `desister` | Participant | Confirmation + autres ateliers |
 | Désinscription (animateur) | `desister` | Animateur | Compteur mis à jour |
-| Annulation | `annuler` | Inscrit·es (Cci) | Atelier annulé |
-| Déplacement | `reprogrammer` | Inscrit·es (Cci) | Ancienne/nouvelle date, nouveau `.ics` |
-| Rappel veille | planifié | Animateur + participants (Cci) | Visio, bouton « Rejoindre », lien discret « Ouvrez votre session » (animateur) |
-| Rappel 1 h | planifié | Animateur + participants (Cci) | Version courte « ça commence bientôt », mêmes liens |
+| Annulation (animateur) | `annuler` | Animateur | Confirmation, nombre d'inscrit·es prévenu·es, bouton « Programmer un autre atelier » |
+| Annulation (inscrit·es) | `annuler` | Inscrit·es (Cci seul) | Atelier annulé, autres ateliers |
+| Déplacement (animateur) | `reprogrammer` | Animateur | Confirmation, compteur d'inscrits, « Ouvrir ma session », lien gérer, `.ics` |
+| Déplacement (inscrit·es) | `reprogrammer` | Inscrit·es (Cci seul) | Ancienne/nouvelle date, bouton « Rejoindre », `.ics`, désinscription |
+| Rappel veille (animateur) | planifié | Animateur | Liste des inscrit·es, « Ouvrir ma session », lien déplacer/annuler |
+| Rappel veille (inscrit·es) | planifié | Inscrit·es (Cci seul) | Date, animateur·ice, bouton « Rejoindre », visio |
+| Rappel 1 h (animateur) | planifié | Animateur | « Vous animez dans 1 heure », inscrit·es, « Ouvrir ma session » |
+| Rappel 1 h (inscrit·es) | planifié | Inscrit·es (Cci seul) | « Ça commence bientôt », bouton « Rejoindre », visio |
 | Suivi | planifié | Animateur + participants (Cci) | Remerciement + invitation à animer |
 
 L'invitation calendrier (`.ics`) porte deux alarmes : `-P1D` (la veille) et
