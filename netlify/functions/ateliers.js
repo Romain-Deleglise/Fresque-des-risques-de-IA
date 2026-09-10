@@ -1,11 +1,16 @@
 /* Programmation d'ateliers et inscriptions (Netlify Function).
    Etat persistant via Netlify Blobs (store "fresque-ateliers"). Envoi d'e-mails
    de validation via lib/mail.js (Resend) ; sans cle API, l'action reussit quand
-   meme et le code est renvoye pour affichage a l'ecran.
+   meme.
+
+   Le code d'atelier reste TECHNIQUE : il circule dans les URL et l'etat serveur,
+   il n'est jamais affiche a l'utilisateur (ni dans les e-mails, ni sur le site).
+   Tout se fait par liens (voir les fonctions lien*() plus bas).
 
    Operations (POST JSON { op, ... }) :
      programmer { mode, animateurPrenom, animateurMail, date, heure, ... } -> { code, atelier }
      liste {}                                   -> { ateliers: [vuePublique...] }
+     voir { code }                              -> { atelier: vuePublique }  (meme prive : le lien fait foi)
      inscrire { code, prenom, mail }            -> { atelier: vueConfirmation }
 */
 const { getStore, connectLambda } = require("@netlify/blobs");
@@ -44,6 +49,24 @@ async function depasse(seau, k) {
   return false;
 }
 
+// Verifie / incremente separement : utile pour le compteur « codes inconnus »,
+// qu'on ne veut faire monter que sur un echec reel.
+async function atteinte(seau, k) {
+  const s = L.SEUILS[seau]; if (!s) return false;
+  try {
+    const res = await limites().getWithMetadata(seau + ":" + k, { type: "json" });
+    return L.atteinte(res && res.data, Date.now(), s.limite, s.fenetreMs);
+  } catch (e) { return false; }
+}
+async function incrementer(seau, k) {
+  const s = L.SEUILS[seau]; if (!s) return;
+  const lim = limites();
+  try {
+    const res = await lim.getWithMetadata(seau + ":" + k, { type: "json" });
+    await lim.setJSON(seau + ":" + k, L.incrementer(res && res.data, Date.now(), s.fenetreMs));
+  } catch (e) {}
+}
+
 async function codeLibre(code) {
   try { if (await store().get(cle(code))) return false; } catch (e) {}
   try { if (await sessions().get("session:" + code)) return false; } catch (e) {}
@@ -75,10 +98,24 @@ function tableauInfos(a) {
   r += ligneInfo("Participants max", String(a.maxParticipants));
   return '<table style="border-collapse:collapse;margin:0 0 18px;font-size:14px;">' + r + '</table>';
 }
-function boiteCode(code) {
-  return '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 18px;text-align:center;">'
-    + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div>'
-    + '<div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(code) + '</div></div>';
+/* --- Liens porteurs du code -----------------------------------------------
+   Le code de session reste purement TECHNIQUE : il vit dans les URL et dans
+   l'etat serveur, il n'est plus jamais affiche a personne. Chaque destinataire
+   recoit le lien qui correspond a son role, et n'a qu'a cliquer. */
+function lienOuvrir(a, prenom) {   // animateur : ouvre / reprend la session
+  return LIEN + "/en-ligne/session/?ouvrir=" + a.code + (prenom ? "&prenom=" + encodeURIComponent(prenom) : "");
+}
+function lienRejoindre(a, prenom) { // participant : rejoint la session
+  return LIEN + "/en-ligne/session/?code=" + a.code + (prenom ? "&prenom=" + encodeURIComponent(prenom) : "");
+}
+function lienPartage(a) { return LIEN + "/participer/?atelier=" + a.code; }  // inscription (atelier prive)
+function lienGerer(a) { return LIEN + "/participer/?gerer=" + a.code + "#gerer"; } // deplacer / annuler
+// Encadre « lien a partager » : remplace l'ancienne boite « Code de session ».
+// On montre l'URL en clair pour qu'elle soit copiable a la main au besoin.
+function boiteLienPartage(url) {
+  return '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 18px;">'
+    + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;text-align:center;">Lien de participation à partager</div>'
+    + '<div style="margin-top:6px;text-align:center;word-break:break-all;"><a href="' + h(url) + '" style="color:#9a4d0f;font-weight:700;font-size:14px;text-decoration:none;">' + h(url) + '</a></div></div>';
 }
 // Encadre "compteur d'inscrits" avec petite barre de progression (email-safe).
 function boiteCompteur(n, max) {
@@ -103,7 +140,7 @@ function texteVisio(a) { return a && a.visio ? "Visioconférence : " + a.visio :
 // Bouton pour qu'un participant écrive à l'animateur·ice (mailto pré-rempli).
 function boutonContactAnimateur(a) {
   if (!a || !a.animateur || !a.animateur.mail) return "";
-  var sujet = encodeURIComponent("Question sur l'atelier du " + dateLisible(a.date, a.heure) + " (code " + a.code + ")");
+  var sujet = encodeURIComponent("Question sur l'atelier du " + dateLisible(a.date, a.heure));
   return '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire("mailto:" + a.animateur.mail + "?subject=" + sujet, "Contacter l'animateur·ice") + "</p>";
 }
 // Bouton pour que l'animateur écrive à tou·tes les inscrit·es (adresses en Cci).
@@ -126,7 +163,8 @@ function pucesContacts(parts) {
 
 // Invitation calendrier (.ics) : ajoutee en piece jointe, rappel la veille.
 function icsAtelier(a) {
-  const url = a.mode === "enligne" ? (LIEN + "/en-ligne/session/") : "";
+  // Le lien du tableau porte le code : un clic depuis l'agenda suffit.
+  const url = a.mode === "enligne" ? lienRejoindre(a) : "";
   const lieu = a.mode === "enligne" ? "En ligne" : ([a.lieu, a.adresse].filter(Boolean).join(", ") || "En présentiel");
   const jour = String(a.date || "").replace(/-/g, "");
   const hm = String(a.heure || "18:00");
@@ -136,7 +174,7 @@ function icsAtelier(a) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const echap = (s) => String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
   const lienPrincipal = a.visio || url;   // visio si fournie, sinon le tableau en ligne
-  const desc = "Code de session : " + a.code + (a.visio ? "\nVisio : " + a.visio : "") + (url ? "\nTableau : " + url : "");
+  const desc = (a.visio ? "Visio : " + a.visio + "\n" : "") + (url ? "Tableau en ligne : " + url : "");
   const lignes = [
     "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Pause IA//Fresque des risques de l'IA//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     "BEGIN:VEVENT", "UID:" + a.code + "@fresquedesrisquesdelia.org", "DTSTAMP:" + stamp,
@@ -216,6 +254,29 @@ function mailDesistAnimateur(a, prenom) {
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
+// Annulation : l'animateur·ice vient de l'annuler (on le lui confirme), les
+// inscrit·es l'apprennent (on s'en excuse et on leur propose autre chose).
+function mailAnnulationAnimateur(a, prevenus) {
+  const quand = dateLisible(a.date, a.heure);
+  const l = [];
+  l.push("Bonjour " + ((a.animateur && a.animateur.prenom) || "") + ",");
+  l.push("");
+  l.push("Votre atelier du " + quand + " est annulé. Il n'apparaît plus dans la liste des ateliers.");
+  l.push(prevenus ? (prevenus + " inscrit·e" + (prevenus > 1 ? "s ont" : " a") + " été prévenu·e" + (prevenus > 1 ? "s" : "") + " par e-mail.") : "Il n'y avait aucun inscrit·e à prévenir.");
+  l.push("");
+  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/participer/#vue-animer");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h((a.animateur && a.animateur.prenom) || "") + ',</p>';
+  c += '<p style="margin:0 0 16px;">Votre atelier du <strong>' + h(quand) + '</strong> est <strong>annulé</strong>. Il n\'apparaît plus dans la liste des ateliers.</p>';
+  c += '<p style="margin:0 0 18px;color:#4a473f;">' + (prevenus
+    ? h(String(prevenus)) + ' inscrit·e' + (prevenus > 1 ? 's ont' : ' a') + ' été prévenu·e' + (prevenus > 1 ? 's' : '') + ' par e-mail.'
+    : 'Il n\'y avait aucun inscrit·e à prévenir.') + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/#vue-animer", "Programmer un autre atelier") + '</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+
 // E-mail envoye aux inscrits quand l'animateur annule l'atelier.
 function mailAnnulation(a) {
   const l = [];
@@ -234,38 +295,74 @@ function mailAnnulation(a) {
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
-// E-mail envoye aux inscrits (et a l'animateur) quand l'atelier est deplace.
-function mailDeplacement(a, ancien) {
-  const sessionUrl = LIEN + "/en-ligne/session/";
+// Deplacement : DEUX e-mails distincts. L'animateur·ice a deplace l'atelier
+// (on le lui confirme, avec son lien d'ouverture et de gestion) ; les inscrit·es
+// le subissent (on leur explique, avec leur lien pour rejoindre et de quoi se
+// desinscrire). Rien de commun a part les dates.
+function blocDates(ancien, nouveau) {
+  return '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(nouveau) + '</td></tr></table>';
+}
+function mailDeplacementAnimateur(a, ancien) {
+  const nouveau = dateLisible(a.date, a.heure);
   const l = [];
-  l.push("Bonjour,");
+  l.push("Bonjour " + ((a.animateur && a.animateur.prenom) || "") + ",");
   l.push("");
-  l.push("L'atelier de la Fresque des risques de l'IA a été déplacé.");
+  l.push("Votre atelier a bien été déplacé. Les inscrit·es viennent d'être prévenu·es.");
   l.push("Ancienne date : " + ancien);
-  l.push("Nouvelle date : " + dateLisible(a.date, a.heure));
-  l.push("Code de session : " + a.code);
+  l.push("Nouvelle date : " + nouveau);
+  l.push("Inscrits : " + ((a.participants || []).length) + " / " + a.maxParticipants);
   if (a.visio) l.push("Visioconférence : " + a.visio);
-  if (a.mode === "enligne") l.push("Tableau en ligne : " + sessionUrl);
+  if (a.mode === "enligne") l.push("Le jour J, ouvrez votre session : " + lienOuvrir(a, a.animateur && a.animateur.prenom));
+  l.push("Besoin de déplacer à nouveau ou d'annuler ? " + lienGerer(a));
   l.push("");
   l.push("Une nouvelle invitation calendrier est jointe. À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
+  c += '<p style="margin:0 0 14px;">Bonjour ' + h((a.animateur && a.animateur.prenom) || "") + ',</p>';
+  c += '<p style="margin:0 0 16px;">Votre atelier a bien été <strong>déplacé</strong>. Les inscrit·es viennent d\'être prévenu·es.</p>';
+  c += blocDates(ancien, nouveau);
+  c += boiteCompteur((a.participants || []).length, a.maxParticipants);
+  if (a.mode === "enligne") c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(lienOuvrir(a, a.animateur && a.animateur.prenom), "Ouvrir ma session") + '</p>';
+  c += boutonVisio(a);
+  c += '<p style="margin:0 0 12px;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail.</p>';
+  c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer à nouveau ou d\'annuler</a> ? Les inscrit·es seront prévenu·es.</p>';
+  return { text: l.join("\n"), html: mailHtml(c) };
+}
+function mailDeplacementParticipants(a, ancien) {
+  const nouveau = dateLisible(a.date, a.heure);
+  const sessionUrl = lienRejoindre(a);
+  const l = [];
+  l.push("Bonjour,");
+  l.push("");
+  l.push("L'atelier de la Fresque des risques de l'IA auquel vous êtes inscrit·e a été déplacé.");
+  l.push("Ancienne date : " + ancien);
+  l.push("Nouvelle date : " + nouveau);
+  if (a.visio) l.push("Visioconférence : " + a.visio);
+  if (a.mode === "enligne") l.push("Rejoindre le tableau en ligne (un clic, rien à saisir) : " + sessionUrl);
+  l.push("");
+  l.push("Une nouvelle invitation calendrier est jointe. Si cette date ne vous convient pas, vous pouvez vous désinscrire depuis votre e-mail de confirmation.");
+  l.push("");
+  l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
+  let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
-  c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA a été <strong>déplacé</strong>.</p>';
-  c += '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
-    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
-    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(dateLisible(a.date, a.heure)) + '</td></tr></table>';
-  c += boiteCode(a.code);
+  c += '<p style="margin:0 0 16px;">L\'atelier de la Fresque des risques de l\'IA auquel vous êtes inscrit·e a été <strong>déplacé</strong>.</p>';
+  c += blocDates(ancien, nouveau);
+  if (a.mode === "enligne") c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   c += boutonVisio(a);
   c += '<p style="margin:0;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail. Si cette nouvelle date ne vous convient pas, vous pouvez vous désinscrire depuis votre e-mail de confirmation.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
 function mailAnimateur(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/?ouvrir=" + a.code + "&prenom=" + encodeURIComponent(a.animateur.prenom || "");
+  const sessionUrl = lienOuvrir(a, a.animateur.prenom);
   const annulUrl = LIEN + "/participer/?annuler=" + a.code + "&t=" + (a.annulToken || "");
-  const visibilite = a.visibilite === "prive"
-    ? "Votre atelier est privé : il n'apparaît pas dans la liste publique, à vous de communiquer le code aux personnes que vous invitez."
+  const partageUrl = lienPartage(a);
+  const prive = a.visibilite === "prive";
+  const visibilite = prive
+    ? "Votre atelier est privé : il n'apparaît pas dans la liste publique. Partagez le lien de participation ci-dessous aux personnes que vous invitez."
     : "Votre atelier est public : il apparaît dans l'onglet Participer, où chacun peut s'inscrire.";
 
   // Version texte (repli sans tirets longs)
@@ -279,23 +376,23 @@ function mailAnimateur(a) {
   if (a.mode === "physique") { l.push("Lieu : " + a.lieu); if (a.adresse) l.push("Adresse : " + a.adresse); }
   l.push("Participants max : " + a.maxParticipants);
   l.push("");
-  l.push("Code de session : " + a.code);
   if (a.visio) l.push("Lien de visioconférence (partagé avec les inscrit·es) : " + a.visio);
   l.push(visibilite);
+  l.push("Lien de participation à partager : " + partageUrl);
   l.push("");
   l.push("Pour préparer votre animation, téléchargez le guide d'animation :");
   l.push(GUIDE_URL);
   l.push("Une invitation calendrier est jointe à cet e-mail (avec un rappel la veille).");
   l.push("");
   if (a.mode === "enligne") {
-    l.push("Le jour J, ouvrez le tableau en ligne et créez la session avec ce code :");
+    l.push("Le jour J, ouvrez votre session en un clic :");
     l.push(sessionUrl);
     l.push("Prévoyez un salon vocal (Discord, Google Meet) pour parler avec le groupe.");
     l.push("");
   }
   l.push("Une erreur de saisie ? Vous pouvez annuler cet atelier ici (ne transmettez pas ce lien) :");
   l.push(annulUrl);
-  l.push("Besoin de changer la date ? Déplacez l'atelier depuis la page (code + votre e-mail), les inscrit·es seront prévenu·es : " + LIEN + "/participer/#vue-animer");
+  l.push("Besoin de changer la date ? Déplacez l'atelier depuis ce lien (il ne vous restera que votre e-mail à saisir), les inscrit·es seront prévenu·es : " + lienGerer(a));
   l.push("");
   l.push("À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -305,15 +402,17 @@ function mailAnimateur(a) {
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
   c += '<p style="margin:0 0 18px;">Votre atelier de la Fresque des risques de l\'IA est bien programmé. Voici le récapitulatif.</p>';
   c += tableauInfos(a);
-  c += boiteCode(a.code);
   // Action principale d'abord (le jour J) : ouvrir le tableau. Puis la visio
   // (secondaire), puis le guide (secondaire) : hierarchie claire.
   if (a.mode === "enligne") {
-    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez le tableau en ligne et créez la session avec ce code.</p>';
-    c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Ouvrir le tableau en ligne") + '</p>';
+    c += '<p style="margin:0 0 12px;">Le jour J, ouvrez votre session en un clic : ce bouton vous reconnaît, vous n\'avez aucun code à saisir.</p>';
+    c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(sessionUrl, "Ouvrir ma session") + '</p>';
   }
   c += boutonVisio(a);
-  c += '<p style="margin:0 0 18px;color:#4a473f;">' + h(visibilite) + '</p>';
+  c += '<p style="margin:0 0 12px;color:#4a473f;">' + h(visibilite) + '</p>';
+  // Lien d'inscription a diffuser : indispensable pour un atelier prive (il
+  // n'apparait pas dans la liste publique), utile pour un atelier public.
+  c += boiteLienPartage(partageUrl);
   c += '<p style="margin:0 0 12px;">Pour préparer votre animation, appuyez-vous sur le guide. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail.</p>';
   c += '<p style="margin:0 0 20px;text-align:center;">' + boutonSecondaire(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
   if (a.mode === "enligne") {
@@ -321,14 +420,14 @@ function mailAnimateur(a) {
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
   c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(LIEN + "/participer/#vue-animer") + '" style="color:#B3610F;">déplacer l\'atelier</a> (code + votre e-mail) : les inscrit·es sont prévenu·es automatiquement.</p>';
+  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer l\'atelier</a> (il ne vous restera que votre e-mail à saisir) : les inscrit·es sont prévenu·es automatiquement.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
 function mailParticipant(a, participant) {
   const prenom = participant.prenom;
-  const sessionUrl = LIEN + "/en-ligne/session/?code=" + a.code + "&prenom=" + encodeURIComponent(prenom || "");
+  const sessionUrl = lienRejoindre(a, prenom);
   const desistUrl = LIEN + "/participer/?desister=" + a.code + "&p=" + (participant.token || "");
 
   const l = [];
@@ -340,8 +439,7 @@ function mailParticipant(a, participant) {
   l.push("Format : " + (a.mode === "enligne" ? "en ligne" : "en présentiel"));
   if (a.mode === "physique") { l.push("Lieu : " + a.lieu); if (a.adresse) l.push("Adresse : " + a.adresse); }
   l.push("");
-  l.push("Code de session : " + a.code);
-  if (a.mode === "enligne") { l.push("Le jour J, rejoignez le tableau en ligne avec ce code (depuis un ordinateur) :"); l.push(sessionUrl); }
+  if (a.mode === "enligne") { l.push("Le jour J, rejoignez le tableau en ligne en un clic (depuis un ordinateur) :"); l.push(sessionUrl); }
   if (a.visio) { l.push("Visioconférence : " + a.visio); }
   l.push("Une invitation calendrier est jointe à cet e-mail (avec un rappel la veille).");
   l.push("");
@@ -358,9 +456,8 @@ function mailParticipant(a, participant) {
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(prenom) + ',</p>';
   c += '<p style="margin:0 0 18px;">Votre inscription est confirmée. Voici les informations utiles pour vous préparer.</p>';
   c += tableauInfos(a);
-  c += boiteCode(a.code);
   if (a.mode === "enligne") {
-    c += '<p style="margin:0 0 12px;">Le jour J, rejoignez le tableau en ligne avec ce code, depuis un ordinateur.</p>';
+    c += '<p style="margin:0 0 12px;">Le jour J, rejoignez le tableau en un clic, depuis un ordinateur : ce bouton vous reconnaît, vous n\'avez aucun code à saisir.</p>';
     c += '<p style="margin:0 0 16px;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
   }
   c += boutonVisio(a);
@@ -403,7 +500,7 @@ exports.handler = async (event) => {
       // Registre durable des contacts (best-effort, ne bloque pas la creation).
       try { await C.enregistrer(contacts(), { mail: a.animateur.mail, prenom: a.animateur.prenom, role: "animateur", code: code, quandMs: a.quandMs, mode: a.mode, titre: a.titre }); } catch (e) {}
       const ma = mailAnimateur(a);
-      const env = await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier est programmé (code " + code + ")", text: ma.text, html: ma.html, attachments: [pieceIcs(a)] });
+      const env = await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier est programmé", text: ma.text, html: ma.html, attachments: [pieceIcs(a)] });
       return json(200, { code: code, atelier: A.vueConfirmation(a), emailEnvoye: env.envoye });
     }
 
@@ -419,6 +516,24 @@ exports.handler = async (event) => {
       }
       out.sort((x, y) => x.quandMs - y.quandMs);
       return json(200, { ateliers: out });
+    }
+
+    // Un atelier prive n'est pas dans la liste publique : on l'ouvre a qui
+    // possede le LIEN de participation (le code y fait office de laissez-passer,
+    // comme un lien de partage). Meme limitation de debit que « rejoindre » cote
+    // sessions, avec un compteur dedie aux codes inconnus pour freiner la
+    // recherche a l'aveugle.
+    if (d.op === "voir") {
+      const code = String(d.code || "").toUpperCase();
+      if (await depasse("entree", ip)) return json(429, { erreur: { code: "trop", message: "Trop de tentatives, patientez une minute." } });
+      if (await atteinte("codes", ip)) return json(429, { erreur: { code: "trop_de_codes", message: "Trop de liens erronés. Patientez une minute." } });
+      const res = await st.getWithMetadata(cle(code), { type: "json" });
+      const a = res && res.data;
+      if (!a || !A.visibleCalendrier(a)) {
+        await incrementer("codes", ip);
+        return json(404, { erreur: { code: "atelier_inconnu", message: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé)." } });
+      }
+      return json(200, { atelier: A.vuePublique(a) });
     }
 
     if (d.op === "inscrire") {
@@ -456,9 +571,12 @@ exports.handler = async (event) => {
       await st.delete(cle(code));
       // Prévenir les inscrits (en Cci pour ne pas exposer les adresses).
       const inscrits = (av.participants || []).map((p) => p.mail).filter(Boolean);
+      // Confirmation a l'animateur·ice, information aux inscrit·es (Cci seul).
+      const maa = mailAnnulationAnimateur(av, inscrits.length);
+      try { await mail.envoi({ to: av.animateur.mail, subject: "Votre atelier est annulé", text: maa.text, html: maa.html }); } catch (e) {}
       if (inscrits.length) {
         const mc = mailAnnulation(av);
-        try { await mail.envoi({ to: av.animateur.mail, bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
+        try { await mail.envoi({ bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
       }
       return json(200, { annule: true, prevenus: inscrits.length });
     }
@@ -478,8 +596,15 @@ exports.handler = async (event) => {
         const w = await st.setJSON(cle(code), a, { onlyIfMatch: res.etag });
         if (w && w.modified === false) continue; // concurrence : on rejoue
         const inscrits = (a.participants || []).map((p) => p.mail).filter(Boolean);
-        const md = mailDeplacement(a, ancien);
-        try { await mail.envoi({ to: a.animateur.mail, bcc: inscrits, subject: "Atelier déplacé : Fresque des risques de l'IA", text: md.text, html: md.html, attachments: [pieceIcs(a)] }); } catch (e) {}
+        // Deux e-mails : confirmation a l'animateur·ice, information aux
+        // inscrit·es (en Cci seul, personne n'expose personne).
+        const ics = pieceIcs(a);
+        const mda = mailDeplacementAnimateur(a, ancien);
+        try { await mail.envoi({ to: a.animateur.mail, subject: "Votre atelier a été déplacé", text: mda.text, html: mda.html, attachments: [ics] }); } catch (e) {}
+        if (inscrits.length) {
+          const mdp = mailDeplacementParticipants(a, ancien);
+          try { await mail.envoi({ bcc: inscrits, subject: "Atelier déplacé : Fresque des risques de l'IA", text: mdp.text, html: mdp.html, attachments: [ics] }); } catch (e) {}
+        }
         return json(200, { deplace: true, prevenus: inscrits.length, atelier: A.vueConfirmation(a) });
       }
       return json(409, { erreur: { code: "conflit", message: "Réessayez dans un instant." } });

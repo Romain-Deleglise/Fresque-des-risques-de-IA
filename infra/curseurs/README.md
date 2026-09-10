@@ -1,10 +1,14 @@
-# Relais des curseurs en direct (serveur de dev Pause IA)
+# Relais temps réel (serveur de dev Pause IA)
 
-Petit service WebSocket qui répète les positions de curseur entre les membres
-d'une même session de la Fresque en ligne. **Sans état, sans données
-conservées.** Si ce service est arrêté ou injoignable, **le site continue de
-fonctionner normalement** : le client se dégrade en silence (pas de curseurs,
-rien d'autre ne change).
+Petit service WebSocket qui répète des messages **éphémères** entre les membres
+d'une même session de la Fresque en ligne : positions de curseur, tracé de
+flèche en cours, frappe en direct (libellés, notes), et un simple `{t:"maj"}`
+qui dit aux autres de relire l'état tout de suite au lieu d'attendre leur
+prochain sondage. **Sans état, sans données conservées** : l'autorité et la
+mémoire du tableau restent côté Netlify Blobs. Si ce service est arrêté ou
+injoignable, **le site continue de fonctionner normalement** : le client se
+dégrade en silence (pas de curseurs, propagation un peu moins directe via le
+sondage, rien d'autre ne change).
 
 Servi sur `wss://curseurs.pauseia.fr`, derrière Caddy, à côté des autres apps.
 
@@ -51,6 +55,25 @@ Côté site : rien à faire de plus. Le client se connecte automatiquement à
 `wss://curseurs.pauseia.fr` (déjà autorisé dans la CSP du site). Le bouton
 « Curseurs » de la barre d'outils permet à chacun·e de masquer/afficher les
 curseurs des autres.
+
+## Mettre a jour (apres un changement de `server.js`)
+
+Le relais tourne dans un conteneur construit a partir de ce dossier : il ne se
+met pas a jour tout seul quand le depot du site change. Apres une modification
+de `server.js` (par exemple l'ajout des messages temps reel `maj`, `fl`, `lib`,
+`note`), il faut recopier le fichier sur le serveur et reconstruire :
+
+```bash
+cd /opt/volunteer-apps/apps/curseurs
+# recopier server.js (et package.json / Dockerfile s'ils ont change) depuis le depot
+sudo docker compose up -d --build
+sudo docker compose ps                   # "curseurs" doit etre Up (recemment demarre)
+sudo docker compose logs --tail 20 curseurs
+```
+
+La coupure dure quelques secondes. Les clients se reconnectent seuls (backoff
+2 s, 4 s, 8 s...) et, entre-temps, le site continue de fonctionner : la
+propagation retombe simplement sur le sondage HTTP.
 
 ## Commandes utiles
 

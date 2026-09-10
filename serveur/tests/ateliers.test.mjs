@@ -28,15 +28,23 @@ test("mail et date invalides refuses", () => {
   assert.ok(A.valider({ mode: "enligne", animateurPrenom: "X", animateurMail: "x@ex.org", date: "2000-01-01", heure: "10:00" }).erreur);
 });
 
-test("inscription : capacite, doublon, prive", () => {
+test("inscription : capacite, doublon", () => {
   const a = { code: "ABCDEF", mode: "enligne", visibilite: "public", quandMs: Date.now() + 3600e3, maxParticipants: 2, participants: [] };
   let r = A.validerInscription(a, { prenom: "Jo", mail: "jo@ex.org" });
   assert.ok(r.participant); a.participants.push(r.participant);
   assert.ok(A.validerInscription(a, { prenom: "Jo", mail: "JO@ex.org" }).erreur, "doublon insensible a la casse");
   a.participants.push({ prenom: "K", mail: "k@ex.org", le: 0 });
   assert.ok(A.validerInscription(a, { prenom: "Z", mail: "z@ex.org" }).erreur, "complet");
-  a.visibilite = "prive";
-  assert.ok(A.validerInscription(a, { prenom: "P", mail: "p@ex.org" }).erreur, "prive");
+});
+
+// Un atelier prive n'est pas dans la liste publique : on ne l'atteint qu'avec son
+// lien de participation, et le code y fait office de laissez-passer. Le refuser
+// rendait tout atelier prive impossible a rejoindre.
+test("inscription : un atelier prive s'atteint par son lien", () => {
+  const a = { code: "ABCDEF", mode: "enligne", visibilite: "prive", quandMs: Date.now() + 3600e3, maxParticipants: 4, participants: [] };
+  const r = A.validerInscription(a, { prenom: "P", mail: "p@ex.org" });
+  assert.ok(r.participant, "inscription acceptee sur un atelier prive");
+  assert.equal(A.vuePublique(a).code, "ABCDEF", "la fiche reste consultable avec le code");
 });
 
 test("visio : aucune / auto / perso", () => {

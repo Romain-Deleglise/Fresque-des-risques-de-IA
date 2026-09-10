@@ -6,38 +6,46 @@
   var en = (document.documentElement.lang || "fr").indexOf("en") === 0;
   var T = en ? {
     envoi: "Sending…", erreur: "Something went wrong. Please try again.", indispo: "Service unavailable. Please try again later.",
-    codeOk: "Workshop scheduled. Session code: ", mailOk: " A confirmation e-mail has been sent.", mailNon: " (Note it down: e-mail sending is not set up yet.)",
-    inscritOk: "You're registered! Session code: ", places: function (n, m) { return n + " / " + m + " registered"; },
+    codeOk: "Workshop scheduled.", mailOk: " All the details are in the confirmation e-mail we just sent you.", mailNon: " (E-mail sending is not set up yet: keep the link below.)",
+    inscritOk: "You're registered!", places: function (n, m) { return n + " / " + m + " registered"; },
     complet: "Full", prive: "Private", enligne: "Online", presentiel: "In person", aucun: "No scheduled workshop for now.", passe: "Past",
     participer: "Register", annuler: "Cancel",
     annuleOk: "Workshop cancelled. It no longer appears in the list.",
     deplaceOk: "Workshop moved. Registrants have been notified.",
-    confirmAnnul: function (c) { return "Cancel workshop " + c + "? This cannot be undone."; },
+    confirmAnnul: function () { return "Cancel this workshop? This cannot be undone."; },
     ouiAnnuler: "Yes, cancel", nonGarder: "No, keep it",
-    confirmDesist: function (c) { return "Unregister from workshop " + c + "?"; },
+    confirmDesist: function () { return "Unregister from this workshop?"; },
     desisteOk: "You have been unregistered. Your seat is freed up.",
     videCta: "Schedule a workshop",
     fTous: "All", fEnligne: "Online", fPresentiel: "In person", fFormat: "Format",
     afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters.",
-    recapCode: "Session code", recapOuvrir: "Open the online board", recapVisio: "Video-call link (shared with attendees)",
-    recapCopier: "Copy", recapCopie: "Copied", recapCopieNon: "Copy failed", recapNote: "Keep this handy: it is also in your confirmation e-mail."
+    recapOuvrir: "Open the online board", recapVisio: "Video-call link (shared with attendees)",
+    recapCopier: "Copy", recapCopie: "Copied", recapCopieNon: "Copy failed",
+    recapPartage: "Registration link to share",
+    recapNote: "Everything is in your confirmation e-mail: the link to open your session on the day, the one to share, and the one to move or cancel the workshop.",
+    gererIntro: "Open the \u00ab move the workshop \u00bb link from your confirmation e-mail: the workshop is recognised automatically, you only enter your e-mail.",
+    lienInconnu: "This link does not match any workshop (it may have been cancelled)."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
-    codeOk: "Atelier programmé. Code de session : ", mailOk: " Un e-mail de confirmation a été envoyé.", mailNon: " (Notez-le : l'envoi d'e-mail n'est pas encore configuré.)",
-    inscritOk: "Inscription confirmée ! Code de session : ", places: function (n, m) { return n + " / " + m + " inscrits"; },
+    codeOk: "Atelier programmé.", mailOk: " Tous les détails sont dans l'e-mail de confirmation qui vient de vous être envoyé.", mailNon: " (L'envoi d'e-mail n'est pas encore configuré : gardez le lien ci-dessous.)",
+    inscritOk: "Inscription confirmée !", places: function (n, m) { return n + " / " + m + " inscrits"; },
     complet: "Complet", prive: "Privé", enligne: "En ligne", presentiel: "Présentiel", aucun: "Aucun atelier programmé pour l'instant.", passe: "Passé",
     participer: "Participer", annuler: "Annuler",
     annuleOk: "Atelier annulé. Il n'apparaît plus dans la liste.",
     deplaceOk: "Atelier déplacé. Les inscrit·es ont été prévenu·es.",
-    confirmAnnul: function (c) { return "Annuler l'atelier " + c + " ? Cette action est définitive."; },
+    confirmAnnul: function () { return "Annuler cet atelier ? Cette action est définitive."; },
     ouiAnnuler: "Oui, annuler", nonGarder: "Non, garder",
-    confirmDesist: function (c) { return "Vous désinscrire de l'atelier " + c + " ?"; },
+    confirmDesist: function () { return "Vous désinscrire de cet atelier ?"; },
     desisteOk: "Vous êtes désinscrit·e. Votre place est de nouveau libre.",
     videCta: "Programmer un atelier",
     fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
     afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres.",
-    recapCode: "Code de session", recapOuvrir: "Ouvrir le tableau en ligne", recapVisio: "Lien de visioconférence (partagé avec les inscrit·es)",
-    recapCopier: "Copier", recapCopie: "Copié", recapCopieNon: "Copie impossible", recapNote: "Gardez-le sous la main : il est aussi dans votre e-mail de confirmation."
+    recapOuvrir: "Ouvrir le tableau en ligne", recapVisio: "Lien de visioconférence (partagé avec les inscrit·es)",
+    recapCopier: "Copier", recapCopie: "Copié", recapCopieNon: "Copie impossible",
+    recapPartage: "Lien de participation à partager",
+    recapNote: "Tout est dans votre e-mail de confirmation : le lien pour ouvrir votre session le jour J, celui à partager, et celui pour déplacer ou annuler l'atelier.",
+    gererIntro: "Ouvrez le lien \u00ab déplacer l'atelier \u00bb de votre e-mail de confirmation : l'atelier concerné est reconnu tout seul, il ne vous reste que votre e-mail à saisir.",
+    lienInconnu: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé)."
   };
   var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/participer/#vue-animer";
   function videHtml() {
@@ -115,7 +123,7 @@
       poster("programmer", data).then(function (res) {
         if (res.ok && res.d.code) {
           msg.className = "msg ok";
-          msg.textContent = T.codeOk + res.d.code + (res.d.emailEnvoye ? T.mailOk : T.mailNon);
+          msg.textContent = T.codeOk + (res.d.emailEnvoye ? T.mailOk : T.mailNon);
           recapAtelier(res.d.atelier || { code: res.d.code });
           form.reset(); majMode();
         } else {
@@ -128,8 +136,10 @@
     });
   }
 
-  // Recapitulatif affiche a l'animateur des la creation : code, lien d'ouverture
-  // du tableau, et lien de visio (perso ou genere) qu'il peut copier / partager.
+  // Apres la creation : AUCUN code a l'ecran. On renvoie a l'e-mail (qui porte
+  // tous les liens) et on donne les deux liens dont on a besoin tout de suite :
+  // le lien de participation a diffuser, et l'ouverture du tableau. Le code n'y
+  // apparait que dans l'URL, jamais comme un identifiant a recopier.
   function recapAtelier(a) {
     if (!a || !a.code) return;
     var hote = document.getElementById("recap-atelier");
@@ -140,14 +150,13 @@
       else (document.getElementById("vue-animer") || document.body).appendChild(hote);
     }
     hote.innerHTML = "";
+    var base = location.origin;
     var ouvrir = "/en-ligne/session/?ouvrir=" + encodeURIComponent(a.code);
-    // Ligne code
-    hote.appendChild(ligneRecap(T.recapCode, a.code, a.code));
-    // Bouton ouvrir le tableau (en ligne surtout, mais toujours utile)
+    var partage = base + (en ? "/en/request-a-workshop/" : "/participer/") + "?atelier=" + encodeURIComponent(a.code);
+    hote.appendChild(ligneRecap(T.recapPartage, partage, partage, true));
     var pA = document.createElement("p"); pA.style.margin = "10px 0";
     var bA = document.createElement("a"); bA.className = "btn"; bA.href = ouvrir; bA.target = "_blank"; bA.rel = "noopener";
     bA.textContent = T.recapOuvrir; pA.appendChild(bA); hote.appendChild(pA);
-    // Lien visio (si present)
     if (a.visio) hote.appendChild(ligneRecap(T.recapVisio, a.visio, a.visio, true));
     var note = document.createElement("p"); note.className = "muted"; note.style.fontSize = ".85rem"; note.style.margin = "6px 0 0";
     note.textContent = T.recapNote; hote.appendChild(note);
@@ -301,7 +310,7 @@
       m.textContent = T.envoi; m.className = "msg"; if (sb) sb.disabled = true;
       poster("inscrire", { code: a.code, prenom: f.prenom.value, mail: f.mail.value }).then(function (res) {
         if (res.ok && res.d.atelier) {
-          f.innerHTML = '<p class="msg ok">' + esc(T.inscritOk + res.d.atelier.code + (res.d.emailEnvoye ? T.mailOk : T.mailNon)) + "</p>";
+          f.innerHTML = '<p class="msg ok">' + esc(T.inscritOk + (res.d.emailEnvoye ? T.mailOk : T.mailNon)) + "</p>";
           var pl = el.querySelector(".atelier-places");
           if (pl) pl.textContent = T.places(a.inscrits + 1, a.maxParticipants);
         } else {
@@ -324,6 +333,38 @@
         msgEl.textContent = (res.d && res.d.erreur && res.d.erreur.message) || T.erreur;
       }
     }).catch(function () { if (msgEl) { msgEl.className = "msg err"; msgEl.textContent = T.indispo; } });
+  }
+
+  /* ---------- Gérer un atelier existant (depuis le lien de l'e-mail) --------
+     Le bloc est replié par défaut. Le code arrive par ?gerer=CODE, va dans un
+     champ caché des deux formulaires, et n'est jamais montré ni demandé. Sans
+     ce paramètre, on renvoie simplement au lien de l'e-mail. */
+  (function () {
+    var bloc = document.getElementById("gerer");
+    if (!bloc) return;
+    var code = (new URLSearchParams(location.search).get("gerer") || "").toUpperCase();
+    var note = document.getElementById("gerer-note");
+    var forms = document.getElementById("gerer-formulaires");
+    if (note) note.textContent = T.gererIntro;
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      if (location.hash === "#gerer") { revelerAnimer(); bloc.open = true; }
+      return;
+    }
+    ["form-deplacer", "form-annuler"].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f && f.code) f.code.value = code;
+    });
+    if (forms) forms.hidden = false;
+    if (note) note.hidden = true;
+    revelerAnimer();
+    bloc.open = true;
+    try { bloc.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+  })();
+  // Révèle la vue « Programmer / gérer » (les deux vues sont des onglets).
+  function revelerAnimer() {
+    var b = document.getElementById("btn-vue-animer");
+    var v = document.getElementById("vue-animer");
+    if (b && v && v.hidden) b.click();
   }
 
   /* ---------- Déplacer un atelier (animateur·ice) ---------- */
@@ -355,7 +396,7 @@
       // Etape 1 : demander confirmation dans un encadré inline.
       var box = document.createElement("div");
       box.className = "annul-confirm";
-      box.innerHTML = '<p>' + esc(T.confirmAnnul(code)) + '</p><div class="annul-confirm-actions">'
+      box.innerHTML = '<p>' + esc(T.confirmAnnul()) + '</p><div class="annul-confirm-actions">'
         + '<button type="button" class="btn btn-noir" data-oui>' + esc(T.ouiAnnuler) + '</button>'
         + '<button type="button" class="btn btn-2" data-non>' + esc(T.nonGarder) + '</button></div>';
       m.textContent = ""; m.className = "msg";
@@ -384,9 +425,37 @@
     if (bAnim) bAnim.click(); // révèle la vue « Programmer / annuler »
     var m = document.getElementById("annul-msg");
     if (m) { try { m.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }
-    if (window.confirm(T.confirmAnnul(code))) {
+    if (window.confirm(T.confirmAnnul())) {
       annulerAtelier({ code: code, token: token }, m);
     }
+  })();
+
+  /* ---------- Lien de participation (?atelier=CODE) -------------------------
+     Un atelier privé n'apparaît pas dans la liste publique : c'est le LIEN qui
+     donne accès à l'inscription. On demande la fiche au serveur (op « voir »)
+     et on l'affiche en tête de liste, formulaire déjà ouvert. */
+  (function () {
+    var code = (new URLSearchParams(location.search).get("atelier") || "").toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) return;
+    var hote = document.getElementById("liste-ateliers");
+    if (!hote) return;
+    var boite = document.createElement("div");
+    boite.className = "atelier-invite";
+    boite.innerHTML = '<p class="msg" role="status" aria-live="polite">' + esc(T.envoi) + "</p>";
+    if (hote.parentNode) hote.parentNode.insertBefore(boite, hote);
+    poster("voir", { code: code }).then(function (res) {
+      var a = res.ok && res.d && res.d.atelier;
+      if (!a) {
+        boite.innerHTML = '<p class="msg err">' + esc((res.d && res.d.erreur && res.d.erreur.message) || T.lienInconnu) + "</p>";
+        return;
+      }
+      boite.innerHTML = "";
+      var el = carte(a);
+      boite.appendChild(el);
+      var btn = el.querySelector(".btn");
+      if (btn) btn.click();     // formulaire d'inscription ouvert d'emblee
+      try { boite.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+    }).catch(function () { boite.innerHTML = '<p class="msg err">' + esc(T.indispo) + "</p>"; });
   })();
 
   // Désinscription participant via le lien de l'e-mail (?desister=CODE&p=JETON).
@@ -401,7 +470,7 @@
     m.className = "msg"; m.setAttribute("role", "status"); m.style.maxWidth = "44rem"; m.style.margin = "0 0 1.2rem";
     if (host && host.parentNode) host.parentNode.insertBefore(m, host);
     try { m.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
-    if (window.confirm(T.confirmDesist(code))) {
+    if (window.confirm(T.confirmDesist())) {
       m.textContent = T.envoi;
       poster("desister", { code: code, token: token }).then(function (res) {
         if (res.ok && res.d && res.d.desiste) { m.className = "msg ok"; m.textContent = T.desisteOk; }

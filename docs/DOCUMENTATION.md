@@ -82,7 +82,8 @@ Fonctions serverless Netlify (/.netlify/functions/*)
 | État | Netlify Blobs (`@netlify/blobs`) |
 | E-mail | Resend (HTTP API) via `lib/mail.js` |
 | Newsletter | CiviCRM API4 via `subscribe.js` |
-| Visio auto | Jitsi Meet (`meet.jit.si`), salon généré à la volée |
+| Visio auto | Jitsi Meet, salon généré à la volée ; domaine configurable via `VISIO_BASE` (instance auto-hébergée `visio.pauseia.fr`, repli `meet.jit.si`) |
+| Curseurs en direct | Relais WebSocket auto-hébergé (`wss://curseurs.pauseia.fr`), optionnel |
 | Tests | `node --test` (règles pures) + validation `cartes.json` + audit a11y |
 | CI | GitHub Actions (`.github/workflows/ci.yml`) |
 | Hébergement | Netlify (site statique + functions + scheduled functions) |
@@ -98,14 +99,16 @@ Fonctions serverless Netlify (/.netlify/functions/*)
 │   ├── index.html            # Accueil FR
 │   ├── a-propos/             # À propos FR
 │   ├── devenir-animateur/    # « Animer » FR
-│   ├── demander-un-atelier/  # « Participer » FR (liste + programmation)
+│   ├── participer/           # « Participer » FR (liste + programmation + inscription)
 │   ├── guide/                # Guide d'animation en ligne FR
 │   ├── mentions-legales/     # Mentions légales FR
-│   ├── en-ligne/             # Fresque en ligne (présentation)
-│   │   ├── session/          # Lobby + tableau multi-participants
-│   │   └── atelier/          # Tableau solo (démo, sans réseau)
+│   ├── en-ligne/             # Fresque en ligne (page de présentation)
+│   │   ├── session/          # Lobby + tableau multi-participants (le seul mode)
+│   │   └── atelier/          # board.css seulement (feuille de style partagée ;
+│   │                         #   le mode solo a été retiré)
 │   ├── en/                   # Toutes les pages en anglais (about, facilitate,
 │   │                         #   request-a-workshop, guide, legal, online)
+│   ├── admin/                # Espace d'administration des contacts (privé, token)
 │   ├── stats/                # Tableau de bord d'audience (privé)
 │   ├── assets/
 │   │   ├── css/              # site.css, fonts.css, stats.css
@@ -118,15 +121,21 @@ Fonctions serverless Netlify (/.netlify/functions/*)
 │
 ├── netlify/functions/        # Fonctions serverless
 │   ├── ateliers.js           # Programmation, inscription, annulation, déplacement
-│   ├── fresque.js            # Sessions temps réel (tableau partagé)
+│   ├── fresque.js            # Sessions temps réel (tableau partagé, hold-poll)
+│   ├── admin.js              # API de l'espace /admin/ (contacts, protégé par token)
 │   ├── rappels.js            # Rappel la veille (planifié)
 │   ├── rappel-imminent.js    # Rappel ~1 h avant (planifié)
 │   ├── suivi.js              # E-mail de suivi après l'atelier (planifié)
 │   ├── collect.js / stats.js # Mesure d'audience sans cookie
 │   ├── subscribe.js          # Inscription newsletter -> CiviCRM
 │   └── lib/
-│       ├── mail.js           # Envoi Resend (gracieux sans clé)
+│       ├── mail.js           # Envoi Resend (gracieux sans clé) + plafonds + alerte
+│       ├── contacts.js       # Registre durable des contacts (magasin Blobs)
 │       └── gabarit.js        # Gabarit HTML commun des e-mails
+│
+├── infra/                    # Services auto-hébergés sur le serveur de dev Pause IA
+│   ├── jitsi/                # Visioconférence (docker-compose + Caddy + README)
+│   └── curseurs/             # Relais WebSocket des curseurs en direct (Node + Docker)
 │
 ├── serveur/
 │   ├── src/                  # Règles PURES (aucune I/O) : ateliers, regles, limites
@@ -290,8 +299,9 @@ du hero.
 
 Toutes reçoivent un POST JSON `{ op, ... }` (sauf `stats`, en GET), répondent en
 JSON, et appellent `connectLambda(event)` en tête de handler (nécessaire à
-Netlify Blobs sur les fonctions classiques). Aucune n'utilise `consistency:
-"strong"` (incompatible avec ce type de fonction).
+Netlify Blobs sur les fonctions classiques). Seule `fresque.js` lit en
+`consistency: "strong"` (indispensable au temps réel : voir 7.2), avec repli
+automatique en lecture normale si la plateforme la refuse.
 
 ### 7.1 `ateliers.js` - programmation et inscriptions
 
@@ -301,7 +311,8 @@ Magasin Blobs : `fresque-ateliers`. Règles pures : `serveur/src/ateliers.js`.
 |---|---|---|
 | `programmer` | mode, prénom/mail animateur, date, heure, max, visibilité, (lieu/adresse), (titre), (visioMode/visioUrl) | Crée l'atelier, génère un code de session, envoie l'e-mail de confirmation + invitation `.ics` |
 | `liste` | - | Renvoie les ateliers publics visibles au calendrier (7 j après le début), chacun avec un drapeau `ouvert` |
-| `inscrire` | code, prénom, mail | Inscrit un·e participant·e (jusqu'à 30 min après le début), envoie confirmation + notifie l'animateur |
+| `voir` | code | Renvoie la fiche d'UN atelier, même privé : c'est le lien de participation (`?atelier=CODE`) qui fait office de laissez-passer. Limité en débit, avec un compteur dédié aux codes inconnus |
+| `inscrire` | code, prénom, mail | Inscrit un·e participant·e (jusqu'à 30 min après le début), envoie confirmation + notifie l'animateur. Fonctionne aussi pour un atelier privé : le code, connu par le lien de participation, fait office de laissez-passer |
 | `annuler` | code, token OU mail animateur | Supprime l'atelier, prévient les inscrit·es |
 | `reprogrammer` | code, token/mail, nouvelle date/heure | Déplace l'atelier, réinitialise les rappels, prévient les inscrit·es avec un nouvel `.ics` |
 | `desister` | code, token participant | Retire un·e participant·e, confirme + notifie l'animateur |
@@ -316,34 +327,90 @@ Règles temporelles importantes :
   les récents passés.
 
 Visioconférence : `visioMode` vaut `auto` (salon Jitsi généré :
-`https://meet.jit.si/FresqueRisquesIA-<code>-<jeton aléatoire>`), `perso` (lien
+`<VISIO_BASE>/FresqueRisquesIA-<code>-<jeton aléatoire>`, `VISIO_BASE` valant
+l'instance auto-hébergée ou, à défaut, `https://meet.jit.si`), `perso` (lien
 fourni par l'animateur, validé) ou `aucune`.
 
 ### 7.2 `fresque.js` - sessions temps réel
 
 Magasin Blobs : `fresque-sessions`. Règles pures : `serveur/src/regles.js`.
-Le serveur est l'autorité ; le client interroge périodiquement (polling ~2,5 s,
-tolérance 5-10 s).
+Le serveur est l'autorité.
+
+**Propagation temps réel** (trois mécanismes qui se cumulent, chacun facultatif) :
+
+1. **Lectures en cohérence forte** (`consistency: "strong"`). Par défaut, Blobs
+   sert des lectures éventuellement cohérentes : après l'écriture de A, la
+   lecture de B pouvait renvoyer l'ancienne valeur pendant plusieurs secondes.
+   C'était la cause des ~5 s de latence sur toutes les actions. Repli
+   automatique en lecture normale si la plateforme la refuse.
+2. **Attente maintenue** (« hold-poll ») : l'op `etat` garde la requête ouverte
+   jusqu'à un changement de version (relecture toutes les 120 ms, 8 s max).
+3. **Pousse WebSocket** : après chaque action, le client émet un `{t:"maj"}` sur
+   le relais (`infra/curseurs/`) ; les autres relisent l'état immédiatement.
+
+Côté client, toute action est en plus rendue **localement d'abord** (optimistic
+UI) : celui qui agit ne dépend jamais d'un aller-retour pour voir son geste.
+
+À l'ouverture d'un atelier programmé (code réservé), le lien de visioconférence
+de l'atelier est repris dans la session (`lienVocal`), pour que l'animateur le
+retrouve dans le panneau Participants sans rouvrir son e-mail.
 
 | Op | Entrée | Sortie |
 |---|---|---|
 | `creer` | prénom, (code souhaité) | code, jeton, rôle animateur, état |
 | `rejoindre` | code, prénom, jeton | jeton, rôle, état (reprise si jeton connu) |
-| `etat` | code, jeton, version | état, ou `{ inchange: true }` |
+| `etat` | code, jeton, version | état (maintenu jusqu'à un changement), ou `{ inchange: true }` au bout de ~8 s |
 | `agir` | code, jeton, intention | état, ou `{ refus }` |
+
+**Latence (hold-poll).** Sur `etat`, si le client est déjà à jour, le serveur
+ne répond pas tout de suite : il garde la requête ouverte et relit l'état toutes
+les 120 ms jusqu'à ce que la version change (action d'un·e autre joueur·se) ou
+qu'environ 8 s s'écoulent. Le client se rabat sur un sondage bref si la
+plateforme coupe la requête. Cette attente ne sert à rien sans **lecture en
+cohérence forte** (elle relirait la même valeur périmée) : les deux vont
+ensemble.
+
+**Intentions (`agir`).** Toutes passent par `appliquer()` dans `regles.js`.
+Réservées à l'animateur : `poolAjouter`, `poolRetirer`, `retirerCarte`
+(avec `dest:"pool"` pour renvoyer au pool, sinon dans la réserve), `exclure`,
+`definirLienVocal`, `clore`. Ouvertes à tou·tes : `poserCarte` (prendre du pool
+vers la table, avec point de dépôt exact), `reserverPool` / `libererPool`
+(verrou souple pendant le glisser-déposer), `deplacerCarte`, `creerFleche`
+(uni ou bidirectionnelle), `libellerFleche`, `supprimerFleche`, `creerTexte`,
+`modifierTexte` (vider = supprimer), `deplacerTexte`, `supprimerTexte`, `ping`.
 
 Cycle de vie d'une session : 12 h d'existence maximum, expiration après 2 h
 d'inactivité. Codes à 6 caractères alphanumériques, jetons personnels à 24
-caractères. Un atelier programmé « en ligne » peut être ouvert directement avec
-son code via `?ouvrir=CODE` (animateur) ; les participant·es rejoignent avec
-`?code=CODE`.
+caractères. Présence : un battement met à jour `vuLe` ; au-delà de 15 s une
+personne est considérée déconnectée (affichée « hors ligne » dans le panneau).
+
+**Le code de session est purement technique.** Il vit dans les URL et dans
+l'état serveur ; il n'est affiché nulle part, ni dans les e-mails, ni sur le
+site, et n'est jamais demandé à quiconque. Tout passe par des liens :
+
+| Lien | Pour qui | Effet |
+|---|---|---|
+| `/en-ligne/session/?ouvrir=CODE&prenom=…` | Animateur | Ouvre (ou reprend) SA session |
+| `/en-ligne/session/?code=CODE&prenom=…` | Participant | Rejoint la session |
+| `/en-ligne/session/?s=CODE` | Tous | Reprise de sa place après rechargement |
+| `/participer/?atelier=CODE` | Invité | Inscription à un atelier, même privé |
+| `/participer/?gerer=CODE#gerer` | Animateur | Déplacer / annuler (e-mail à saisir) |
+| `/participer/?annuler=CODE&t=…` | Animateur | Annulation en un clic |
+| `/participer/?desister=CODE&p=…` | Participant | Désinscription en un clic |
+
+Conséquences côté interface : la barre du haut de la session ne montre plus de
+puce « Code », seulement « Copier le lien d'invitation » ; les champs code du
+lobby sont des `input type="hidden"` remplis depuis l'URL, et sans lien la
+colonne « Rejoindre » n'affiche qu'une note renvoyant à l'e-mail ; sur la page
+Participer, « Gérer un atelier existant » est un bloc replié dont les
+formulaires ne demandent que l'e-mail.
 
 ### 7.3 Fonctions planifiées (cron dans `netlify.toml`)
 
 | Fonction | Fréquence | Rôle |
 |---|---|---|
-| `rappels.js` | `0 8 * * *` (1×/jour) | Rappel la veille (fenêtre ~26 h), e-mail à l'animateur + participants (Cci) |
-| `rappel-imminent.js` | `*/15 * * * *` | Rappel ~1 h avant (fenêtre 40-80 min) |
+| `rappels.js` | `0 8 * * *` (1×/jour) | Rappel la veille (fenêtre ~26 h) : un e-mail à l'animateur·ice, un autre aux inscrit·es (Cci seul) |
+| `rappel-imminent.js` | `*/15 * * * *` | Rappel ~1 h avant (fenêtre 40-80 min), également séparé par rôle |
 | `suivi.js` | `0 10 * * *` (1×/jour) | Après l'atelier (3 h à 3 j), remercie et invite à devenir animateur·ice |
 
 Chacune est idempotente (drapeau posé après envoi : `rappelEnvoye`,
@@ -389,6 +456,12 @@ Pause IA). Dégradation propre si le service est indisponible.
   `RESEND_API_KEY`, les actions réussissent quand même (le code s'affiche à
   l'écran) : `configuree()` indique si l'envoi est possible. Gère `html`,
   `text`, `bcc` et pièces jointes (base64, pour les `.ics`).
+  **Garde-fou d'envoi** : compteurs jour/mois dans le magasin Blobs
+  `fresque-limites` ; au-delà de `RESEND_MAX_JOUR` / `RESEND_MAX_MOIS` l'envoi
+  est refusé proprement (best effort : n'entrave jamais l'envoi si le magasin est
+  indisponible). **Alerte** : dès `RESEND_SEUIL_ALERTE` envois dans la journée,
+  un e-mail prévient `MAIL_ALERTE` une seule fois par jour. Journal sans donnée
+  personnelle (nombre + motif).
 - `gabarit.js` : gabarit HTML commun des e-mails (en-tête orange, carte blanche,
   pied Pause IA), plus les utilitaires `h` (échappement), `dateLisible`
   (date française), `mailHtml`, `bouton`.
@@ -434,9 +507,12 @@ l'annulation, la reprogrammation et la désinscription.
 
 ### Session temps réel (`fresque-sessions`, clé `<CODE>`)
 
-État partagé du tableau (cartes posées, liens, notes, participants, rôles,
-salon vocal, version). Détails dans `serveur/src/regles.js`. TTL 12 h,
-inactivité 2 h.
+État partagé du tableau : `pool` (cartes mises à disposition, 8 max),
+`reservations` (cartes en cours de prise, verrou souple à 6 s), `tableau`
+(cartes posées, flèches, notes), `participants` + `animateur` (prénom, présence),
+`lienVocal`, `ping` (marqueur éphémère), `version`. Plus de système de tour ni
+de main individuelle : l'animateur alimente un pool commun, chacun·e y prend des
+cartes. Détails dans `serveur/src/regles.js`. TTL 12 h, inactivité 2 h.
 
 Les adresses e-mail ne sont **jamais** exposées dans les vues publiques
 (`vuePublique` filtre) ni entre participant·es (rappels en Cci).
@@ -446,19 +522,31 @@ Les adresses e-mail ne sont **jamais** exposées dans les vues publiques
 ## 10. E-mails transactionnels
 
 Tous partagent le gabarit `lib/gabarit.js` (en-tête orange, carte blanche, pied
-Pause IA) et existent en version HTML + texte brut.
+Pause IA) et existent en version HTML + texte brut. **Aucun n'affiche de code** :
+chaque destinataire reçoit le lien qui correspond à son rôle (voir 7.2).
+
+**Un e-mail = un rôle.** Aucun envoi n'est mixte : quand un événement concerne
+l'animateur·ice et les inscrit·es (rappels, déplacement, annulation), ce sont
+deux e-mails distincts, avec un texte, un objet et des liens propres à chacun.
+L'e-mail collectif part en **Cci seul** (`bcc` sans `to`) : `lib/mail.js` met
+alors l'expéditeur comme destinataire visible, donc personne n'y voit l'adresse
+de personne, pas même celle de l'animateur·ice.
 
 | E-mail | Déclencheur | Destinataire | Contenu clé |
 |---|---|---|---|
-| Confirmation animateur | `programmer` | Animateur | Récap, code de session, visio, guide, `.ics`, liens annuler/déplacer |
-| Confirmation participant | `inscrire` | Participant | Récap, code, boutons rejoindre / visio / contacter l'animateur, `.ics`, désinscription |
+| Confirmation animateur | `programmer` | Animateur | Récap, bouton « Ouvrir ma session », lien de participation à partager, visio, guide, `.ics`, liens annuler/déplacer |
+| Confirmation participant | `inscrire` | Participant | Récap, boutons rejoindre / visio / contacter l'animateur, `.ics`, désinscription |
 | Notification inscription | `inscrire` | Animateur | Compteur d'inscrits, prénoms cliquables (mailto), bouton « écrire à tou·tes » (Cci) |
 | Désinscription (participant) | `desister` | Participant | Confirmation + autres ateliers |
 | Désinscription (animateur) | `desister` | Animateur | Compteur mis à jour |
-| Annulation | `annuler` | Inscrit·es (Cci) | Atelier annulé |
-| Déplacement | `reprogrammer` | Inscrit·es (Cci) | Ancienne/nouvelle date, nouveau `.ics` |
-| Rappel veille | planifié | Animateur + participants (Cci) | Code, visio, bouton rejoindre |
-| Rappel 1 h | planifié | Animateur + participants (Cci) | Version courte « ça commence bientôt » |
+| Annulation (animateur) | `annuler` | Animateur | Confirmation, nombre d'inscrit·es prévenu·es, bouton « Programmer un autre atelier » |
+| Annulation (inscrit·es) | `annuler` | Inscrit·es (Cci seul) | Atelier annulé, autres ateliers |
+| Déplacement (animateur) | `reprogrammer` | Animateur | Confirmation, compteur d'inscrits, « Ouvrir ma session », lien gérer, `.ics` |
+| Déplacement (inscrit·es) | `reprogrammer` | Inscrit·es (Cci seul) | Ancienne/nouvelle date, bouton « Rejoindre », `.ics`, désinscription |
+| Rappel veille (animateur) | planifié | Animateur | Liste des inscrit·es, « Ouvrir ma session », lien déplacer/annuler |
+| Rappel veille (inscrit·es) | planifié | Inscrit·es (Cci seul) | Date, animateur·ice, bouton « Rejoindre », visio |
+| Rappel 1 h (animateur) | planifié | Animateur | « Vous animez dans 1 heure », inscrit·es, « Ouvrir ma session » |
+| Rappel 1 h (inscrit·es) | planifié | Inscrit·es (Cci seul) | « Ça commence bientôt », bouton « Rejoindre », visio |
 | Suivi | planifié | Animateur + participants (Cci) | Remerciement + invitation à animer |
 
 L'invitation calendrier (`.ics`) porte deux alarmes : `-P1D` (la veille) et
@@ -473,19 +561,75 @@ eux).
 
 ## 11. Fresque en ligne (tableau collaboratif)
 
-Deux surfaces partagent la même feuille de style (`en-ligne/atelier/board.css`) :
+Un seul mode, **multi-participants** (`en-ligne/session/`, `session.js`,
+feuille de style `en-ligne/atelier/board.css`). Le mode solo a été retiré (la
+fresque se joue toujours en groupe ; ancienne URL redirigée). Depuis la page de
+présentation `en-ligne/`, le parcours par défaut renvoie vers l'inscription /
+programmation d'un atelier (`participer/`), qui déclenche e-mails et liens.
 
-- **Solo** (`en-ligne/atelier/`) : démo jouable sans compte ni réseau
-  (`board.js`). Piochage, pose, liens, notes, zoom, plein écran, export image.
-- **Multi** (`en-ligne/session/`) : lobby (créer / rejoindre) puis tableau
-  partagé (`session.js`). Rôles animateur/participant, distribution des cartes,
-  panneau participants, salon vocal externe (Discord, Meet), polling ~2,5 s.
+Déroulé : lobby **mono-rôle** (le lien de l'e-mail ouvre soit « animer »
+`?ouvrir=CODE`, soit « rejoindre » `?code=CODE`), puis tableau partagé. Le code
+n'est jamais saisi ni affiché : il voyage dans le lien (voir 7.2).
 
-Robustesse : le démarrage du tableau ne dépend pas d'un chargement unique sans
-filet (réessais + message clair) ; le lobby est lisible en thème sombre.
+Ressenti temps réel (le serveur est décrit en 7.2) :
 
-Le branchement du service se configure dans `site/data/config.json`
-(`serviceSessions.url` / `.actif`) sans recompiler le site.
+- **Rendu optimiste** : poser une carte, remplir / vider le pool, retirer une
+  carte sont affichés localement avant la confirmation serveur.
+- **Flèches** : dès le premier clic, une ligne élastique suit le curseur, chez
+  soi et chez les autres ; les cartes montrent un halo d'accroche au survol en
+  mode « lien ».
+- **Frappe en direct** : libellés de flèche et notes s'affichent au fur et à
+  mesure chez les autres (relais éphémère), l'enregistrement serveur est étalé.
+- **Curseurs** : positions relayées et **interpolées** à chaque frame (plus de
+  saccade) ; flèche et prénom cerclés de blanc pour rester lisibles sur tout
+  fond ; masquables (bouton « Curseurs »).
+- **Pool** : panneau flottant déplaçable et repliable, grille de **8
+  emplacements fixes** (2 x 4), taille des cartes réglable, boutons
+  « Remplir » / « Vider » pour l'animateur, glisser-déposer réserve <-> pool et
+  pool -> tableau.
+- **Réserve** (animateur) : jeu complet illustré, une rangée qui défile.
+- **Thème** : le bouton « Fond noir » bascule **toute la page** (`data-theme`
+  sur `<html>`, mémorisé sous la clé `theme` comme le reste du site).
+
+- **Rôles distincts.** L'animateur dispose d'une **réserve** en bas (tout le jeu,
+  coloré par lot) : un clic met une carte dans le **pool commun** (8 max).
+  Tou·tes prennent une carte du pool et la posent sur le tableau (**glisser-déposer**
+  ou bouton « Poser »). Pendant la prise, la carte est **réservée** (verrou souple :
+  grisée + prénom chez les autres, expire à 6 s). L'animateur peut **reprendre**
+  une carte posée (la remettre au pool ou dans sa réserve), retirer une carte du
+  pool, exclure un participant.
+- **Outils** (barre façon Excalidraw) : main (déplacer / naviguer, par défaut),
+  flèche (relier, + variante double sens), note (bulle). Sélection d'une flèche
+  pour l'annoter / la supprimer. Raccourcis clavier 1/2/3/4 (ou H/A/B/N).
+- **Temps réel** : **ping** (clic droit, cercle qui s'agrandit chez tou·tes) et
+  **curseurs en direct** des autres joueur·ses (relais WebSocket, masquables via
+  le bouton « Curseurs »). Voir 11.1.
+- **Tutoriels guidés** : au premier lancement, une visite distincte animateur /
+  participant (coach-marks numérotés pointant chaque élément), rejouable depuis
+  le panneau d'aide `?`.
+- **Confort** : zoom/pan propres à chacun, survol d'une carte pour lire son titre
+  quand on est loin, fond clair/sombre, plein écran, panneau participants avec
+  état de présence, copie robuste du lien d'invitation (repli `execCommand`).
+
+Robustesse : démarrage avec réessais + message clair ; le lobby reste lisible en
+thème sombre ; les interactions (glisser, poser, flèche, note, ping) ne
+dépendent que du serveur comme autorité (aucun état divergent durable).
+
+### 11.1 Services auto-hébergés (serveur de dev Pause IA)
+
+Deux services tournent en Docker derrière Caddy sur le serveur Pause IA
+(Hetzner), documentés dans `infra/` (README pas à pas + compose) :
+
+- **Visioconférence Jitsi** (`infra/jitsi/`, `visio.pauseia.fr`) : logiciel
+  libre auto-hébergé, sans compte ni pistage. Limites RAM/CPU pour que Jitsi
+  cède avant les autres services. Un script de surveillance alerte par e-mail si
+  un conteneur tombe ou si la RAM baisse. Le site y branche les salons via
+  `VISIO_BASE` (repli `meet.jit.si`).
+- **Relais de curseurs** (`infra/curseurs/`, `wss://curseurs.pauseia.fr`) : petit
+  serveur WebSocket Node **sans état** qui répète les positions de curseur entre
+  membres d'un même code de session. **Entièrement optionnel** : si le relais est
+  injoignable, le client se dégrade en silence (reconnexion backoff, aucun
+  blocage). La CSP autorise explicitement `wss://curseurs.pauseia.fr`.
 
 ---
 
@@ -583,6 +727,11 @@ dans le dépôt) :
 | `RESEND_API_KEY` | mail.js | Clé API Resend. Sans elle, aucun e-mail n'est envoyé |
 | `MAIL_FROM` | mail.js | Expéditeur vérifié, ex. `Fresque des risques de l'IA <atelier@pauseia.fr>` |
 | `MAIL_REPONSE` | mail.js | (optionnel) Reply-To, ex. `contact@pauseia.fr` |
+| `RESEND_MAX_JOUR` | mail.js | (optionnel) plafond d'envois/jour (défaut 95) |
+| `RESEND_MAX_MOIS` | mail.js | (optionnel) plafond d'envois/mois (défaut 2500) |
+| `RESEND_SEUIL_ALERTE` | mail.js | (optionnel) seuil d'alerte/jour (défaut 80) |
+| `MAIL_ALERTE` | mail.js | (optionnel) destinataire de l'alerte (défaut `contact@pauseia.fr`) |
+| `VISIO_BASE` | ateliers.js | (optionnel) domaine des salons visio auto, ex. `https://visio.pauseia.fr` (défaut `meet.jit.si`) |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
 | `ADMIN_TOKEN` | admin.js | Clé secrète de l'espace `/admin/`. Sans elle, l'espace est désactivé (503) |
@@ -663,9 +812,10 @@ Opérationnel (hors code) :
   recevoir les e-mails, ouvrir/rejoindre la session).
 - Vérifier que la fonction planifiée `rappel-imminent` (`*/15`) est bien acceptée
   dans Netlify -> Functions -> Scheduled.
-- **Jitsi** : le salon public `meet.jit.si` peut, selon les périodes, demander au
-  premier arrivant de s'authentifier. À valider ; solutions de repli : Framatalk
-  ou instance Jitsi auto-hébergée.
+- **Jitsi** : le salon public `meet.jit.si` peut demander au premier arrivant de
+  s'authentifier. Résolu en production par une **instance Jitsi auto-hébergée**
+  (`infra/jitsi/`, `visio.pauseia.fr`), branchée via `VISIO_BASE` ; `meet.jit.si`
+  reste le repli par défaut si la variable n'est pas posée.
 
 Améliorations possibles :
 
@@ -683,7 +833,9 @@ Améliorations possibles :
 - **Atelier** : événement planifié (date, format, animateur), avec inscriptions.
 - **Session** : instance temps réel du tableau partagé (un code, des rôles).
 - **Lot** : groupe de cartes distribué à une étape de l'atelier (1 à 5).
-- **Code de session** : identifiant à 6 caractères d'un atelier / d'une session.
+- **Code de session** : identifiant technique à 6 caractères d'un atelier / d'une
+  session. Il circule dans les URL et l'état serveur, il n'est jamais affiché ni
+  demandé à l'utilisateur.
 - **Jeton** : secret personnel (animateur : annuler/déplacer ; participant :
   reprise de session, désinscription).
 - **Blobs** : stockage clé/valeur de Netlify utilisé comme état.

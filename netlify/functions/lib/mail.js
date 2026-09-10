@@ -105,11 +105,19 @@ function journal(champ) {
   try { console.log("[mail] " + JSON.stringify(champ)); } catch (e) {}
 }
 
-// envoi({ to, cc?, subject, text }) -> { envoye:bool, raison? }
+// Adresse seule extraite de MAIL_FROM ("Nom <a@b.c>" -> "a@b.c").
+function adresseFrom(c) { var m = /<([^>]+)>/.exec(c.from); return String(m ? m[1] : c.from).trim(); }
+
+// envoi({ to, cc?, bcc?, subject, text }) -> { envoye:bool, raison? }
+// Envoi en Cci SEUL (bcc sans to) : c'est le cas des e-mails collectifs aux
+// inscrit·es. Le destinataire visible devient l'expediteur lui-meme, donc
+// personne n'est expose et l'adresse de l'animateur·ice ne circule pas.
 async function envoi(m) {
   var c = config();
   if (!c.cle) return { envoye: false, raison: "pas_de_cle" };
   var to = [].concat(m.to || []).filter(Boolean);
+  var bccSeul = [].concat(m.bcc || []).filter(Boolean);
+  if (!to.length && bccSeul.length) to = [adresseFrom(c)];
   if (!to.length) return { envoye: false, raison: "sans_destinataire" };
   var nbDest = to.length + [].concat(m.cc || []).filter(Boolean).length + [].concat(m.bcc || []).filter(Boolean).length;
   // Le mail d'alerte interne contourne le plafond et n'est ni compte ni re-alerte.
