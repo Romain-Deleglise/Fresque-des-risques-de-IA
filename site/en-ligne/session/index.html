@@ -39,19 +39,18 @@
         <h2>Ouvrir une session</h2>
         <label for="anim-prenom">Votre prénom</label>
         <input id="anim-prenom" type="text" maxlength="24" placeholder="Prénom" autocomplete="given-name">
-        <label for="anim-code">Code de l'atelier <span class="opt">(optionnel)</span></label>
-        <input id="anim-code" type="text" maxlength="6" placeholder="Laisser vide pour un code auto" autocomplete="off" style="text-transform:uppercase">
+        <input id="anim-code" type="hidden" value="">
         <button class="btn primaire large" id="btn-creer">Ouvrir la session</button>
-        <p class="aide-lobby" id="aide-ouvrir">Vous avez programmé un atelier ? Saisissez le code reçu par e-mail pour ouvrir cette session : vos inscrit·es pourront la rejoindre avec le même code. Sinon, laissez vide.</p>
+        <p class="aide-lobby" id="aide-ouvrir">Vous avez programmé un atelier ? Ouvrez-le depuis le lien reçu par e-mail : la bonne session s'ouvre toute seule, vos inscrit·es la rejoignent par leur propre lien. Sinon, cette page ouvre une session d'essai.</p>
       </section>
       <div class="lobby-sep" aria-hidden="true"><span>ou</span></div>
       <section>
         <h2>Rejoindre</h2>
-        <label for="join-code">Code de session</label>
-        <input id="join-code" type="text" maxlength="6" placeholder="Ex. H7KQ2M" autocomplete="off" style="text-transform:uppercase">
+        <input id="join-code" type="hidden" value="">
         <label for="join-prenom">Votre prénom</label>
         <input id="join-prenom" type="text" maxlength="24" placeholder="Prénom" autocomplete="given-name">
         <button class="btn large" id="btn-rejoindre">Rejoindre</button>
+        <p class="aide-lobby note-sans-lien" id="note-sans-lien">Pour rejoindre un atelier, ouvrez le lien reçu par e-mail : il vous amène directement à la bonne session, sans rien à saisir.</p>
       </section>
     </div>
     <p class="lobby-msg" id="lobby-msg" role="status" aria-live="polite"></p>
@@ -66,8 +65,7 @@
       <svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg>
       Fresque en ligne
     </a>
-    <span class="code-chip" id="code-chip" title="Copier le code">Code <b id="code-val">…</b> <span class="copier">copier</span></span>
-    <button class="btn" id="btn-partager">Copier le lien</button>
+    <button class="btn" id="btn-partager" title="Copier le lien d'invitation à envoyer au groupe">Copier le lien d'invitation</button>
     <span class="spacer"></span>
     <a class="btn visio-top" id="visio-top" href="#" target="_blank" rel="noopener" hidden title="Rejoindre la visioconférence de l'atelier">🎧 Visio</a>
     <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>

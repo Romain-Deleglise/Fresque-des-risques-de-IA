@@ -78,6 +78,15 @@ body.barres-cachees .topbar, body.barres-cachees .toolbar{display:none}
 .liste-part .part-x{border:0;background:transparent;color:var(--gris-clair);cursor:pointer;font-size:.9rem;border-radius:6px;padding:0 .3rem;flex:0 0 auto}
 .liste-part .part-x:hover{color:var(--err);background:rgba(193,68,78,.1)}
 
+/* Sans lien d'invitation (aucun code dans l'URL), la colonne « Rejoindre » ne
+   propose rien a saisir : le code n'est plus jamais demande a personne, on
+   renvoie simplement au lien recu par e-mail. */
+body.sans-lien #lobby label[for="join-prenom"],
+body.sans-lien #lobby #join-prenom,
+body.sans-lien #lobby #btn-rejoindre{display:none}
+body:not(.sans-lien) #note-sans-lien{display:none}
+.note-sans-lien{margin-top:.2rem}
+
 /* Lobby mono-role (depuis un lien d'e-mail) : une seule colonne. */
 body.lobby-solo .lobby-sep{display:none}
 body.lobby-solo .lobby-cols{grid-template-columns:1fr;max-width:26rem;margin:0 auto}

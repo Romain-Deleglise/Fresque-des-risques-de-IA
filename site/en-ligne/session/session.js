@@ -15,7 +15,8 @@
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
     rechargerErreur: "Could not load the board. Check your connection and reload the page.",
-    partagezCode: function (c) { return "Share the code " + c + " with the participants."; },
+    partagezLien: "Copy the invitation link and send it to the group.",
+    sansLien: "To join, open the link you received by e-mail.",
     attenteCarte: "Waiting for a card…", sessionTerminee: "Session ended.",
     sessionClose: "The session was closed by the facilitator.",
     cliquezArrivee: "Click the target card.",
@@ -27,7 +28,7 @@
     copie: "copied ✓", lienCopie: "Link copied ✓", copieEchec: "Copy failed. Select the code and copy it manually.",
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
-    coachPartager: function (c) { return "Share the code " + c + " so participants can join."; },
+    coachPartager: "Copy the invitation link (top left) so participants can join.",
     coachPool: "Add cards to the shared pool (deck at the bottom) so the group can place them.",
     coachAttente: "Waiting for the facilitator to add cards…",
     coachPrendre: "Take a card from the pool and place it on the board.",
@@ -49,7 +50,7 @@
       { cible: "#pool", place: "top", titre: "The shared pool", texte: "The shared pool (8 cards max): players take cards from here to place them on the board. Remove one with ✕." },
       { titre: "Take a card back", texte: "Select a placed card to take it back: return it to the pool, or to your own deck." },
       { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note." },
-      { cible: "#code-chip", place: "bottom", titre: "Invite the group", texte: "Share this code (or « Copy the link ») so people can join. The video-call link is in the e-mail. Enjoy!" }
+      { cible: "#btn-partager", place: "bottom", titre: "Invite the group", texte: "Copy the invitation link and send it to your group: one click and they are in, nothing to type. Enjoy!" }
     ],
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
@@ -71,7 +72,8 @@
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
     rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
-    partagezCode: function (c) { return "Partagez le code " + c + " avec les participants."; },
+    partagezLien: "Copiez le lien d'invitation et envoyez-le au groupe.",
+    sansLien: "Pour rejoindre, ouvrez le lien reçu par e-mail.",
     attenteCarte: "En attente d'une carte…", sessionTerminee: "Session terminée.",
     sessionClose: "La session a été close par l'animateur.",
     cliquezArrivee: "Cliquez la carte d'arrivée.",
@@ -83,7 +85,7 @@
     copie: "copié ✓", lienCopie: "Lien copié ✓", copieEchec: "Copie impossible. Sélectionnez le code et copiez-le à la main.",
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
-    coachPartager: function (c) { return "Partagez le code " + c + " pour que des participant·es rejoignent."; },
+    coachPartager: "Copiez le lien d'invitation (en haut à gauche) pour que des participant·es rejoignent.",
     coachPool: "Ajoutez des cartes au pool commun (le jeu, en bas) pour que le groupe les pose.",
     coachAttente: "En attente que l'animateur mette des cartes à disposition…",
     coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
@@ -105,7 +107,7 @@
       { cible: "#pool", place: "top", titre: "Le pool commun", texte: "Le pool commun (8 cartes max) : les participant·es y prennent les cartes pour les poser. Retirez-en une avec ✕." },
       { titre: "Reprendre une carte", texte: "Sélectionnez une carte posée pour la reprendre : la remettre au pool, ou dans votre réserve." },
       { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note." },
-      { cible: "#code-chip", place: "bottom", titre: "Inviter le groupe", texte: "Partagez ce code (ou « Copier le lien ») pour que le groupe rejoigne. Le lien visio, lui, est dans l'e-mail. Bon atelier !" }
+      { cible: "#btn-partager", place: "bottom", titre: "Inviter le groupe", texte: "Copiez le lien d'invitation et envoyez-le au groupe : un clic et ils y sont, rien à saisir. Bon atelier !" }
     ],
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
@@ -131,15 +133,14 @@
       ".lobby-sous": "Run the collage remotely, on a board shared live in your browser. Nothing to install, no account.",
       "#lobby section:nth-of-type(1) h2": "Open a session",
       'label[for="anim-prenom"]': "Your first name",
-      'label[for="anim-code"]': "Workshop code (optional)",
-      "#aide-ouvrir": "Scheduled a workshop? Enter the code from your e-mail to open that session: your registrants can join with the same code. Otherwise leave it blank.",
+      "#aide-ouvrir": "Scheduled a workshop? Open it from the link in your e-mail: the right session opens on its own, and your registrants join through their own link. Otherwise this page opens a trial session.",
       "#btn-creer": "Open the session",
       ".lobby-sep span": "or",
       "#lobby section:nth-of-type(2) h2": "Join",
-      'label[for="join-code"]': "Session code",
       'label[for="join-prenom"]': "Your first name",
       "#btn-rejoindre": "Join",
-      "#btn-partager": "Copy the link",
+      "#note-sans-lien": "To join a workshop, open the link you received by e-mail: it takes you straight to the right session, with nothing to type.",
+      "#btn-partager": "Copy the invitation link",
       "#deck-titre": "Card deck", "#deck-toggle": "Deck",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
@@ -152,11 +153,10 @@
     };
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
-      ["#code-chip", "title", "Copy the code"], ["#etat-conn", "title", "Connection"],
+      ["#btn-partager", "title", "Copy the invitation link to send to your group"], ["#etat-conn", "title", "Connection"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
-      ["#anim-code", "placeholder", "Leave blank for an auto code"],
       ['.tool[data-outil="deplacer"]', "title", "Hand: move and pan the board"], ['.tool[data-outil="deplacer"]', "aria-label", "Hand: move and pan the board"],
       ['.tool[data-outil="fleche"]', "title", "Link: click the source card, then the target"], ['.tool[data-outil="fleche"]', "aria-label", "Link two cards"],
       ['.tool[data-outil="fleche2"]', "title", "Two-way link: click one card, then the other"], ['.tool[data-outil="fleche2"]', "aria-label", "Two-way link"],
@@ -167,9 +167,7 @@
       m.childNodes[m.childNodes.length - 1].nodeValue = " The AI Risks Collage";
     });
     var setFirst = function (sel, v) { var el = document.querySelector(sel); if (el && el.firstChild) el.firstChild.nodeValue = v; };
-    setFirst("#code-chip", "Code ");            // « Code <b> »
     setFirst("#btn-participants", "Participants (");
-    var cop = document.querySelector("#code-chip .copier"); if (cop) cop.textContent = "copy";
     var ret = document.querySelector(".lobby-retour");
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mp = document.querySelector(".mobile-avis p");
@@ -269,11 +267,20 @@
   });
 
   E["btn-rejoindre"].addEventListener("click", rejoindre);
-  E["join-code"].addEventListener("keydown", function (e) { if (e.key === "Enter") rejoindre(); });
+  E["join-prenom"].addEventListener("keydown", function (e) { if (e.key === "Enter") rejoindre(); });
+  // Le formulaire « Rejoindre » n'a de sens qu'avec un code venu du lien : sinon
+  // on n'affiche que la note qui renvoie a l'e-mail. Appele apres la lecture des
+  // parametres d'URL (voir plus bas).
+  function majColonneRejoindre() {
+    var aCode = ((E["join-code"] && E["join-code"].value) || "").length === 6;
+    document.body.classList.toggle("sans-lien", !aCode);
+  }
   function rejoindre() {
     var code = (E["join-code"].value || "").trim().toUpperCase();
     var prenom = (E["join-prenom"].value || "").trim();
-    if (code.length !== 6) { lobbyMsg(S.code6, "err"); return; }
+    // Sans code dans l'URL, il n'y a rien a rejoindre : on renvoie au lien recu
+    // par e-mail plutot que de demander un code que personne ne connait.
+    if (code.length !== 6) { lobbyMsg(S.sansLien, "err"); return; }
     if (!prenom) { lobbyMsg(S.prenomManquant, "err"); return; }
     E["btn-rejoindre"].disabled = true; lobbyMsg(S.connexion);
     // On ne reutilise QUE le jeton de cet onglet (sessionStorage) : un 2e onglet
@@ -338,6 +345,7 @@
     lobbyMsg(S.ouvrirAtelier(o));
     try { E["anim-prenom"].focus(); } catch (e) {}
   })();
+  majColonneRejoindre();
 
   /* ---------- Démarrage session ---------- */
   function demarrer(code, jeton, role, vue, moi) {
@@ -345,7 +353,10 @@
     etat.code = code; etat.jeton = jeton; etat.role = role;
     document.body.classList.add("role-" + role);
     E.lobby.hidden = true; E.app.hidden = false;
-    E["code-val"].textContent = code;
+    // Le code ne s'affiche plus nulle part (il reste dans l'URL et cote serveur).
+    // Ces elements peuvent donc etre absents du HTML : on garde les references
+    // pour ne rien casser si on les reintroduit un jour.
+    if (E["code-val"]) E["code-val"].textContent = code;
     // URL de reprise pour cet onglet : un rechargement rejoint la meme place.
     try { history.replaceState(null, "", location.pathname + "?s=" + code); } catch (e) {}
     demarrerQuandCartes(vue, 0);
@@ -356,7 +367,7 @@
   function demarrerQuandCartes(vue, essai) {
     chargerCartes().then(function () {
       centrer(); appliquerEtat(vue); setOutil("deplacer");
-      flash(etat.role === "animateur" ? S.partagezCode(etat.code) : S.attenteCarte);
+      flash(etat.role === "animateur" ? S.partagezLien : S.attenteCarte);
       boucle();
       // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
       setTimeout(function () { lancerTuto(false); }, 450);
@@ -435,7 +446,7 @@
     if (fleches.length >= 1) return null; // un lien cree : le principe est saisi
     var pool = v.pool || [];
     if (etat.role === "animateur") {
-      if ((v.participants || []).length === 0) return S.coachPartager(etat.code);
+      if ((v.participants || []).length === 0) return S.coachPartager;
       if (pool.length === 0 && cartes.length === 0) return S.coachPool;
       if (cartes.length >= 2) return S.coachRelier;
       return null;
@@ -1688,7 +1699,7 @@
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
-  E["code-chip"].addEventListener("click", function () { copier(etat.code, E["code-chip"].querySelector(".copier")); });
+  if (E["code-chip"]) E["code-chip"].addEventListener("click", function () { copier(etat.code, E["code-chip"].querySelector(".copier")); });
   E["btn-partager"].addEventListener("click", function () { copier(location.origin + location.pathname + "?s=" + etat.code, null, E["btn-partager"]); });
   function copier(txt, badge, btn) {
     copieRobuste(txt).then(function (ok) {

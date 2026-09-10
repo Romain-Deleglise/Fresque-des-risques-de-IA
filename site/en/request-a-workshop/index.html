@@ -70,7 +70,7 @@
         <div class="entete-sec">
           <p class="eyebrow">Workshops</p>
           <h2>Scheduled workshops</h2>
-          <p class="muted">Pick a public workshop and sign up: you'll receive a confirmation e-mail with the session code, the date and time (and the exact location for in-person workshops).</p>
+          <p class="muted">Pick a public workshop and sign up: you'll receive a confirmation e-mail with the date and time (and the exact location for in-person workshops) and, for an online workshop, the link that takes you straight to the shared board.</p>
         </div>
         <div id="liste-ateliers" class="ateliers-liste" data-passes aria-live="polite"></div>
         <p class="muted rgpd-note">When you sign up, your first name and e-mail are kept by Pause IA to manage the workshop and for any follow-up related to the collage. You can unsubscribe or ask for your data to be erased at any time at <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>. See the <a href="../../en/legal/">legal notice</a>.</p>
@@ -81,7 +81,7 @@
       <div class="wrap">
         <div class="entete-sec">
           <h2>Schedule a workshop</h2>
-          <p class="muted">Choose the format, date and number of seats. You'll receive a confirmation e-mail with the session code. A public workshop appears above; a private one stays known to you alone (share the code yourself). For an <strong>online</strong> workshop, on the day you open the live session with this code from the <a href="../../en-ligne/session/?lang=en">online Collage</a>.</p>
+          <p class="muted">Choose the format, date and number of seats. You'll receive a confirmation e-mail holding every link you need: the one to share so people can register, the one that opens your session on the day, and the one to move or cancel the workshop. No code to note down or type in. A public workshop appears above; a private one is reachable only through the link you circulate. For an <strong>online</strong> workshop, your link opens the <a href="../../en-ligne/session/?lang=en">online Collage</a> directly.</p>
         </div>
         <form id="form-programmer" class="form-atelier" novalidate>
           <fieldset class="champ-mode">
@@ -126,33 +126,39 @@
           <p class="muted rgpd-note">Your first name and e-mail are kept by Pause IA to manage your workshops and for any follow-up. Erasure on request at <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a> (see the <a href="../../en/legal/">legal notice</a>).</p>
         </form>
 
-        <div class="annuler-atelier">
-          <h3>Move a workshop</h3>
-          <p class="muted">A change of date? Enter the code, the facilitator's e-mail and the new date: registrants are notified automatically.</p>
-          <form id="form-deplacer" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
-              <label>New date<input name="date" type="date" required></label>
-              <label>New time<input name="heure" type="time" required></label>
+        <details class="gerer-atelier" id="gerer">
+          <summary>Manage an existing workshop</summary>
+          <p class="muted" id="gerer-note">Open the "move the workshop" link from your confirmation e-mail: the workshop is recognised automatically, you only enter your e-mail.</p>
+          <div id="gerer-formulaires" hidden>
+            <div class="annuler-atelier">
+              <h3>Move this workshop</h3>
+              <p class="muted">A change of date? Enter your facilitator e-mail and the new date: registrants are notified automatically.</p>
+              <form id="form-deplacer" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                  <label>New date<input name="date" type="date" required></label>
+                  <label>New time<input name="heure" type="time" required></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Move this workshop</button>
+                <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
             </div>
-            <button class="btn btn-noir" type="submit">Move this workshop</button>
-            <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
 
-        <div class="annuler-atelier">
-          <h3>Cancel a workshop</h3>
-          <p class="muted">Made a mistake? Enter the session code and the facilitator's e-mail to remove it from the list. (The link in your e-mail also cancels it in one click.)</p>
-          <form id="form-annuler" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Session code<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>Facilitator's e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+            <div class="annuler-atelier">
+              <h3>Cancel this workshop</h3>
+              <p class="muted">Made a mistake? Enter your facilitator e-mail to remove it from the list. (The "cancel" link in your e-mail also does it in one click.)</p>
+              <form id="form-annuler" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Cancel this workshop</button>
+                <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
             </div>
-            <button class="btn btn-noir" type="submit">Cancel this workshop</button>
-            <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
+          </div>
+        </details>
       </div>
     </section>
 

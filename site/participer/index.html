@@ -70,7 +70,7 @@
         <div class="entete-sec">
           <p class="eyebrow">Ateliers</p>
           <h2>Ateliers programmés</h2>
-          <p class="muted">Choisissez un atelier public et inscrivez-vous : vous recevrez un e-mail de confirmation avec le code de session, la date et l'heure (et le lieu exact si présentiel).</p>
+          <p class="muted">Choisissez un atelier public et inscrivez-vous : vous recevrez un e-mail de confirmation avec la date, l'heure (et le lieu exact si présentiel) et, pour un atelier en ligne, le lien qui vous amène directement au tableau partagé.</p>
         </div>
         <div id="liste-ateliers" class="ateliers-liste" data-passes aria-live="polite"></div>
         <p class="muted rgpd-note">En vous inscrivant, votre prénom et votre e-mail sont conservés par Pause IA pour la gestion de l'atelier et un éventuel suivi lié à la fresque. Vous pouvez vous désinscrire ou demander leur effacement à tout moment à <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>. Détails dans les <a href="../mentions-legales/">mentions légales</a>.</p>
@@ -81,7 +81,7 @@
       <div class="wrap">
         <div class="entete-sec">
           <h2>Programmer un atelier</h2>
-          <p class="muted">Choisissez le format, la date et le nombre de places. Vous recevez un e-mail de confirmation avec le code de session. Un atelier public apparaît ci-dessus ; un atelier privé reste connu de vous seul·e (donnez le code vous-même). Pour un atelier <strong>en ligne</strong>, le jour J vous ouvrez la session en direct avec ce code depuis la <a href="../en-ligne/session/">Fresque en ligne</a>.</p>
+          <p class="muted">Choisissez le format, la date et le nombre de places. Vous recevez un e-mail de confirmation contenant tous vos liens : celui à partager pour s'inscrire, celui qui ouvre votre session le jour J, et celui pour déplacer ou annuler l'atelier. Aucun code à noter ni à saisir. Un atelier public apparaît ci-dessus ; un atelier privé n'est accessible que par le lien que vous diffusez. Pour un atelier <strong>en ligne</strong>, le jour J votre lien ouvre directement la <a href="../en-ligne/session/">Fresque en ligne</a>.</p>
         </div>
         <form id="form-programmer" class="form-atelier" novalidate>
           <fieldset class="champ-mode">
@@ -126,33 +126,39 @@
           <p class="muted rgpd-note">Votre prénom et votre e-mail sont conservés par Pause IA pour la gestion de vos ateliers et un éventuel suivi. Effacement sur simple demande à <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a> (voir les <a href="../mentions-legales/">mentions légales</a>).</p>
         </form>
 
-        <div class="annuler-atelier">
-          <h3>Déplacer un atelier</h3>
-          <p class="muted">Un changement de date ? Saisissez le code, l'e-mail de l'animateur·ice et la nouvelle date : les inscrit·es seront prévenu·es automatiquement.</p>
-          <form id="form-deplacer" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Code de session<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>E-mail de l'animateur·ice<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
-              <label>Nouvelle date<input name="date" type="date" required></label>
-              <label>Nouvelle heure<input name="heure" type="time" required></label>
+        <details class="gerer-atelier" id="gerer">
+          <summary>Gérer un atelier existant</summary>
+          <p class="muted" id="gerer-note">Ouvrez le lien « déplacer l'atelier » de votre e-mail de confirmation : l'atelier concerné est reconnu tout seul, il ne vous reste que votre e-mail à saisir.</p>
+          <div id="gerer-formulaires" hidden>
+            <div class="annuler-atelier">
+              <h3>Déplacer cet atelier</h3>
+              <p class="muted">Un changement de date ? Indiquez votre e-mail d'animateur·ice et la nouvelle date : les inscrit·es seront prévenu·es automatiquement.</p>
+              <form id="form-deplacer" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>E-mail de l'animateur·ice<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                  <label>Nouvelle date<input name="date" type="date" required></label>
+                  <label>Nouvelle heure<input name="heure" type="time" required></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Déplacer cet atelier</button>
+                <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
             </div>
-            <button class="btn btn-noir" type="submit">Déplacer cet atelier</button>
-            <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
 
-        <div class="annuler-atelier">
-          <h3>Annuler un atelier</h3>
-          <p class="muted">Une erreur de saisie ? Saisissez le code de session et l'e-mail de l'animateur·ice pour le retirer de la liste. (Le lien reçu par e-mail permet aussi de l'annuler en un clic.)</p>
-          <form id="form-annuler" class="form-atelier" novalidate>
-            <div class="grille-champs">
-              <label>Code de session<input name="code" maxlength="8" required autocomplete="off" style="text-transform:uppercase"></label>
-              <label>E-mail de l'animateur·ice<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+            <div class="annuler-atelier">
+              <h3>Annuler cet atelier</h3>
+              <p class="muted">Une erreur de saisie ? Indiquez votre e-mail d'animateur·ice pour le retirer de la liste. (Le lien « annuler » reçu par e-mail le fait aussi en un clic.)</p>
+              <form id="form-annuler" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>E-mail de l'animateur·ice<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Annuler cet atelier</button>
+                <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
             </div>
-            <button class="btn btn-noir" type="submit">Annuler cet atelier</button>
-            <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
-          </form>
-        </div>
+          </div>
+        </details>
       </div>
     </section>
 

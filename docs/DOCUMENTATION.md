@@ -302,6 +302,7 @@ Magasin Blobs : `fresque-ateliers`. Règles pures : `serveur/src/ateliers.js`.
 |---|---|---|
 | `programmer` | mode, prénom/mail animateur, date, heure, max, visibilité, (lieu/adresse), (titre), (visioMode/visioUrl) | Crée l'atelier, génère un code de session, envoie l'e-mail de confirmation + invitation `.ics` |
 | `liste` | - | Renvoie les ateliers publics visibles au calendrier (7 j après le début), chacun avec un drapeau `ouvert` |
+| `voir` | code | Renvoie la fiche d'UN atelier, même privé : c'est le lien de participation (`?atelier=CODE`) qui fait office de laissez-passer. Limité en débit, avec un compteur dédié aux codes inconnus |
 | `inscrire` | code, prénom, mail | Inscrit un·e participant·e (jusqu'à 30 min après le début), envoie confirmation + notifie l'animateur |
 | `annuler` | code, token OU mail animateur | Supprime l'atelier, prévient les inscrit·es |
 | `reprogrammer` | code, token/mail, nouvelle date/heure | Déplace l'atelier, réinitialise les rappels, prévient les inscrit·es avec un nouvel `.ics` |
@@ -353,9 +354,28 @@ retrouve dans le panneau Participants sans rouvrir son e-mail.
 
 Cycle de vie d'une session : 12 h d'existence maximum, expiration après 2 h
 d'inactivité. Codes à 6 caractères alphanumériques, jetons personnels à 24
-caractères. Un atelier programmé « en ligne » peut être ouvert directement avec
-son code via `?ouvrir=CODE` (animateur) ; les participant·es rejoignent avec
-`?code=CODE`.
+caractères.
+
+**Le code de session est purement technique.** Il vit dans les URL et dans
+l'état serveur ; il n'est affiché nulle part, ni dans les e-mails, ni sur le
+site, et n'est jamais demandé à quiconque. Tout passe par des liens :
+
+| Lien | Pour qui | Effet |
+|---|---|---|
+| `/en-ligne/session/?ouvrir=CODE&prenom=…` | Animateur | Ouvre (ou reprend) SA session |
+| `/en-ligne/session/?code=CODE&prenom=…` | Participant | Rejoint la session |
+| `/en-ligne/session/?s=CODE` | Tous | Reprise de sa place après rechargement |
+| `/participer/?atelier=CODE` | Invité | Inscription à un atelier, même privé |
+| `/participer/?gerer=CODE#gerer` | Animateur | Déplacer / annuler (e-mail à saisir) |
+| `/participer/?annuler=CODE&t=…` | Animateur | Annulation en un clic |
+| `/participer/?desister=CODE&p=…` | Participant | Désinscription en un clic |
+
+Conséquences côté interface : la barre du haut de la session ne montre plus de
+puce « Code », seulement « Copier le lien d'invitation » ; les champs code du
+lobby sont des `input type="hidden"` remplis depuis l'URL, et sans lien la
+colonne « Rejoindre » n'affiche qu'une note renvoyant à l'e-mail ; sur la page
+Participer, « Gérer un atelier existant » est un bloc replié dont les
+formulaires ne demandent que l'e-mail.
 
 ### 7.3 Fonctions planifiées (cron dans `netlify.toml`)
 
@@ -465,19 +485,23 @@ Les adresses e-mail ne sont **jamais** exposées dans les vues publiques
 ## 10. E-mails transactionnels
 
 Tous partagent le gabarit `lib/gabarit.js` (en-tête orange, carte blanche, pied
-Pause IA) et existent en version HTML + texte brut.
+Pause IA) et existent en version HTML + texte brut. **Aucun n'affiche de code** :
+chaque destinataire reçoit le lien qui correspond à son rôle (voir 7.2). Les
+e-mails envoyés à la fois à l'animateur et aux inscrit·es (rappels, déplacement)
+portent le bouton « Rejoindre » et, en dessous, un lien discret « Vous animez cet
+atelier ? Ouvrez votre session ».
 
 | E-mail | Déclencheur | Destinataire | Contenu clé |
 |---|---|---|---|
-| Confirmation animateur | `programmer` | Animateur | Récap, code de session, visio, guide, `.ics`, liens annuler/déplacer |
-| Confirmation participant | `inscrire` | Participant | Récap, code, boutons rejoindre / visio / contacter l'animateur, `.ics`, désinscription |
+| Confirmation animateur | `programmer` | Animateur | Récap, bouton « Ouvrir ma session », lien de participation à partager, visio, guide, `.ics`, liens annuler/déplacer |
+| Confirmation participant | `inscrire` | Participant | Récap, boutons rejoindre / visio / contacter l'animateur, `.ics`, désinscription |
 | Notification inscription | `inscrire` | Animateur | Compteur d'inscrits, prénoms cliquables (mailto), bouton « écrire à tou·tes » (Cci) |
 | Désinscription (participant) | `desister` | Participant | Confirmation + autres ateliers |
 | Désinscription (animateur) | `desister` | Animateur | Compteur mis à jour |
 | Annulation | `annuler` | Inscrit·es (Cci) | Atelier annulé |
 | Déplacement | `reprogrammer` | Inscrit·es (Cci) | Ancienne/nouvelle date, nouveau `.ics` |
-| Rappel veille | planifié | Animateur + participants (Cci) | Code, visio, bouton rejoindre |
-| Rappel 1 h | planifié | Animateur + participants (Cci) | Version courte « ça commence bientôt » |
+| Rappel veille | planifié | Animateur + participants (Cci) | Visio, bouton « Rejoindre », lien discret « Ouvrez votre session » (animateur) |
+| Rappel 1 h | planifié | Animateur + participants (Cci) | Version courte « ça commence bientôt », mêmes liens |
 | Suivi | planifié | Animateur + participants (Cci) | Remerciement + invitation à animer |
 
 L'invitation calendrier (`.ics`) porte deux alarmes : `-P1D` (la veille) et
@@ -722,7 +746,9 @@ Améliorations possibles :
 - **Atelier** : événement planifié (date, format, animateur), avec inscriptions.
 - **Session** : instance temps réel du tableau partagé (un code, des rôles).
 - **Lot** : groupe de cartes distribué à une étape de l'atelier (1 à 5).
-- **Code de session** : identifiant à 6 caractères d'un atelier / d'une session.
+- **Code de session** : identifiant technique à 6 caractères d'un atelier / d'une
+  session. Il circule dans les URL et l'état serveur, il n'est jamais affiché ni
+  demandé à l'utilisateur.
 - **Jeton** : secret personnel (animateur : annuler/déplacer ; participant :
   reprise de session, désinscription).
 - **Blobs** : stockage clé/valeur de Netlify utilisé comme état.

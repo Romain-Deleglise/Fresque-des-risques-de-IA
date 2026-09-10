@@ -1,8 +1,10 @@
 /* Rappels d'ateliers (Netlify Scheduled Function).
    Programmee via netlify.toml (executee une fois par jour). Pour chaque atelier
    dont la date approche (dans les ~26 h) et pas encore rappele, envoie UN e-mail
-   a l'animateur + tous les participants (en Cci), avec le code de session, puis
-   marque l'atelier comme rappele. Sans RESEND_API_KEY, ne fait rien. */
+   a l'animateur + tous les participants (en Cci), puis marque l'atelier comme
+   rappele. Aucun code affiche : le bouton « Rejoindre » porte le code dans son
+   lien, et un lien discret permet a l'animateur d'ouvrir SA session.
+   Sans RESEND_API_KEY, ne fait rien. */
 "use strict";
 const { getStore } = require("@netlify/blobs");
 const mail = require("./lib/mail.js");
@@ -14,8 +16,15 @@ const FENETRE_MS = 26 * 60 * 60 * 1000;
 
 function store() { return getStore({ name: "fresque-ateliers" }); }
 
+// Liens porteurs du code : le code reste technique, il n'apparait nulle part.
+function lienRejoindre(a) { return LIEN + "/en-ligne/session/?code=" + a.code; }
+function lienOuvrir(a) {
+  return LIEN + "/en-ligne/session/?ouvrir=" + a.code
+    + (a.animateur && a.animateur.prenom ? "&prenom=" + encodeURIComponent(a.animateur.prenom) : "");
+}
+
 function mailRappel(a) {
-  const sessionUrl = LIEN + "/en-ligne/session/";
+  const sessionUrl = lienRejoindre(a);
   const noms = (a.participants || []).map((p) => p.prenom).filter(Boolean);
 
   const l = [];
@@ -26,11 +35,11 @@ function mailRappel(a) {
   l.push("Date : " + dateLisible(a.date, a.heure));
   l.push("Format : " + (a.mode === "enligne" ? "en ligne" : "en présentiel"));
   if (a.mode === "physique") { l.push("Lieu : " + a.lieu); if (a.adresse) l.push("Adresse : " + a.adresse); }
-  l.push("Code de session : " + a.code);
   if (a.visio) l.push("Visioconférence : " + a.visio);
   if (noms.length) l.push("Participants : " + noms.join(", ") + ".");
   l.push("");
-  if (a.mode === "enligne") { l.push("Rejoignez le tableau en ligne avec ce code :"); l.push(sessionUrl); }
+  if (a.mode === "enligne") { l.push("Rejoindre le tableau en ligne (un clic, rien à saisir) :"); l.push(sessionUrl); }
+  l.push("Vous animez cet atelier ? Ouvrez votre session : " + lienOuvrir(a));
   l.push("");
   l.push("À tout bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
@@ -41,15 +50,18 @@ function mailRappel(a) {
   info += row("Format", a.mode === "enligne" ? "En ligne" : "En présentiel");
   if (a.mode === "physique") { info += row("Lieu", a.lieu || ""); if (a.adresse) info += row("Adresse", a.adresse); }
   info += "</table>";
-  var code = '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:14px 18px;margin:0 0 16px;text-align:center;"><div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Code de session</div><div style="font-size:26px;font-weight:700;letter-spacing:3px;color:#9a4d0f;margin-top:4px;">' + h(a.code) + '</div></div>';
 
   let c = "";
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">Rappel : votre atelier de la Fresque des risques de l\'IA a lieu <strong>bientôt</strong>.</p>';
-  c += info + code;
+  c += info;
   if (noms.length) c += '<p style="margin:0 0 16px;color:#4a473f;"><strong>Participants :</strong> ' + h(noms.join(", ")) + '</p>';
   if (a.visio) c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
   if (a.mode === "enligne") c += '<p style="margin:0;text-align:center;">' + bouton(sessionUrl, "Rejoindre le tableau en ligne") + '</p>';
+  // L'e-mail part a l'animateur ET aux inscrit·es : ce lien discret est celui de
+  // l'animateur (il ouvre la session au lieu de la rejoindre).
+  c += '<p style="margin:14px 0 0;color:#8a8577;font-size:13px;text-align:center;">Vous animez cet atelier ? '
+    + '<a href="' + h(lienOuvrir(a)) + '" style="color:#B3610F;">Ouvrez votre session</a>.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
