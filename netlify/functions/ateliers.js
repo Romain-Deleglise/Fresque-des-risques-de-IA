@@ -124,7 +124,7 @@ function boiteCompteur(n, max) {
   var reste = 100 - pct;
   return '<div style="background:#f4faf4;border:1px solid #cfe6d3;border-radius:10px;padding:14px 18px;margin:0 0 18px;text-align:center;">'
     + '<div style="color:#6b6b6b;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">Inscrits</div>'
-    + '<div style="font-size:26px;font-weight:700;color:#2f7d4f;margin-top:2px;">' + n + ' <span style="color:#8a8577;font-size:17px;font-weight:600;">/ ' + h(String(max)) + '</span></div>'
+    + '<div style="font-size:26px;font-weight:700;color:#2f7d4f;margin-top:2px;">' + n + ' <span style="color:#6b665e;font-size:17px;font-weight:600;">/ ' + h(String(max)) + '</span></div>'
     + '<table role="presentation" width="100%" style="border-collapse:collapse;margin-top:10px;"><tr>'
     + '<td style="background:#2f7d4f;height:8px;border-radius:6px;font-size:0;line-height:0;width:' + pct + '%;">&nbsp;</td>'
     + (reste > 0 ? '<td style="background:#dce7dd;height:8px;border-radius:6px;font-size:0;line-height:0;width:' + reste + '%;">&nbsp;</td>' : '')
@@ -149,7 +149,7 @@ function boutonEcrireInscrits(a) {
   if (!mails.length) return "";
   var sujet = encodeURIComponent("Atelier Fresque des risques de l'IA du " + dateLisible(a.date, a.heure));
   return '<p style="margin:0 0 4px;text-align:center;">' + bouton("mailto:?bcc=" + mails.join(",") + "&subject=" + sujet, "Écrire à tou·tes les inscrit·es") + "</p>"
-    + '<p style="margin:0 0 12px;font-size:12px;color:#8a8577;">Adresses en copie cachée : les participant·es ne se voient pas entre eux.</p>';
+    + '<p style="margin:0 0 12px;font-size:12px;color:#6b665e;">Adresses en copie cachée : les participant·es ne se voient pas entre eux.</p>';
 }
 // Prénoms des inscrit·es en pastilles cliquables (mailto), pour l'animateur.
 function pucesContacts(parts) {
@@ -213,7 +213,7 @@ function mailNouvelInscrit(a, prenom) {
   c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> vient de s\'inscrire à votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
   c += boiteCompteur(n, max);
   if (n) {
-    c += '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits <span style="font-weight:400;color:#8a8577;font-size:12px;">(cliquez un prénom pour écrire)</span></p>' + pucesContacts(a.participants);
+    c += '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits <span style="font-weight:400;color:#6b665e;font-size:12px;">(cliquez un prénom pour écrire)</span></p>' + pucesContacts(a.participants);
     c += '<div style="margin-top:14px;">' + boutonEcrireInscrits(a) + '</div>';
   }
   return { text: l.join("\n"), html: mailHtml(c) };
@@ -250,7 +250,7 @@ function mailDesistAnimateur(a, prenom) {
   c += '<p style="margin:0 0 14px;">Bonjour ' + h(a.animateur.prenom) + ',</p>';
   c += '<p style="margin:0 0 18px;"><strong>' + h(prenom) + '</strong> s\'est désinscrit·e de votre atelier du <strong>' + h(dateLisible(a.date, a.heure)) + '</strong>.</p>';
   c += boiteCompteur(n, a.maxParticipants);
-  c += noms.length ? '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesContacts(a.participants) : '<p style="margin:0;color:#8a8577;">Plus aucun inscrit pour le moment.</p>';
+  c += noms.length ? '<p style="margin:0 0 8px;color:#4a473f;font-weight:600;">Participants inscrits</p>' + pucesContacts(a.participants) : '<p style="margin:0;color:#6b665e;">Plus aucun inscrit pour le moment.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -301,7 +301,7 @@ function mailAnnulation(a) {
 // desinscrire). Rien de commun a part les dates.
 function blocDates(ancien, nouveau) {
   return '<table style="border-collapse:collapse;margin:0 0 16px;font-size:14px;">'
-    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#8a8577;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
+    + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Ancienne date</td><td style="padding:5px 0;color:#6b665e;text-decoration:line-through;">' + h(ancien) + '</td></tr>'
     + '<tr><td style="padding:5px 14px 5px 0;color:#6b6b6b;">Nouvelle date</td><td style="padding:5px 0;font-weight:700;">' + h(nouveau) + '</td></tr></table>';
 }
 function mailDeplacementAnimateur(a, ancien) {
@@ -328,7 +328,7 @@ function mailDeplacementAnimateur(a, ancien) {
   c += boutonVisio(a);
   c += '<p style="margin:0 0 12px;color:#4a473f;">Une nouvelle invitation calendrier est jointe à cet e-mail.</p>';
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer à nouveau ou d\'annuler</a> ? Les inscrit·es seront prévenu·es.</p>';
+  c += '<p style="margin:0;color:#6b665e;font-size:13px;">Besoin de <a href="' + h(lienGerer(a)) + '" style="color:#B0560A;">déplacer à nouveau ou d\'annuler</a> ? Les inscrit·es seront prévenu·es.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 function mailDeplacementParticipants(a, ancien) {
@@ -419,8 +419,8 @@ function mailAnimateur(a) {
     c += '<p style="margin:0 0 18px;color:#4a473f;">Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe' + (a.visio ? ", ou utilisez la visio ci-dessus" : "") + '.</p>';
   }
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
-  c += '<p style="margin:0 0 6px;color:#8a8577;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B3610F;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer l\'atelier</a> (il ne vous restera que votre e-mail à saisir) : les inscrit·es sont prévenu·es automatiquement.</p>';
+  c += '<p style="margin:0 0 6px;color:#6b665e;font-size:13px;">Une erreur de saisie ? <a href="' + h(annulUrl) + '" style="color:#B0560A;">Annuler cet atelier</a>. Gardez ce lien pour vous : il permet d\'annuler l\'atelier.</p>';
+  c += '<p style="margin:0;color:#6b665e;font-size:13px;">Besoin de changer la date ? Vous pouvez <a href="' + h(lienGerer(a)) + '" style="color:#B0560A;">déplacer l\'atelier</a> (il ne vous restera que votre e-mail à saisir) : les inscrit·es sont prévenu·es automatiquement.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
@@ -464,7 +464,7 @@ function mailParticipant(a, participant) {
   c += boutonContactAnimateur(a);
   c += '<p style="margin:0 0 16px;color:#4a473f;">Aucun prérequis technique : les cartes expliquent tout au fur et à mesure. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail. À très vite !</p>';
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Un empêchement ? <a href="' + h(desistUrl) + '" style="color:#B3610F;">Se désinscrire</a> pour libérer votre place.</p>';
+  c += '<p style="margin:0;color:#6b665e;font-size:13px;">Un empêchement ? <a href="' + h(desistUrl) + '" style="color:#B0560A;">Se désinscrire</a> pour libérer votre place.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }

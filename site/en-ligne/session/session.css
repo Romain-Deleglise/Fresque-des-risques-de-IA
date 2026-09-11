@@ -77,7 +77,7 @@ body.barres-cachees .topbar, body.barres-cachees .toolbar{display:none}
 /* Participant hors ligne + bouton exclure (animateur). */
 .liste-part li.hors .nom{color:var(--gris)}
 .liste-part .hors-txt{color:var(--err)}
-.liste-part .part-x{border:0;background:transparent;color:var(--gris-clair);cursor:pointer;font-size:.9rem;border-radius:6px;padding:0 .3rem;flex:0 0 auto}
+.liste-part .part-x{border:0;background:transparent;color:var(--gris);cursor:pointer;font-size:.9rem;border-radius:6px;padding:0 .3rem;flex:0 0 auto}
 .liste-part .part-x:hover{color:var(--err);background:rgba(193,68,78,.1)}
 
 /* Sans lien d'invitation (aucun code dans l'URL), la colonne « Rejoindre » ne

@@ -14,7 +14,7 @@
 .stats-h { font-size: 1.3rem; margin: 2rem 0 1rem; }
 .barres { display: flex; align-items: flex-end; gap: 3px; height: 140px; border-bottom: 1px solid var(--ligne); padding-bottom: 1px; }
 .barre { flex: 1; display: flex; align-items: flex-end; height: 100%; min-width: 3px; }
-.barre .fill { display: block; width: 100%; background: var(--accent-txt); border-radius: 3px 3px 0 0; min-height: 2px; }
+.barre .fill { display: block; width: 100%; background: var(--accent-aplat); border-radius: 3px 3px 0 0; min-height: 2px; }
 
 .stats-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem; }
 .stats-table { width: 100%; border-collapse: collapse; font-family: var(--f-ui); font-size: .92rem; }

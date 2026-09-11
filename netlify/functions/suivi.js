@@ -42,13 +42,13 @@ function contenuSuivi() {
   c += '<p style="margin:0 0 14px;">Bonjour,</p>';
   c += '<p style="margin:0 0 16px;">Merci d\'avoir pris part à la Fresque des risques de l\'IA. Nous espérons qu\'elle vous a plu et donné des repères sur les enjeux de l\'IA.</p>';
   c += '<p style="margin:0 0 8px;font-weight:600;">Pour prolonger</p>';
-  c += '<p style="margin:0 0 16px;">Reprenez les <a href="' + h(cartes) + '" style="color:#B3610F;">cartes</a> quand vous voulez, et venez échanger sur notre <a href="' + h(DISCORD) + '" style="color:#B3610F;">Discord</a>.</p>';
+  c += '<p style="margin:0 0 16px;">Reprenez les <a href="' + h(cartes) + '" style="color:#B0560A;">cartes</a> quand vous voulez, et venez échanger sur notre <a href="' + h(DISCORD) + '" style="color:#B0560A;">Discord</a>.</p>';
   c += '<div style="background:#fdf2e6;border:1px solid #f3d5b0;border-radius:10px;padding:16px 18px;margin:0 0 8px;">';
   c += '<p style="margin:0 0 8px;font-weight:700;color:#9a4d0f;">Et si vous animiez à votre tour ?</p>';
   c += '<p style="margin:0 0 14px;color:#4a473f;">La fresque grandit surtout par ses animateurs. Pas besoin d\'être expert : le guide vous prépare, et vous programmez votre atelier en quelques minutes.</p>';
   c += '<p style="margin:0;text-align:center;">' + bouton(programmer, "Programmer un atelier") + '</p>';
   c += '</div>';
-  c += '<p style="margin:12px 0 0;font-size:13px;color:#8a8577;">Ou d\'abord <a href="' + h(guide) + '" style="color:#8a8577;">télécharger le guide d\'animation</a>.</p>';
+  c += '<p style="margin:12px 0 0;font-size:13px;color:#6b665e;">Ou d\'abord <a href="' + h(guide) + '" style="color:#6b665e;">télécharger le guide d\'animation</a>.</p>';
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }

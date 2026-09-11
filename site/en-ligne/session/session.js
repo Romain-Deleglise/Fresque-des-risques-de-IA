@@ -64,6 +64,7 @@
     poolCaseVide: "free slot",
     reserveGlisser: "Drag a card onto the reserve, or click it",
     curseursOn: "Other people's cursors: shown", curseursOff: "Other people's cursors: hidden",
+    relaisAncien: "Live sharing is running in reduced mode (the relay needs updating).",
     flecheEchap: "Click the target card (Esc cancels).",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
@@ -121,6 +122,7 @@
     poolCaseVide: "emplacement libre",
     reserveGlisser: "Glissez une carte sur la réserve, ou cliquez-la",
     curseursOn: "Curseurs des autres : affichés", curseursOff: "Curseurs des autres : masqués",
+    relaisAncien: "Partage en direct en mode réduit (le relais doit être mis à jour).",
     flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
@@ -896,7 +898,7 @@
       api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
         if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
-        else { g.reserve = true; envoyerWS({ t: "maj" }); if (res.d && res.d.etat) appliquerEtat(res.d.etat, true); }
+        else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerEtat(res.d.etat); } }
       }).catch(function () {});
       g.fantome = fantome(g.n);
       if (g.el) g.el.classList.add("en-glisse");
@@ -1208,12 +1210,17 @@
     // Fond blanc + texte foncé fixe (sinon, en thème sombre, --ink est clair et
     // le texte devient illisible sur le fond blanc).
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#ffffff;color:#1b1a17;width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
-    function commitLib() { agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
+    // On capture le champ dans la fermeture : `editLib` est remis a null par
+    // deselect(), et un envoi etale encore en attente lisait alors `null.value`
+    // (erreur JS silencieuse dans un minuteur).
+    var champ = editLib;
+    function commitLib() { if (champ) agir({ op: "libellerFleche", id: id, libelle: champ.value }); }
     editLib._commit = commitLib;
+    editLib._cle = "lib:" + id;
     editLib.addEventListener("input", function () {
       // 1) tout de suite chez les autres (ephemere) ; 2) memoire serveur, etalee.
-      envoyerWS({ t: "lib", cid: id, v: editLib.value });
-      libelleEnDirect(id, editLib.value);
+      envoyerWS({ t: "lib", cid: id, v: champ.value });
+      libelleEnDirect(id, champ.value);
       frappe("lib:" + id, 220, commitLib);
     });
     editLib.addEventListener("change", commitLib);
@@ -1242,7 +1249,9 @@
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
-    if (editLib && editLib._commit) { try { editLib._commit(); } catch (e) {} } // valider le libellé en cours
+    // Valider le libelle en cours, et annuler l'envoi etale qui restait en
+    // attente : sans cela il partait apres coup, sur un champ deja retire.
+    if (editLib) { if (editLib._cle) frappe.annuler(editLib._cle); if (editLib._commit) { try { editLib._commit(); } catch (e) {} } }
     etat.sel = null; [croix, editLib, bidir, barreCarte].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = barreCarte = null; dessinerFleches();
   }
   function positionnerEditeurs() {
@@ -1319,7 +1328,7 @@
     var el = creerElTexte({ id: "", x: x, y: y, contenu: "" });
     el.style.left = x + "px"; el.style.top = y + "px"; el._x = x; el._y = y;
     el.setAttribute("contenteditable", "true"); E.monde.appendChild(el); el.focus();
-    var enCours = false;
+    var enCours = false, aEnvoyer = null;
     el.oninput = function () {
       var v = el.textContent;
       if (el._id) {
@@ -1334,15 +1343,22 @@
       agir({ op: "creerTexte", x: x, y: y, contenu: v }, function (d) {
         var id = d && d.resultat && d.resultat.id;
         enCours = false;
-        if (!id) return;
+        if (!id) { el.remove(); return; }
         el._id = id; el.dataset.id = id; etat.elTextes[id] = el;
         if (el.getAttribute("contenteditable") === "true") el.oninput();  // rattraper la frappe
+        else if (aEnvoyer != null) { var v2 = aEnvoyer; aEnvoyer = null; agir({ op: "modifierTexte", id: id, contenu: v2 }); }
       });
     };
     el.onblur = function () {
       el.removeAttribute("contenteditable"); el.oninput = null;
       var v = el.textContent.trim();
       if (el._id) { agir({ op: "modifierTexte", id: el._id, contenu: v }); return; }
+      // Quitter la note pendant que sa CREATION est encore en vol : il ne faut
+      // surtout pas en creer une seconde. On garde le texte de cote, la reponse
+      // de la creation l'enverra. Sans cela, une frappe rapide suivie d'un clic
+      // ailleurs laissait une note fantome avec la premiere lettre (« n »), en
+      // plus de la vraie : c'est elle qu'on retrouvait en trop dans l'image.
+      if (enCours) { aEnvoyer = v; return; }
       el.remove();
       if (v) agir({ op: "creerTexte", x: x, y: y, contenu: v });
     };
@@ -1382,8 +1398,17 @@
       etat.attente = Math.max(0, etat.attente - 1);
       // On ne reconcilie qu'une fois la file vide : appliquer un etat intermediaire
       // annulerait a l'ecran les actions encore en attente (clignotement).
-      if (res.d && res.d.etat && !fileAgir.length && etat.attente === 0) appliquerEtat(res.d.etat, true);
-      envoyerWS({ t: "maj" });
+      var vue = res.d && res.d.etat;
+      if (vue && !fileAgir.length && etat.attente === 0) appliquerEtat(vue, true);
+      // On DIFFUSE L'ETAT, pas un simple signal. Dire « relisez » ne servait a
+      // rien : les lectures du magasin sont eventuellement coherentes, les
+      // autres relisaient la valeur perimee pendant plusieurs secondes. Ici ils
+      // recoivent l'etat que le serveur vient de nous renvoyer, donc a jour.
+      // On diffuse TOUJOURS l'etat recu du serveur, meme si d'autres actions a
+      // nous sont encore en file : c'est un etat serveur reel, et les autres
+      // n'ont, eux, rien en cours. Ne le diffuser qu'en fin de file laissait
+      // fleches et notes attendre le sondage (donc des secondes).
+      envoyerEtat(vue);
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
     }).catch(function () {
       etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
@@ -1456,7 +1481,11 @@
      bloque, ou tombe, le jeu continue normalement (aucune erreur, aucun blocage,
      on retombe simplement sur le sondage). Reconnexion avec backoff borne. */
   var CURSEURS_WS = "wss://curseurs.pauseia.fr";
-  var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
+  var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false,
+    sansEtat: false, etatTs: 0, coupures: 0 };
+  // Un etat de tableau complet pese ~4 Ko ; on ne depasse jamais cette borne
+  // (le relais accepte 96 Ko). Au-dela, on se contente du signal « maj ».
+  var LIMITE_ETAT = 60 * 1024;
   try { curs.montrer = localStorage.getItem("curseurs-off") !== "1"; } catch (e) {}
   var flLive = {};   // traces de fleche en cours des autres : id -> { de, x, y, ts }
   function connecterCurseurs() {
@@ -1470,7 +1499,23 @@
     ws.onopen = function () { curs.essais = 0; };
     ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirRelais(m); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
-    ws.onclose = function () { curs.ws = null; planifierReconnexionCurseurs(); };
+    ws.onclose = function (ev) {
+      curs.ws = null;
+      // Un relais pas encore mis a jour plafonne les messages a 2 Ko et COUPE la
+      // connexion quand on lui envoie un etat (code 1009). Sans garde-fou, on
+      // bouclerait sur des coupures et les curseurs eux-memes disparaitraient.
+      // On le detecte et on retombe sur le simple signal « maj » pour la suite.
+      var code = ev && ev.code;
+      var justeApresEtat = curs.etatTs && Date.now() - curs.etatTs < 2000;
+      if (code === 1009 || justeApresEtat) {
+        curs.coupures++;
+        if (!curs.sansEtat && (code === 1009 || curs.coupures >= 2)) {
+          curs.sansEtat = true;
+          flash(S.relaisAncien);
+        }
+      }
+      planifierReconnexionCurseurs();
+    };
   }
   function planifierReconnexionCurseurs() {
     if (curs.ferme) return;
@@ -1486,6 +1531,22 @@
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     try { ws.send(JSON.stringify(obj)); } catch (e) {}
   }
+  // Diffusion de l'etat : la voie rapide. On retombe sur « maj » si le relais
+  // ne sait pas la prendre (ancienne version) ou si le tableau est hors norme.
+  function envoyerEtat(vue) {
+    if (!vue) { envoyerWS({ t: "maj" }); return; }
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    if (!curs.sansEtat) {
+      var txt = null;
+      try { txt = JSON.stringify({ t: "etat", s: vue }); } catch (e) {}
+      if (txt && txt.length <= LIMITE_ETAT) {
+        curs.etatTs = Date.now();
+        try { ws.send(txt); } catch (e) {}
+        return;
+      }
+    }
+    envoyerWS({ t: "maj" });
+  }
   function envoyerCurseur(cx, cy) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
@@ -1496,7 +1557,16 @@
     if (!m || !m.id) return;
     switch (m.t) {
       case "leave": enleverCurseur(m.id); delete flLive[m.id]; dessinerFlechesLive(); return;
-      case "maj": pollerVite(); return;                 // quelqu'un a agi : on relit tout de suite
+      // Etat pousse par la personne qui vient d'agir. On ne l'applique que s'il
+      // est STRICTEMENT plus recent que le notre. Un etat de MEME version n'est
+      // pas forcement le meme contenu : si deux personnes agissent depuis la
+      // meme version, les deux resultats portent le numero suivant. L'appliquer
+      // ferait bouger une carte toute seule, ou disparaitre une fleche. A
+      // version egale on garde la notre ; le sondage tranchera.
+      case "etat":
+        if (m.s && m.s.version > etat.version) { activite(); appliquerEtat(m.s); }
+        return;
+      case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;
@@ -1536,15 +1606,25 @@
   function creerCurseur(id, nom) {
     var el = document.createElement("div"); el.className = "curseur-live";
     var coul = couleurCurseur(id);
-    // Contour blanc ET ombre foncee : la fleche et l'etiquette restent lisibles
-    // quel que soit le fond du tableau (clair, sombre, image de carte).
-    el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="2"/></svg>'
+    // DOUBLE LISERE. Aucune couleur ne peut etre lisible a la fois sur un
+    // tableau blanc et sur un tableau noir : on ne compte donc pas sur la
+    // couleur, mais sur deux contours. La fleche est tracee deux fois : un
+    // trait FONCE large (qui la detache d'un fond clair), puis un trait BLANC
+    // fin (qui la detache d'un fond sombre), et enfin le remplissage de
+    // couleur, qui ne sert plus qu'a identifier la personne. Meme principe pour
+    // l'etiquette du prenom, en CSS.
+    var d = "M4 2 L20 12 L12.5 13.2 L9 21 Z";
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'
+      + '<path d="' + d + '" fill="none" stroke="#14110d" stroke-width="5.5" stroke-linejoin="round"/>'
+      + '<path d="' + d + '" fill="' + coul + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>'
       + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
     el.hidden = !curs.montrer;
     return el;
   }
+  // Teintes assombries : le prenom s'ecrit en blanc par-dessus, il lui faut au
+  // moins 4,5:1 (l'orange et le cyan d'avant tombaient a 2,8 et 4,1).
   function couleurCurseur(id) {
-    var p = ["#E8811C", "#2f7d4f", "#3b6ea5", "#8a4fb3", "#c1444e", "#1d8a9c", "#b5771a"];
+    var p = ["#A8560A", "#1f6b40", "#2d5b8f", "#6f3a99", "#a8353f", "#116d7d", "#8a5a12"];
     var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     return p[h % p.length];
   }
@@ -1592,6 +1672,9 @@
     if (frappe.t[cle]) return;                    // un envoi est deja programme
     frappe.t[cle] = setTimeout(function () { delete frappe.t[cle]; fn(); }, ms);
   }
+  frappe.annuler = function (cle) {
+    if (frappe.t && frappe.t[cle]) { clearTimeout(frappe.t[cle]); delete frappe.t[cle]; }
+  };
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
@@ -1778,11 +1861,16 @@
     if (e) e.addEventListener("click", exporterImage);
   })();
   // Deck (animateur) : replier / deplier le jeu complet en bas de l'ecran.
-  if (E["deck-toggle"] && E["deck"]) E["deck-toggle"].addEventListener("click", function () {
-    var replie = E["deck"].classList.toggle("replie");
-    this.setAttribute("aria-expanded", replie ? "false" : "true");
-    reflowPlein();
-  });
+  if (E["deck-toggle"] && E["deck"]) {
+    // Pli memorise par navigateur, comme celui de la reserve.
+    try { if (localStorage.getItem("fresque:deckreplie") === "1") { E["deck"].classList.add("replie"); E["deck-toggle"].setAttribute("aria-expanded", "false"); } } catch (e) {}
+    E["deck-toggle"].addEventListener("click", function () {
+      var replie = E["deck"].classList.toggle("replie");
+      this.setAttribute("aria-expanded", replie ? "false" : "true");
+      try { localStorage.setItem("fresque:deckreplie", replie ? "1" : "0"); } catch (e) {}
+      reflowPlein();
+    });
+  }
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
