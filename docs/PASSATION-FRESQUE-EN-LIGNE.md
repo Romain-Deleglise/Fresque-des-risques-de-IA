@@ -189,6 +189,86 @@ cohérence forte : si quelqu'un la remet, les six tests tombent.
 relevées) : voir `infra/curseurs/README.md`. Sans cela le direct retombe sur le
 sondage.
 
+### Le temps réel, refait en trois couches (le point important)
+
+Le jeu était illisible : plusieurs secondes entre le geste de quelqu'un et ce
+que les autres voyaient, des cartes qui « bougeaient toutes seules », une carte
+posée qui n'arrivait jamais puis repartait dans la réserve. Deux causes, toutes
+les deux corrigées.
+
+**Cause 1 : le battement de présence réécrivait le tableau.** À chaque sondage,
+le serveur lisait le document de session (lecture *éventuellement cohérente*,
+donc potentiellement vieille de plusieurs secondes), y posait l'horodatage de
+présence, et le réécrivait **entier, sans changer le numéro de version**. Il
+remettait donc le tableau dans son état d'avant, en silence et sans que rien ne
+puisse le détecter : même version, contenu plus ancien. Avec huit personnes qui
+sondent, cela arrivait en permanence. Le garde-fou `onlyIfMatch` n'a jamais pu
+l'arrêter, puisqu'il n'existe pas dans `@netlify/blobs` 8.x. La présence vit
+maintenant dans **son propre magasin** (`fresque-presence`, un document
+`{ id: horodatage }` par session) : perdre un battement n'a aucune conséquence,
+et le document de session n'est plus écrit que par de vraies actions.
+
+**Cause 2 : la propagation passait par le magasin.** Elle ne pouvait donc pas
+être plus rapide que sa cohérence. C'est le schéma que tout le monde a résolu
+de la même façon (Figma, Excalidraw, Liveblocks, Supabase Realtime) :
+**trois couches**, et la base n'est jamais sur le chemin du direct.
+
+| Couche | Contenu | Transport | Enregistré |
+|---|---|---|---|
+| Éphémère | curseurs, flèche en cours, **carte en cours de déplacement** | relais WS | non |
+| Provisoire | l'action qu'on vient de faire, poussée **avant** la réponse du serveur | relais WS | non |
+| Autoritaire | l'état du tableau | fonction Netlify + Blobs | oui |
+
+Concrètement :
+1. `agir()` applique l'action chez soi, puis **diffuse tout de suite sa vue
+   optimiste** (`_prov` à l'intérieur de `s`, parce que le relais ne recopie que
+   ce champ). Les autres l'affichent sans attendre le serveur.
+2. Un rendu provisoire **ne fait jamais avancer le numéro de version** : l'état
+   autoritaire qui porte le même numéro sera donc bien appliqué ensuite et
+   corrigera si le serveur a refusé. Un filet de 2,5 s redemande l'état complet
+   si aucune confirmation n'arrive.
+3. Pendant qu'on déplace une carte, le **geste** est relayé (`gliss`, ~30/s,
+   quelques octets). Chez les autres, la vraie carte bouge si elle est déjà sur
+   le tableau, sinon un fantôme la représente. Rien n'est enregistré.
+4. Le point de dépôt d'une carte posée au clic est choisi **par le client** et
+   non plus tiré au hasard par le serveur : sans cela il était impossible de
+   montrer la carte avant sa réponse.
+5. Côté serveur, une action n'est plus appliquée sur une lecture **prouvée
+   périmée** (le client envoie la version qu'il a sous les yeux), et le sondage
+   ne sert jamais un état plus vieux que celui que le client possède déjà.
+
+**Mesuré** (banc à deux navigateurs, vrai relais, magasin volontairement en
+retard de 3 s et fonction à 350 ms) :
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Déplacement d'une carte vu par les autres **pendant** le geste | invisible | **20 ms** |
+| Pose d'une carte vue par les autres | 376 ms (et des secondes avec le bug de présence) | **23 ms** |
+| Fantôme d'une carte tirée de la réserve | invisible | **19 ms** |
+| Tableaux identiques des deux côtés après 5 poses | - | oui |
+
+Mêmes chiffres avec un magasin en retard de **6 s** et une fonction à 900 ms.
+
+**Le relais doit être redéployé** pour les messages `gliss` (voir
+`infra/curseurs/README.md`). Sans cela, les déplacements en cours ne se voient
+pas ; tout le reste fonctionne déjà.
+
+### Homonymes et lisibilité des curseurs
+
+- **Deux fois le même prénom.** La seconde personne est maintenant refusée à
+  l'entrée (`prenom_pris` dans `serveur/src/regles.js`) avec une consigne
+  utile : ajouter la première lettre de son nom de famille. La comparaison
+  ignore la casse, les accents et les espaces, et ne regarde que les personnes
+  présentes, pour qu'un prénom libéré par un départ ne bloque personne. La
+  numérotation `Antoine ·1 / ·2` reste dans la liste des participants, mais
+  seulement comme filet pour les sessions ouvertes avant ce changement.
+- **Étiquette des curseurs.** Les deux cernes (foncé puis blanc) sont
+  maintenant posés à l'EXTÉRIEUR de la pastille, et le corps est passé de
+  .68rem à .78rem. Le liseré blanc intérieur d'avant mangeait la pastille de
+  couleur et rapprochait le blanc du texte du blanc du fond : sur un tableau
+  clair, le prénom se lisait mal. Les sept couleurs gardent au moins 5,2:1 avec
+  le texte blanc.
+
 ### Notes et libellés : deux courses corrigées
 
 - **Note fantôme.** Taper vite puis cliquer ailleurs créait DEUX notes : la

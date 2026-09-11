@@ -58,6 +58,33 @@ function participantsConnectes(s) {
   return s.participants.filter(function (p) { return p.connecte; }).length;
 }
 
+/* Homonymes : deux « Antoine » dans la salle et plus personne ne sait qui est
+   qui, ni sur les curseurs, ni dans la liste, ni au moment d'exclure quelqu'un.
+   Numeroter les doublons (Antoine 1, Antoine 2) ne dit rien a personne : on
+   refuse plutot la seconde entree, en demandant la premiere lettre du nom de
+   famille. La comparaison ignore la casse, les accents et les espaces en trop,
+   pour que « Chloé » et « chloe » comptent comme un seul prenom.
+   On ne regarde que les personnes PRESENTES : un prenom libere par quelqu'un
+   qui est parti ne doit bloquer personne. */
+function normPrenom(x) {
+  var t = String(x == null ? "" : x);
+  if (t.normalize) t = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return t.toLowerCase().replace(/\s+/g, " ").trim();
+}
+function prenomPris(s, prenom, saufId) {
+  var k = normPrenom(prenom);
+  if (!k) return false;
+  if (s.animateur.id !== saufId && present(s.animateur) && normPrenom(s.animateur.prenom) === k) return true;
+  return s.participants.some(function (p) {
+    return p.id !== saufId && present(p) && normPrenom(p.prenom) === k;
+  });
+}
+function refusPrenom(prenom) {
+  var q = tronque(prenom, LEN_PRENOM);
+  return { refus: { code: "prenom_pris", prenom: q,
+    message: "Il y a déjà « " + q + " » dans la salle. Ajoutez la première lettre de votre nom de famille, par exemple « " + q + " D. », pour que tout le monde s'y retrouve." } };
+}
+
 // rejoindre : jeton connu → reprise de place ; sinon nouveau participant
 function rejoindre(s, prenom, jeton) {
   if (s.clos) return { refus: { code: "session_inconnue", message: "Cette session est terminée." } };
@@ -66,12 +93,19 @@ function rejoindre(s, prenom, jeton) {
     var info = s.jetons[jeton];
     if (info.role === "animateur") { s.animateur.connecte = true; s.animateur.vuLe = Date.now(); return { role: "animateur", jeton: jeton }; }
     var p = s.participants.find(function (x) { return x.id === info.id; });
-    if (p) { p.connecte = true; p.vuLe = Date.now(); if (prenom) p.prenom = tronque(prenom, LEN_PRENOM); return { role: "participant", jeton: jeton, id: p.id }; }
+    if (p) {
+      // Reprise : on ne refuse jamais le retour a sa place, seulement un
+      // changement de prenom vers celui de quelqu'un d'autre.
+      if (prenom && prenomPris(s, prenom, p.id)) return refusPrenom(prenom);
+      p.connecte = true; p.vuLe = Date.now(); if (prenom) p.prenom = tronque(prenom, LEN_PRENOM);
+      return { role: "participant", jeton: jeton, id: p.id };
+    }
   }
   // nouvelle place
   if (participantsConnectes(s) >= MAX_PARTICIPANTS) {
     return { refus: { code: "session_pleine", message: "La session est complète (8 participants)." } };
   }
+  if (prenomPris(s, prenom, null)) return refusPrenom(prenom);
   var id = "p" + (s.seq++);
   var nouveau = { id: id, prenom: tronque(prenom, LEN_PRENOM) || "Invité", connecte: true, vuLe: Date.now() };
   s.participants.push(nouveau);

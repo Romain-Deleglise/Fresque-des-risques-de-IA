@@ -14,6 +14,7 @@
     ouvrirAtelier: function (c) { return "Opening workshop " + c + ": enter your first name, then click “Open the session”."; },
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
+    prenomPris: function (p) { return "There is already a \u201C" + p + "\u201D in the room. Add the first letter of your surname, for example \u201C" + p + " D.\u201D, so everyone can tell you apart."; },
     rechargerErreur: "Could not load the board. Check your connection and reload the page.",
     partagezLien: "Copy the invitation link and send it to the group.",
     sansLien: "To join, open the link you received by e-mail.",
@@ -72,6 +73,7 @@
     ouvrirAtelier: function (c) { return "Ouverture de l'atelier " + c + " : entrez votre prénom, puis cliquez sur « Ouvrir la session »."; },
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
+    prenomPris: function (p) { return "Il y a déjà « " + p + " » dans la salle. Ajoutez la première lettre de votre nom de famille, par exemple « " + p + " D. », pour que tout le monde s'y retrouve."; },
     rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
     partagezLien: "Copiez le lien d'invitation et envoyez-le au groupe.",
     sansLien: "Pour rejoindre, ouvrez le lien reçu par e-mail.",
@@ -244,6 +246,18 @@
 
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
+  // Message d'un refus du serveur. Les refus connus sont traduits ici (le
+  // serveur ne parle que francais) ; les autres sont repris tels quels.
+  function msgRefus(r, defaut) {
+    if (!r) return defaut;
+    if (r.code === "prenom_pris" && S.prenomPris) return S.prenomPris(r.prenom || "");
+    return r.message || defaut;
+  }
+  // Prenom deja pris : on garde ce qui a ete tape et on replace le curseur a la
+  // fin du champ, pour n'avoir qu'une lettre a ajouter.
+  function reprendrePrenom(champ) {
+    try { var n = champ.value.length; champ.focus(); champ.setSelectionRange(n, n); } catch (e) {}
+  }
 
   var codeSouhaite = null; // code reserve (atelier) a ouvrir, transmis par ?ouvrir=
   E["btn-creer"].addEventListener("click", function () {
@@ -260,12 +274,12 @@
         var jr = jetonTab(res.d.code) || jetonAnim(res.d.code);
         api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jr }).then(function (r2) {
           if (r2.d && r2.d.jeton) { memoriser(res.d.code, r2.d.jeton, r2.d.role); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
-          else lobbyMsg((r2.d && r2.d.refus && r2.d.refus.message) || S.echec, "err");
+          else { lobbyMsg(msgRefus(r2.d && r2.d.refus, S.echec), "err"); reprendrePrenom(E["anim-prenom"]); }
         }).catch(function () { lobbyMsg(S.indispoMoment, "err"); });
         return;
       }
       if (res.d && res.d.code) { memoriser(res.d.code, res.d.jeton, res.d.role); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
-      else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
+      else { lobbyMsg((res.d && res.d.error) || msgRefus(res.d && res.d.refus, S.echec), "err"); reprendrePrenom(E["anim-prenom"]); }
     }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
   });
 
@@ -291,7 +305,7 @@
     api("rejoindre", { code: code, prenom: prenom, jeton: jetonTab(code) }).then(function (res) {
       E["btn-rejoindre"].disabled = false;
       if (res.d && res.d.jeton) { memoriser(code, res.d.jeton, res.d.role); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-      else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || S.codeInconnu, "err");
+      else { lobbyMsg(msgRefus(res.d && res.d.refus, S.codeInconnu), "err"); reprendrePrenom(E["join-prenom"]); }
     }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
 
@@ -369,7 +383,7 @@
   // croissant plutot que de rester sur un tableau nu et sans instructions.
   function demarrerQuandCartes(vue, essai) {
     chargerCartes().then(function () {
-      centrer(); appliquerEtat(vue); setOutil("deplacer");
+      centrer(); appliquerEtat(vue, true); setOutil("deplacer");
       flash(etat.role === "animateur" ? S.partagezLien : S.attenteCarte);
       boucle();
       // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
@@ -394,9 +408,12 @@
   var pollTimer = null, hs = false;
   function boucle() {
     clearTimeout(pollTimer);
-    api("etat", { code: etat.code, jeton: etat.jeton, version: etat.version }).then(function (res) {
+    // `resyncDemande` : on redemande tout en pretendant ne rien savoir, pour que
+    // le serveur renvoie la vue complete et qu'on la reprenne sans discuter.
+    var resync = resyncDemande; resyncDemande = false;
+    api("etat", { code: etat.code, jeton: etat.jeton, version: resync ? 0 : etat.version }).then(function (res) {
       marquerConnexion(true);
-      if (res.d && res.d.etat) appliquerEtat(res.d.etat);
+      if (res.d && res.d.etat) appliquerEtat(res.d.etat, resync ? "force" : undefined);
       else if (res.d && res.d.refus) { flash(res.d.refus.message || S.sessionTerminee); }
     }).catch(function () { marquerConnexion(false); }).finally(function () {
       pollTimer = setTimeout(boucle, Date.now() < rapideJusqu ? POLL_RAPIDE : POLL_LENT);
@@ -406,16 +423,63 @@
   function marquerConnexion(ok) { if (ok === hs) { hs = !ok; E["etat-conn"].classList.toggle("hs", !ok); } }
 
   /* ---------- Application de l'état serveur (déclaratif) ---------- */
-  function appliquerEtat(vue, force) {
+  /* TROIS COUCHES, comme tous les tableaux collaboratifs (Figma, Excalidraw,
+     Liveblocks...) :
+       - EPHEMERE   : curseurs, fleche en cours, carte en cours de glissement.
+                      Relais uniquement, jamais enregistre.
+       - PROVISOIRE : l'action qu'on vient de faire, poussee aux autres AVANT
+                      meme la reponse du serveur. C'est ce qui rend le jeu
+                      lisible : chacun voit le geste des autres en quelques
+                      dizaines de millisecondes, au lieu d'attendre l'aller-
+                      retour HTTP puis le sondage.
+       - AUTORITAIRE: l'etat renvoye par le serveur, seule verite, seule memoire.
+     La regle d'or : un rendu provisoire ne fait JAMAIS avancer notre numero de
+     version. L'etat autoritaire qui porte le meme numero sera donc bien
+     applique ensuite, et corrigera si le serveur a refuse l'action. */
+  var retards = 0;          // etats serveur plus vieux que le notre, d'affilee
+  var provisoire = 0;       // un rendu provisoire attend sa confirmation
+  var provTimer = null;
+  var resyncDemande = false; // redemander l'etat complet au prochain sondage
+  function marquerProvisoire() {
+    provisoire = 1;
+    clearTimeout(provTimer);
+    // Filet : un rendu provisoire qui n'est jamais confirme serait un tableau
+    // qui ment. Passe ce delai, on redemande l'etat complet au serveur.
+    provTimer = setTimeout(function () {
+      provisoire = 0; resyncDemande = true; pollerVite();
+    }, 2500);
+  }
+  function appliquerEtat(vue, mode) {
     if (!vue) return;
-    if (vue.version < etat.version) return; // vieil état
-    // Rendu optimiste en cours : un etat de MEME version precede forcement notre
-    // action locale ; l'appliquer ferait clignoter l'ecran (la carte reviendrait
-    // dans le pool le temps d'un aller-retour). On l'ignore, la reponse de
-    // l'action (force) ou la version suivante fera foi.
-    if (!force && vue.version === etat.version && etat.attente > 0) return;
-    if (vue.version !== etat.version) activite(); // changement reçu : on reste réactif
-    etat.vue = vue; etat.version = vue.version;
+    var force = mode === true || mode === "force";
+    var prov = mode === "prov";
+    if (vue._prov) { try { delete vue._prov; } catch (e) {} }
+    // RIEN D'AUTORITAIRE N'EST APPLIQUE QUI NE SOIT STRICTEMENT PLUS RECENT. Le
+    // magasin sert des lectures eventuellement coherentes : un sondage peut
+    // tres bien nous rendre l'etat d'il y a trois secondes. Le poser sur le
+    // tableau, c'est faire reculer tout le monde : la carte que quelqu'un vient
+    // de poser repart dans la reserve, une fleche disparait, une carte « bouge
+    // toute seule ». A version EGALE aussi : deux actions parties de la meme
+    // version portent le meme numero suivant, avec des contenus differents.
+    if (prov) {
+      if (vue.version < etat.version) return;   // notre tableau est deja plus loin
+      marquerProvisoire();
+    } else if (!force) {
+      if (vue.version > etat.version) { retards = 0; }
+      // Meme numero : on n'applique que pour remplacer un rendu provisoire par
+      // la verite du serveur. Sinon on garde le notre.
+      else if (vue.version === etat.version) { if (!provisoire) return; }
+      // Plus vieux que nous. Presque toujours une lecture perimee, qu'on
+      // ignore. Mais si le serveur insiste, c'est que notre version venait d'un
+      // etat relaye que le magasin n'a pas conserve : il est l'autorite, on se
+      // resynchronise plutot que de rester bloque sur un tableau fantome.
+      else if (++retards < 4) { return; }
+      else { retards = 0; }
+    }
+    if (!prov) { provisoire = 0; clearTimeout(provTimer); }
+    activite();                                  // ca bouge : on reste reactif
+    etat.vue = vue;
+    if (!prov) etat.version = vue.version;
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
     rendrePool(vue);
@@ -594,9 +658,10 @@
       + "|" + etat.role + "|" + _idMoi;
     if (sig === etat._sigPart) return; etat._sigPart = sig;
     var ul = E["liste-part"]; ul.innerHTML = "";
-    // Distinguer les homonymes : si un prénom apparaît plusieurs fois, on
-    // numérote les occurrences (Antoine ·1, Antoine ·2) pour que tout le monde
-    // s'y retrouve.
+    // Filet de sécurité pour les homonymes. L'entrée les refuse maintenant en
+    // amont (règle `prenom_pris` : on demande une lettre du nom de famille),
+    // mais une session ouverte avant ce changement peut encore en contenir :
+    // dans ce cas on numérote les occurrences (Antoine ·1, Antoine ·2).
     var tous = [vue.animateur].concat(vue.participants || []);
     var compte = {}; tous.forEach(function (x) { var k = (x.prenom || "").toLowerCase(); compte[k] = (compte[k] || 0) + 1; });
     var vus = {};
@@ -834,7 +899,7 @@
       + '</div>';
     d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
     d.querySelector('[data-a="poser"]').addEventListener("click", function (e) {
-      e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() });
+      e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, pos: pointLibre(), rect: rectVisible() });
     });
     var bx = d.querySelector('[data-a="retirer"]');
     if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
@@ -895,7 +960,7 @@
     if (!g.bouge) {
       g.bouge = true;
       // Reserver au serveur ; si refuse (deja pris), on annule le glissement.
-      api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
+      api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
         if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
         else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerEtat(res.d.etat); } }
@@ -904,6 +969,8 @@
       if (g.el) g.el.classList.add("en-glisse");
     }
     if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
+    var wg = versMonde(e.clientX, e.clientY);
+    envoyerGliss(g.n, wg.x - 75, wg.y - 70, 1);   // meme centrage que la pose
     // Retour visuel : la scene s'illumine quand on survole une zone deposable ;
     // la reserve s'illumine quand on va y renvoyer la carte.
     E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
@@ -924,6 +991,7 @@
   }
   function finGlissePool(silence) {
     var g = glissePool; glissePool = null;
+    if (g && g.bouge) envoyerGlissFin(g.n);
     document.removeEventListener("pointermove", glisserPoolMove, true);
     document.removeEventListener("pointerup", glisserPoolUp, true);
     document.removeEventListener("pointercancel", glisserPoolUp, true);
@@ -976,6 +1044,8 @@
     if (!g.bouge && Math.abs(e.clientX - g.x0) + Math.abs(e.clientY - g.y0) < 5) return;
     if (!g.bouge) { g.bouge = true; g.fantome = fantome(g.n); g.el.classList.add("en-glisse"); }
     g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px";
+    var wd = versMonde(e.clientX, e.clientY);
+    envoyerGliss(g.n, wd.x - 75, wd.y - 70, 1);
     if (E["pool"]) E["pool"].classList.toggle("depot-actif", surPool(e.clientX, e.clientY));
   }
   function glisserDeckUp(e) {
@@ -995,6 +1065,7 @@
   }
   function finGlisseDeck() {
     var g = glisseDeck; glisseDeck = null;
+    if (g && g.bouge) envoyerGlissFin(g.n);
     document.removeEventListener("pointermove", glisserDeckMove, true);
     document.removeEventListener("pointerup", glisserDeckUp, true);
     document.removeEventListener("pointercancel", glisserDeckUp, true);
@@ -1026,9 +1097,14 @@
     var vus = {};
     tab.cartes.forEach(function (c) {
       vus[c.n] = 1;
-      var el = etat.elCartes[c.n];
-      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); precharger(c.n); }
-      if (etat.dragN !== c.n) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
+      var el = etat.elCartes[c.n], neuf = false;
+      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); precharger(c.n); neuf = true; }
+      // On ne repositionne pas une carte qu'on deplace soi-meme (etat.dragN), ni
+      // une carte du tableau que quelqu'un d'autre est en train de deplacer
+      // (glissParCarte) : elle sauterait entre deux positions. En revanche une
+      // carte qui vient d'arriver, elle, doit toujours etre placee.
+      var fige = neuf ? false : (etat.dragN === c.n || glissParCarte[c.n] === 1);
+      if (!fige) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
     });
     Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) { etat.elCartes[n].remove(); delete etat.elCartes[n]; } });
 
@@ -1094,11 +1170,12 @@
       var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
       var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
       el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; majFleches();
+      envoyerGliss(n, x, y, 0);   // les autres voient la carte bouger en direct
     });
     function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
       try { el.releasePointerCapture(e.pointerId); } catch (x) {}
-      etat.dragN = null;
+      etat.dragN = null; envoyerGlissFin(n);
       if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y }); }
       // Annulation (pointercancel) : on ne touche pas au serveur, la carte
       // reprend sa derniere position connue au prochain rendu.
@@ -1380,7 +1457,13 @@
   var fileAgir = [], envoiEnCours = false;
   function agir(intention, apres) {
     activite(); // action locale : on passe en mode reactif
-    appliquerOptimiste(intention);
+    var change = appliquerOptimiste(intention);
+    // LE POINT CLE POUR LE JEU. On pousse aux autres notre vue optimiste AVANT
+    // d'avoir la reponse du serveur : ils voient le geste tout de suite. Sans
+    // cela, ils attendaient l'aller-retour HTTP (fonction + magasin), soit
+    // plusieurs secondes, ce qui rend la partie illisible. Le serveur tranche
+    // ensuite, et son etat autoritaire corrige au besoin.
+    if (change) envoyerEtatProvisoire();
     etat.attente++;
     fileAgir.push({ intention: intention, apres: apres });
     defilerAgir();
@@ -1389,7 +1472,10 @@
     if (envoiEnCours || !fileAgir.length) return;
     envoiEnCours = true;
     var t = fileAgir.shift();
-    api("agir", { code: etat.code, jeton: etat.jeton, intention: t.intention }).then(function (res) {
+    // `version` : ce que nous avons sous les yeux. Le serveur refuse d'agir sur
+    // une lecture plus ancienne que cela, sans quoi notre action effacerait ce
+    // que quelqu'un vient de faire.
+    api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, intention: t.intention }).then(function (res) {
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
@@ -1417,10 +1503,14 @@
 
   // Applique localement, tout de suite, l'effet visible d'une intention. Le
   // serveur tranchera (il peut refuser : pool plein, carte deja prise...) et sa
-  // reponse remet tout d'aplomb. On ne traite que les operations dont l'attente
-  // se voit ; les autres (deplacement, fleche...) sont deja rendues sur place.
+  // reponse remet tout d'aplomb.
+  // On couvre ici TOUTES les operations qui se voient, y compris celles deja
+  // rendues sur place chez nous (deplacement d'une carte, creation d'une
+  // fleche) : c'est cette vue-la qui part aux autres par le relais, et elle
+  // doit contenir le geste, sinon ils ne voient rien avant la reponse serveur.
+  var seqProv = 0;   // identifiants provisoires (fleches pas encore numerotees)
   function appliquerOptimiste(d) {
-    var v = etat.vue; if (!v || !d) return;
+    var v = etat.vue; if (!v || !d) return false;
     var tab = v.tableau || (v.tableau = { cartes: [], fleches: [], textes: [] });
     if (!v.pool) v.pool = [];
     var n = +d.n;
@@ -1447,9 +1537,35 @@
         break;
       case "supprimerFleche": tab.fleches = tab.fleches.filter(function (f) { return f.id !== d.id; }); break;
       case "supprimerTexte": tab.textes = tab.textes.filter(function (t) { return t.id !== d.id; }); break;
-      default: return; // rien de visible a anticiper
+      case "deplacerCarte": {
+        var c = tab.cartes.filter(function (x) { return x.n === n; })[0];
+        if (!c) return false; c.x = Math.round(d.x); c.y = Math.round(d.y); break;
+      }
+      case "deplacerTexte": {
+        var t1 = tab.textes.filter(function (x) { return x.id === d.id; })[0];
+        if (!t1) return false; t1.x = Math.round(d.x); t1.y = Math.round(d.y); break;
+      }
+      case "creerFleche": {
+        // Le serveur attribue le vrai identifiant ; en attendant on en pose un
+        // provisoire, remplace des que l'etat autoritaire arrive.
+        if (!surTable(+d.de) || !surTable(+d.vers) || +d.de === +d.vers) return false;
+        tab.fleches.push({ id: "~" + (++seqProv), de: +d.de, vers: +d.vers, bidir: !!d.bidir, libelle: "" });
+        break;
+      }
+      case "libellerFleche": {
+        var f1 = tab.fleches.filter(function (x) { return x.id === d.id; })[0];
+        if (!f1) return false; f1.libelle = String(d.libelle == null ? "" : d.libelle).slice(0, 40); break;
+      }
+      case "modifierTexte": {
+        var t2 = tab.textes.filter(function (x) { return x.id === d.id; })[0];
+        if (!t2) return false; t2.contenu = String(d.contenu == null ? "" : d.contenu).slice(0, 280);
+        if (!t2.contenu.trim()) tab.textes = tab.textes.filter(function (x) { return x.id !== d.id; });
+        break;
+      }
+      default: return false; // rien de visible a anticiper
     }
     rendrePool(v); rendreDeck(v); rendreTableau(tab);
+    return true;
   }
 
   /* ---------- Ping (cercle qui s'agrandit) ---------- */
@@ -1547,6 +1663,97 @@
     }
     envoyerWS({ t: "maj" });
   }
+  // DIFFUSION PROVISOIRE : notre vue optimiste, poussee avant la reponse du
+  // serveur. Le marqueur voyage DANS `s` et non a cote : le relais ne recopie
+  // que ce champ-la, toute autre cle de premier niveau serait perdue en route
+  // (et cela evite d'avoir a redeployer le relais pour cette fonction).
+  function envoyerEtatProvisoire() {
+    var v = etat.vue; if (!v) return;
+    var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansEtat) return;
+    var copie; try { copie = JSON.parse(JSON.stringify(v)); } catch (e) { return; }
+    copie._prov = 1;
+    var txt; try { txt = JSON.stringify({ t: "etat", s: copie }); } catch (e) { return; }
+    if (!txt || txt.length > LIMITE_ETAT) return;
+    curs.etatTs = Date.now();
+    try { ws.send(txt); } catch (e) {}
+  }
+  /* GLISSEMENT EN DIRECT : la troisieme couche, purement EPHEMERE.
+     Pendant qu'une personne deplace une carte, on relaie le GESTE (quelques
+     octets, ~30 fois par seconde), pas l'etat. Les autres voient la carte
+     bouger pendant le deplacement, comme ils voient deja les curseurs et les
+     fleches en cours. Rien n'est enregistre, rien ne passe par le serveur
+     d'etat : c'est la meme couche « awareness » que chez Figma ou Excalidraw.
+     Sans cela, la carte disparaissait d'un endroit et reapparaissait a un
+     autre, et personne ne comprenait ce qui se passait. */
+  var glissTs = 0;
+  function envoyerGliss(n, wx, wy, depuisReserve) {
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    var now = Date.now(); if (now - glissTs < 33) return; glissTs = now;   // ~30/s
+    envoyerWS({ t: "gliss", n: n, x: Math.round(wx), y: Math.round(wy), d: depuisReserve ? 1 : 0 });
+  }
+  function envoyerGlissFin(n) { glissTs = 0; envoyerWS({ t: "gliss0", n: n }); }
+
+  var glissLive = {};      // id de la personne -> { n, x, y, dep, ts }
+  var glissParCarte = {};  // numero de carte   -> id de la personne qui la tient
+  function recevoirGliss(m) {
+    var n = +m.n || 0; if (!n) return;
+    var av = glissLive[m.id];
+    if (av && av.n !== n) relacherGliss(av.n);
+    glissLive[m.id] = { n: n, x: +m.x || 0, y: +m.y || 0, dep: m.d ? 1 : 0, ts: Date.now(), id: m.id, nom: m.nom || "" };
+    glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
+    dessinerGliss();
+  }
+  // Remet la carte la ou le serveur la sait, et enleve les marques du geste.
+  function relacherGliss(n) {
+    delete glissParCarte[n];
+    var f = document.getElementById("gl-" + n); if (f) f.remove();
+    var el = etat.elCartes[n]; if (!el) return;
+    el.classList.remove("glisse-autre");
+    el.style.removeProperty("--gl-coul");
+    var v = etat.vue && etat.vue.tableau;
+    var c = v && v.cartes.filter(function (x) { return x.n === n; })[0];
+    if (c) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
+  }
+  function finirGliss(id) {
+    var g = glissLive[id]; if (!g) return;
+    delete glissLive[id];
+    relacherGliss(g.n);
+    majFleches();
+  }
+  function dessinerGliss() {
+    var now = Date.now();
+    for (var id in glissLive) {
+      var g = glissLive[id];
+      if (now - g.ts > 5000) { finirGliss(id); continue; }  // geste abandonne
+      var el = etat.elCartes[g.n];
+      if (el && !g.dep) {
+        // Carte deja sur le tableau : on deplace la VRAIE carte. C'est le rendu
+        // le plus lisible possible, et il ne coute rien de plus.
+        el.style.left = g.x + "px"; el.style.top = g.y + "px"; el._x = g.x; el._y = g.y;
+        el.classList.add("glisse-autre");
+        el.style.setProperty("--gl-coul", couleurCurseur(id));
+      } else {
+        // Carte qui vient de la reserve ou de la pioche : elle n'existe pas
+        // encore sur le tableau, on montre un fantome a sa place.
+        fantomeGliss(id, g);
+      }
+    }
+    majFleches();
+  }
+  function fantomeGliss(id, g) {
+    var f = document.getElementById("gl-" + g.n);
+    if (!f) {
+      var c = etat.cartes[g.n];
+      f = document.createElement("div"); f.className = "gliss-fantome"; f.id = "gl-" + g.n;
+      f.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '">'
+        + '<span class="gliss-num">' + g.n + "</span>"
+        + '<span class="gliss-qui">' + esc(g.nom) + "</span>";
+      E.monde.appendChild(f);
+    }
+    f.style.setProperty("--gl-coul", couleurCurseur(id));
+    f.style.left = g.x + "px"; f.style.top = g.y + "px";
+  }
+
   function envoyerCurseur(cx, cy) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
@@ -1556,17 +1763,19 @@
   function recevoirRelais(m) {
     if (!m || !m.id) return;
     switch (m.t) {
-      case "leave": enleverCurseur(m.id); delete flLive[m.id]; dessinerFlechesLive(); return;
-      // Etat pousse par la personne qui vient d'agir. On ne l'applique que s'il
-      // est STRICTEMENT plus recent que le notre. Un etat de MEME version n'est
-      // pas forcement le meme contenu : si deux personnes agissent depuis la
-      // meme version, les deux resultats portent le numero suivant. L'appliquer
-      // ferait bouger une carte toute seule, ou disparaitre une fleche. A
-      // version egale on garde la notre ; le sondage tranchera.
+      case "leave": enleverCurseur(m.id); delete flLive[m.id]; finirGliss(m.id); dessinerFlechesLive(); return;
+      // Etat pousse par la personne qui vient d'agir. Deux natures :
+      //  - PROVISOIRE (`_prov`) : sa vue optimiste, envoyee avant meme que le
+      //    serveur ait repondu. On l'affiche tout de suite, sans avancer notre
+      //    numero de version (appliquerEtat s'en charge).
+      //  - AUTORITAIRE : ce que le serveur vient de lui renvoyer.
+      // Les garde-fous de version sont tous dans appliquerEtat.
       case "etat":
-        if (m.s && m.s.version > etat.version) { activite(); appliquerEtat(m.s); }
+        if (m.s) appliquerEtat(m.s, m.s._prov ? "prov" : undefined);
         return;
       case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
+      case "gliss": recevoirGliss(m); return;
+      case "gliss0": finirGliss(m.id); return;
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;
@@ -1632,6 +1841,7 @@
   setInterval(function () {
     var now = Date.now(), bouge = false;
     for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); }
+    for (var gi in glissLive) { if (now - glissLive[gi].ts > 5000) finirGliss(gi); }
     for (var f in flLive) { if (now - flLive[f].ts > 4000) { delete flLive[f]; bouge = true; } }
     if (bouge) dessinerFlechesLive();
   }, 2000);
@@ -1734,6 +1944,27 @@
     etat.panX = z.x + (z.largeur - c.w * etat.zoom) / 2 - c.x * etat.zoom;
     etat.panY = z.y + (z.hauteur - c.h * etat.zoom) / 2 - c.y * etat.zoom;
     clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive();
+  }
+  /* Le point de depot d'une carte posee au clic est choisi ICI, pas par le
+     serveur. Le serveur, lui, tirait une position AU HASARD dans la zone
+     visible : impossible a deviner, donc impossible de montrer la carte avant
+     sa reponse. Or c'est justement ce qu'il faut faire, chez soi comme chez les
+     autres (vue provisoire). En choisissant le point nous-memes, la carte
+     apparait tout de suite, au bon endroit, partout. Le serveur garde le
+     dernier mot : il borne le point au plan et decale si la place est prise. */
+  function pointLibre() {
+    var r = rectVisible(), w = 160, h = 150;
+    var cartes = (etat.vue && etat.vue.tableau && etat.vue.tableau.cartes) || [];
+    function libre(px, py) {
+      return !cartes.some(function (c) { return Math.abs(c.x - px) < w && Math.abs(c.y - py) < h; });
+    }
+    var zw = Math.max(200, r.largeur || 800), zh = Math.max(200, r.hauteur || 600);
+    for (var t = 0; t < 200; t++) {
+      var px = r.x + Math.random() * Math.max(1, zw - w);
+      var py = r.y + Math.random() * Math.max(1, zh - h);
+      if (libre(px, py)) return { x: Math.round(px + w / 2), y: Math.round(py + h / 2) };
+    }
+    return { x: Math.round(r.x + zw / 2), y: Math.round(r.y + zh / 2) };
   }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }

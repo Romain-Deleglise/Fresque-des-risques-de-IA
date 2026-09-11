@@ -161,5 +161,25 @@ t("le lien visio de l'atelier est repris dans la session", R.vue(sv).lienVocal =
 var sv2 = R.creer("Ani", "UVWXY2", "http://pas-https").session;
 t("un lien visio non https est ignore", R.vue(sv2).lienVocal === null);
 
+// Homonymes : la seconde personne du meme prenom est refusee, avec la consigne
+// d'ajouter une lettre de son nom de famille (plutot que « Antoine 1 / 2 »).
+const sh = R.creer("Léa", "H0M0N1").session;
+const hA = R.rejoindre(sh, "Antoine");
+t("premier Antoine accepté", !!hA.jeton && sh.participants.length === 1);
+const hB = R.rejoindre(sh, "Antoine");
+t("second Antoine refusé", !!hB.refus && hB.refus.code === "prenom_pris");
+t("le refus rappelle le prénom", hB.refus.prenom === "Antoine" && /nom de famille/.test(hB.refus.message));
+t("aucune place créée pour le doublon", sh.participants.length === 1);
+t("casse et accents ignorés", !!R.rejoindre(sh, "  ANTOÎNE ").refus);
+t("prénom distinct accepté", !!R.rejoindre(sh, "Antoine D.").jeton);
+t("prénom de l'animatrice pris aussi", !!R.rejoindre(sh, "léa").refus);
+// Reprise : on revient toujours a sa place, meme avec son propre prenom.
+const repr = R.rejoindre(sh, "Antoine", hA.jeton);
+t("reprise avec son propre prénom acceptée", repr.jeton === hA.jeton && repr.id === hA.id);
+t("reprise ne peut pas voler le prénom d'un autre", !!R.rejoindre(sh, "Antoine D.", hA.jeton).refus);
+// Un prénom libéré par quelqu'un qui est parti ne bloque plus personne.
+sh.participants.find((x) => x.id === hA.id).connecte = false;
+t("prénom libéré après un départ", !!R.rejoindre(sh, "Antoine").jeton);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

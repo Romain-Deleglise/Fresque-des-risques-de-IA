@@ -2,9 +2,10 @@
 
 Petit service WebSocket qui répète des messages **éphémères** entre les membres
 d'une même session de la Fresque en ligne : positions de curseur, tracé de
-flèche en cours, frappe en direct (libellés, notes), et un simple `{t:"maj"}`
-qui dit aux autres de relire l'état tout de suite au lieu d'attendre leur
-prochain sondage. **Sans état, sans données conservées** : l'autorité et la
+flèche en cours, **carte en cours de déplacement** (`gliss`), frappe en direct
+(libellés, notes), l'état du tableau poussé après chaque action, et un simple
+`{t:"maj"}` qui dit aux autres de relire l'état tout de suite au lieu
+d'attendre leur prochain sondage. **Sans état, sans données conservées** : l'autorité et la
 mémoire du tableau restent côté Netlify Blobs. Si ce service est arrêté ou
 injoignable, **le site continue de fonctionner normalement** : le client se
 dégrade en silence (pas de curseurs, propagation un peu moins directe via le
@@ -60,8 +61,14 @@ curseurs des autres.
 
 Le relais tourne dans un conteneur construit a partir de ce dossier : il ne se
 met pas a jour tout seul quand le depot du site change. Apres une modification
-de `server.js` (par exemple l'ajout des messages temps reel `maj`, `fl`, `lib`,
-`note`), il faut recopier le fichier sur le serveur et reconstruire :
+de `server.js`, il faut recopier le fichier sur le serveur et reconstruire.
+
+**Mise a jour en cours (a faire) : messages `gliss` / `gliss0`.** Ils portent le
+deplacement d'une carte pendant le geste, pour que tout le monde voie la carte
+bouger en direct. Tant que le relais n'est pas mis a jour, il les ignore :
+personne ne voit les deplacements en cours, mais rien ne casse et tout le reste
+(pose des cartes vue en quelques dizaines de millisecondes, curseurs, fleches)
+continue de fonctionner.
 
 ```bash
 cd /opt/volunteer-apps/apps/curseurs

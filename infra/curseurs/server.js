@@ -18,6 +18,10 @@
                                 n'a pas pu etre joint ; les autres relisent
      { t:"fl", x, y, de }      trace de fleche en cours (elastique en direct)
      { t:"fl0" }               trace de fleche abandonne / termine
+     { t:"gliss", n, x, y, d } carte en cours de deplacement : numero, position
+                                monde, et d=1 si elle vient de la reserve ou de
+                                la pioche (elle n'est pas encore sur le tableau)
+     { t:"gliss0", n }         deplacement termine
      { t:"lib", id, v }        libelle de fleche en cours de frappe
      { t:"note", id, x, y, v } note en cours de frappe
    serveur -> clients : le meme objet + { id, nom }, ou { t:"leave", id }.
@@ -69,6 +73,12 @@ wss.on("connection", function (ws, req) {
       diffuser(set, ws, { t: m.t, id: id, nom: nom, x: +m.x || 0, y: +m.y || 0, de: +m.de || 0 });
     } else if (m.t === "fl0" || m.t === "maj") {
       diffuser(set, ws, { t: m.t, id: id, nom: nom });
+    } else if (m.t === "gliss") {
+      // Geste de deplacement, pur ephemere : on repete, on n'interprete pas.
+      diffuser(set, ws, { t: "gliss", id: id, nom: nom, n: +m.n || 0,
+        x: +m.x || 0, y: +m.y || 0, d: m.d ? 1 : 0 });
+    } else if (m.t === "gliss0") {
+      diffuser(set, ws, { t: "gliss0", id: id, nom: nom, n: +m.n || 0 });
     } else if (m.t === "etat" && m.s && typeof m.s === "object") {
       // Rediffusion telle quelle : le relais ne juge pas du contenu, il repete.
       diffuser(set, ws, { t: "etat", id: id, nom: nom, s: m.s });
