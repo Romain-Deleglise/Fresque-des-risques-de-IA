@@ -1208,12 +1208,17 @@
     // Fond blanc + texte foncé fixe (sinon, en thème sombre, --ink est clair et
     // le texte devient illisible sur le fond blanc).
     editLib.style.cssText = "position:absolute;z-index:30;font-family:var(--f-ui);font-size:.85rem;border:1px solid var(--accent);border-radius:6px;padding:.25rem .45rem;background:#ffffff;color:#1b1a17;width:9rem;box-shadow:0 4px 12px rgba(27,26,23,.14)";
-    function commitLib() { agir({ op: "libellerFleche", id: id, libelle: editLib.value }); }
+    // On capture le champ dans la fermeture : `editLib` est remis a null par
+    // deselect(), et un envoi etale encore en attente lisait alors `null.value`
+    // (erreur JS silencieuse dans un minuteur).
+    var champ = editLib;
+    function commitLib() { if (champ) agir({ op: "libellerFleche", id: id, libelle: champ.value }); }
     editLib._commit = commitLib;
+    editLib._cle = "lib:" + id;
     editLib.addEventListener("input", function () {
       // 1) tout de suite chez les autres (ephemere) ; 2) memoire serveur, etalee.
-      envoyerWS({ t: "lib", cid: id, v: editLib.value });
-      libelleEnDirect(id, editLib.value);
+      envoyerWS({ t: "lib", cid: id, v: champ.value });
+      libelleEnDirect(id, champ.value);
       frappe("lib:" + id, 220, commitLib);
     });
     editLib.addEventListener("change", commitLib);
@@ -1242,7 +1247,9 @@
   function boutonCroix(cls, onClick) { var b = document.createElement("button"); b.className = cls; b.textContent = "✕"; b.addEventListener("click", onClick); E.scene.appendChild(b); return b; }
   function deselect() {
     if (etat.sel && etat.sel.type === "carte") { var el = etat.elCartes[etat.sel.n]; if (el) el.classList.remove("sel"); }
-    if (editLib && editLib._commit) { try { editLib._commit(); } catch (e) {} } // valider le libellé en cours
+    // Valider le libelle en cours, et annuler l'envoi etale qui restait en
+    // attente : sans cela il partait apres coup, sur un champ deja retire.
+    if (editLib) { if (editLib._cle) frappe.annuler(editLib._cle); if (editLib._commit) { try { editLib._commit(); } catch (e) {} } }
     etat.sel = null; [croix, editLib, bidir, barreCarte].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = barreCarte = null; dessinerFleches();
   }
   function positionnerEditeurs() {
@@ -1319,7 +1326,7 @@
     var el = creerElTexte({ id: "", x: x, y: y, contenu: "" });
     el.style.left = x + "px"; el.style.top = y + "px"; el._x = x; el._y = y;
     el.setAttribute("contenteditable", "true"); E.monde.appendChild(el); el.focus();
-    var enCours = false;
+    var enCours = false, aEnvoyer = null;
     el.oninput = function () {
       var v = el.textContent;
       if (el._id) {
@@ -1334,15 +1341,22 @@
       agir({ op: "creerTexte", x: x, y: y, contenu: v }, function (d) {
         var id = d && d.resultat && d.resultat.id;
         enCours = false;
-        if (!id) return;
+        if (!id) { el.remove(); return; }
         el._id = id; el.dataset.id = id; etat.elTextes[id] = el;
         if (el.getAttribute("contenteditable") === "true") el.oninput();  // rattraper la frappe
+        else if (aEnvoyer != null) { var v2 = aEnvoyer; aEnvoyer = null; agir({ op: "modifierTexte", id: id, contenu: v2 }); }
       });
     };
     el.onblur = function () {
       el.removeAttribute("contenteditable"); el.oninput = null;
       var v = el.textContent.trim();
       if (el._id) { agir({ op: "modifierTexte", id: el._id, contenu: v }); return; }
+      // Quitter la note pendant que sa CREATION est encore en vol : il ne faut
+      // surtout pas en creer une seconde. On garde le texte de cote, la reponse
+      // de la creation l'enverra. Sans cela, une frappe rapide suivie d'un clic
+      // ailleurs laissait une note fantome avec la premiere lettre (« n »), en
+      // plus de la vraie : c'est elle qu'on retrouvait en trop dans l'image.
+      if (enCours) { aEnvoyer = v; return; }
       el.remove();
       if (v) agir({ op: "creerTexte", x: x, y: y, contenu: v });
     };
@@ -1621,6 +1635,9 @@
     if (frappe.t[cle]) return;                    // un envoi est deja programme
     frappe.t[cle] = setTimeout(function () { delete frappe.t[cle]; fn(); }, ms);
   }
+  frappe.annuler = function (cle) {
+    if (frappe.t && frappe.t[cle]) { clearTimeout(frappe.t[cle]); delete frappe.t[cle]; }
+  };
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }

@@ -168,6 +168,28 @@ Deux garde-fous :
 relevées) : voir `infra/curseurs/README.md`. Sans cela le direct retombe sur le
 sondage.
 
+### Notes et libellés : deux courses corrigées
+
+- **Note fantôme.** Taper vite puis cliquer ailleurs créait DEUX notes : la
+  première lettre partait en création, et le `blur`, ne voyant pas encore
+  d'identifiant, en créait une seconde avec le texte complet. Restait une note
+  « n » sur le tableau, qu'on retrouvait en trop dans l'image exportée. Le texte
+  est maintenant mis de côté et envoyé à la réponse de la création.
+- **Libellé de flèche.** `commitLib()` lisait la variable partagée `editLib`,
+  remise à `null` par `deselect()` : un envoi étalé encore en attente levait une
+  erreur silencieuse dans un minuteur, et le libellé se perdait. Le champ est
+  capturé dans la fermeture, et l'envoi en attente est annulé à la désélection.
+
+### Sur la mesure du temps réel (piège)
+
+Mesurer depuis Playwright le contenu d'un onglet d'ARRIÈRE-PLAN donne des
+délais faux : les évaluations attendent que l'onglet reprenne la main, ce qui
+faisait lire « 4 s » là où la flèche était affichée en 25 ms. Mesurer DANS la
+page (boucle lancée avant l'action, qui note l'instant du changement) donne les
+vrais chiffres. Le banc `direct.mjs` journalise aussi l'arrivée des messages du
+relais, ce qui permet de séparer ce qui vient de l'émetteur de ce qui vient du
+récepteur.
+
 ## 2. À SURVEILLER EN PRODUCTION
 
 Rien de ce qui suit n'est testable hors de Netlify : à vérifier au premier
