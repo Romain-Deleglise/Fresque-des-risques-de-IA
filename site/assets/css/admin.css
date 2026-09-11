@@ -39,7 +39,7 @@ body.admin { background: var(--bg-doux); }
 }
 .carte-cle input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .carte-cle .btn { width: 100%; }
-.note-rgpd { color: var(--gris-clair); font-size: .8rem; line-height: 1.5; margin: 22px 0 0; }
+.note-rgpd { color: var(--gris); font-size: .8rem; line-height: 1.5; margin: 22px 0 0; }
 .carte-cle .note-rgpd { margin-top: 20px; border-top: 1px solid var(--ligne); padding-top: 16px; }
 .msg { font-size: .9rem; margin: 10px 0 0; min-height: 1.2em; }
 .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }

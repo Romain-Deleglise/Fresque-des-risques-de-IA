@@ -3,7 +3,10 @@
 :root{
   --bg:#ffffff; --canvas:#f4f2ec; --ink:#1b1a17; --gris:#6b665e; --gris-clair:#9a948a;
   --ligne:#e6e2da; --accent:#E8811C; --accent-fort:#C4610A; --accent-txt:#B0560A; --accent-txt-fort:#8a4200; --accent-doux:#fbf1e4;
-  --surface:#ffffff; --sur-accent:#ffffff; --ink-doux:#3a352c; --doux:#faf8f4;
+  /* APLAT = orange de marque + encre par-dessus (6,3:1). TEXTE = orange
+     assombri, pour ecrire sur un fond clair. Voir site.css. */
+  --accent-aplat:#E8811C; --accent-aplat-fort:#CF710D;
+  --surface:#ffffff; --sur-accent:#1b1a17; --ink-doux:#3a352c; --doux:#faf8f4;
   --canvas-dot:#e2ddd2; --plan:#fbfaf7; --panel:rgba(255,255,255,.96);
   --agr-bg:rgba(255,255,255,.9); --note-bg:#fff7e6; --note-bord:#f0dfbc;
   --f-titre:"Saira Condensed","Arial Narrow",sans-serif;
@@ -17,6 +20,8 @@
   :root:not([data-theme="light"]){ color-scheme:dark;
     --bg:#17150f; --canvas:#0f0d09; --ink:#f2efe8; --gris:#b0a99c; --gris-clair:#867f73;
     --ligne:#332f28; --accent:#E8811C; --accent-fort:#f0a860; --accent-txt:#f0a860; --accent-txt-fort:#f6b877; --accent-doux:#2a2318;
+  --accent-aplat:#E8811C; --accent-aplat-fort:#f0a860;
+    --accent-aplat:#E8811C; --accent-aplat-fort:#f0a860;
     --surface:#201d16; --sur-accent:#17150f; --ink-doux:#d6d0c5; --doux:#26221b;
     --canvas-dot:#26221b; --plan:#201d16; --panel:rgba(32,29,22,.96);
     --agr-bg:rgba(32,29,22,.9); --note-bg:#2e2716; --note-bord:#4a3f22;
@@ -55,8 +60,8 @@ a{color:var(--accent-txt);text-decoration:none}
 
 .btn{background:var(--surface);color:var(--ink);border:1px solid var(--ligne);border-radius:8px;padding:.5rem .8rem;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem}
 .btn:hover{border-color:var(--ink)}
-.btn.primaire{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
-.btn.primaire:hover{background:var(--accent-txt-fort)}
+.btn.primaire{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
+.btn.primaire:hover{background:var(--accent-aplat-fort)}
 .btn:disabled{opacity:.5;cursor:not-allowed;border-color:var(--ligne)}
 
 /* Bandeau carte 0 */
@@ -72,7 +77,7 @@ a{color:var(--accent-txt);text-decoration:none}
 
 /* Bouton d'aide rond (?) dans la barre du haut */
 .btn.rond{width:2.15rem;height:2.15rem;padding:0;justify-content:center;border-radius:999px;font-weight:700;font-size:1rem;line-height:1}
-.btn.rond[aria-expanded="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+.btn.rond[aria-expanded="true"]{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 
 /* Panneau d'aide (remplace le bandeau intro + la legende du bas) */
 .aide-pop{position:fixed;top:3.9rem;right:1rem;z-index:90;width:min(360px,92vw);
@@ -92,13 +97,13 @@ a{color:var(--accent-txt);text-decoration:none}
 .toolbar .groupe{display:flex;gap:.3rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:9px;padding:.25rem}
 .toolbar .sep{flex:1}
 .tool{border:1px solid transparent;background:transparent}
-.tool[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
+.tool[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent)}
 /* Barre d'outils facon Excalidraw : petites icones (main, lien, lien double, note). */
 .toolbar .seg-outils{display:inline-flex;gap:.15rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:10px;padding:.2rem}
 .tool.ico{width:2.15rem;height:2.15rem;padding:0;display:grid;place-items:center;border-radius:8px;color:var(--ink);cursor:pointer}
 .tool.ico svg{width:1.2rem;height:1.2rem;display:block}
 .tool.ico:hover:not([aria-pressed="true"]){background:var(--surface)}
-.tool.ico[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent)}
+.tool.ico[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent)}
 .zoom-niv{font-family:var(--f-ui);font-size:.82rem;min-width:3rem;text-align:center;color:var(--gris)}
 
 /* Scène (canvas clair) */
@@ -146,7 +151,7 @@ a{color:var(--accent-txt);text-decoration:none}
   pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.28)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
 .fleche-bidir{position:absolute;width:22px;height:22px;background:var(--surface);color:var(--accent-txt);border:1px solid var(--ligne);border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:700;cursor:pointer;transform:translate(-50%,-50%);z-index:5}
-.fleche-bidir[aria-pressed="true"]{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+.fleche-bidir[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 
 /* Notes texte */
 .c-texte{position:absolute;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:var(--note-bg);border:1px solid var(--note-bord);border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}
@@ -236,13 +241,13 @@ a{color:var(--accent-txt);text-decoration:none}
 .coach{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:18;
   display:flex;align-items:center;gap:.7rem;max-width:min(92vw,640px);
   font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--sur-accent);
-  background:var(--accent-txt-fort);border-radius:999px;padding:.5rem .6rem .5rem 1rem;
+  background:var(--accent-aplat);border-radius:999px;padding:.5rem .6rem .5rem 1rem;
   box-shadow:0 8px 24px rgba(27,26,23,.22)}
 .coach .coach-txt{line-height:1.25}
 .coach .coach-x{flex:0 0 auto;border:0;border-radius:999px;cursor:pointer;
   font-family:var(--f-ui);font-weight:700;font-size:.78rem;padding:.3rem .7rem;
-  background:rgba(0,0,0,.22);color:var(--sur-accent)}
-.coach .coach-x:hover{background:rgba(0,0,0,.34)}
+  background:rgba(27,26,23,.14);color:var(--sur-accent)}
+.coach .coach-x:hover{background:rgba(27,26,23,.26)}
 @media(max-width:760px){.coach{font-size:.82rem}}
 
 .aide:empty{display:none}
@@ -269,7 +274,7 @@ a{color:var(--accent-txt);text-decoration:none}
 /* Barre d'actions sous la carte, toujours visible */
 .modal .barre{position:static;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
 .modal .barre .btn{background:var(--surface)}
-.modal .barre .btn.primaire{background:var(--accent-txt);color:var(--sur-accent);border-color:transparent}
+.modal .barre .btn.primaire{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 #modal-poser[hidden]{display:none}
 
 /* Message mobile (l'outil vise l'ordinateur, A17.2) */
@@ -340,14 +345,17 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    l'echelle du zoom (--iz) pour garder une taille ecran constante. */
 /* Le deplacement est LISSE en JavaScript (interpolation a chaque frame) et
    applique par `transform` : plus de saut d'une position a l'autre, et aucune
-   transition CSS qui ajouterait du retard. Le contour blanc et l'ombre foncee
-   rendent la fleche et le prenom lisibles sur n'importe quel fond (clair,
-   sombre, illustration de carte). */
+   transition CSS qui ajouterait du retard.
+   DOUBLE LISERE : un liftage blanc a l'interieur et un cerne fonce a
+   l'exterieur. Sur un tableau blanc c'est le cerne fonce qui detache
+   l'etiquette, sur un tableau noir c'est le liftage blanc. La couleur ne sert
+   plus qu'a identifier la personne (voir creerCurseur pour la fleche). */
 .curseur-live{position:absolute;left:0;top:0;z-index:19;pointer-events:none;transform-origin:top left;will-change:transform}
-.curseur-live svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
-.curseur-nom{position:absolute;left:17px;top:13px;font-family:var(--f-ui);font-weight:700;font-size:.66rem;color:#fff;
-  padding:.08rem .38rem;border-radius:7px;white-space:nowrap;border:1.5px solid #fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.55);text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.curseur-live svg{display:block;overflow:visible}
+.curseur-nom{position:absolute;left:17px;top:14px;font-family:var(--f-ui);font-weight:700;font-size:.68rem;color:#fff;
+  padding:.1rem .42rem;border-radius:7px;white-space:nowrap;
+  border:1.5px solid #ffffff;
+  box-shadow:0 0 0 1.5px rgba(20,17,13,.92), 0 2px 6px rgba(0,0,0,.4)}
 
 /* --- Trace de fleche en direct (couche ephemere) ---------------------------
    Des le premier clic, une ligne elastique suit le curseur : la sienne, mais

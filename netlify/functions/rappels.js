@@ -66,11 +66,11 @@ function mailRappelAnimateur(a) {
   c += '<p style="margin:0 0 16px;">Rappel : <strong>vous animez bientôt</strong> un atelier de la Fresque des risques de l\'IA.</p>';
   c += infosHtml(a);
   c += '<p style="margin:0 0 16px;color:#4a473f;"><strong>Inscrits :</strong> ' + noms.length + ' / ' + h(String(a.maxParticipants))
-    + (noms.length ? ' <span style="color:#8a8577;">(' + h(noms.join(", ")) + ')</span>' : '') + '</p>';
+    + (noms.length ? ' <span style="color:#6b665e;">(' + h(noms.join(", ")) + ')</span>' : '') + '</p>';
   if (a.mode === "enligne") c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(ouvrir, "Ouvrir ma session") + '</p>';
   if (a.visio) c += '<p style="margin:0 0 12px;text-align:center;">' + bouton(a.visio, "Rejoindre la visioconférence") + '</p>';
   c += '<hr style="border:0;border-top:1px solid #eee;margin:20px 0;">';
-  c += '<p style="margin:0;color:#8a8577;font-size:13px;">Un empêchement ? Vous pouvez <a href="' + h(lienGerer(a)) + '" style="color:#B3610F;">déplacer ou annuler l\'atelier</a> : les inscrit·es sont prévenu·es automatiquement.</p>';
+  c += '<p style="margin:0;color:#6b665e;font-size:13px;">Un empêchement ? Vous pouvez <a href="' + h(lienGerer(a)) + '" style="color:#B0560A;">déplacer ou annuler l\'atelier</a> : les inscrit·es sont prévenu·es automatiquement.</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 

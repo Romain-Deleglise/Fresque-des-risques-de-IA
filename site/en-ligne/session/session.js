@@ -1536,15 +1536,25 @@
   function creerCurseur(id, nom) {
     var el = document.createElement("div"); el.className = "curseur-live";
     var coul = couleurCurseur(id);
-    // Contour blanc ET ombre foncee : la fleche et l'etiquette restent lisibles
-    // quel que soit le fond du tableau (clair, sombre, image de carte).
-    el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 2 L20 12 L12.5 13.2 L9 21 Z" fill="' + coul + '" stroke="#fff" stroke-width="2"/></svg>'
+    // DOUBLE LISERE. Aucune couleur ne peut etre lisible a la fois sur un
+    // tableau blanc et sur un tableau noir : on ne compte donc pas sur la
+    // couleur, mais sur deux contours. La fleche est tracee deux fois : un
+    // trait FONCE large (qui la detache d'un fond clair), puis un trait BLANC
+    // fin (qui la detache d'un fond sombre), et enfin le remplissage de
+    // couleur, qui ne sert plus qu'a identifier la personne. Meme principe pour
+    // l'etiquette du prenom, en CSS.
+    var d = "M4 2 L20 12 L12.5 13.2 L9 21 Z";
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'
+      + '<path d="' + d + '" fill="none" stroke="#14110d" stroke-width="5.5" stroke-linejoin="round"/>'
+      + '<path d="' + d + '" fill="' + coul + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>'
       + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
     el.hidden = !curs.montrer;
     return el;
   }
+  // Teintes assombries : le prenom s'ecrit en blanc par-dessus, il lui faut au
+  // moins 4,5:1 (l'orange et le cyan d'avant tombaient a 2,8 et 4,1).
   function couleurCurseur(id) {
-    var p = ["#E8811C", "#2f7d4f", "#3b6ea5", "#8a4fb3", "#c1444e", "#1d8a9c", "#b5771a"];
+    var p = ["#A8560A", "#1f6b40", "#2d5b8f", "#6f3a99", "#a8353f", "#116d7d", "#8a5a12"];
     var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     return p[h % p.length];
   }

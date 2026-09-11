@@ -10,16 +10,22 @@
   --gris: #6b665e;
   --gris-clair: #9a948a;
   --ligne: #ece9e2;
-  --accent: #E8811C;          /* orange Pause IA, usages décoratifs (aplats, points) */
+  --accent: #E8811C;          /* orange Pause IA */
   --accent-fort: #C4610A;
-  --accent-txt: #B0560A;      /* orange assombri pour texte/boutons : contraste AA (>=4.5:1) */
-  --accent-txt-fort: #8a4200; /* survol des boutons, contraste renforcé */
+  /* Deux familles distinctes, parce qu'un orange ne peut pas servir aux deux :
+     - APLAT : l'orange de marque en fond, avec l'encre par-dessus (6,3:1).
+       Assombrir l'aplat pour y poser du blanc donnait un brun brique terne.
+     - TEXTE : orange assombri, pour ecrire SUR un fond clair (5:1). */
+  --accent-aplat: #E8811C;
+  --accent-aplat-fort: #CF710D;  /* survol d'un aplat : encre lisible (5:1) */
+  --accent-txt: #B0560A;      /* orange assombri pour texte/liens sur fond clair */
+  --accent-txt-fort: #8a4200; /* survol d'un lien, contraste renforcé */
   --accent-doux: #fbf1e4;
 
   --ink-doux: #35322c;        /* texte adouci (lede, prose) */
   --surface: #ffffff;         /* fonds pleins : cartes, champs, panneau menu */
   --entete-bg: rgba(255,255,255,.92); /* barre de navigation translucide */
-  --sur-accent: #ffffff;      /* texte/icône posé sur un aplat accent (boutons) */
+  --sur-accent: #1b1a17;      /* texte/icône posé sur un aplat orange : l'encre */
   --ok: #2f7d4f;
   --err: #c1444e;
 
@@ -40,7 +46,7 @@
   :root:not([data-theme="light"]) { color-scheme: dark;
     --bg: #17150f; --bg-doux: #201d16; --ink: #f2efe8; --gris: #b0a99c;
     --gris-clair: #867f73; --ligne: #332f28;
-    --accent: #E8811C; --accent-fort: #f0a860; --accent-txt: #f0a860;
+    --accent: #E8811C; --accent-fort: #f0a860; --accent-txt: #f0a860; --accent-aplat: #E8811C; --accent-aplat-fort: #f0a860;
     --accent-txt-fort: #f6b877; --accent-doux: #2a2318;
     --ink-doux: #d6d0c5; --surface: #201d16; --entete-bg: rgba(23,21,15,.92);
     --sur-accent: #17150f; --ok: #6fce97; --err: #f08a92;
@@ -49,7 +55,7 @@
 :root[data-theme="dark"] { color-scheme: dark;
   --bg: #17150f; --bg-doux: #201d16; --ink: #f2efe8; --gris: #b0a99c;
   --gris-clair: #867f73; --ligne: #332f28;
-  --accent: #E8811C; --accent-fort: #f0a860; --accent-txt: #f0a860;
+  --accent: #E8811C; --accent-fort: #f0a860; --accent-txt: #f0a860; --accent-aplat: #E8811C; --accent-aplat-fort: #f0a860;
   --accent-txt-fort: #f6b877; --accent-doux: #2a2318;
   --ink-doux: #d6d0c5; --surface: #201d16; --entete-bg: rgba(23,21,15,.92);
   --sur-accent: #17150f; --ok: #6fce97; --err: #f08a92;
@@ -92,8 +98,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* --- Boutons : discrets, un seul plein ------------------------------------ */
 .btn { font-family: var(--f-ui); font-weight: 600; font-size: .98rem; display: inline-flex; align-items: center; gap: .55rem; padding: .85rem 1.4rem; border-radius: 8px; border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s; text-decoration: none; }
 .btn:hover { text-decoration: none; }
-.btn-1 { background: var(--accent-txt); color: var(--sur-accent); }
-.btn-1:hover { background: var(--accent-txt-fort); color: var(--sur-accent); }
+.btn-1 { background: var(--accent-aplat); color: var(--sur-accent); }
+.btn-1:hover { background: var(--accent-aplat-fort); color: var(--sur-accent); }
 .btn-2 { background: transparent; color: var(--ink); border-color: var(--ligne); }
 .btn-2:hover { border-color: var(--ink); color: var(--ink); }
 .btn small { display: block; font-weight: 400; font-size: .74rem; color: var(--sur-accent); }
@@ -123,8 +129,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 .nav a:not(.btn-nav):hover::after, .nav a.actif:not(.btn-nav)::after { transform: scaleX(1); }
 .nav .bientot { font-family: var(--f-ui); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .45em; margin-left: .35em; vertical-align: middle; }
 /* Appel à l'action de la barre : télécharger, en évidence */
-.nav .btn-nav { background: var(--accent-txt); color: var(--sur-accent); font-weight: 600; padding: .5rem .95rem; border-radius: 8px; transition: background .15s; }
-.nav .btn-nav:hover { background: var(--accent-txt-fort); color: var(--sur-accent); }
+.nav .btn-nav { background: var(--accent-aplat); color: var(--sur-accent); font-weight: 600; padding: .5rem .95rem; border-radius: 8px; transition: background .15s; }
+.nav .btn-nav:hover { background: var(--accent-aplat-fort); color: var(--sur-accent); }
 /* Bascule clair / sombre */
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 2.1rem; height: 2.1rem; padding: 0; border: 1px solid var(--ligne); border-radius: 999px; background: transparent; color: var(--gris); cursor: pointer; transition: color .15s, border-color .15s; }
 .theme-toggle:hover { color: var(--accent-txt); border-color: var(--accent-txt); }
@@ -205,7 +211,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 .gc[aria-pressed="true"] .gc-verso-img { opacity: 1; visibility: visible; }
 .gc:hover { transform: translateY(-4px); }
 .gc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: var(--sur-accent); background: var(--accent-txt); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
+.gc .no { position: absolute; top: .45rem; left: .45rem; font-family: var(--f-titre); font-size: .78rem; color: var(--sur-accent); background: var(--accent-aplat); border-radius: 5px; width: 1.4rem; height: 1.4rem; display: grid; place-items: center; z-index: 2; }
 .gc .lbl { position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .5rem; background: linear-gradient(0deg, rgba(10,8,6,.9), transparent); color: #fff; font-family: var(--f-titre); font-size: .8rem; line-height: 1.05; }
 .galerie-note { margin-top: 1.4rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
@@ -261,8 +267,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 .nl form { display: flex; gap: .6rem; margin-top: 1.4rem; }
 .nl input { flex: 1; font-family: var(--f-ui); font-size: 1rem; padding: .8rem .95rem; border: 1px solid var(--ligne); border-radius: 8px; background: var(--surface); color: var(--ink); }
 .nl input:focus { outline: none; border-color: var(--accent); }
-.nl button { font-family: var(--f-ui); font-weight: 600; border: 0; border-radius: 8px; background: var(--accent-txt); color: var(--sur-accent); padding: .8rem 1.3rem; cursor: pointer; }
-.nl button:hover { background: var(--accent-txt-fort); }
+.nl button { font-family: var(--f-ui); font-weight: 600; border: 0; border-radius: 8px; background: var(--accent-aplat); color: var(--sur-accent); padding: .8rem 1.3rem; cursor: pointer; }
+.nl button:hover { background: var(--accent-aplat-fort); }
 .nl button:disabled { opacity: .6; cursor: wait; }
 .nl .msg { min-height: 1.3rem; margin: .8rem 0 0; font-family: var(--f-ui); font-size: .9rem; }
 .nl .msg.ok { color: var(--ok); }
@@ -401,7 +407,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 /* --- Ateliers : choix de rôle, formulaire, cartes -------------------------- */
 .btn-noir { background: var(--ink); color: var(--bg); }
-.btn-noir:hover { background: var(--accent-txt-fort); color: var(--sur-accent); }
+.btn-noir:hover { background: var(--accent-aplat-fort); color: var(--sur-accent); }
 .roles-choix { display: flex; gap: .8rem; flex-wrap: wrap; }
 .roles-choix .btn { padding: .85rem 1.8rem; }
 
@@ -445,9 +451,9 @@ a.btn, a.btn:hover { text-decoration: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recap-val:hover { border-color: var(--accent); }
 .recap-copier { flex: 0 0 auto; font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
-  color: var(--sur-accent); background: var(--accent-txt); border: 1px solid transparent; border-radius: 8px;
+  color: var(--sur-accent); background: var(--accent-aplat); border: 1px solid transparent; border-radius: 8px;
   padding: .5rem .9rem; cursor: pointer; }
-.recap-copier:hover { background: var(--accent-txt-fort); }
+.recap-copier:hover { background: var(--accent-aplat-fort); }
 .recap-copier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 
