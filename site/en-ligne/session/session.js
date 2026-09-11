@@ -1807,11 +1807,16 @@
     if (e) e.addEventListener("click", exporterImage);
   })();
   // Deck (animateur) : replier / deplier le jeu complet en bas de l'ecran.
-  if (E["deck-toggle"] && E["deck"]) E["deck-toggle"].addEventListener("click", function () {
-    var replie = E["deck"].classList.toggle("replie");
-    this.setAttribute("aria-expanded", replie ? "false" : "true");
-    reflowPlein();
-  });
+  if (E["deck-toggle"] && E["deck"]) {
+    // Pli memorise par navigateur, comme celui de la reserve.
+    try { if (localStorage.getItem("fresque:deckreplie") === "1") { E["deck"].classList.add("replie"); E["deck-toggle"].setAttribute("aria-expanded", "false"); } } catch (e) {}
+    E["deck-toggle"].addEventListener("click", function () {
+      var replie = E["deck"].classList.toggle("replie");
+      this.setAttribute("aria-expanded", replie ? "false" : "true");
+      try { localStorage.setItem("fresque:deckreplie", replie ? "1" : "0"); } catch (e) {}
+      reflowPlein();
+    });
+  }
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });

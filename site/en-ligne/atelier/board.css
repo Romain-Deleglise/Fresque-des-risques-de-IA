@@ -48,7 +48,7 @@ input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:tex
 a{color:var(--accent-txt);text-decoration:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.app{display:flex;flex-direction:column;height:100vh}
+.app{position:relative;display:flex;flex-direction:column;height:100vh}
 
 /* Barre du haut */
 .topbar{display:flex;align-items:center;gap:1rem;padding:.6rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne);flex:0 0 auto}
@@ -212,7 +212,16 @@ a{color:var(--accent-txt);text-decoration:none}
 /* Une seule rangee qui defile horizontalement : illustrees, les cartes prennent
    de la place, et la reserve ne doit pas manger le tiers de l'ecran. */
 .deck{flex:0 0 auto;flex-direction:column;background:var(--surface);border-top:1px solid var(--ligne);box-shadow:0 -6px 20px rgba(0,0,0,.06)}
+/* REPLIE = vraiment replie : le jeu de cartes quitte la colonne et devient une
+   pastille posee sur le tableau. L'animateur·ice retrouve alors exactement la
+   meme surface de travail qu'un·e participant·e (qui, lui, n'a rien en bas).
+   Une simple barre repliee lui volait encore une cinquantaine de pixels. */
+.deck.replie{position:absolute;left:.8rem;bottom:.8rem;z-index:21;width:auto;
+  border-top:0;border:1px solid var(--ligne);border-radius:999px;box-shadow:var(--ombre)}
 .deck.replie .deck-cartes{display:none}
+.deck.replie .deck-tete{padding:.15rem .3rem}
+.deck.replie .deck-aide{display:none}
+.deck.replie .deck-toggle{border-color:transparent;background:transparent}
 .deck.depot-actif{box-shadow:inset 0 0 0 3px var(--accent)}
 .deck-tete{display:flex;align-items:center;gap:.8rem;padding:.4rem .8rem;flex-wrap:wrap}
 .deck-toggle{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--ligne);background:var(--doux);border-radius:8px;padding:.35rem .7rem;font-family:var(--f-titre);font-weight:700;font-size:.95rem;color:var(--ink);cursor:pointer}
