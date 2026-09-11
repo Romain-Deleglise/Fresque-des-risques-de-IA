@@ -138,6 +138,36 @@ Le code reste **technique** (URL + état serveur) et n'apparaît plus nulle part
 Effet de bord assumé : le panneau des participants passe à **gauche**, la
 réserve occupant désormais la droite.
 
+### Temps réel : l'état transite par le relais, plus par le magasin
+
+Constat de terrain : seules les choses qui passaient par le relais WebSocket
+(curseurs, tracé de flèche, frappe des libellés) étaient réellement en direct.
+Tout le reste attendait plusieurs secondes. Mesure sur banc d'essai, avec des
+lectures volontairement en retard de 4 s : une carte posée mettait 4,1 s à
+apparaître chez l'autre, contre **89 ms** après correction.
+
+La cause n'est pas le signal mais la LECTURE. [Netlify Blobs sert des lectures
+éventuellement cohérentes, propagées « dans les 60 secondes »](https://docs.netlify.com/build/data-and-storage/netlify-blobs/).
+Dire aux autres « relisez » (message `maj`) ne servait donc à rien : ils
+relisaient la valeur périmée. On fait maintenant transiter **l'état complet**
+par le relais (`{t:"etat", s}`), tel que le serveur vient de le renvoyer à son
+auteur. Le magasin reste l'autorité et la mémoire ; le sondage tourne en fond et
+corrige tout écart. C'est le schéma classique des tableaux collaboratifs :
+relais de diffusion pour le direct, base pour la persistance.
+
+Deux garde-fous :
+- on n'applique un état reçu que s'il est **strictement plus récent** que le
+  sien. Deux personnes qui agissent depuis la même version produisent deux états
+  portant le même numéro suivant : appliquer celui de l'autre faisait bouger une
+  carte toute seule ou disparaître une flèche ;
+- la cohérence forte est demandée au niveau du MAGASIN (`getStore({ name,
+  consistency: "strong" })`) en plus de chaque lecture, qui est la forme
+  documentée.
+
+**Le relais doit être redéployé** (nouveau type de message et limites de taille
+relevées) : voir `infra/curseurs/README.md`. Sans cela le direct retombe sur le
+sondage.
+
 ## 2. À SURVEILLER EN PRODUCTION
 
 Rien de ce qui suit n'est testable hors de Netlify : à vérifier au premier
@@ -237,7 +267,7 @@ c'est surtout du travail côté client (réconciliation).
 
 Le crash-test est purgé. Les prochaines étapes utiles, par ordre d'intérêt :
 
-1. Vérifier les quatre points de la section 2 sur un atelier réel.
+1. Vérifier les points de la section 2 sur un atelier réel.
 2. Rejouer un crash-test à 8 personnes : c'est le seul moyen de trouver la
    prochaine série de frictions.
 3. Si la latence résiste malgré tout, la piste de la section 3.

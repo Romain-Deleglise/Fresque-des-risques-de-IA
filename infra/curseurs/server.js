@@ -10,23 +10,34 @@
    Protocole (JSON), client -> serveur puis rediffuse aux AUTRES du meme salon,
    enrichi de { id, nom } :
      { t:"c", x, y }            position du curseur (coordonnees monde)
-     { t:"maj" }               « j'ai modifie le tableau » : les autres relisent
-                                l'etat tout de suite au lieu d'attendre
+     { t:"etat", s }           « voici le tableau apres mon action » : l'etat
+                                complet, tel que le serveur vient de le renvoyer
+                                a son auteur. Les autres l'appliquent tout de
+                                suite, sans relire (voir plus bas)
+     { t:"maj" }               « j'ai modifie le tableau » : repli si l'etat
+                                n'a pas pu etre joint ; les autres relisent
      { t:"fl", x, y, de }      trace de fleche en cours (elastique en direct)
      { t:"fl0" }               trace de fleche abandonne / termine
      { t:"lib", id, v }        libelle de fleche en cours de frappe
      { t:"note", id, x, y, v } note en cours de frappe
    serveur -> clients : le meme objet + { id, nom }, ou { t:"leave", id }.
    Connexion : wss://.../?code=ABC123&nom=Prenom
+
+   POURQUOI l'etat complet et pas un simple signal : le magasin d'etat (Netlify
+   Blobs) sert des lectures EVENTUELLEMENT coherentes. Dire aux autres « relisez »
+   ne sert donc a rien : ils reliraient la valeur perimee pendant plusieurs
+   secondes. En transportant l'etat que le serveur vient de renvoyer a son
+   auteur, ils l'ont immediatement. Le magasin reste l'autorite et la memoire :
+   le sondage continue en fond et corrige tout ecart.
 */
 "use strict";
 const { WebSocketServer } = require("ws");
 
 const PORT = Number(process.env.PORT || 8080);
 const MAX_PAR_SALON = Number(process.env.MAX_PAR_SALON || 30); // garde-fou
-const MSG_MAX = 1024;                                          // caracteres par message
+const MSG_MAX = 96 * 1024;                                     // caracteres par message (un etat de tableau)
 
-const wss = new WebSocketServer({ port: PORT, maxPayload: 2048 });
+const wss = new WebSocketServer({ port: PORT, maxPayload: 128 * 1024 });
 const salons = new Map(); // code -> Set<ws>
 
 function salon(code) { let s = salons.get(code); if (!s) { s = new Set(); salons.set(code, s); } return s; }
@@ -58,6 +69,9 @@ wss.on("connection", function (ws, req) {
       diffuser(set, ws, { t: m.t, id: id, nom: nom, x: +m.x || 0, y: +m.y || 0, de: +m.de || 0 });
     } else if (m.t === "fl0" || m.t === "maj") {
       diffuser(set, ws, { t: m.t, id: id, nom: nom });
+    } else if (m.t === "etat" && m.s && typeof m.s === "object") {
+      // Rediffusion telle quelle : le relais ne juge pas du contenu, il repete.
+      diffuser(set, ws, { t: "etat", id: id, nom: nom, s: m.s });
     } else if (m.t === "lib" || m.t === "note") {
       // Frappe en direct : on borne les champs texte pour ne jamais relayer plus
       // que ce que le serveur d'etat acceptera de toute facon.

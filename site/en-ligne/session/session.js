@@ -896,7 +896,7 @@
       api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
         if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
-        else { g.reserve = true; envoyerWS({ t: "maj" }); if (res.d && res.d.etat) appliquerEtat(res.d.etat, true); }
+        else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerWS({ t: "etat", s: res.d.etat }); } }
       }).catch(function () {});
       g.fantome = fantome(g.n);
       if (g.el) g.el.classList.add("en-glisse");
@@ -1382,8 +1382,18 @@
       etat.attente = Math.max(0, etat.attente - 1);
       // On ne reconcilie qu'une fois la file vide : appliquer un etat intermediaire
       // annulerait a l'ecran les actions encore en attente (clignotement).
-      if (res.d && res.d.etat && !fileAgir.length && etat.attente === 0) appliquerEtat(res.d.etat, true);
-      envoyerWS({ t: "maj" });
+      var vue = res.d && res.d.etat;
+      if (vue && !fileAgir.length && etat.attente === 0) appliquerEtat(vue, true);
+      // On DIFFUSE L'ETAT, pas un simple signal. Dire « relisez » ne servait a
+      // rien : les lectures du magasin sont eventuellement coherentes, les
+      // autres relisaient la valeur perimee pendant plusieurs secondes. Ici ils
+      // recoivent l'etat que le serveur vient de nous renvoyer, donc a jour.
+      // On diffuse TOUJOURS l'etat recu du serveur, meme si d'autres actions a
+      // nous sont encore en file : c'est un etat serveur reel, et les autres
+      // n'ont, eux, rien en cours. Ne le diffuser qu'en fin de file laissait
+      // fleches et notes attendre le sondage (donc des secondes).
+      if (vue) envoyerWS({ t: "etat", s: vue });
+      else envoyerWS({ t: "maj" });
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
     }).catch(function () {
       etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
@@ -1496,7 +1506,16 @@
     if (!m || !m.id) return;
     switch (m.t) {
       case "leave": enleverCurseur(m.id); delete flLive[m.id]; dessinerFlechesLive(); return;
-      case "maj": pollerVite(); return;                 // quelqu'un a agi : on relit tout de suite
+      // Etat pousse par la personne qui vient d'agir. On ne l'applique que s'il
+      // est STRICTEMENT plus recent que le notre. Un etat de MEME version n'est
+      // pas forcement le meme contenu : si deux personnes agissent depuis la
+      // meme version, les deux resultats portent le numero suivant. L'appliquer
+      // ferait bouger une carte toute seule, ou disparaitre une fleche. A
+      // version egale on garde la notre ; le sondage tranchera.
+      case "etat":
+        if (m.s && m.s.version > etat.version) { activite(); appliquerEtat(m.s); }
+        return;
+      case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;

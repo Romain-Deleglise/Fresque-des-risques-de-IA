@@ -25,7 +25,10 @@ const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
 // déclenché de façon opportuniste lors d'une création.
 const BALAYAGE_MS = 15 * 60 * 1000;
 
-function store() { return getStore({ name: "fresque-sessions" }); }
+// COHERENCE FORTE au niveau du MAGASIN (forme documentee, en plus de l'option
+// par lecture plus bas) : sans elle, Blobs sert des lectures qui peuvent rester
+// perimees jusqu'a 60 s, ce qui rend tout temps reel illusoire de ce cote.
+function store() { return getStore({ name: "fresque-sessions", consistency: "strong" }); }
 function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
