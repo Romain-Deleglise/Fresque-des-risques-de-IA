@@ -81,12 +81,15 @@ l'écriture de A, la lecture de B renvoyait l'ancienne valeur pendant plusieurs
 secondes, si bien que la boucle d'attente (`hold-poll`) relisait en boucle une
 valeur périmée. Trois mécanismes cumulés, chacun facultatif :
 
-1. `fresque.js` lit en `consistency: "strong"`, avec **repli automatique** en
-   lecture normale si la plateforme la refuse (un ancien commentaire du projet
-   la disait incompatible : à surveiller en production, voir plus bas).
+1. Pousse WebSocket : après chaque action, le client envoie aux autres, par le
+   relais (`infra/curseurs/`), **l'état complet** que le serveur vient de lui
+   renvoyer. C'est ce qui fait tout le direct.
 2. Attente maintenue resserrée : relecture toutes les 120 ms, 8 s au maximum.
-3. Pousse WebSocket : après chaque action, le client émet `{t:"maj"}` sur le
-   relais (`infra/curseurs/`), et les autres relisent l'état immédiatement.
+3. Repli si l'état ne peut pas être joint : simple signal `{t:"maj"}`, et les
+   autres relisent.
+
+La cohérence forte de Netlify Blobs, elle, **n'est pas disponible ici** : voir
+« La cohérence forte est impossible dans ces fonctions » plus bas.
 
 Côté client, chaque action est **rendue localement d'abord** (optimistic UI) :
 poser une carte, remplir / vider le pool, retirer une carte.
@@ -160,9 +163,27 @@ Deux garde-fous :
   sien. Deux personnes qui agissent depuis la même version produisent deux états
   portant le même numéro suivant : appliquer celui de l'autre faisait bouger une
   carte toute seule ou disparaître une flèche ;
-- la cohérence forte est demandée au niveau du MAGASIN (`getStore({ name,
-  consistency: "strong" })`) en plus de chaque lecture, qui est la forme
-  documentée.
+- on n'applique un état reçu que s'il porte bien le numéro attendu.
+
+### La cohérence forte est impossible dans ces fonctions (incident, réglé)
+
+À ne pas retenter. `netlify/functions/fresque.js` est une fonction au format
+« lambda » (`exports.handler` + `connectLambda`). Dans ce format,
+`@netlify/blobs` ne reçoit du runtime que `edgeURL` ; `uncachedEdgeURL`, la
+seule adresse capable de servir une lecture fortement cohérente, **n'existe
+pas** (voir `connectLambda` dans `node_modules/@netlify/blobs/dist/main.cjs`).
+Toute requête demandant `consistency: "strong"` y lève `BlobsConsistencyError`.
+
+Posée sur le magasin (`getStore({ name, consistency: "strong" })`), l'option
+s'applique à **chaque appel**, écritures et suppressions comprises. Livrée
+ainsi, elle a mis tout le service à terre : « Erreur du service de sessions »
+dès l'ouverture d'un atelier, pour toutes les opérations. Le repli prévu ne
+servait à rien, puisqu'il relisait par le même client, toujours en cohérence
+forte.
+
+Le magasin est donc lu normalement, et le direct ne dépend pas de lui. Le
+test `serveur/tests/fresque-session.test.mjs` refuse maintenant toute demande de
+cohérence forte : si quelqu'un la remet, les six tests tombent.
 
 **Le relais doit être redéployé** (nouveau type de message et limites de taille
 relevées) : voir `infra/curseurs/README.md`. Sans cela le direct retombe sur le
@@ -195,17 +216,20 @@ récepteur.
 Rien de ce qui suit n'est testable hors de Netlify : à vérifier au premier
 atelier réel.
 
-1. **`consistency: "strong"`** sur les Blobs. Si la latence de ~5 s persiste,
-   c'est là qu'il faut regarder : la plateforme ignore peut-être l'option
-   silencieusement (le repli ne se déclenche que sur une exception).
+1. **Concurrence à plusieurs** (voir aussi le point 3). `onlyIfMatch` n'existe
+   pas dans `@netlify/blobs` 8.x : `setJSON(clé, valeur, options)` n'y lit que
+   `metadata` et ne renvoie rien. Le verrou optimiste de `muter()` ne joue donc
+   pas, et deux écritures simultanées se recouvrent. Ce qui protège vraiment
+   aujourd'hui, c'est la file côté client (une action à la fois par onglet).
 2. **Envoi en Cci seul** via Resend (`to` = adresse d'expédition). Si Resend le
    refusait, les e-mails collectifs (rappels, annulation, déplacement aux
    inscrit·es) ne partiraient pas ; ceux à l'animateur·ice passeraient quand même.
-3. **Concurrence à plusieurs.** La file côté client protège une personne qui
-   enchaîne les actions. Si deux personnes agissent à la même seconde, c'est le
-   verrou `onlyIfMatch` de Netlify Blobs qui doit rejouer l'écriture ; la
-   vérification de repli ajoutée dans `muter()` couvre le cas où la plateforme
-   ne renvoie pas son verdict. À confirmer sur un atelier réel.
+3. **Écriture conditionnelle.** Pour retrouver un vrai verrou, il faut une
+   version de `@netlify/blobs` qui accepte `onlyIfMatch` et répond
+   `{ modified: false }` ; `ecrire()` transmet déjà l'option et `muter()` sait
+   déjà rejouer sur ce verdict, il n'y aurait rien d'autre à changer. À faire
+   hors d'un jour d'atelier, avec un test de deux navigateurs qui agissent en
+   même temps.
 4. **Relais temps réel** : `infra/curseurs/server.js` a changé (messages `maj`,
    `fl`, `lib`, `note`). Le conteneur ne se met pas à jour tout seul : voir
    `infra/curseurs/README.md`, section « Mettre a jour ».
@@ -216,11 +240,12 @@ session dans deux navigateurs.
 
 ## 3. PISTES SI LA LATENCE RÉSISTE
 
-Si la cohérence forte ne suffit pas, faire transiter les **actions** du tableau
-par le relais WebSocket (et non plus seulement le signal `maj`) : le serveur
-Blobs resterait l'autorité et la persistance, mais la diffusion des changements
-passerait entièrement par le push. Le protocole du relais est déjà générique,
-c'est surtout du travail côté client (réconciliation).
+La diffusion passe déjà entièrement par le relais (état complet poussé après
+chaque action) ; le magasin n'est plus sur le chemin du direct. S'il restait de
+la latence, elle viendrait de l'aller-retour vers la fonction, pas de la
+lecture : la piste serait alors d'appliquer l'action chez les autres **avant**
+la réponse du serveur, en s'appuyant sur le numéro de version pour corriger
+après coup.
 
 
 ## 4. Carte des fichiers clés (Fresque en ligne)
@@ -256,7 +281,8 @@ c'est surtout du travail côté client (réconciliation).
 - `site/en-ligne/atelier/board.css` : styles du tableau (cartes, pool, deck,
   flèches, curseurs, ping, tuto, barre d'actions). **Partagé**, ne pas déplacer.
 - `netlify/functions/fresque.js` : API session (creer/rejoindre/etat/agir),
-  lecture en cohérence forte (+ repli), hold-poll, TTL, balayage, limites.
+  lecture simple (pas de cohérence forte, voir plus haut), hold-poll, TTL,
+  balayage, limites.
 - `netlify/functions/ateliers.js` : ateliers et e-mails. Les fonctions `lien*()`
   construisent tous les liens porteurs du code ; op `voir` pour les ateliers
   privés. **Un e-mail = un rôle** (voir `rappels.js` / `rappel-imminent.js`).
