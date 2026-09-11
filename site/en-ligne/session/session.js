@@ -64,6 +64,7 @@
     poolCaseVide: "free slot",
     reserveGlisser: "Drag a card onto the reserve, or click it",
     curseursOn: "Other people's cursors: shown", curseursOff: "Other people's cursors: hidden",
+    relaisAncien: "Live sharing is running in reduced mode (the relay needs updating).",
     flecheEchap: "Click the target card (Esc cancels).",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
@@ -121,6 +122,7 @@
     poolCaseVide: "emplacement libre",
     reserveGlisser: "Glissez une carte sur la réserve, ou cliquez-la",
     curseursOn: "Curseurs des autres : affichés", curseursOff: "Curseurs des autres : masqués",
+    relaisAncien: "Partage en direct en mode réduit (le relais doit être mis à jour).",
     flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
@@ -896,7 +898,7 @@
       api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
         if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
-        else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerWS({ t: "etat", s: res.d.etat }); } }
+        else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerEtat(res.d.etat); } }
       }).catch(function () {});
       g.fantome = fantome(g.n);
       if (g.el) g.el.classList.add("en-glisse");
@@ -1406,8 +1408,7 @@
       // nous sont encore en file : c'est un etat serveur reel, et les autres
       // n'ont, eux, rien en cours. Ne le diffuser qu'en fin de file laissait
       // fleches et notes attendre le sondage (donc des secondes).
-      if (vue) envoyerWS({ t: "etat", s: vue });
-      else envoyerWS({ t: "maj" });
+      envoyerEtat(vue);
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
     }).catch(function () {
       etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
@@ -1480,7 +1481,11 @@
      bloque, ou tombe, le jeu continue normalement (aucune erreur, aucun blocage,
      on retombe simplement sur le sondage). Reconnexion avec backoff borne. */
   var CURSEURS_WS = "wss://curseurs.pauseia.fr";
-  var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false };
+  var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false,
+    sansEtat: false, etatTs: 0, coupures: 0 };
+  // Un etat de tableau complet pese ~4 Ko ; on ne depasse jamais cette borne
+  // (le relais accepte 96 Ko). Au-dela, on se contente du signal « maj ».
+  var LIMITE_ETAT = 60 * 1024;
   try { curs.montrer = localStorage.getItem("curseurs-off") !== "1"; } catch (e) {}
   var flLive = {};   // traces de fleche en cours des autres : id -> { de, x, y, ts }
   function connecterCurseurs() {
@@ -1494,7 +1499,23 @@
     ws.onopen = function () { curs.essais = 0; };
     ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirRelais(m); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
-    ws.onclose = function () { curs.ws = null; planifierReconnexionCurseurs(); };
+    ws.onclose = function (ev) {
+      curs.ws = null;
+      // Un relais pas encore mis a jour plafonne les messages a 2 Ko et COUPE la
+      // connexion quand on lui envoie un etat (code 1009). Sans garde-fou, on
+      // bouclerait sur des coupures et les curseurs eux-memes disparaitraient.
+      // On le detecte et on retombe sur le simple signal « maj » pour la suite.
+      var code = ev && ev.code;
+      var justeApresEtat = curs.etatTs && Date.now() - curs.etatTs < 2000;
+      if (code === 1009 || justeApresEtat) {
+        curs.coupures++;
+        if (!curs.sansEtat && (code === 1009 || curs.coupures >= 2)) {
+          curs.sansEtat = true;
+          flash(S.relaisAncien);
+        }
+      }
+      planifierReconnexionCurseurs();
+    };
   }
   function planifierReconnexionCurseurs() {
     if (curs.ferme) return;
@@ -1509,6 +1530,22 @@
   function envoyerWS(obj) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     try { ws.send(JSON.stringify(obj)); } catch (e) {}
+  }
+  // Diffusion de l'etat : la voie rapide. On retombe sur « maj » si le relais
+  // ne sait pas la prendre (ancienne version) ou si le tableau est hors norme.
+  function envoyerEtat(vue) {
+    if (!vue) { envoyerWS({ t: "maj" }); return; }
+    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    if (!curs.sansEtat) {
+      var txt = null;
+      try { txt = JSON.stringify({ t: "etat", s: vue }); } catch (e) {}
+      if (txt && txt.length <= LIMITE_ETAT) {
+        curs.etatTs = Date.now();
+        try { ws.send(txt); } catch (e) {}
+        return;
+      }
+    }
+    envoyerWS({ t: "maj" });
   }
   function envoyerCurseur(cx, cy) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
