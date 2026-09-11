@@ -307,6 +307,63 @@ sérialisation parfaite (plus aucune écriture perdue) et supprimerait Blobs du
 chemin, qui ne servirait plus qu'à la sauvegarde. C'est exactement le modèle
 Figma, et l'infrastructure est déjà là.
 
+### Les animations, passées en revue une par une
+
+Le jeu se joue en regardant les autres faire : les animations ne sont pas de la
+décoration ici, c'est le canal par lequel on comprend ce qui se passe. Elles ont
+été inventoriées, mesurées, puis reprises.
+
+**Ce qui coûtait cher.** Deux choses, mesurées au banc (`perf.mjs`) sur un
+tableau chargé (38 cartes, 24 flèches) avec le processeur bridé :
+- `dessinerFleches()` refabriquait tout le contenu du SVG par `innerHTML`,
+  détruisait et recréait chaque libellé, et rebranchait un écouteur de clic par
+  flèche... **à chaque image d'un glissement**. Désormais chaque flèche garde ses
+  nœuds d'une fois sur l'autre et on ne change que ce qui a changé ; un seul
+  écouteur, par délégation, sert toutes les flèches.
+- `centreCarte()` lisait `offsetWidth`/`offsetHeight` pour chaque extrémité de
+  chaque flèche, à chaque image : c'est le « layout thrashing » classique, des
+  dizaines de recalculs de mise en page par image. Une carte fait toujours la
+  même taille (le zoom passe par une transformation du monde) : on mesure une
+  fois et on garde.
+
+| Déplacer une carte, CPU bridé 8x | Avant | Après |
+|---|---|---|
+| Images longues (> 32 ms) | **86 sur 278** (31 %) | **2 sur 286** (0,7 %) |
+| 90e centile | 33,4 ms | **16,7 ms** |
+| Coût d'un recadrage complet | 16,0 ms | **0,3 ms** |
+
+**Ce qui manquait.**
+- *Arrivée d'une carte* : un halo d'ombre qui grandissait (propriété coûteuse à
+  repeindre). Remplacé par une arrivée en `transform`/`opacity` avec un anneau
+  d'accueil, les deux seules propriétés que le navigateur traite sans refaire la
+  mise en page. Les cartes déjà posées quand on rejoint n'animent pas : ce ne
+  sont pas des arrivées.
+- *Départ d'une carte* : elle disparaissait d'un coup, on ne savait pas si
+  quelqu'un l'avait retirée ou si on avait mal vu. Elle se rétracte maintenant.
+- *Carte tirée par quelqu'un d'autre* : elle avançait par à-coups de 30 fois par
+  seconde alors que le curseur de la même personne, lui, glissait. Elle passe par
+  le même lissage.
+- *Lissage des curseurs* : le rattrapage était de 25 % **par image**, donc deux
+  fois plus rapide sur un écran 120 Hz et n'importe quoi quand la machine rame.
+  Il est maintenant calculé sur le temps écoulé (constante de ~60 ms).
+- *Recadrage* : « Tout voir » et les boutons de zoom sautaient d'un cadrage à
+  l'autre, on perdait sa carte des yeux. Glissement de 260 ms, annulé dès que la
+  personne touche la molette ou déplace le tableau : sa main l'emporte toujours.
+- *Réserve* : les cartes y apparaissaient déjà posées. Elles arrivent.
+- *Survol et sélection* : tous les changements d'état étaient instantanés, l'œil
+  lisait ça comme un clignotement. Fondu de 140 ms, uniquement sur des propriétés
+  de peinture, et la liste des sélecteurs est explicite (jamais `*`, qui
+  finirait par retarder quelque chose devant rester immédiat).
+
+**Mouvement réduit : ce n'était pas respecté du tout.** La règle du site ne
+s'applique pas au tableau (il ne charge pas `site.css`), et elle ne coupait de
+toute façon que les `transition`, jamais les `animation`. Le tableau a
+maintenant son propre bloc `prefers-reduced-motion`, qui coupe les deux, et le
+JavaScript lit la préférence pour arrêter aussi ses propres lissages (curseurs,
+cartes tirées à distance, recadrage). Vérifié au banc, réglage système simulé :
+zéro animation, la carte retirée disparaît tout de suite, le zoom est
+instantané (1 étape au lieu de 17), et le jeu reste entièrement utilisable.
+
 ### Homonymes et lisibilité des curseurs
 
 - **Deux fois le même prénom.** La seconde personne est maintenant refusée à

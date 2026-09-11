@@ -113,6 +113,9 @@ a{color:var(--accent-txt);text-decoration:none}
 .scene.grabbing{cursor:grabbing}
 .scene.outil-fleche,.scene.outil-texte{cursor:crosshair}
 #monde{position:absolute;top:0;left:0;width:4400px;height:2200px;transform-origin:0 0}
+/* Temoin par defaut, remplace par 0 sous « mouvement reduit » (voir la fin du
+   fichier). Le JavaScript le lit pour savoir s'il doit lisser ou non. */
+:root{ --mouvement: 1; }
 .plan-bord{position:absolute;inset:0;border:1px solid var(--ligne);border-radius:10px;background:var(--plan);pointer-events:none}
 
 /* Cartes posées (tuiles blanches lisibles) */
@@ -127,8 +130,22 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
 .c-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
-.c-carte.pose-anim{animation:pulse .7s ease}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,129,28,.5)}100%{box-shadow:0 0 0 18px rgba(232,129,28,0)}}
+/* ARRIVEE ET DEPART D'UNE CARTE. Une carte qui apparait ou disparait d'un coup,
+   on ne sait pas d'ou elle vient ni si on l'a revee : c'est le reproche le plus
+   frequent sur ce genre de tableau. Deux mouvements courts, juste assez pour que
+   l'oeil suive. On n'anime que `transform` et `opacity`, les deux seules
+   proprietes que le navigateur sait traiter sans refaire la mise en page : le
+   reste (une ombre qui grandit, par exemple) fait repeindre la carte a chaque
+   image et fait sauter le deplacement des autres. L'anneau d'accueil est porte
+   par un pseudo-element, en INTERIEUR : la carte est en `overflow:hidden`, un
+   anneau pose a l'exterieur serait tout simplement coupe. */
+.c-carte.pose-anim{animation:carte-arrive .34s cubic-bezier(.2,.8,.3,1)}
+.c-carte.pose-anim::after{content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  box-shadow:inset 0 0 0 2px var(--accent);animation:carte-anneau .7s ease-out forwards}
+.c-carte.sort-anim{animation:carte-part .22s ease-in forwards;pointer-events:none}
+@keyframes carte-arrive{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes carte-anneau{from{opacity:.9}to{opacity:0}}
+@keyframes carte-part{from{transform:scale(1);opacity:1}to{transform:scale(.78);opacity:0}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Ping : cercle qui s'agrandit puis s'efface, place aux coordonnees du monde.
@@ -195,6 +212,10 @@ a{color:var(--accent-txt);text-decoration:none}
 .pool-carte{width:100%;background:var(--surface);border:1px solid var(--ligne);border-top:3px solid var(--lot,var(--accent));
   border-radius:10px;box-shadow:0 2px 8px rgba(27,26,23,.10);overflow:hidden;cursor:grab;touch-action:none}
 .pool-carte.en-glisse{opacity:.45}
+/* Carte qui vient d'arriver dans la reserve : un court mouvement, pour qu'on la
+   voie arriver plutot que de la trouver deja posee la. */
+.pool-carte.pool-neuve{animation:pool-arrive .26s cubic-bezier(.2,.8,.3,1)}
+@keyframes pool-arrive{from{transform:scale(.84);opacity:0}to{transform:scale(1);opacity:1}}
 .pool-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .pool-carte .vis img{width:100%;height:100%;object-fit:cover;pointer-events:none}
 .pool-carte .num{position:absolute;top:4px;left:4px;width:19px;height:19px;border-radius:5px;background:var(--lot,var(--accent));color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.75rem}
@@ -410,3 +431,42 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    besoin). Seules les barres explicitement masquees disparaissent. */
 body.plein .topbar,body.plein .toolbar{display:flex}
 body.plein.barres-cachees .topbar,body.plein.barres-cachees .toolbar{display:none}
+
+/* --- Reactions au survol et a la selection ---------------------------------
+   Tous les changements d'etat de l'interface etaient instantanes : le bouton
+   passait d'une couleur a l'autre d'un seul coup, et l'oeil lisait ca comme un
+   clignotement plutot que comme une reaction. Un fondu tres court suffit a le
+   rendre lisible. On ne liste QUE des proprietes de peinture (couleur, fond,
+   bordure, ombre) : aucune ne declenche de recalcul de mise en page, donc rien
+   de tout cela ne peut ralentir un deplacement de carte. La liste est explicite,
+   jamais `*` : une transition posee partout finirait par retarder quelque chose
+   qui doit etre immediat. */
+.btn,.tool.ico,.pool-act,.pool-taille,.pool-poignee,.pool-toggle,.pool-carte .pool-x,
+.deck-carte,.carte-actions .btn.mini,.aide-pop-x,.c-carte .agr,.coach .coach-x,.tuto-passer,
+.fleche-bidir,.fleche-croix,.texte-croix{
+  transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease}
+/* La carte du tableau : uniquement bordure et ombre (jamais la position, qui
+   doit coller au doigt). `.glisse-autre` remet `transition:none` pendant qu'une
+   autre personne la deplace. */
+.c-carte{transition:border-color .14s ease,box-shadow .14s ease}
+/* Carte prise en main par quelqu'un d'autre dans la reserve : le verrou apparait
+   et disparait en fondu plutot que d'un coup. */
+.pool-carte{transition:opacity .18s ease,filter .18s ease,border-color .14s ease,box-shadow .14s ease}
+
+/* --- MOUVEMENT REDUIT ------------------------------------------------------
+   Cette page est la plus animee du site, et c'etait la seule a ne PAS respecter
+   la preference systeme : la regle de site.css ne s'y applique pas (le tableau
+   ne charge pas cette feuille), et elle ne coupait de toute facon que les
+   `transition`, jamais les `animation`. Ici on coupe les deux, on neutralise les
+   animations d'arrivee et de depart (l'element doit rester visible et a sa
+   place, pas disparaitre), et on pose un temoin que le JavaScript lit pour
+   arreter aussi ses propres lissages (curseurs, cartes tirees par quelqu'un
+   d'autre, recadrage). Le jeu reste entierement utilisable, simplement sans
+   mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  :root{ --mouvement: 0; }
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important }
+  .c-carte.pose-anim::after{ display:none }
+  .c-carte.sort-anim{ animation:none !important; opacity:0 }
+}

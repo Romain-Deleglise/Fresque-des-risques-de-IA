@@ -201,6 +201,19 @@
   var rapideJusqu = 0;
   function activite() { rapideJusqu = Date.now() + FENETRE_RAPIDE_MS; }
 
+  /* MOUVEMENT REDUIT. Certaines personnes reglent leur systeme pour supprimer
+     les animations (vertiges, migraines, troubles vestibulaires). Le CSS le
+     respecte de son cote ; ici on coupe aussi ce que le CSS ne voit pas : le
+     lissage des curseurs, celui des cartes tirees par quelqu'un d'autre, et
+     l'animation du recadrage. On suit le reglage en direct, sans recharger. */
+  var mvtReduit = false;
+  try {
+    var mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    mvtReduit = mq.matches;
+    if (mq.addEventListener) mq.addEventListener("change", function (e) { mvtReduit = e.matches; });
+    else if (mq.addListener) mq.addListener(function (e) { mvtReduit = e.matches; });
+  } catch (e) {}
+
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
    "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
@@ -796,6 +809,7 @@
     poignee.addEventListener("pointercancel", fin);
   }
 
+  var _poolVues = {};   // cartes deja presentes au rendu precedent
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
@@ -877,10 +891,16 @@
         continue;
       }
       precharger(n);
-      case_.appendChild(carteDePool(n, reserv[n], moiNom, anim));
+      // Nouvelle venue dans la reserve : elle s'annonce. Quand l'animateur
+      // remplit la reserve d'un coup, on voit les cartes arriver au lieu de les
+      // decouvrir posees la.
+      var carte = carteDePool(n, reserv[n], moiNom, anim);
+      if (!_poolVues[n]) carte.classList.add("pool-neuve");
+      case_.appendChild(carte);
       grille.appendChild(case_);
     }
     z.appendChild(grille);
+    _poolVues = {}; pool.forEach(function (n) { if (n != null) _poolVues[n] = 1; });
     if (!pool.length) {
       var v = document.createElement("p"); v.className = "pool-vide";
       v.textContent = anim ? S.poolVideAnim : S.poolVide;
@@ -1095,13 +1115,21 @@
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
+  var _premierRendu = true;
   function rendreTableau(tab) {
     if (!tab) return;
     var vus = {};
     tab.cartes.forEach(function (c) {
       vus[c.n] = 1;
       var el = etat.elCartes[c.n], neuf = false;
-      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); precharger(c.n); neuf = true; }
+      if (!el) {
+        annulerSortie(c.n);
+        el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); precharger(c.n); neuf = true;
+        // On n'anime QUE les vraies arrivees. En rejoignant une session en
+        // cours, les cartes deja posees ne « viennent » pas d'arriver : les
+        // faire toutes surgir ensemble ferait un feu d'artifice sans aucun sens.
+        if (!_premierRendu) flashPose(el);
+      }
       // On ne repositionne pas une carte qu'on deplace soi-meme (etat.dragN), ni
       // une carte du tableau que quelqu'un d'autre est en train de deplacer
       // (glissParCarte) : elle sauterait entre deux positions. En revanche une
@@ -1109,7 +1137,7 @@
       var fige = neuf ? false : (etat.dragN === c.n || glissParCarte[c.n] === 1);
       if (!fige) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
     });
-    Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) { etat.elCartes[n].remove(); delete etat.elCartes[n]; } });
+    Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) retirerElCarte(n); });
 
     // textes
     var vusT = {};
@@ -1125,6 +1153,7 @@
     Object.keys(etat.elTextes).forEach(function (id) { if (!vusT[id]) { etat.elTextes[id].remove(); delete etat.elTextes[id]; } });
 
     dessinerFleches();
+    _premierRendu = false;
     var exp = document.getElementById("btn-export");
     if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
   }
@@ -1148,7 +1177,30 @@
     glisserCarte(el, n);
     return el;
   }
-  function flashPose(el) { el.classList.add("pose-anim"); setTimeout(function () { el.classList.remove("pose-anim"); }, 700); }
+  function flashPose(el) {
+    el.classList.remove("pose-anim");
+    void el.offsetWidth;                 // relance l'animation si la carte revient
+    el.classList.add("pose-anim");
+    setTimeout(function () { el.classList.remove("pose-anim"); }, 750);
+  }
+  /* DEPART D'UNE CARTE. Elle disparaissait d'un coup : on ne savait pas si
+     quelqu'un venait de la retirer ou si on avait mal vu. Elle s'efface
+     maintenant en se retractant. L'element est sorti du registre TOUT DE SUITE
+     (il ne compte plus dans le tableau) et seulement retire du document a la fin
+     du mouvement ; si la carte revient entre-temps, on annule proprement. */
+  var _sorties = {};
+  function retirerElCarte(n) {
+    var el = etat.elCartes[n]; if (!el) return;
+    delete etat.elCartes[n];
+    if (mvtReduit) { el.remove(); return; }
+    if (_sorties[n]) { clearTimeout(_sorties[n].t); _sorties[n].el.remove(); }
+    el.classList.add("sort-anim");
+    _sorties[n] = { el: el, t: setTimeout(function () { el.remove(); delete _sorties[n]; }, 240) };
+  }
+  function annulerSortie(n) {
+    var o = _sorties[n]; if (!o) return;
+    clearTimeout(o.t); o.el.remove(); delete _sorties[n];
+  }
   // Encadre fixe (haut de la scene) qui affiche le titre de la carte survolee.
   var _survol = null;
   function montrerSurvol(n) {
@@ -1170,8 +1222,9 @@
     el.addEventListener("pointermove", function (e) {
       if (!st) return;
       if (!bouge && Math.abs(e.clientX - st.mx) + Math.abs(e.clientY - st.my) > 3) bouge = true;
-      var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
-      var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
+      dimCarte(el);   // taille en cache : pas de calcul de mise en page par image
+      var x = Math.max(0, Math.min(PLAN_W - el._w, st.x + (e.clientX - st.mx) / etat.zoom));
+      var y = Math.max(0, Math.min(PLAN_H - el._h, st.y + (e.clientY - st.my) / etat.zoom));
       el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; majFleches();
       envoyerGliss(n, x, y, 0);   // les autres voient la carte bouger en direct
     });
@@ -1216,9 +1269,23 @@
     envoyerWS({ t: "fl", de: etat.flecheDepart.n, x: Math.round(w.x), y: Math.round(w.y) });
   }
 
+  /* TAILLE DES CARTES, MESUREE UNE FOIS. `offsetWidth` force le navigateur a
+     recalculer la mise en page : le lire pour chaque extremite de chaque fleche,
+     a chaque image d'un glissement, revenait a demander des dizaines de calculs
+     de mise en page par image (le « layout thrashing » classique, lecture et
+     ecriture du DOM entrelacees). Une carte fait toujours la meme taille : le
+     zoom passe par une transformation du monde, pas par la carte. On mesure donc
+     une fois et on garde. Invalide au redimensionnement et a l'arrivee des
+     polices, seuls moments ou la hauteur d'un titre peut changer. */
+  function dimCarte(el) {
+    if (!el._w) { el._w = el.offsetWidth || 150; el._h = el.offsetHeight || 150; }
+    return el;
+  }
+  function oublierDims() { for (var n in etat.elCartes) { etat.elCartes[n]._w = 0; etat.elCartes[n]._h = 0; } }
   function centreCarte(n) {
     var el = etat.elCartes[n]; if (!el) return null;
-    return { x: (el._x || 0) + el.offsetWidth / 2, y: (el._y || 0) + el.offsetHeight / 2, w: el.offsetWidth, h: el.offsetHeight };
+    dimCarte(el);
+    return { x: (el._x || 0) + el._w / 2, y: (el._y || 0) + el._h / 2, w: el._w, h: el._h };
   }
   function bord(c, tx, ty) { var dx = tx - c.x, dy = ty - c.y; if (!dx && !dy) return { x: c.x, y: c.y };
     var hw = c.w / 2 + 4, hh = c.h / 2 + 4; var s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
@@ -1231,13 +1298,35 @@
     if (_flechesRAF) return;
     _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); dessinerFlechesLive(); });
   }
+  /* DESSIN DES FLECHES SANS RECONSTRUIRE LE SVG.
+     Avant : on refabriquait tout le contenu de `#fleches` par innerHTML, on
+     detruisait puis recreait chaque libelle, et on rebranchait un ecouteur de
+     clic par fleche... a chaque image d'un glissement. Sur une machine modeste
+     cela suffisait a faire sauter le deplacement d'une carte.
+     Maintenant : chaque fleche garde ses deux chemins et son libelle d'une fois
+     sur l'autre ; on ne change que ce qui a change (l'attribut `d`, une classe,
+     une pointe). Un seul ecouteur, pose une fois, sert toutes les fleches. */
+  var FLE_DEFS = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
+    + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
+    + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
+    + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var _fleNoeuds = {};   // id de fleche -> { hit, trait, lib, d, cls, mk, txt }
+  var _flePrete = false;
+  function preparerFleches() {
+    if (_flePrete) return; _flePrete = true;
+    E.fleches.insertAdjacentHTML("afterbegin", FLE_DEFS);
+    // Un seul ecouteur, par delegation : plus rien a rebrancher au redessin.
+    E.fleches.addEventListener("click", function (e) {
+      var h = e.target && e.target.classList && e.target.classList.contains("hit") ? e.target : null;
+      if (!h) return;
+      e.stopPropagation(); selFleche(h.getAttribute("data-id"));
+    });
+  }
   function dessinerFleches() {
     if (!etat.vue) return;
-    var defs = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
-      + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
-      + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
-      + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
-    var html = defs, idx = {}, libs = [];
+    preparerFleches();
+    var idx = {}, vus = {};
     (etat.vue.tableau.fleches || []).forEach(function (f) {
       var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
       var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
@@ -1247,31 +1336,55 @@
       var nx = -dy / len, ny = dx / len, cxp = mx + nx * amp, cyp = my + ny * amp;
       var d = "M" + pa.x + "," + pa.y + " Q" + cxp + "," + cyp + " " + pb.x + "," + pb.y;
       var sel = etat.sel && etat.sel.type === "fleche" && etat.sel.id === f.id;
-      html += '<path class="hit" data-id="' + f.id + '" d="' + d + '"/>';
-      html += '<path class="trait' + (f.bidir ? ' bidir' : '') + (sel ? ' sel' : '') + '" d="' + d + '" marker-end="url(#' + (sel ? 'aho' : (f.bidir ? 'ahb' : 'ah')) + ')"' + (f.bidir ? ' marker-start="url(#ahbs)"' : '') + '/>';
+      var cls = "trait" + (f.bidir ? " bidir" : "") + (sel ? " sel" : "");
+      var mk = "url(#" + (sel ? "aho" : (f.bidir ? "ahb" : "ah")) + ")";
+
+      var g = _fleNoeuds[f.id];
+      if (!g) {
+        g = { hit: document.createElementNS(SVGNS, "path"), trait: document.createElementNS(SVGNS, "path"), lib: null };
+        g.hit.setAttribute("class", "hit"); g.hit.setAttribute("data-id", f.id);
+        E.fleches.appendChild(g.hit); E.fleches.appendChild(g.trait);
+        _fleNoeuds[f.id] = g;
+      }
+      if (g.d !== d) { g.hit.setAttribute("d", d); g.trait.setAttribute("d", d); g.d = d; }
+      if (g.cls !== cls) { g.trait.setAttribute("class", cls); g.cls = cls; }
+      if (g.mk !== mk) {
+        g.trait.setAttribute("marker-end", mk);
+        if (f.bidir) g.trait.setAttribute("marker-start", "url(#ahbs)"); else g.trait.removeAttribute("marker-start");
+        g.mk = mk;
+      }
       f._mid = { x: cxp, y: cyp };
-      if (f.libelle) libs.push({ x: cxp, y: cyp, t: f.libelle });
+      // Libelle : cree seulement s'il y en a un, deplace ensuite.
+      if (f.libelle) {
+        if (!g.lib) { g.lib = document.createElement("div"); g.lib.className = "fleche-lib"; E.monde.appendChild(g.lib); }
+        if (g.txt !== f.libelle) { g.lib.textContent = f.libelle; g.txt = f.libelle; }
+        g.lib.style.left = cxp + "px"; g.lib.style.top = cyp + "px";
+      } else if (g.lib) { g.lib.remove(); g.lib = null; g.txt = null; }
+      vus[f.id] = 1;
     });
-    E.fleches.innerHTML = html;
-    Array.prototype.forEach.call(E.monde.querySelectorAll(".fleche-lib"), function (n) { n.remove(); });
-    libs.forEach(function (l) {
-      var el = document.createElement("div"); el.className = "fleche-lib"; el.textContent = l.t;
-      el.style.left = l.x + "px"; el.style.top = l.y + "px"; E.monde.appendChild(el);
-    });
-    E.fleches.querySelectorAll(".hit").forEach(function (h) {
-      h.addEventListener("click", function (e) { e.stopPropagation(); selFleche(h.dataset.id); });
-    });
+    // Fleches disparues : on retire leurs noeuds.
+    for (var id in _fleNoeuds) {
+      if (vus[id]) continue;
+      var mort = _fleNoeuds[id];
+      mort.hit.remove(); mort.trait.remove(); if (mort.lib) mort.lib.remove();
+      delete _fleNoeuds[id];
+    }
     positionnerEditeurs();
   }
 
   // Couche ephemere : les fleches en cours de trace (la mienne et celles des
   // autres). Separee de #fleches pour ne jamais reconstruire les vraies fleches.
+  var _liveVide = true;
   function dessinerFlechesLive() {
     var L = E["fleches-live"]; if (!L) return;
     var html = "";
     if (etat.flecheDepart && etat.flecheCurseur) html += traitLive(etat.flecheDepart.n, etat.flecheCurseur.x, etat.flecheCurseur.y, "#E8811C");
     for (var id in flLive) { var f = flLive[id]; html += traitLive(f.de, f.x, f.y, couleurCurseur(id)); }
+    // Rien a tracer et deja vide : on ne touche pas au document. Sans ce test on
+    // reecrivait une couche vide a chaque image de chaque deplacement, pour rien.
+    if (!html && _liveVide) return;
     L.innerHTML = html;
+    _liveVide = !html;
   }
   function traitLive(de, x, y, coul) {
     var A = centreCarte(de); if (!A) return "";
@@ -1741,9 +1854,30 @@
     var n = +m.n || 0; if (!n) return;
     var av = glissLive[m.id];
     if (av && av.n !== n) relacherGliss(av.n);
-    glissLive[m.id] = { n: n, x: +m.x || 0, y: +m.y || 0, dep: m.d ? 1 : 0, ts: Date.now(), id: m.id, nom: m.nom || "" };
+    var g = glissLive[m.id];
+    var tx = +m.x || 0, ty = +m.y || 0;
+    if (!g || g.n !== n) {
+      // Premiere position de ce geste : on s'y place sans glisser (sinon la
+      // carte traverserait le tableau depuis sa position precedente).
+      g = glissLive[m.id] = { n: n, x: tx, y: ty, tx: tx, ty: ty, dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
+    }
+    g.tx = tx; g.ty = ty; g.dep = m.d ? 1 : 0; g.ts = Date.now(); g.nom = m.nom || g.nom;
     glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
     dessinerGliss();
+    lancerLissage();
+  }
+  // Rapproche chaque carte tiree a distance de sa derniere position connue.
+  // Rend `true` s'il reste du chemin a faire (la boucle continue alors).
+  function lisserGliss(k) {
+    var encore = false;
+    for (var id in glissLive) {
+      var g = glissLive[id];
+      var dx = g.tx - g.x, dy = g.ty - g.y;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { g.x = g.tx; g.y = g.ty; continue; }
+      g.x += dx * k; g.y += dy * k; encore = true;
+    }
+    if (encore) dessinerGliss();
+    return encore;
   }
   // Remet la carte la ou le serveur la sait, et enleve les marques du geste.
   function relacherGliss(n) {
@@ -1752,6 +1886,7 @@
     var el = etat.elCartes[n]; if (!el) return;
     el.classList.remove("glisse-autre");
     el.style.removeProperty("--gl-coul");
+    el._gl = null;
     var v = etat.vue && etat.vue.tableau;
     var c = v && v.cartes.filter(function (x) { return x.n === n; })[0];
     if (c) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
@@ -1771,9 +1906,11 @@
       if (el && !g.dep) {
         // Carte deja sur le tableau : on deplace la VRAIE carte. C'est le rendu
         // le plus lisible possible, et il ne coute rien de plus.
-        el.style.left = g.x + "px"; el.style.top = g.y + "px"; el._x = g.x; el._y = g.y;
-        el.classList.add("glisse-autre");
-        el.style.setProperty("--gl-coul", couleurCurseur(id));
+        var x = Math.round(g.x), y = Math.round(g.y);
+        if (el._x !== x) { el.style.left = x + "px"; el._x = x; }
+        if (el._y !== y) { el.style.top = y + "px"; el._y = y; }
+        // Marque et couleur posees une seule fois, pas a chaque image.
+        if (el._gl !== id) { el.classList.add("glisse-autre"); el.style.setProperty("--gl-coul", couleurCurseur(id)); el._gl = id; }
       } else {
         // Carte qui vient de la reserve ou de la pioche : elle n'existe pas
         // encore sur le tableau, on montre un fantome a sa place.
@@ -1840,18 +1977,30 @@
   // Lissage des curseurs distants : au lieu de « teleporter » l'element a chaque
   // message (saccade desagreable, voire mal au coeur), on glisse vers la derniere
   // position connue a chaque frame. Le retard ajoute est de l'ordre de 2 frames.
-  var animCurs = 0;
-  function lancerLissage() { if (!animCurs) animCurs = requestAnimationFrame(lisserCurseurs); }
-  function lisserCurseurs() {
+  var animCurs = 0, _tLissage = 0;
+  function lancerLissage() { if (!animCurs) { _tLissage = 0; animCurs = requestAnimationFrame(lisserCurseurs); } }
+  /* Le rattrapage est calcule SUR LE TEMPS ECOULE, pas par image. Un facteur
+     fixe par image (0,25) rend le curseur deux fois plus rapide sur un ecran a
+     120 Hz que sur un ecran a 60 Hz, et n'importe quoi quand la machine rame.
+     Ici, la meme constante de temps pour tout le monde : environ 60 ms pour
+     couvrir la distance. */
+  function rattrape(dt) { return 1 - Math.pow(0.001, Math.min(dt, 100) / 60); }
+  function lisserCurseurs(t) {
     animCurs = 0;
+    var dt = _tLissage ? t - _tLissage : 16.7; _tLissage = t;
+    var k = mvtReduit ? 1 : rattrape(dt);
     var encore = false;
     for (var id in curs.els) {
       var p = curs.pos[id]; if (!p) continue;
       var dx = p.tx - p.x, dy = p.ty - p.y;
       if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.x = p.tx; p.y = p.ty; }
-      else { p.x += dx * 0.25; p.y += dy * 0.25; encore = true; }
+      else { p.x += dx * k; p.y += dy * k; encore = true; }
       curs.els[id].style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px) scale(var(--iz,1))";
     }
+    // Cartes tirees par quelqu'un d'autre : meme lissage, meme boucle. Sans lui
+    // la carte avancait par a-coups de 30 fois par seconde, alors que le curseur
+    // de la meme personne, lui, glissait : c'etait le detail qui faisait « cheap ».
+    if (lisserGliss(k)) encore = true;
     if (encore) animCurs = requestAnimationFrame(lisserCurseurs);
   }
   function creerCurseur(id, nom) {
@@ -1964,7 +2113,47 @@
       : Math.min(0, Math.max(r.height - ph, etat.panY));
   }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
-  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
+  // Zoom IMMEDIAT, pour la molette et le pincement : le geste est continu, il
+  // doit coller au doigt. Toute animation de vue en cours est abandonnee.
+  function zoomVers(nz, cx, cy) { stopVueAnim(); var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
+  // Zoom des BOUTONS + et - : un cran discret, qui se voit arriver.
+  function zoomAnime(nz, cx, cy) {
+    var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
+    var wx = (cx - sx) / sz, wy = (cy - sy) / sz;
+    etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz));
+    etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan();
+    var tz = etat.zoom, tx = etat.panX, ty = etat.panY;
+    etat.zoom = sz; etat.panX = sx; etat.panY = sy;
+    allerVers(tz, tx, ty);
+  }
+
+  /* RECADRAGE ANIME. « Tout voir » et les boutons de zoom sautaient d'un cadrage
+     a l'autre : on perdait de vue ou on etait et il fallait re-chercher sa carte
+     des yeux. Un glissement court (260 ms) garde le lien entre l'avant et
+     l'apres. On anime les trois valeurs de la vue ensemble ; toute action de
+     l'utilisateur (molette, main, nouveau clic) annule l'animation en cours,
+     pour ne jamais lutter contre son geste. Coupe si le systeme demande moins de
+     mouvement. La courbe est une sortie douce : rapide au debut, posee a la fin. */
+  var _vueAnim = 0;
+  function stopVueAnim() { if (_vueAnim) { cancelAnimationFrame(_vueAnim); _vueAnim = 0; } }
+  function allerVers(z, px, py) {
+    stopVueAnim();
+    if (mvtReduit) { etat.zoom = z; etat.panX = px; etat.panY = py; clampPan(); applyView(); majFleches(); return; }
+    var z0 = etat.zoom, x0 = etat.panX, y0 = etat.panY, t0 = 0, DUREE = 260;
+    // Deja au bon endroit : rien a animer.
+    if (Math.abs(z - z0) < 1e-4 && Math.abs(px - x0) < 1 && Math.abs(py - y0) < 1) return;
+    function pas(t) {
+      if (!t0) t0 = t;
+      var u = Math.min(1, (t - t0) / DUREE);
+      var e = 1 - Math.pow(1 - u, 3);           // sortie cubique
+      etat.zoom = z0 + (z - z0) * e;
+      etat.panX = x0 + (px - x0) * e;
+      etat.panY = y0 + (py - y0) * e;
+      applyView(); majFleches();
+      _vueAnim = u < 1 ? requestAnimationFrame(pas) : 0;
+    }
+    _vueAnim = requestAnimationFrame(pas);
+  }
   // Rectangle reellement occupe par la fresque (cartes + notes), avec une marge.
   // A defaut de contenu, le plan entier.
   function contenuRect() {
@@ -1972,7 +2161,7 @@
     var x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9, vu = false;
     function eng(x, y, w, h) { vu = true; x1 = Math.min(x1, x); y1 = Math.min(y1, y); x2 = Math.max(x2, x + w); y2 = Math.max(y2, y + h); }
     if (tab) {
-      (tab.cartes || []).forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });
+      (tab.cartes || []).forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? dimCarte(el)._w : 150, el ? el._h : 150); });
       (tab.textes || []).forEach(function (t) { var el = etat.elTextes[t.id]; eng(t.x, t.y, el ? el.offsetWidth : 90, el ? el.offsetHeight : 30); });
     }
     if (!vu) return { x: 0, y: 0, w: PLAN_W, h: PLAN_H };
@@ -1982,10 +2171,16 @@
   }
   function toutVoir() {
     var r = rectScene(), z = zoneLibre(r), c = contenuRect();
-    etat.zoom = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / c.w, z.hauteur / c.h)));
-    etat.panX = z.x + (z.largeur - c.w * etat.zoom) / 2 - c.x * etat.zoom;
-    etat.panY = z.y + (z.hauteur - c.h * etat.zoom) / 2 - c.y * etat.zoom;
-    clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive();
+    var nz = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / c.w, z.hauteur / c.h)));
+    var nx = z.x + (z.largeur - c.w * nz) / 2 - c.x * nz;
+    var ny = z.y + (z.hauteur - c.h * nz) / 2 - c.y * nz;
+    // On borne la cible AVANT d'animer, sinon l'animation viserait un cadrage
+    // que `clampPan` corrigerait a la derniere image (petit sursaut a l'arrivee).
+    var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
+    etat.zoom = nz; etat.panX = nx; etat.panY = ny; clampPan();
+    nz = etat.zoom; nx = etat.panX; ny = etat.panY;
+    etat.zoom = sz; etat.panX = sx; etat.panY = sy;
+    allerVers(nz, nx, ny);
   }
   /* Le point de depot d'une carte posee au clic est choisi ICI, pas par le
      serveur. Le serveur, lui, tirait une position AU HASARD dans la zone
@@ -2016,6 +2211,7 @@
     if (!fondScene(e.target)) return;
     if (etat.outil === "texte") { e.preventDefault(); var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y); setOutil("deplacer"); return; }
     annulerFleche(); deselect();
+    stopVueAnim();   // la main de l'utilisateur l'emporte toujours sur un recadrage en cours
     pan = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY }; E.scene.classList.add("grabbing"); E.scene.setPointerCapture(e.pointerId);
   });
   function fondScene(t) { return t === E.scene || t === E.monde || t.classList.contains("plan-bord") || t.id === "fleches"; }
@@ -2053,8 +2249,8 @@
     E.scene.classList.toggle("outil-fleche", estFleche(o)); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
     flash(estFleche(o) ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
-  E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
-  E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
+  E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
+  E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
   // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
   // repli sur une classe CSS si l'API n'est pas disponible.
