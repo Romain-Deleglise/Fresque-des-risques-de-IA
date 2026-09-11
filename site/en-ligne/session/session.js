@@ -29,40 +29,40 @@
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     coachFermer: "Got it",
     coachPartager: "Copy the invitation link (top left) so participants can join.",
-    coachPool: "Add cards to the shared pool (deck at the bottom) so the group can place them.",
-    coachAttente: "Waiting for the facilitator to add cards…",
-    coachPrendre: "Take a card from the pool and place it on the board.",
-    prendre: "Place on board", retirerPool: "Remove from pool", poolTitre: "Pool",
+    coachPool: "Add cards to the shared reserve (your card deck, at the bottom) so the group can place them.",
+    coachAttente: "Waiting for the facilitator to fill the reserve…",
+    coachPrendre: "Take a card from the reserve and place it on the board.",
+    prendre: "Place on board", retirerPool: "Remove from the reserve", poolTitre: "Reserve",
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
     occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
-    versPool: "↩ To the pool", versReserve: "✕ To my deck",
+    versPool: "↩ To the reserve", versReserve: "✕ To the card deck",
     tutoSuivant: "Next", tutoTerminer: "Got it", tutoPasser: "Skip", tutoRevoir: "Replay the tutorial",
     tutoPart: [
       { titre: "Welcome!", texte: "You'll build the AI-risks fresco together, live on this shared board. Here's the gist in a few steps." },
-      { cible: "#pool", place: "top", titre: "Cards to place", texte: "The facilitator makes cards available here. Take one: drag it onto the board, or click « Place »." },
+      { cible: "#pool", place: "top", titre: "The reserve", texte: "The facilitator makes cards available in the reserve. Take one: drag it onto the board, or click « Place »." },
       { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note (double-click the board)." },
       { cible: "#z-tout", place: "bottom", titre: "Find your way", texte: "Zoom with the wheel or + / −. « Fit all » recenters. Hover a card to read its title when zoomed out." },
       { cible: "#btn-participants", place: "bottom", titre: "The group", texte: "See who's connected here. Need a reminder? The ? button reopens this help anytime. Enjoy the workshop!" }
     ],
     tutoAnim: [
       { titre: "You're the facilitator", texte: "You run the session. Here's how to hand out cards and guide the group." },
-      { cible: "#deck", place: "top", titre: "Your deck", texte: "The whole deck is here, at the bottom. Click a card to make it available in the shared pool." },
-      { cible: "#pool", place: "top", titre: "The shared pool", texte: "The shared pool (8 cards max): players take cards from here to place them on the board. Remove one with ✕." },
-      { titre: "Take a card back", texte: "Select a placed card to take it back: return it to the pool, or to your own deck." },
+      { cible: "#deck", place: "top", titre: "Your card deck", texte: "The whole deck is here, at the bottom. Click a card to make it available in the shared reserve." },
+      { cible: "#pool", place: "top", titre: "The shared reserve", texte: "The reserve (8 cards max): players take cards from here to place them on the board. Remove one with ✕." },
+      { titre: "Take a card back", texte: "Select a placed card to take it back: return it to the reserve, or to your card deck." },
       { cible: ".seg-outils", place: "bottom", titre: "Move, link, note", texte: "The hand moves cards and pans the board. The arrow links two cards. The bubble adds a note." },
       { cible: "#btn-partager", place: "bottom", titre: "Invite the group", texte: "Copy the invitation link and send it to your group: one click and they are in, nothing to type. Enjoy!" }
     ],
     horsLigne: "offline", exclure: "Remove from the session", confirmExclure: function (p) { return "Remove " + p + " from the session?"; },
     titreRejoindre: "Join the workshop", sousRejoindre: "Enter your first name to join the shared board.",
-    poolVide: "Waiting for the facilitator to add cards to the pool.",
-    poolVideAnim: "Add cards to the pool from the deck below.",
+    poolVide: "Waiting for the facilitator to add cards to the reserve.",
+    poolVideAnim: "Add cards to the reserve from the card deck below.",
     poolRemplirTxt: "Fill", poolViderTxt: "Empty",
-    poolRemplirT: "Fill the pool with the next available cards",
-    poolViderT: "Take every card out of the pool",
-    confirmVider: "Take every card out of the pool?",
-    poolDeplacer: "Move the pool panel",
+    poolRemplirT: "Fill the reserve with the next available cards",
+    poolViderT: "Take every card out of the reserve",
+    confirmVider: "Take every card out of the reserve?",
+    poolDeplacer: "Move the reserve panel",
     poolCaseVide: "free slot",
-    reserveGlisser: "Drag a card onto the pool, or click it",
+    reserveGlisser: "Drag a card onto the reserve, or click it",
     curseursOn: "Other people's cursors: shown", curseursOff: "Other people's cursors: hidden",
     flecheEchap: "Click the target card (Esc cancels).",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
@@ -86,40 +86,40 @@
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     coachFermer: "Compris",
     coachPartager: "Copiez le lien d'invitation (en haut à gauche) pour que des participant·es rejoignent.",
-    coachPool: "Ajoutez des cartes au pool commun (le jeu, en bas) pour que le groupe les pose.",
-    coachAttente: "En attente que l'animateur mette des cartes à disposition…",
-    coachPrendre: "Prenez une carte du pool et posez-la sur le tableau.",
-    prendre: "Poser sur le tableau", retirerPool: "Retirer du pool", poolTitre: "Pool",
+    coachPool: "Ajoutez des cartes à la réserve commune (votre jeu de cartes, en bas) pour que le groupe les pose.",
+    coachAttente: "En attente que l'animateur remplisse la réserve…",
+    coachPrendre: "Prenez une carte de la réserve et posez-la sur le tableau.",
+    prendre: "Poser sur le tableau", retirerPool: "Retirer de la réserve", poolTitre: "Réserve",
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
     occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
-    versPool: "↩ Remettre au pool", versReserve: "✕ Dans ma réserve",
+    versPool: "↩ Remettre à la réserve", versReserve: "✕ Dans le jeu de cartes",
     tutoSuivant: "Suivant", tutoTerminer: "C'est parti", tutoPasser: "Passer le tuto", tutoRevoir: "Revoir le tutoriel",
     tutoPart: [
       { titre: "Bienvenue !", texte: "Vous allez construire la Fresque des risques de l'IA avec le groupe, en direct sur ce tableau partagé. L'essentiel en quelques étapes." },
-      { cible: "#pool", place: "top", titre: "Les cartes à poser", texte: "L'animateur·ice met des cartes à disposition ici. Prenez-en une : glissez-la sur le tableau, ou cliquez « Poser »." },
+      { cible: "#pool", place: "top", titre: "La réserve", texte: "L'animateur·ice met des cartes à disposition dans la réserve. Prenez-en une : glissez-la sur le tableau, ou cliquez « Poser »." },
       { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note (double-clic sur le tableau)." },
       { cible: "#z-tout", place: "bottom", titre: "Se repérer", texte: "Zoomez à la molette ou avec + / −. « Tout voir » recadre. Survolez une carte pour lire son titre quand vous êtes loin." },
       { cible: "#btn-participants", place: "bottom", titre: "Le groupe", texte: "Voyez qui est connecté ici. Le bouton ? rouvre cette aide à tout moment. Bon atelier !" }
     ],
     tutoAnim: [
       { titre: "Vous animez", texte: "Vous animez la session. Voici comment distribuer les cartes et guider le groupe." },
-      { cible: "#deck", place: "top", titre: "Votre réserve", texte: "Tout le jeu est ici, en bas. Cliquez une carte pour la mettre à disposition dans le pool commun." },
-      { cible: "#pool", place: "top", titre: "Le pool commun", texte: "Le pool commun (8 cartes max) : les participant·es y prennent les cartes pour les poser. Retirez-en une avec ✕." },
-      { titre: "Reprendre une carte", texte: "Sélectionnez une carte posée pour la reprendre : la remettre au pool, ou dans votre réserve." },
+      { cible: "#deck", place: "top", titre: "Votre jeu de cartes", texte: "Tout le jeu est ici, en bas. Cliquez une carte pour la mettre à disposition dans la réserve commune." },
+      { cible: "#pool", place: "top", titre: "La réserve commune", texte: "La réserve (8 cartes max) : les participant·es y prennent les cartes pour les poser. Retirez-en une avec ✕." },
+      { titre: "Reprendre une carte", texte: "Sélectionnez une carte posée pour la reprendre : la remettre à la réserve, ou dans votre jeu de cartes." },
       { cible: ".seg-outils", place: "bottom", titre: "Déplacer, relier, annoter", texte: "La main déplace les cartes et le tableau. La flèche relie deux cartes. La bulle ajoute une note." },
       { cible: "#btn-partager", place: "bottom", titre: "Inviter le groupe", texte: "Copiez le lien d'invitation et envoyez-le au groupe : un clic et ils y sont, rien à saisir. Bon atelier !" }
     ],
     horsLigne: "hors ligne", exclure: "Exclure de la session", confirmExclure: function (p) { return "Exclure " + p + " de la session ?"; },
     titreRejoindre: "Rejoindre l'atelier", sousRejoindre: "Entrez votre prénom pour rejoindre le tableau partagé.",
-    poolVide: "En attente que l'animateur mette des cartes dans le pool.",
-    poolVideAnim: "Ajoutez des cartes au pool depuis le jeu, en bas.",
+    poolVide: "En attente que l'animateur mette des cartes dans la réserve.",
+    poolVideAnim: "Ajoutez des cartes à la réserve depuis le jeu de cartes, en bas.",
     poolRemplirTxt: "Remplir", poolViderTxt: "Vider",
-    poolRemplirT: "Compléter le pool avec les cartes suivantes",
-    poolViderT: "Enlever toutes les cartes du pool",
-    confirmVider: "Enlever toutes les cartes du pool ?",
-    poolDeplacer: "Déplacer le panneau du pool",
+    poolRemplirT: "Compléter la réserve avec les cartes suivantes",
+    poolViderT: "Enlever toutes les cartes de la réserve",
+    confirmVider: "Enlever toutes les cartes de la réserve ?",
+    poolDeplacer: "Déplacer le panneau de la réserve",
     poolCaseVide: "emplacement libre",
-    reserveGlisser: "Glissez une carte sur le pool, ou cliquez-la",
+    reserveGlisser: "Glissez une carte sur la réserve, ou cliquez-la",
     curseursOn: "Curseurs des autres : affichés", curseursOff: "Curseurs des autres : masqués",
     flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
@@ -141,7 +141,8 @@
       "#btn-rejoindre": "Join",
       "#note-sans-lien": "To join a workshop, open the link you received by e-mail: it takes you straight to the right session, with nothing to type.",
       "#btn-partager": "Copy the invitation link",
-      "#deck-titre": "Card deck", "#deck-toggle": "Deck",
+      "#deck-titre": "Card deck",
+      "#deck-aide": "Click (or drag) a card to add it to the shared reserve (8 max), which anyone can place.",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
       "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
       "#panneau .panneau-tete h3": "Participants",
@@ -174,7 +175,7 @@
     if (mp) mp.innerHTML = 'The online collage runs on a computer screen. <a href="../">Back</a>.';
     var liste = document.querySelector("#aide-liste");
     if (liste) liste.innerHTML =
-      '<li><b>Cards:</b> the facilitator deals; place your card, then drag it. The ⤢ button opens it large.</li>'
+      '<li><b>Cards:</b> the facilitator fills the shared reserve; click « Place » (or drag the card) to bring it onto the board. The ⤢ button opens it large.</li>'
       + '<li><b>Links:</b> Link tool, click the source card then the target. Click the line to annotate or delete it.</li>'
       + '<li><b>Notes:</b> Note tool then click the board; drag to move, empty to delete.</li>'
       + '<li><b>View:</b> zoom and panning are personal to each of you. "Fit all" reframes everything.</li>';
@@ -669,25 +670,44 @@
      navigateur), repliable, avec 8 emplacements fixes (2 de large, 4 de haut)
      pour que la disposition ne bouge pas quand les cartes vont et viennent. */
   var poolPos = null;
-  try { poolPos = JSON.parse(localStorage.getItem("fresque:poolpos") || "null"); } catch (e) { poolPos = null; }
+  try { poolPos = JSON.parse(localStorage.getItem("fresque:poolpos2") || "null"); } catch (e) { poolPos = null; }
+  var poolPosChoisie = !!poolPos;   // true des que la personne l'a deplace elle-meme
   function placerPool() {
     var z = E["pool"], r = rectScene(); if (!z || !r.width) return;
-    var w = z.offsetWidth || 260, h = z.offsetHeight || 200;
-    if (!poolPos) poolPos = { x: 16, y: Math.max(8, r.height - h - 16) }; // en bas a gauche par defaut
-    // Toujours au moins l'en-tete accessible, meme apres redimensionnement.
-    var x = Math.max(4, Math.min(r.width - Math.min(w, 120) - 4, poolPos.x));
-    var y = Math.max(4, Math.min(r.height - 34, poolPos.y));
-    z.style.left = Math.round(x) + "px"; z.style.top = Math.round(y) + "px";
-    // La grille defile plutot que de deborder sous la reserve : on lui donne la
-    // hauteur reellement disponible entre l'en-tete du panneau et le bas de la scene.
     var g = z.querySelector(".pool-grille");
-    if (g) g.style.maxHeight = Math.max(120, r.height - y - 58) + "px";
+    var tete = z.querySelector(".pool-tete");
+    var marge = 16;
+    // 1. Borner la grille a la place disponible dans la scene (en-tete + marges
+    //    deduits) : le panneau ne peut alors jamais depasser du cadre.
+    if (g) {
+      var chrome = (tete ? tete.offsetHeight : 30) + 26;
+      g.style.maxHeight = Math.max(120, r.height - 2 * marge - chrome) + "px";
+    }
+    // 2. Positionner avec la hauteur definitive. Par defaut en bas a DROITE :
+    //    c'est de ce cote qu'on lui reprend le plus facilement de la place, et
+    //    « Tout voir » recadre la fresque a cote (voir zoneLibre).
+    var w = z.offsetWidth || 260, h = z.offsetHeight || 200;
+    // Tant que personne ne l'a deplace, on recalcule le coin bas-droit a chaque
+    // fois : la taille du panneau change (cartes qui arrivent, repli, reglage).
+    if (!poolPosChoisie) poolPos = { x: r.width - w - marge, y: r.height - h - marge };
+    // Le panneau reste entierement dans la scene quand il y tient ; sinon on
+    // garde au moins son en-tete atteignable.
+    var xMax = Math.max(4, r.width - w - 4), yMax = Math.max(4, r.height - h - 4);
+    var x = Math.max(4, Math.min(xMax, poolPos.x));
+    var y = Math.max(4, Math.min(yMax, poolPos.y));
+    z.style.left = Math.round(x) + "px"; z.style.top = Math.round(y) + "px";
   }
-  function memoriserPoolPos() { try { localStorage.setItem("fresque:poolpos", JSON.stringify(poolPos)); } catch (e) {} }
+  function memoriserPoolPos() {
+    poolPosChoisie = true;   // a partir d'ici, on respecte le choix de la personne
+    try { localStorage.setItem("fresque:poolpos2", JSON.stringify(poolPos)); } catch (e) {}
+  }
   function glisserPanneauPool(e, poignee) {
     if (e.button && e.button !== 0) return;
     e.preventDefault(); e.stopPropagation();
     var z = E["pool"], r = rectScene();
+    // Des le premier mouvement la position devient celle de la personne : sinon
+    // placerPool() la ramenerait a son coin par defaut a chaque image.
+    poolPosChoisie = true;
     var d = { mx: e.clientX, my: e.clientY, x: z.offsetLeft, y: z.offsetTop };
     try { poignee.setPointerCapture(e.pointerId); } catch (x) {}
     function mv(ev) {
@@ -741,6 +761,7 @@
       poolReduit = !poolReduit;
       try { localStorage.setItem("fresque:poolreduit", poolReduit ? "1" : "0"); } catch (e) {}
       etat._sigPool = null; rendrePool(etat.vue || vue); placerPool();
+      clampPan(); applyView(); majFleches();   // la place liberee profite au tableau
     });
     tete.appendChild(tog);
 
@@ -1334,21 +1355,39 @@
        2. envoi de l'intention (le serveur reste l'autorite et peut refuser) ;
        3. pousse « maj » aux autres via le relais WebSocket : ils relisent l'etat
           tout de suite au lieu d'attendre leur prochain sondage. */
+  // FILE D'ATTENTE : une seule action en vol a la fois. Sans cela, enchainer les
+  // clics envoyait des requetes concurrentes qui lisaient toutes le meme etat et
+  // s'ecrasaient l'une l'autre cote serveur (cycle lire-modifier-ecrire) : une
+  // carte posee disparaissait, ou revenait dans le jeu, et il fallait recliquer
+  // « Poser » des dizaines de fois. Le rendu optimiste, lui, reste immediat :
+  // l'utilisateur voit son geste tout de suite, c'est l'envoi qui fait la queue.
+  var fileAgir = [], envoiEnCours = false;
   function agir(intention, apres) {
     activite(); // action locale : on passe en mode reactif
     appliquerOptimiste(intention);
     etat.attente++;
-    api("agir", { code: etat.code, jeton: etat.jeton, intention: intention }).then(function (res) {
-      etat.attente = Math.max(0, etat.attente - 1);
+    fileAgir.push({ intention: intention, apres: apres });
+    defilerAgir();
+  }
+  function defilerAgir() {
+    if (envoiEnCours || !fileAgir.length) return;
+    envoiEnCours = true;
+    var t = fileAgir.shift();
+    api("agir", { code: etat.code, jeton: etat.jeton, intention: t.intention }).then(function (res) {
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
       // doublon.
-      if (apres) { try { apres(res.d || {}); } catch (e) {} }
-      if (res.d && res.d.etat) appliquerEtat(res.d.etat, true);
+      if (t.apres) { try { t.apres(res.d || {}); } catch (e) {} }
+      etat.attente = Math.max(0, etat.attente - 1);
+      // On ne reconcilie qu'une fois la file vide : appliquer un etat intermediaire
+      // annulerait a l'ecran les actions encore en attente (clignotement).
+      if (res.d && res.d.etat && !fileAgir.length && etat.attente === 0) appliquerEtat(res.d.etat, true);
       envoyerWS({ t: "maj" });
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
-    }).catch(function () { etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false); });
+    }).catch(function () {
+      etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
+    }).finally(function () { envoiEnCours = false; defilerAgir(); });
   }
 
   // Applique localement, tout de suite, l'effet visible d'une intention. Le
@@ -1557,14 +1596,62 @@
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
-    E.monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3)); E.monde.classList.toggle("loin", etat.zoom < 0.5);
+    // --iz (= 1/zoom) sert encore aux elements qui doivent garder une taille
+    // ECRAN constante : curseurs des autres et ping. Les cartes, elles, ne
+    // changent plus d'aspect avec le zoom.
+    E.monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3));
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %"; E["z-moins"].disabled = etat.zoom <= ZMIN + 1e-4; E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
-  function clampPan() { var r = rectScene(), pw = PLAN_W * etat.zoom, ph = PLAN_H * etat.zoom;
-    etat.panX = pw <= r.width ? (r.width - pw) / 2 : Math.min(0, Math.max(r.width - pw, etat.panX));
-    etat.panY = ph <= r.height ? (r.height - ph) / 2 : Math.min(0, Math.max(r.height - ph, etat.panY)); }
+  // Zone de la scene qui n'est PAS masquee par le panneau de la reserve. Quand
+  // le tableau tient en entier a l'ecran (« Tout voir », fort dezoom), on le
+  // centre dans cette zone : le panneau ne recouvre plus la fresque.
+  function zoneLibre(r) {
+    var z = { x: 0, y: 0, largeur: r.width, hauteur: r.height };
+    var p = E["pool"];
+    if (!p || p.hidden || !p.offsetParent) return z;
+    var pr = p.getBoundingClientRect();
+    if (!pr.width || !pr.height) return z;
+    var marge = 12, maxi = r.width * 0.6;      // on ne cede jamais plus de 60 %
+    if (pr.left - r.left <= r.right - pr.right) {   // panneau plutot a gauche
+      var pris = Math.min(maxi, pr.right - r.left + marge);
+      if (pris > 0) { z.x = pris; z.largeur = r.width - pris; }
+    } else {                                        // panneau plutot a droite
+      var prisD = Math.min(maxi, r.right - pr.left + marge);
+      if (prisD > 0) z.largeur = r.width - prisD;
+    }
+    return z;
+  }
+  function clampPan() {
+    var r = rectScene(), z = zoneLibre(r), pw = PLAN_W * etat.zoom, ph = PLAN_H * etat.zoom;
+    var margeG = z.x, margeD = r.width - (z.x + z.largeur);   // largeur masquee par le panneau
+    etat.panX = pw <= z.largeur ? z.x + (z.largeur - pw) / 2
+      : Math.min(margeG, Math.max(r.width - pw - margeD, etat.panX));
+    etat.panY = ph <= z.hauteur ? z.y + (z.hauteur - ph) / 2
+      : Math.min(0, Math.max(r.height - ph, etat.panY));
+  }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
   function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
-  function toutVoir() { var r = rectScene(); etat.zoom = Math.max(0.38, Math.min(r.width / PLAN_W, r.height / PLAN_H)); etat.panX = (r.width - PLAN_W * etat.zoom) / 2; etat.panY = (r.height - PLAN_H * etat.zoom) / 2; clampPan(); applyView(); dessinerFleches(); }
+  // Rectangle reellement occupe par la fresque (cartes + notes), avec une marge.
+  // A defaut de contenu, le plan entier.
+  function contenuRect() {
+    var tab = etat.vue && etat.vue.tableau;
+    var x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9, vu = false;
+    function eng(x, y, w, h) { vu = true; x1 = Math.min(x1, x); y1 = Math.min(y1, y); x2 = Math.max(x2, x + w); y2 = Math.max(y2, y + h); }
+    if (tab) {
+      (tab.cartes || []).forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });
+      (tab.textes || []).forEach(function (t) { var el = etat.elTextes[t.id]; eng(t.x, t.y, el ? el.offsetWidth : 90, el ? el.offsetHeight : 30); });
+    }
+    if (!vu) return { x: 0, y: 0, w: PLAN_W, h: PLAN_H };
+    var m = 90;
+    var x = Math.max(0, x1 - m), y = Math.max(0, y1 - m);
+    return { x: x, y: y, w: Math.min(PLAN_W - x, x2 - x1 + 2 * m), h: Math.min(PLAN_H - y, y2 - y1 + 2 * m) };
+  }
+  function toutVoir() {
+    var r = rectScene(), z = zoneLibre(r), c = contenuRect();
+    etat.zoom = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / c.w, z.hauteur / c.h)));
+    etat.panX = z.x + (z.largeur - c.w * etat.zoom) / 2 - c.x * etat.zoom;
+    etat.panY = z.y + (z.hauteur - c.h * etat.zoom) / 2 - c.y * etat.zoom;
+    clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive();
+  }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }
 
@@ -1759,7 +1846,20 @@
   });
   window.addEventListener("resize", function () { clampPan(); applyView(); majFleches(); });
 
-  window.addEventListener("resize", function () { placerPool(); });
+  // La scene change de hauteur a plusieurs moments (arrivee du jeu de cartes en
+  // bas, repli des barres, plein ecran, redimensionnement). On replace alors le
+  // panneau et on recadre : sans cela, le panneau calcule sur une scene plus
+  // haute debordait sous le jeu de cartes.
+  (function () {
+    var reagir = function () { placerPool(); clampPan(); applyView(); majFleches(); };
+    // Anti-rebond A RETARDEMENT : la scene se redimensionne par rafales (le jeu
+    // de cartes qui se remplit en bas). Un simple debit limite en tete de rafale
+    // aurait garde la mesure du DEBUT, donc une scene encore trop haute.
+    var minuteur = 0;
+    var planifier = function () { clearTimeout(minuteur); minuteur = setTimeout(reagir, 80); };
+    window.addEventListener("resize", planifier);
+    if (typeof ResizeObserver === "function" && E.scene) new ResizeObserver(planifier).observe(E.scene);
+  })();
 
   /* ---------- Modal ---------- */
   // Prechargement discret des grandes images : sans lui, ouvrir une carte
@@ -1835,7 +1935,7 @@
     var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
     ctx.fillStyle = document.body.classList.contains("canvas-noir") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
 
-    var idx = {};
+    var idx = {}, etiquettes = [];
     fleches.forEach(function (f) {
       var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
       var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
@@ -1846,12 +1946,7 @@
       ctx.strokeStyle = f.bidir ? "#F0A860" : "#8a857b"; ctx.lineWidth = 2.2; ctx.fillStyle = ctx.strokeStyle;
       ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.quadraticCurveTo(cxp, cyp, pb.x, pb.y); ctx.stroke();
       teteFleche(ctx, cxp, cyp, pb.x, pb.y); if (f.bidir) teteFleche(ctx, cxp, cyp, pa.x, pa.y);
-      if (f.libelle) {
-        ctx.font = "600 13px 'Montserrat',sans-serif"; var tw = ctx.measureText(f.libelle).width;
-        ctx.fillStyle = "#efece6"; coinRond(ctx, cxp - tw / 2 - 7, cyp - 11, tw + 14, 22, 7); ctx.fill();
-        ctx.strokeStyle = "#e6e2da"; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = "#B0560A"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(f.libelle, cxp, cyp + 1);
-      }
+      if (f.libelle) etiquettes.push({ x: cxp, y: cyp, t: f.libelle });
     });
     cartes.forEach(function (cc) {
       var c = etat.cartes[cc.n], el = etat.elCartes[cc.n], x = cc.x, y = cc.y, w = el ? el.offsetWidth : 150, h = el ? el.offsetHeight : 150, visH = Math.round(w / 1.6);
@@ -1866,6 +1961,13 @@
       texteMulti(ctx, c ? c.titre : "", x + 8, y + visH + 6, w - 16, 15, 3);
       ctx.restore();
       ctx.strokeStyle = "#e6e2da"; ctx.lineWidth = 1; coinRond(ctx, x, y, w, h, 10); ctx.stroke();
+    });
+    // Etiquettes de fleche par-dessus les cartes (comme a l'ecran).
+    etiquettes.forEach(function (l) {
+      ctx.font = "600 13px 'Montserrat',sans-serif"; var tw = ctx.measureText(l.t).width;
+      ctx.fillStyle = "#fff7e6"; coinRond(ctx, l.x - tw / 2 - 7, l.y - 11, tw + 14, 22, 7); ctx.fill();
+      ctx.strokeStyle = "#e0b378"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = "#8a4200"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(l.t, l.x, l.y + 1);
     });
     textes.forEach(function (t) {
       if (!t.contenu) return;

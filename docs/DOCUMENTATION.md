@@ -372,7 +372,8 @@ ensemble.
 
 **Intentions (`agir`).** Toutes passent par `appliquer()` dans `regles.js`.
 Réservées à l'animateur : `poolAjouter`, `poolRetirer`, `retirerCarte`
-(avec `dest:"pool"` pour renvoyer au pool, sinon dans la réserve), `exclure`,
+(avec `dest:"pool"` pour renvoyer à la réserve commune, sinon dans le jeu de
+cartes de l'animateur·ice), `exclure`,
 `definirLienVocal`, `clore`. Ouvertes à tou·tes : `poserCarte` (prendre du pool
 vers la table, avec point de dépôt exact), `reserverPool` / `libererPool`
 (verrou souple pendant le glisser-déposer), `deplacerCarte`, `creerFleche`
@@ -511,7 +512,8 @@ l'annulation, la reprogrammation et la désinscription.
 `reservations` (cartes en cours de prise, verrou souple à 6 s), `tableau`
 (cartes posées, flèches, notes), `participants` + `animateur` (prénom, présence),
 `lienVocal`, `ping` (marqueur éphémère), `version`. Plus de système de tour ni
-de main individuelle : l'animateur alimente un pool commun, chacun·e y prend des
+de main individuelle : l'animateur alimente une réserve commune (`pool` dans le
+code), chacun·e y prend des
 cartes. Détails dans `serveur/src/regles.js`. TTL 12 h, inactivité 2 h.
 
 Les adresses e-mail ne sont **jamais** exposées dans les vues publiques
@@ -583,21 +585,31 @@ Ressenti temps réel (le serveur est décrit en 7.2) :
 - **Curseurs** : positions relayées et **interpolées** à chaque frame (plus de
   saccade) ; flèche et prénom cerclés de blanc pour rester lisibles sur tout
   fond ; masquables (bouton « Curseurs »).
-- **Pool** : panneau flottant déplaçable et repliable, grille de **8
-  emplacements fixes** (2 x 4), taille des cartes réglable, boutons
-  « Remplir » / « Vider » pour l'animateur, glisser-déposer réserve <-> pool et
-  pool -> tableau.
-- **Réserve** (animateur) : jeu complet illustré, une rangée qui défile.
+- **Réserve commune** : panneau flottant déplaçable et repliable, placé en bas à
+  droite par défaut, grille de **8 emplacements fixes** (2 x 4), taille des
+  cartes réglable, boutons « Remplir » / « Vider » pour l'animateur,
+  glisser-déposer jeu de cartes <-> réserve et réserve -> tableau. Dans le CODE
+  l'objet s'appelle toujours `pool` (id, classes, ops serveur) ; seule
+  l'interface dit « Réserve ».
+- **Jeu de cartes** (animateur) : les 38 cartes illustrées, une rangée qui défile.
+- **Cadrage** : « Tout voir » encadre le CONTENU (pas les 4400 x 2200 du plan) et
+  le centre dans la partie de la scène que le panneau ne masque pas, qui peut
+  donc déborder juste assez pour se dégager.
+- **Zoom** : une carte posée ne change jamais d'aspect, elle rétrécit. Pour lire
+  un titre de loin : survol (encadré en haut) ou double-clic.
+- **Actions sérialisées** : une seule intention en vol à la fois (file d'attente
+  côté client). Enchaîner les clics envoyait des requêtes concurrentes qui
+  s'écrasaient l'une l'autre côté serveur.
 - **Thème** : le bouton « Fond noir » bascule **toute la page** (`data-theme`
   sur `<html>`, mémorisé sous la clé `theme` comme le reste du site).
 
-- **Rôles distincts.** L'animateur dispose d'une **réserve** en bas (tout le jeu,
-  coloré par lot) : un clic met une carte dans le **pool commun** (8 max).
+- **Rôles distincts.** L'animateur dispose de son **jeu de cartes** en bas (tout le jeu,
+  coloré par lot) : un clic met une carte dans la **réserve commune** (8 max).
   Tou·tes prennent une carte du pool et la posent sur le tableau (**glisser-déposer**
   ou bouton « Poser »). Pendant la prise, la carte est **réservée** (verrou souple :
   grisée + prénom chez les autres, expire à 6 s). L'animateur peut **reprendre**
-  une carte posée (la remettre au pool ou dans sa réserve), retirer une carte du
-  pool, exclure un participant.
+  une carte posée (la remettre à la réserve commune ou dans son jeu de cartes),
+  retirer une carte de la réserve, exclure un participant.
 - **Outils** (barre façon Excalidraw) : main (déplacer / naviguer, par défaut),
   flèche (relier, + variante double sens), note (bulle). Sélection d'une flèche
   pour l'annoter / la supprimer. Raccourcis clavier 1/2/3/4 (ou H/A/B/N).

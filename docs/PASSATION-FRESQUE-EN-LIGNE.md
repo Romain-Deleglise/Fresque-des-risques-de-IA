@@ -125,6 +125,19 @@ Le code reste **technique** (URL + état serveur) et n'apparaît plus nulle part
 - Participer : « Gérer un atelier existant » est un bloc replié, ouvert par
   `?gerer=CODE#gerer`, dont les formulaires ne demandent que l'e-mail.
 
+### Second crash-test : traité aussi
+
+| Point remonté | Ce qui a été fait |
+|---|---|
+| Le dézoom sous 50 % déformait les cartes | Comportement `#monde.loin` entièrement supprimé (CSS et JS). Une carte posée rétrécit, un point c'est tout. L'image exportée, qui reprenait la hauteur réelle des éléments, redevient correcte du même coup |
+| Actions enchaînées : carte qui disparaît, qui revient au jeu, « Poser » à recliquer 100 fois | **Cause trouvée et reproduite** : chaque clic envoyait une requête concurrente, toutes lisaient le même état et s'écrasaient (lire-modifier-écrire). Les actions passent maintenant par une **file côté client** (une seule en vol), et `muter()` vérifie lui-même que son écriture a bien été retenue quand la plateforme ne le dit pas |
+| « Pool » | L'interface dit **Réserve** (commune), et le jeu complet de l'animateur·ice **Jeu de cartes**. Le code garde `pool` partout (id, classes, ops) |
+| Le panneau masque le tableau au dézoom | Panneau en bas à droite par défaut ; « Tout voir » cadre le **contenu** et le centre dans la zone libre ; le plan peut déborder juste assez pour se dégager du panneau ; le panneau reste toujours entièrement dans la scène |
+| Étiquettes de flèche sous les cartes dans l'export | Dessinées en second passage, par-dessus |
+
+Effet de bord assumé : le panneau des participants passe à **gauche**, la
+réserve occupant désormais la droite.
+
 ## 2. À SURVEILLER EN PRODUCTION
 
 Rien de ce qui suit n'est testable hors de Netlify : à vérifier au premier
@@ -136,7 +149,12 @@ atelier réel.
 2. **Envoi en Cci seul** via Resend (`to` = adresse d'expédition). Si Resend le
    refusait, les e-mails collectifs (rappels, annulation, déplacement aux
    inscrit·es) ne partiraient pas ; ceux à l'animateur·ice passeraient quand même.
-3. **Relais temps réel** : `infra/curseurs/server.js` a changé (messages `maj`,
+3. **Concurrence à plusieurs.** La file côté client protège une personne qui
+   enchaîne les actions. Si deux personnes agissent à la même seconde, c'est le
+   verrou `onlyIfMatch` de Netlify Blobs qui doit rejouer l'écriture ; la
+   vérification de repli ajoutée dans `muter()` couvre le cas où la plateforme
+   ne renvoie pas son verdict. À confirmer sur un atelier réel.
+4. **Relais temps réel** : `infra/curseurs/server.js` a changé (messages `maj`,
    `fl`, `lib`, `note`). Le conteneur ne se met pas à jour tout seul : voir
    `infra/curseurs/README.md`, section « Mettre a jour ».
 
@@ -219,7 +237,7 @@ c'est surtout du travail côté client (réconciliation).
 
 Le crash-test est purgé. Les prochaines étapes utiles, par ordre d'intérêt :
 
-1. Vérifier les trois points de la section 2 sur un atelier réel.
+1. Vérifier les quatre points de la section 2 sur un atelier réel.
 2. Rejouer un crash-test à 8 personnes : c'est le seul moyen de trouver la
    prochaine série de frictions.
 3. Si la latence résiste malgré tout, la piste de la section 3.

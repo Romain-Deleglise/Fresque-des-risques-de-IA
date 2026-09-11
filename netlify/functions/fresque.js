@@ -137,15 +137,27 @@ function expiree(s) {
   return now - Math.max.apply(null, vus) > INACTIF_MS;
 }
 
-// lecture-modification-écriture avec quelques essais (concurrence optimiste)
+// lecture-modification-écriture avec quelques essais (concurrence optimiste).
+// Le garde-fou normal est `onlyIfMatch` (etag) : si quelqu'un a écrit entre la
+// lecture et l'écriture, le magasin refuse et on rejoue. MAIS si la plateforme
+// ne renvoie pas ce verdict, on ne peut pas se fier au silence : on relit alors
+// pour vérifier que c'est bien NOTRE version qui a été retenue. Sans cela, deux
+// écritures simultanées se recouvrent (une carte posée disparaît, ou revient
+// dans le jeu) au lieu d'être rejouées.
 async function muter(st, code, fn) {
   for (let essai = 0; essai < 6; essai++) {
     const cur = await lire(st, code);
     if (!cur) return { erreur: { statut: 404, code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice. Vérifiez le code et réessayez peu avant le début." } };
     if (expiree(cur.s)) { try { await st.delete(cle(code)); } catch (e) {} return { erreur: { statut: 404, code: "session_inconnue", message: "Session terminée." } }; }
     const out = fn(cur.s);
+    const attendue = cur.s.version;
     const w = await ecrire(st, code, cur.s, cur.etag);
-    if (w && w.modified === false) continue; // quelqu'un a écrit entre-temps : on rejoue
+    if (w && w.modified === false) continue;    // conflit signalé : on rejoue
+    if (!w || typeof w.modified !== "boolean") {
+      // Verdict absent : on vérifie nous-mêmes, puis on rejoue si on a été doublé.
+      const apres = await lire(st, code);
+      if (!apres || !apres.s || apres.s.version !== attendue) continue;
+    }
     return { out, s: cur.s };
   }
   return { erreur: { statut: 409, code: "conflit", message: "Trop de monde écrit en même temps, réessayez." } };

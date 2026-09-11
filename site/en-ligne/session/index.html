@@ -114,7 +114,8 @@
            autres) : couche separee pour ne pas reconstruire les vraies fleches. -->
       <svg id="fleches-live" viewBox="0 0 4400 2200" aria-hidden="true"></svg>
     </div>
-    <!-- Pool commun (visible de tou·tes) : cartes proposées par l'animateur -->
+    <!-- Réserve commune (visible de tou·tes) : cartes proposées par l'animateur.
+         Le mot « pool » ne subsiste que dans le code (id, classes, ops serveur). -->
     <div class="pool" id="pool" aria-live="polite"></div>
 
     <!-- Panneau participants -->
@@ -136,7 +137,7 @@
       <p class="aide-intro" id="carte0-txt">…</p>
       <ul class="aide-liste" id="aide-liste">
         <li><b>Déplacer :</b> glissez une carte pour la déplacer ; glissez une zone vide pour vous déplacer.</li>
-        <li><b>Cartes :</b> l'animateur met des cartes dans le pool commun (en bas) ; chacun·e clique « Poser » pour l'amener sur le tableau. Le bouton ⤢ agrandit une carte.</li>
+        <li><b>Cartes :</b> l'animateur·ice met des cartes dans la réserve commune ; chacun·e clique « Poser » (ou glisse la carte) pour l'amener sur le tableau. Le bouton ⤢ agrandit une carte.</li>
         <li><b>Liens :</b> cliquez « Lien », puis la carte de départ et la carte d'arrivée. Sélectionnez une flèche pour l'annoter, la supprimer ou la passer en double sens (↔).</li>
         <li><b>Notes :</b> double-cliquez sur une zone vide du tableau ; glissez pour déplacer, videz pour supprimer.</li>
         <li><b>Vue :</b> molette pour zoomer ; zoom et déplacement sont propres à chacun. « Tout voir » recadre.</li>
@@ -145,14 +146,14 @@
     </aside>
   </div>
 
-  <!-- Jeu complet (animateur) : cliquer une carte l'ajoute au pool commun -->
+  <!-- Jeu complet (animateur) : cliquer une carte l'ajoute à la réserve commune -->
   <div class="deck anim-only" id="deck">
     <div class="deck-tete">
       <button type="button" class="deck-toggle" id="deck-toggle" aria-expanded="true">
         <span id="deck-titre">Jeu de cartes</span>
         <span class="deck-compte" id="deck-compte">0 / 8</span>
       </button>
-      <span class="deck-aide" id="deck-aide">Cliquez une carte pour l'ajouter au pool commun (8 max), que tout le monde peut poser.</span>
+      <span class="deck-aide" id="deck-aide">Cliquez (ou glissez) une carte pour l'ajouter à la réserve commune (8 max), que tout le monde peut poser.</span>
     </div>
     <div class="deck-cartes" id="deck-cartes"></div>
   </div>
