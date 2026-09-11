@@ -75,6 +75,24 @@ La coupure dure quelques secondes. Les clients se reconnectent seuls (backoff
 2 s, 4 s, 8 s...) et, entre-temps, le site continue de fonctionner : la
 propagation retombe simplement sur le sondage HTTP.
 
+### Verifier que la BONNE version tourne
+
+Un `101 Switching Protocols` prouve seulement que le relais repond : l'ancienne
+version repond pareil. Pour verifier que c'est bien le fichier attendu qui
+tourne dans le conteneur, comparer son empreinte a celle du depot :
+
+```bash
+# sur le serveur
+sudo docker exec curseurs md5sum /app/server.js
+# dans le depot, la meme commande doit donner la meme empreinte
+md5sum infra/curseurs/server.js
+```
+
+Deux empreintes identiques = le conteneur execute bien la version du depot.
+Si elles different, le `docker compose up -d --build` n'a pas pris le nouveau
+fichier (souvent parce qu'il n'a pas ete recopie dans
+`/opt/volunteer-apps/apps/curseurs/`).
+
 ## Commandes utiles
 
 ```bash
