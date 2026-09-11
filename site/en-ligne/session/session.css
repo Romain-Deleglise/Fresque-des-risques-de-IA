@@ -41,7 +41,9 @@ body.role-animateur .anim-only{display:flex}
 body.role-animateur .anim-only.vocal{display:block}
 
 /* Panneau participants */
-.panneau{position:absolute;top:.8rem;right:.8rem;width:19rem;max-height:calc(100% - 6rem);overflow:auto;background:var(--surface);border:1px solid var(--ligne);border-radius:12px;box-shadow:var(--ombre);z-index:25;padding:.9rem 1rem}
+/* Le panneau des participants passe a GAUCHE : la reserve occupe desormais le
+   cote droit, les deux se recouvraient. */
+.panneau{position:absolute;top:.8rem;left:.8rem;width:19rem;max-height:calc(100% - 6rem);overflow:auto;background:var(--surface);border:1px solid var(--ligne);border-radius:12px;box-shadow:var(--ombre);z-index:25;padding:.9rem 1rem}
 .panneau-tete{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
 .panneau-tete h3{font-family:var(--f-titre);margin:0;font-size:1.1rem}
 .vocal{margin:.4rem 0 .8rem}
