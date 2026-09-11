@@ -16,18 +16,37 @@ const require = createRequire(import.meta.url);
 const R = require("../src/regles.js");
 
 // --- Magasin Blobs en memoire, parametrable -------------------------------
+// Ce magasin imite une contrainte REELLE de la plateforme : dans une fonction au
+// format « lambda » (exports.handler + connectLambda), @netlify/blobs ne recoit
+// que `edgeURL`, jamais `uncachedEdgeURL`. Toute requete demandant
+// `consistency: "strong"` y leve donc BlobsConsistencyError, LECTURES COMME
+// ECRITURES (l'option posee sur le magasin vaut pour chaque appel). Une version
+// livree a demande la coherence forte sur le magasin : chaque operation partait
+// en erreur et le site repondait « Erreur du service de sessions » des la
+// creation. La garde ci-dessous fait echouer tous les tests si on recommence.
+class ErreurCoherence extends Error {
+  constructor() { super("Netlify Blobs has failed to perform a read using strong consistency because the environment has not been configured with a 'uncachedEdgeURL' property"); this.name = "BlobsConsistencyError"; }
+}
 let magasin = { session: null, etag: 0, verdict: true, ecritApres: 0 };
 const stub = {
   connectLambda() {},
-  getStore({ name }) {
+  getStore(entree) {
+    const opt = typeof entree === "string" ? { name: entree } : entree;
+    const name = opt.name;
     const sessions = name === "fresque-sessions";
+    const garde = (o) => {
+      const c = (o && o.consistency) || opt.consistency;
+      if (c === "strong") throw new ErreurCoherence();
+    };
     return {
-      async get() { return null; },
-      async getWithMetadata() {
+      async get(k, o) { garde(o); return null; },
+      async getWithMetadata(k, o) {
+        garde(o);
         if (!sessions || !magasin.session) return null;
         return { data: JSON.parse(JSON.stringify(magasin.session)), etag: String(magasin.etag) };
       },
       async setJSON(k, v, opts) {
+        garde(opts);
         if (!sessions) return { modified: true };
         if (opts && opts.onlyIfMatch !== undefined && opts.onlyIfMatch !== String(magasin.etag)) {
           return magasin.verdict ? { modified: false } : undefined;
@@ -39,8 +58,8 @@ const stub = {
         if (magasin.ecritApres > 0) { magasin.ecritApres--; magasin.session.version += 1; magasin.etag++; }
         return magasin.verdict ? { modified: true } : undefined;
       },
-      async delete() { magasin.session = null; },
-      async list() { return { blobs: [] }; }
+      async delete(k, o) { garde(o); magasin.session = null; },
+      async list(o) { garde(o); return { blobs: [] }; }
     };
   }
 };
@@ -99,4 +118,18 @@ test("une action refusee par l'etag est rejouee, pas dupliquee", async () => {
   await post({ op: "agir", code: "ABCDEF", jeton: r1.jeton, intention: { op: "poserCarte", n: 5, pos: { x: 500, y: 500 } } });
   assert.equal(magasin.session.tableau.cartes.length, av + 1, "une seule carte posee");
   assert.equal(magasin.session.pool.indexOf(5), -1, "la carte a quitte la reserve");
+});
+
+test("ouvrir un atelier reserve repond bien (pas de coherence forte demandee)", async () => {
+  magasin = { session: null, etag: 0, verdict: true, ecritApres: 0 };
+  const r = await post({ op: "creer", prenom: "Romain", code: "X6C38E" });
+  assert.equal(r.error, undefined, "aucune erreur de service");
+  assert.equal(r.code, "X6C38E", "la session s'ouvre avec le code de l'atelier");
+  assert.equal(r.role, "animateur");
+  // Et la suite du parcours : un participant entre, puis l'animateur agit.
+  const p = await post({ op: "rejoindre", code: "X6C38E", prenom: "Ana" });
+  assert.ok(p.jeton, "le participant entre");
+  const a = await post({ op: "agir", code: "X6C38E", jeton: r.jeton, intention: { op: "poolAjouter", n: 5 } });
+  assert.equal(a.error, undefined, "aucune erreur de service sur une action");
+  assert.deepEqual(magasin.session.pool, [5]);
 });

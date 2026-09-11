@@ -25,10 +25,17 @@ const INACTIF_MS = 2 * 60 * 60 * 1000;  // 2 h sans activité
 // déclenché de façon opportuniste lors d'une création.
 const BALAYAGE_MS = 15 * 60 * 1000;
 
-// COHERENCE FORTE au niveau du MAGASIN (forme documentee, en plus de l'option
-// par lecture plus bas) : sans elle, Blobs sert des lectures qui peuvent rester
-// perimees jusqu'a 60 s, ce qui rend tout temps reel illusoire de ce cote.
-function store() { return getStore({ name: "fresque-sessions", consistency: "strong" }); }
+// PAS DE COHERENCE FORTE ICI, et ce n'est pas un oubli. Dans une fonction au
+// format « lambda » (exports.handler + connectLambda), @netlify/blobs ne recoit
+// du runtime que `edgeURL` : `uncachedEdgeURL`, la seule adresse capable de
+// servir une lecture fortement coherente, n'existe pas. Toute requete demandant
+// `consistency: "strong"` y leve donc BlobsConsistencyError -- LECTURES COMME
+// ECRITURES, car l'option posee sur le magasin s'applique a chaque appel.
+// Demander la coherence forte sur le magasin mettait ainsi tout le service a
+// terre : « Erreur du service de sessions » des la creation. La fraicheur du
+// direct ne vient de toute facon pas d'ici mais du relais WebSocket, qui pousse
+// l'etat complet aux autres ; le magasin reste l'autorite et la memoire.
+function store() { return getStore({ name: "fresque-sessions" }); }
 function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
@@ -107,30 +114,31 @@ async function visioAtelier(code) {
     return typeof v === "string" && /^https:\/\//i.test(v) ? v : null;
   } catch (e) { return null; }
 }
-// LECTURE EN COHERENCE FORTE. Par defaut, Netlify Blobs sert des lectures
-// « eventuellement coherentes » : apres l'ecriture de A, la lecture de B peut
-// renvoyer l'ancienne valeur pendant plusieurs secondes. C'etait la cause des
-// ~5 s de latence ressentis sur TOUTES les actions (la boucle d'attente relisait
-// en boucle une valeur perimee). En coherence forte, la lecture voit toujours la
-// derniere ecriture : la propagation retombe au temps d'un aller-retour.
-// Repli : si la plateforme refuse la coherence forte sur ce type de fonction,
-// on le constate UNE fois et on repasse en lecture normale pour toute la duree
-// de l'instance (le service continue de marcher, simplement moins direct).
-let fort = true;
+// Lecture simple. Netlify Blobs sert ici des lectures « eventuellement
+// coherentes » : apres une ecriture, une lecture peut renvoyer l'ancienne valeur
+// pendant un court moment. On ne peut pas y echapper dans une fonction lambda
+// (voir store() ci-dessus), et on n'essaie plus : l'essai etait voue a echouer a
+// tous les coups. Ce qui rend le tableau direct, c'est le relais WebSocket, qui
+// transmet aux autres l'etat complet renvoye a l'auteur de l'action ; le sondage
+// qui continue en fond ne sert qu'a corriger les ecarts.
 async function lireBrut(st, k) {
-  if (fort) {
-    try { return await st.getWithMetadata(k, { type: "json", consistency: "strong" }); }
-    catch (e) { fort = false; }
-  }
   return st.getWithMetadata(k, { type: "json" });
 }
 async function lire(st, code) {
   const res = await lireBrut(st, cle(code));
   return res ? { s: res.data, etag: res.etag } : null;
 }
+// ATTENTION a ce que fait reellement `onlyIfMatch` : @netlify/blobs 8.x ne
+// connait PAS l'ecriture conditionnelle. `setJSON(cle, valeur, options)` n'y lit
+// que `metadata` et ne renvoie rien. L'option est donc ignoree en silence et
+// `w` vaut `undefined` : aucune ecriture n'est refusee, la derniere ecrase la
+// precedente. On la transmet quand meme, pour qu'une version du client qui sait
+// la lire (`{ modified: false }`) fasse jouer le garde-fou sans rien changer
+// ici. En attendant, la protection contre les ecritures qui se marchent dessus
+// est cote client : les actions d'un meme onglet partent en file, une a la fois.
 async function ecrire(st, code, s, etag) {
   const opts = etag ? { onlyIfMatch: etag } : {};
-  return st.setJSON(cle(code), s, opts); // { modified: bool }
+  return st.setJSON(cle(code), s, opts); // { modified: bool } si le magasin sait le dire
 }
 
 function expiree(s) {
@@ -141,8 +149,9 @@ function expiree(s) {
 }
 
 // lecture-modification-écriture avec quelques essais (concurrence optimiste).
-// Le garde-fou est `onlyIfMatch` (etag) : si quelqu'un a écrit entre la lecture
-// et l'écriture, le magasin refuse et on rejoue.
+// Le garde-fou VOULU est `onlyIfMatch` (etag) : si quelqu'un a écrit entre la
+// lecture et l'écriture, le magasin refuse et on rejoue. Il ne joue que si le
+// magasin sait répondre `{ modified: false }` : voir `ecrire()` ci-dessus.
 //
 // On ne cherche PAS à deviner le résultat quand le magasin ne renvoie pas de
 // verdict. Une version antérieure relisait l'état pour vérifier que sa version
