@@ -115,6 +115,26 @@ function rejoindre(s, prenom, jeton) {
   return { role: "participant", jeton: nj, id: id };
 }
 
+/* IDEMPOTENCE. Quand le reseau lache, le client renvoie son action : il ne
+   peut pas savoir si la premiere est arrivee et si c'est la REPONSE qui s'est
+   perdue. Sans garde, ce renvoi creait une deuxieme fleche, une deuxieme note.
+   Chaque action porte donc une cle unique ; on retient les dernieres et on
+   refuse de rejouer ce qui a deja ete fait. Quarante suffisent largement : une
+   cle ne sert que le temps de quelques secondes de reseau. */
+var MEM_IDEM = 40;
+function dejaFait(s, cle) {
+  if (!cle) return null;
+  var m = s.idem; if (!m || !m.l) return null;
+  var i = m.l.indexOf(cle);
+  return i >= 0 ? (m.r[i] || { ok: true }) : null;
+}
+function noterIdem(s, cle, resultat) {
+  if (!cle) return;
+  if (!s.idem || !s.idem.l) s.idem = { l: [], r: [] };
+  s.idem.l.push(cle); s.idem.r.push(resultat || { ok: true });
+  while (s.idem.l.length > MEM_IDEM) { s.idem.l.shift(); s.idem.r.shift(); }
+}
+
 function toucher(s, jeton) {
   var info = s.jetons[jeton]; if (!info) return;
   if (info.role === "animateur") { s.animateur.connecte = true; s.animateur.vuLe = Date.now(); }
@@ -353,6 +373,17 @@ function appliquer(s, jeton, intention) {
   var estAnim = info.role === "animateur";
   var moi = estAnim ? null : s.participants.find(function (p) { return p.id === info.id; });
   var d = intention || {}; var op = d.op;
+
+  // Deja vue : c'est un renvoi apres un echec reseau, on ne rejoue pas. On rend
+  // le meme resultat qu'a la premiere fois (le client attend l'identifiant de
+  // la fleche ou de la note qu'il vient de creer).
+  var vu = dejaFait(s, d.idem);
+  if (vu) return vu;
+  var sortie = appliquerVraiment(s, jeton, info, estAnim, moi, d, op);
+  if (!sortie || !sortie.refus) noterIdem(s, d.idem, sortie);
+  return sortie;
+}
+function appliquerVraiment(s, jeton, info, estAnim, moi, d, op) {
 
   // Reservees a l'animateur : gerer le pool, retirer une carte de la table,
   // le lien vocal, clore la session.

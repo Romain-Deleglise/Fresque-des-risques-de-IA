@@ -181,5 +181,35 @@ t("reprise ne peut pas voler le prénom d'un autre", !!R.rejoindre(sh, "Antoine 
 sh.participants.find((x) => x.id === hA.id).connecte = false;
 t("prénom libéré après un départ", !!R.rejoindre(sh, "Antoine").jeton);
 
+// Idempotence : renvoyer la meme action (echec reseau, reponse perdue) ne doit
+// pas la jouer deux fois. Sans cela on obtenait DEUX fleches ou DEUX notes.
+const si = R.creer("Lea", "IDEM01").session;
+si.jetons["jA"] = { role: "animateur", id: "a1" };
+R.appliquer(si, "jA", { op: "poolAjouter", n: 1 });
+R.appliquer(si, "jA", { op: "poolAjouter", n: 2 });
+R.appliquer(si, "jA", { op: "poserCarte", n: 1, pos: { x: 300, y: 300 } });
+R.appliquer(si, "jA", { op: "poserCarte", n: 2, pos: { x: 900, y: 300 } });
+const f1 = R.appliquer(si, "jA", { op: "creerFleche", de: 1, vers: 2, idem: "k1" });
+const f2 = R.appliquer(si, "jA", { op: "creerFleche", de: 1, vers: 2, idem: "k1" });
+t("une fleche renvoyee ne fait pas de doublon", si.tableau.fleches.length === 1);
+t("le renvoi rend le meme identifiant", f2.resultat && f1.resultat && f2.resultat.id === f1.resultat.id);
+const vAv = si.version;
+R.appliquer(si, "jA", { op: "creerFleche", de: 1, vers: 2, idem: "k1" });
+t("le renvoi ne fait pas avancer la version", si.version === vAv);
+const n1 = R.appliquer(si, "jA", { op: "creerTexte", x: 100, y: 100, contenu: "salut", idem: "k2" });
+R.appliquer(si, "jA", { op: "creerTexte", x: 100, y: 100, contenu: "salut", idem: "k2" });
+t("une note renvoyee ne fait pas de doublon", si.tableau.textes.length === 1);
+t("la note renvoyee garde son identifiant", n1.resultat && n1.resultat.id === si.tableau.textes[0].id);
+// Une cle differente fait bien une nouvelle fleche.
+R.appliquer(si, "jA", { op: "creerFleche", de: 2, vers: 1, idem: "k3" });
+t("une cle differente cree bien une nouvelle fleche", si.tableau.fleches.length === 2);
+// Sans cle, on ne bloque rien (compatibilite avec un client plus ancien).
+R.appliquer(si, "jA", { op: "creerTexte", x: 200, y: 200, contenu: "bis" });
+R.appliquer(si, "jA", { op: "creerTexte", x: 200, y: 200, contenu: "bis" });
+t("sans cle, rien n'est bloque", si.tableau.textes.length === 3);
+// La memoire des cles reste bornee.
+for (let k = 0; k < 60; k++) R.appliquer(si, "jA", { op: "ping", x: 10, y: 10, idem: "p" + k });
+t("la memoire des cles reste bornee", si.idem.l.length <= 40);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

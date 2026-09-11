@@ -253,6 +253,60 @@ Mêmes chiffres avec un magasin en retard de **6 s** et une fonction à 900 ms.
 `infra/curseurs/README.md`). Sans cela, les déplacements en cours ne se voient
 pas ; tout le reste fonctionne déjà.
 
+### Ce qu'on a repris aux autres architectures (et ce qu'on a écarté)
+
+Après le passage en trois couches, on a relu ce que font Figma, le netcode des
+jeux en réseau et les guides WebSocket de production, puis **cherché ces
+faiblesses-là dans notre code, avec un banc**. Deux existaient vraiment.
+
+**Faille 1, confirmée : notre propre action clignotait.** Tant que le serveur
+n'a pas confirmé une action, elle n'existe que chez nous. En appliquant
+l'état reçu de quelqu'un d'autre, notre carte disparaissait de notre écran puis
+revenait. C'est le problème que le netcode résout par le **rejeu des entrées non
+acquittées** : on repart de l'état reçu, puis on réapplique par-dessus ce qui
+est encore en vol (`enVol` / `rejouerEnVol()`). Mesuré avant : clignotement.
+Après : plus aucun.
+
+**Faille 2, confirmée et plus grave : une action perdue au réseau restait à
+l'écran pour toujours.** Le `catch` ne faisait rien : l'action n'était nulle
+part sauf chez son auteur, qui voyait une carte que personne d'autre n'avait, et
+que rien ne venait jamais corriger (sa version était déjà à jour, donc l'état du
+serveur était ignoré). Trois remèdes, tous standards :
+- **renvoi** (2 tentatives, 400 puis 800 ms) : une coupure passagère est
+  rattrapée toute seule ;
+- **clé d'idempotence** sur chaque action : le serveur retient les 40 dernières
+  et refuse de rejouer. Sans elle, un renvoi créait DEUX flèches ou DEUX notes ;
+- **annulation** si ça ne passe toujours pas : on redemande l'état complet et on
+  le dit à la personne, plutôt que d'afficher un tableau qui ment.
+
+**Écriture conditionnelle enfin réelle.** `onlyIfMatch` n'existait pas dans
+`@netlify/blobs` 8.x : l'option était ignorée en silence, donc deux personnes
+qui agissaient en même temps se recouvraient et une action disparaissait sans
+trace. `ateliers.js` et `collect.js` s'appuyaient dessus eux aussi, pour rien.
+Le paquet est passé en **10.7.13**, où le magasin compare vraiment l'etag et
+répond `{ modified: false }` ; `muter()` rejoue alors, avec une attente
+croissante pour laisser le magasin rattraper son retard. Le code marche encore
+si la plateforme ne rend pas de verdict : on retombe simplement sur l'ancien
+comportement plutôt que de bloquer. **Non vérifiable hors de Netlify** : à
+surveiller au premier atelier (voir section 2).
+
+**Écarté, et pourquoi.**
+- **CRDT (Yjs, Automerge) ou OT.** Figma les a écartés pour la même raison que
+  nous : leur complexité sert un monde décentralisé, or tout passe ici par un
+  seul serveur qui définit l'ordre. La granularité naturelle du conflit (une
+  carte, une flèche) rend le dernier-écrivain-gagne suffisant et attendu.
+- **Diffuser des deltas plutôt que l'état complet.** Diviserait le trafic par
+  ~20, mais un état fait 4 Ko et on est huit : ce n'est pas un problème.
+- **Journal d'opérations + rattrapage au reconnect.** Notre sondage tenu avec
+  numéro de version fait déjà ce rattrapage.
+
+**La suite logique, si un jour ça ne suffit plus** : déplacer l'autorité dans le
+relais, sur votre propre serveur. Les règles (`serveur/src/regles.js`) sont
+pures et déjà partagées ; un processus par session en mémoire donnerait une
+sérialisation parfaite (plus aucune écriture perdue) et supprimerait Blobs du
+chemin, qui ne servirait plus qu'à la sauvegarde. C'est exactement le modèle
+Figma, et l'infrastructure est déjà là.
+
 ### Homonymes et lisibilité des curseurs
 
 - **Deux fois le même prénom.** La seconde personne est maintenant refusée à
@@ -296,20 +350,20 @@ récepteur.
 Rien de ce qui suit n'est testable hors de Netlify : à vérifier au premier
 atelier réel.
 
-1. **Concurrence à plusieurs** (voir aussi le point 3). `onlyIfMatch` n'existe
-   pas dans `@netlify/blobs` 8.x : `setJSON(clé, valeur, options)` n'y lit que
-   `metadata` et ne renvoie rien. Le verrou optimiste de `muter()` ne joue donc
-   pas, et deux écritures simultanées se recouvrent. Ce qui protège vraiment
-   aujourd'hui, c'est la file côté client (une action à la fois par onglet).
+1. **L'écriture conditionnelle, maintenant réelle.** Le paquet est passé de
+   `@netlify/blobs` 8.x (où `onlyIfMatch` était ignoré en silence) à 10.7.13, où
+   le magasin compare vraiment l'etag. Rien de cela n'est testable hors de
+   Netlify. À surveiller : des refus « Trop de monde écrit en même temps »
+   répétés signifieraient que les lectures sont trop en retard pour que le
+   verrou converge ; il faudrait alors allonger l'attente entre les essais dans
+   `muter()`, ou passer à l'autorité en mémoire (voir section 1).
 2. **Envoi en Cci seul** via Resend (`to` = adresse d'expédition). Si Resend le
    refusait, les e-mails collectifs (rappels, annulation, déplacement aux
    inscrit·es) ne partiraient pas ; ceux à l'animateur·ice passeraient quand même.
-3. **Écriture conditionnelle.** Pour retrouver un vrai verrou, il faut une
-   version de `@netlify/blobs` qui accepte `onlyIfMatch` et répond
-   `{ modified: false }` ; `ecrire()` transmet déjà l'option et `muter()` sait
-   déjà rejouer sur ce verdict, il n'y aurait rien d'autre à changer. À faire
-   hors d'un jour d'atelier, avec un test de deux navigateurs qui agissent en
-   même temps.
+3. **Actions renvoyées.** Une action qui échoue au réseau est maintenant
+   renvoyée deux fois, avec une clé d'idempotence qui empêche le doublon. Si un
+   jour vous voyez une flèche ou une note en double, c'est là qu'il faut
+   regarder (`dejaFait` / `noterIdem` dans `serveur/src/regles.js`).
 4. **Relais temps réel** : `infra/curseurs/server.js` a changé (messages `maj`,
    `fl`, `lib`, `note`). Le conteneur ne se met pas à jour tout seul : voir
    `infra/curseurs/README.md`, section « Mettre a jour ».

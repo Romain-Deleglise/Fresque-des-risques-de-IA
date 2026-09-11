@@ -187,3 +187,36 @@ test("une action n'est jamais appliquee sur une lecture prouvee perimee", async 
   assert.equal(magasin.session.tableau.cartes.length, 1, "la carte est bien posee");
   assert.ok(magasin.session.version > 12, "la version a avance");
 });
+
+/* --- Ecriture conditionnelle reellement appliquee (@netlify/blobs >= 9) -----
+   Le magasin refuse maintenant une ecriture dont l'etag a change entre-temps
+   (`{ modified: false }`). Avec des lectures encore eventuellement coherentes,
+   les premieres tentatives peuvent donc echouer : l'action doit finir par
+   passer, une seule fois, sans jamais etre refusee a l'utilisateur. */
+test("une ecriture refusee par l'etag est rejouee jusqu'a passer, une seule fois", async () => {
+  sessionNeuve();
+  magasin.session.pool = [5];
+  magasin.session.version = 20;
+  // Les deux premieres lectures rendent une valeur perimee AVEC UN AUTRE ETAG :
+  // l'ecriture conditionnelle les refusera.
+  magasin.perime = { session: JSON.parse(JSON.stringify(magasin.session)), etag: 999 };
+  magasin.perimeFois = 2;
+  const r = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", version: 20,
+    intention: { op: "poserCarte", n: 5, pos: { x: 300, y: 300 } } });
+  assert.equal(r.refus, undefined, "l'utilisateur ne voit aucun refus");
+  assert.equal(magasin.session.tableau.cartes.length, 1, "la carte est posee une seule fois");
+  assert.deepEqual(magasin.session.pool, [], "et elle a bien quitte la reserve");
+});
+
+test("une action deja appliquee n'est pas rejouee apres un renvoi (idempotence)", async () => {
+  sessionNeuve();
+  magasin.session.pool = [5, 6];
+  await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", intention: { op: "poserCarte", n: 5, pos: { x: 300, y: 300 } } });
+  await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", intention: { op: "poserCarte", n: 6, pos: { x: 900, y: 300 } } });
+  const a = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", idem: "cle-1",
+    intention: { op: "creerFleche", de: 5, vers: 6 } });
+  const b = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", idem: "cle-1",
+    intention: { op: "creerFleche", de: 5, vers: 6 } });
+  assert.equal(magasin.session.tableau.fleches.length, 1, "une seule fleche");
+  assert.equal(b.resultat && b.resultat.id, a.resultat && a.resultat.id, "meme identifiant rendu");
+});

@@ -14,6 +14,7 @@
     ouvrirAtelier: function (c) { return "Opening workshop " + c + ": enter your first name, then click “Open the session”."; },
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
+    actionPerdue: "That action could not be sent. The board has been refreshed; try again.",
     prenomPris: function (p) { return "There is already a \u201C" + p + "\u201D in the room. Add the first letter of your surname, for example \u201C" + p + " D.\u201D, so everyone can tell you apart."; },
     rechargerErreur: "Could not load the board. Check your connection and reload the page.",
     partagezLien: "Copy the invitation link and send it to the group.",
@@ -73,6 +74,7 @@
     ouvrirAtelier: function (c) { return "Ouverture de l'atelier " + c + " : entrez votre prénom, puis cliquez sur « Ouvrir la session »."; },
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
+    actionPerdue: "Cette action n'a pas pu être envoyée. Le tableau a été rafraîchi, réessayez.",
     prenomPris: function (p) { return "Il y a déjà « " + p + " » dans la salle. Ajoutez la première lettre de votre nom de famille, par exemple « " + p + " D. », pour que tout le monde s'y retrouve."; },
     rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
     partagezLien: "Copiez le lien d'invitation et envoyez-le au groupe.",
@@ -480,6 +482,7 @@
     activite();                                  // ca bouge : on reste reactif
     etat.vue = vue;
     if (!prov) etat.version = vue.version;
+    rejouerEnVol();   // nos actions pas encore confirmees restent a l'ecran
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
     rendrePool(vue);
@@ -1465,17 +1468,28 @@
     // ensuite, et son etat autoritaire corrige au besoin.
     if (change) envoyerEtatProvisoire();
     etat.attente++;
-    fileAgir.push({ intention: intention, apres: apres });
+    enVol.push(intention);
+    fileAgir.push({ intention: intention, apres: apres, essais: 0 });
     defilerAgir();
   }
+  function finEnVol(intention) {
+    var i = enVol.indexOf(intention); if (i >= 0) enVol.splice(i, 1);
+  }
+  // Cle d'idempotence : si la reponse se perd en route, on renvoie la meme
+  // action ; le serveur reconnait la cle et ne l'applique pas deux fois. Sans
+  // elle, un simple renvoi creait DEUX fleches ou DEUX notes.
+  var seqIdem = 0;
+  function cleIdem() { return (etat.jeton || "x").slice(0, 6) + "-" + Date.now().toString(36) + "-" + (++seqIdem); }
   function defilerAgir() {
     if (envoiEnCours || !fileAgir.length) return;
     envoiEnCours = true;
-    var t = fileAgir.shift();
+    var t = fileAgir[0];
+    if (!t.idem) t.idem = cleIdem();
     // `version` : ce que nous avons sous les yeux. Le serveur refuse d'agir sur
     // une lecture plus ancienne que cela, sans quoi notre action effacerait ce
     // que quelqu'un vient de faire.
-    api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, intention: t.intention }).then(function (res) {
+    api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, idem: t.idem, intention: t.intention }).then(function (res) {
+      fileAgir.shift(); finEnVol(t.intention);
       if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
@@ -1496,9 +1510,23 @@
       // fleches et notes attendre le sondage (donc des secondes).
       envoyerEtat(vue);
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
+      envoiEnCours = false; defilerAgir();
     }).catch(function () {
-      etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
-    }).finally(function () { envoiEnCours = false; defilerAgir(); });
+      // RESEAU. Une action perdue ici ne l'etait nulle part ailleurs : elle
+      // restait a l'ecran de son auteur, pour toujours, alors que personne
+      // d'autre ne l'avait. On renvoie donc (la cle d'idempotence rend le
+      // renvoi sans danger), et si vraiment ca ne passe pas, on ANNULE
+      // l'affichage en redemandant l'etat au serveur : mieux vaut perdre le
+      // geste que montrer un tableau qui ment.
+      marquerConnexion(false);
+      t.essais++;
+      if (t.essais <= 2) { setTimeout(function () { envoiEnCours = false; defilerAgir(); }, 400 * t.essais); return; }
+      fileAgir.shift(); finEnVol(t.intention);
+      etat.attente = Math.max(0, etat.attente - 1);
+      flash(S.actionPerdue);
+      resyncDemande = true; pollerVite();
+      envoiEnCours = false; defilerAgir();
+    });
   }
 
   // Applique localement, tout de suite, l'effet visible d'une intention. Le
@@ -1509,7 +1537,9 @@
   // fleche) : c'est cette vue-la qui part aux autres par le relais, et elle
   // doit contenir le geste, sinon ils ne voient rien avant la reponse serveur.
   var seqProv = 0;   // identifiants provisoires (fleches pas encore numerotees)
-  function appliquerOptimiste(d) {
+  // `muet` : appliquer sans redessiner (le rendu se fait une fois, apres le
+  // rejeu de toutes les actions en vol).
+  function appliquerOptimiste(d, muet) {
     var v = etat.vue; if (!v || !d) return false;
     var tab = v.tableau || (v.tableau = { cartes: [], fleches: [], textes: [] });
     if (!v.pool) v.pool = [];
@@ -1564,8 +1594,20 @@
       }
       default: return false; // rien de visible a anticiper
     }
-    rendrePool(v); rendreDeck(v); rendreTableau(tab);
+    if (!muet) { rendrePool(v); rendreDeck(v); rendreTableau(tab); }
     return true;
+  }
+
+  /* REJEU DES ACTIONS NON ACQUITTEES. Emprunte au netcode des jeux en reseau
+     (« client-side prediction + server reconciliation ») : tant que le serveur
+     n'a pas confirme nos actions, elles ne sont nulle part sauf chez nous. Si
+     on applique bêtement l'etat recu de quelqu'un d'autre, notre carte a nous
+     disparait de notre ecran, puis revient quand notre reponse arrive. Le
+     remede est toujours le meme : repartir de l'etat recu, puis REAPPLIQUER par
+     dessus les actions encore en vol. */
+  var enVol = [];
+  function rejouerEnVol() {
+    for (var i = 0; i < enVol.length; i++) appliquerOptimiste(enVol[i], true);
   }
 
   /* ---------- Ping (cercle qui s'agrandit) ---------- */

@@ -63,7 +63,9 @@ Le relais tourne dans un conteneur construit a partir de ce dossier : il ne se
 met pas a jour tout seul quand le depot du site change. Apres une modification
 de `server.js`, il faut recopier le fichier sur le serveur et reconstruire.
 
-**Mise a jour en cours (a faire) : messages `gliss` / `gliss0`.** Ils portent le
+**Mise a jour en cours (a faire) : messages `gliss` / `gliss0`, et garde-fou de
+debit (150 messages/s par connexion, au-dela le message est jete sans couper la
+connexion ; un usage normal plafonne vers 50/s).** Ils portent le
 deplacement d'une carte pendant le geste, pour que tout le monde voie la carte
 bouger en direct. Tant que le relais n'est pas mis a jour, il les ignore :
 personne ne voit les deplacements en cours, mais rien ne casse et tout le reste

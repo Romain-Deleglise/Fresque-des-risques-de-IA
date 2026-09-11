@@ -130,17 +130,17 @@ async function lire(st, code) {
   const res = await lireBrut(st, cle(code));
   return res ? { s: res.data, etag: res.etag } : null;
 }
-// ATTENTION a ce que fait reellement `onlyIfMatch` : @netlify/blobs 8.x ne
-// connait PAS l'ecriture conditionnelle. `setJSON(cle, valeur, options)` n'y lit
-// que `metadata` et ne renvoie rien. L'option est donc ignoree en silence et
-// `w` vaut `undefined` : aucune ecriture n'est refusee, la derniere ecrase la
-// precedente. On la transmet quand meme, pour qu'une version du client qui sait
-// la lire (`{ modified: false }`) fasse jouer le garde-fou sans rien changer
-// ici. En attendant, la protection contre les ecritures qui se marchent dessus
-// est cote client : les actions d'un meme onglet partent en file, une a la fois.
+// ECRITURE CONDITIONNELLE (`onlyIfMatch`). Elle n'existait pas dans
+// @netlify/blobs 8.x : `setJSON` y ignorait l'option en silence et ne renvoyait
+// rien, si bien que deux ecritures simultanees se recouvraient et qu'une action
+// pouvait disparaitre sans laisser de trace. Depuis la 9, le magasin compare
+// l'etag et repond `{ modified: false }` s'il a change entre-temps : `muter`
+// rejoue alors. Le code reste ecrit pour fonctionner dans les DEUX cas : si la
+// plateforme ne rend pas de verdict, on retombe simplement sur l'ancien
+// comportement (derniere ecriture gagnante) plutot que de bloquer.
 async function ecrire(st, code, s, etag) {
   const opts = etag ? { onlyIfMatch: etag } : {};
-  return st.setJSON(cle(code), s, opts); // { modified: bool } si le magasin sait le dire
+  return st.setJSON(cle(code), s, opts); // { modified: bool }
 }
 
 /* PRESENCE : UN MAGASIN A PART, ET C'EST LE POINT IMPORTANT ---------------
@@ -233,7 +233,14 @@ async function muter(st, code, fn, base) {
     const out = fn(cur.s);
     if (JSON.stringify(cur.s) === avant) return { out, s: cur.s };
     const w = await ecrire(st, code, cur.s, cur.etag);
-    if (w && w.modified === false) continue; // quelqu'un a écrit entre-temps : on rejoue
+    if (w && w.modified === false) {
+      // Quelqu'un a ecrit entre notre lecture et notre ecriture. On rejoue, mais
+      // en laissant au magasin le temps de servir la nouvelle valeur : relire
+      // aussitot redonnerait le meme etag perime et on echouerait six fois de
+      // suite pour rien. Attentes courtes et croissantes, ~1,1 s au total.
+      await new Promise((r) => setTimeout(r, 60 + essai * 90));
+      continue;
+    }
     return { out, s: cur.s };
   }
   return { erreur: { statut: 409, code: "conflit", message: "Trop de monde écrit en même temps, réessayez." } };
@@ -347,7 +354,12 @@ exports.handler = async (event) => {
       // Plus de `R.toucher` ici : la presence vit dans son propre magasin, et
       // ecrire le document de session pour un simple horodatage etait
       // exactement ce qui faisait reculer le tableau.
-      const r = await muter(st, code, (s) => R.appliquer(s, d.jeton, d.intention || {}), Math.max(0, +d.version || 0));
+      // `idem` : cle d'idempotence envoyee par le client. Elle sert quand il
+      // renvoie une action apres un echec reseau : sans elle, une reponse perdue
+      // faisait creer DEUX fleches ou DEUX notes. Bornee, comme toute entree.
+      const intention = Object.assign({}, d.intention || {});
+      if (d.idem) intention.idem = String(d.idem).slice(0, 48);
+      const r = await muter(st, code, (s) => R.appliquer(s, d.jeton, intention), Math.max(0, +d.version || 0));
       if (r.erreur) return json(r.erreur.statut, { refus: r.erreur });
       if (r.out && r.out.refus) return json(200, { refus: r.out.refus, etat: R.vue(r.s) });
       return json(200, { etat: R.vue(r.s), resultat: r.out && r.out.resultat });

@@ -40,6 +40,7 @@ const { WebSocketServer } = require("ws");
 const PORT = Number(process.env.PORT || 8080);
 const MAX_PAR_SALON = Number(process.env.MAX_PAR_SALON || 30); // garde-fou
 const MSG_MAX = 96 * 1024;                                     // caracteres par message (un etat de tableau)
+const MSG_PAR_SEC = Number(process.env.MSG_PAR_SEC || 150);    // garde-fou de debit, par connexion
 
 const wss = new WebSocketServer({ port: PORT, maxPayload: 128 * 1024 });
 const salons = new Map(); // code -> Set<ws>
@@ -66,7 +67,21 @@ wss.on("connection", function (ws, req) {
   set.add(ws);
 
   ws.on("pong", function () { ws.isAlive = true; });
+  // Garde-fou de debit. Le service est joignable depuis Internet : un client
+  // fautif (ou une boucle) ne doit pas pouvoir saturer un salon. Un usage normal
+  // reste tres en dessous : ~18 messages/s pour le curseur, ~30/s pour une carte
+  // qu'on deplace. Au-dela du seau, on JETTE le message plutot que de couper la
+  // connexion : on ne casse jamais une session pour une rafale.
+  let seau = MSG_PAR_SEC, seauTs = Date.now();
+  function debitOk() {
+    const now = Date.now();
+    seau = Math.min(MSG_PAR_SEC, seau + (now - seauTs) * MSG_PAR_SEC / 1000);
+    seauTs = now;
+    if (seau < 1) return false;
+    seau -= 1; return true;
+  }
   ws.on("message", function (data) {
+    if (!debitOk()) return;
     let m; try { m = JSON.parse(String(data).slice(0, MSG_MAX)); } catch (e) { return; }
     if (!m || typeof m.t !== "string") return;
     if (m.t === "c" || m.t === "fl") {
