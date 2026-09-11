@@ -19,10 +19,9 @@
     videCta: "Schedule a workshop",
     fTous: "All", fEnligne: "Online", fPresentiel: "In person", fFormat: "Format",
     afficherPasses: "Show past workshops", aucunResultat: "No workshop matches these filters.",
-    recapOuvrir: "Open the online board", recapVisio: "Video-call link (shared with attendees)",
     recapCopier: "Copy", recapCopie: "Copied", recapCopieNon: "Copy failed",
     recapPartage: "Registration link to share",
-    recapNote: "Everything is in your confirmation e-mail: the link to open your session on the day, the one to share, and the one to move or cancel the workshop.",
+    confirmDoublon: "You just scheduled a workshop with exactly these details. Schedule a second one?",
     gererIntro: "Open the \u00ab move the workshop \u00bb link from your confirmation e-mail: the workshop is recognised automatically, you only enter your e-mail.",
     lienInconnu: "This link does not match any workshop (it may have been cancelled)."
   } : {
@@ -40,10 +39,9 @@
     videCta: "Programmer un atelier",
     fTous: "Tous", fEnligne: "En ligne", fPresentiel: "Présentiel", fFormat: "Format",
     afficherPasses: "Afficher les ateliers passés", aucunResultat: "Aucun atelier ne correspond à ces filtres.",
-    recapOuvrir: "Ouvrir le tableau en ligne", recapVisio: "Lien de visioconférence (partagé avec les inscrit·es)",
     recapCopier: "Copier", recapCopie: "Copié", recapCopieNon: "Copie impossible",
     recapPartage: "Lien de participation à partager",
-    recapNote: "Tout est dans votre e-mail de confirmation : le lien pour ouvrir votre session le jour J, celui à partager, et celui pour déplacer ou annuler l'atelier.",
+    confirmDoublon: "Vous venez de programmer un atelier avec exactement ces informations. En programmer un second ?",
     gererIntro: "Ouvrez le lien \u00ab déplacer l'atelier \u00bb de votre e-mail de confirmation : l'atelier concerné est reconnu tout seul, il ne vous reste que votre e-mail à saisir.",
     lienInconnu: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé)."
   };
@@ -113,19 +111,26 @@
       visioSel.addEventListener("change", majVisio);
       majVisio();
     }
+    // Signature du dernier atelier cree : sert a repérer un envoi en double.
+    var dernierEnvoi = null;
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var fd = new FormData(form), data = {};
       fd.forEach(function (v, k) { data[k] = v; });
+      // Le formulaire n'est PLUS vide apres l'envoi : on programme souvent
+      // plusieurs ateliers de suite, et seule la date change. En contrepartie,
+      // renvoyer deux fois exactement la meme chose demande confirmation.
+      var signature = JSON.stringify(data);
+      if (signature === dernierEnvoi && !window.confirm(T.confirmDoublon)) return;
       var btn = form.querySelector('button[type="submit"]');
       if (btn) btn.disabled = true;
       msg.textContent = T.envoi; msg.className = "msg";
       poster("programmer", data).then(function (res) {
         if (res.ok && res.d.code) {
+          dernierEnvoi = signature;
           msg.className = "msg ok";
           msg.textContent = T.codeOk + (res.d.emailEnvoye ? T.mailOk : T.mailNon);
           recapAtelier(res.d.atelier || { code: res.d.code });
-          form.reset(); majMode();
         } else {
           msg.className = "msg err";
           msg.textContent = (res.d && res.d.erreur && res.d.erreur.message)
@@ -136,10 +141,11 @@
     });
   }
 
-  // Apres la creation : AUCUN code a l'ecran. On renvoie a l'e-mail (qui porte
-  // tous les liens) et on donne les deux liens dont on a besoin tout de suite :
-  // le lien de participation a diffuser, et l'ouverture du tableau. Le code n'y
-  // apparait que dans l'URL, jamais comme un identifiant a recopier.
+  // Apres la creation, UNE SEULE chose a l'ecran : le lien d'inscription a
+  // diffuser. C'est la seule qu'on ne peut pas remettre a plus tard (un atelier
+  // prive n'est joignable que par lui). Le lien d'ouverture de la session, la
+  // visio et le lien de gestion sont dans l'e-mail de confirmation, auquel le
+  // message au-dessus renvoie deja : les repeter ici noyait l'essentiel.
   function recapAtelier(a) {
     if (!a || !a.code) return;
     var hote = document.getElementById("recap-atelier");
@@ -149,36 +155,25 @@
       if (ancre && ancre.parentNode) ancre.parentNode.insertBefore(hote, ancre.nextSibling);
       else (document.getElementById("vue-animer") || document.body).appendChild(hote);
     }
+    var url = location.origin + (en ? "/en/request-a-workshop/" : "/participer/") + "?atelier=" + encodeURIComponent(a.code);
     hote.innerHTML = "";
-    var base = location.origin;
-    var ouvrir = "/en-ligne/session/?ouvrir=" + encodeURIComponent(a.code);
-    var partage = base + (en ? "/en/request-a-workshop/" : "/participer/") + "?atelier=" + encodeURIComponent(a.code);
-    hote.appendChild(ligneRecap(T.recapPartage, partage, partage, true));
-    var pA = document.createElement("p"); pA.style.margin = "10px 0";
-    var bA = document.createElement("a"); bA.className = "btn"; bA.href = ouvrir; bA.target = "_blank"; bA.rel = "noopener";
-    bA.textContent = T.recapOuvrir; pA.appendChild(bA); hote.appendChild(pA);
-    if (a.visio) hote.appendChild(ligneRecap(T.recapVisio, a.visio, a.visio, true));
-    var note = document.createElement("p"); note.className = "muted"; note.style.fontSize = ".85rem"; note.style.margin = "6px 0 0";
-    note.textContent = T.recapNote; hote.appendChild(note);
-    try { hote.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
-  }
-  // Une ligne « libellé : valeur » avec bouton Copier (valeur copiee au presse-papier).
-  function ligneRecap(libelle, affiche, aCopier, estLien) {
-    var l = document.createElement("div"); l.className = "recap-ligne";
-    var lab = document.createElement("span"); lab.className = "recap-lab"; lab.textContent = libelle + " : ";
-    l.appendChild(lab);
-    if (estLien) { var av = document.createElement("a"); av.href = affiche; av.target = "_blank"; av.rel = "noopener"; av.className = "recap-val"; av.textContent = affiche; l.appendChild(av); }
-    else { var sp = document.createElement("span"); sp.className = "recap-val recap-code"; sp.textContent = affiche; l.appendChild(sp); }
+    var lab = document.createElement("span"); lab.className = "recap-lab"; lab.textContent = T.recapPartage;
+    var ligne = document.createElement("div"); ligne.className = "recap-ligne";
+    var lien = document.createElement("a");
+    lien.className = "recap-val"; lien.href = url; lien.target = "_blank"; lien.rel = "noopener";
+    lien.textContent = url; lien.title = url;
     var b = document.createElement("button"); b.type = "button"; b.className = "recap-copier"; b.textContent = T.recapCopier;
     b.addEventListener("click", function () {
-      copieRobuste(aCopier).then(function (ok) {
+      copieRobuste(url).then(function (ok) {
         b.textContent = ok ? T.recapCopie : T.recapCopieNon;
         setTimeout(function () { b.textContent = T.recapCopier; }, 1800);
       });
     });
-    l.appendChild(b);
-    return l;
+    ligne.appendChild(lien); ligne.appendChild(b);
+    hote.appendChild(lab); hote.appendChild(ligne);
+    try { hote.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
   }
+
   // Copie robuste : API moderne (HTTPS) avec repli execCommand (contexte non
   // securise, ex. test via l'IP du serveur). true seulement si copie reelle.
   function copieRobuste(txt) {

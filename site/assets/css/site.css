@@ -431,18 +431,25 @@ a.btn, a.btn:hover { text-decoration: none; }
 .annul-confirm-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
 /* Bloc « Gérer un atelier existant » : replié par défaut, ouvert par le lien
    de l'e-mail (?gerer=CODE#gerer). Le code n'y est jamais montré ni demandé. */
-.gerer-atelier { margin-top: 2.4rem; max-width: 44rem; border: 1px solid var(--ligne); border-radius: 12px; background: var(--surface); padding: .2rem 1.1rem; }
-.gerer-atelier > summary { cursor: pointer; padding: .9rem .2rem; font-family: var(--f-titre); font-weight: 700; font-size: 1.15rem; }
-.gerer-atelier > summary::marker { color: var(--accent); }
-.gerer-atelier > .muted { margin: 0 0 1rem; }
-.gerer-atelier .annuler-atelier:first-child { margin-top: .6rem; }
-.gerer-atelier .annuler-atelier { margin-bottom: 1.4rem; }
 /* Fiche d'atelier ouverte par un lien de participation (?atelier=CODE). */
 .atelier-invite { margin: 0 0 1.6rem; }
 
-.annuler-atelier { margin-top: 2.4rem; max-width: 44rem; }
-.annuler-atelier h3 { margin-bottom: .4rem; }
-.annuler-atelier > .muted { margin-bottom: 1.1rem; }
+/* Apres la creation d'un atelier : le lien d'inscription a diffuser, et rien
+   d'autre (le reste est dans l'e-mail). Copier est l'action principale. */
+.recap-atelier { margin: 14px 0 4px; max-width: 44rem; padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--ligne); border-left: 3px solid var(--accent); border-radius: 12px; }
+.recap-lab { display: block; font-family: var(--f-ui); font-size: .8rem; font-weight: 600; color: var(--gris); margin-bottom: .45rem; }
+.recap-ligne { display: flex; align-items: stretch; gap: .5rem; flex-wrap: wrap; }
+.recap-val { flex: 1 1 18rem; min-width: 0; font-family: var(--f-ui); font-size: .88rem; color: var(--ink);
+  background: var(--doux); border: 1px solid var(--ligne); border-radius: 8px; padding: .5rem .6rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recap-val:hover { border-color: var(--accent); }
+.recap-copier { flex: 0 0 auto; font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
+  color: var(--sur-accent); background: var(--accent-txt); border: 1px solid transparent; border-radius: 8px;
+  padding: .5rem .9rem; cursor: pointer; }
+.recap-copier:hover { background: var(--accent-txt-fort); }
+.recap-copier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 
 /* Bloc repliable « Gérer un atelier existant » (déplacer / annuler),
    discret par défaut : les liens de l'e-mail restent le chemin principal. */
