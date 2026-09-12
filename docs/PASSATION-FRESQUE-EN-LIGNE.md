@@ -437,23 +437,48 @@ faisait reculer le tableau, `onlyIfMatch` qui ne faisait rien. Aucune n'aurait
    Elle répond `ecritureConditionnelle`, `relectureImmediate`, la version de
    `@netlify/blobs` et un `ok` global. **À appeler après chaque déploiement.**
 
+### Clavier et annulation
+
+**Tout le tableau se fait maintenant au clavier.** Avant, on pouvait remplir la
+réserve et poser une carte, mais ni la déplacer ni la relier : on ne pouvait
+donc pas faire la fresque. Avec trente-huit cartes, les rendre toutes tabulables
+aurait demandé trente-huit tabulations pour traverser le tableau ; on applique
+donc le schéma recommandé pour les grilles (« roving tabindex ») : un seul point
+d'entrée, puis les flèches.
+
+| Touche | Effet |
+|---|---|
+| Tab | entrer dans le tableau, en sortir |
+| Flèches | aller à la carte la plus proche dans cette direction |
+| Maj + flèches | déplacer la carte (Maj+Ctrl : pas de 100 px) |
+| Entrée / Espace | sélectionner (animateur·ice) ou agrandir |
+| L | relier : une fois sur la carte de départ, une fois sur celle d'arrivée |
+| Suppr | retirer la carte (animateur·ice) |
+| Échap | annuler le lien en cours ou la sélection |
+
+Le déplacement n'écrit au serveur qu'à la fin de la rafale de touches, et il est
+relayé en direct comme un glissement à la souris : les autres voient la carte
+bouger. Une carte hors de l'écran est ramenée dans la vue quand on l'atteint, et
+le focus a son propre cerne, lisible sur n'importe quelle image.
+
+**Annulation de ses propres actions** (`Ctrl+Z`, ou le bouton « Annuler »). Pas
+d'historique partagé ni de transformation d'opérations, ce serait hors de
+proportion ici. Le principe tient en une phrase : au moment où l'on agit, on
+sait fabriquer l'action **inverse** à partir de l'état d'avant ; on l'empile, et
+« Annuler » la rejoue comme une action ordinaire, avec les mêmes règles, les
+mêmes garde-fous et la même diffusion aux autres. Une action refusée ou perdue
+est retirée de la pile : on ne défait jamais quelque chose qui n'a pas eu lieu.
+
+Conséquence assumée, et c'est le comportement de tous les outils de ce niveau :
+on annule **son** geste, pas celui du voisin, et si quelqu'un a modifié la même
+chose entre-temps, le serveur refuse et on le dit.
+
 ### Ce qui reste ouvert, et qui est une décision de votre part
 
-Rien de tout cela n'est bloquant ; ce sont des choix, pas des oublis.
-
-1. **Manipulation au clavier.** La réserve et le jeu de cartes sont utilisables
-   au clavier (Tab, Entrée), mais poser un lien ou déplacer une carte demande la
-   souris : les cartes du tableau ne sont pas atteignables au clavier. Le
-   combler proprement (sélection au clavier, déplacement aux flèches, création
-   de lien en deux temps) est une vraie fonctionnalité, pas un correctif.
-2. **Pas d'annulation.** Un geste malheureux (une carte retirée, un lien
-   supprimé) ne se défait pas. Le serveur ayant déjà un numéro de version et des
-   actions bien délimitées, un « annuler » sur ses propres actions est
-   réalisable, mais ce n'est pas un petit chantier.
-3. **Huit participants maximum** (plus l'animateur·ice). C'est une décision
+1. **Huit participants maximum** (plus l'animateur·ice). C'est une décision
    produit inscrite dans les règles, pas une limite technique : le relais tient
    trente connexions par salon.
-4. **« Je ne peux plus mettre de flèches »**, remonté une fois après un atelier,
+2. **« Je ne peux plus mettre de flèches »**, remonté une fois après un atelier,
    n'a jamais été reproduit, y compris en onze créations consécutives et dans le
    harnais navigateur. Si cela revient, la console du navigateur au moment du
    blocage est ce qui manquera pour trancher.

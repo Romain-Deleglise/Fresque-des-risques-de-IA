@@ -196,6 +196,77 @@ t("les deux tableaux finissent a la meme position", memeFin);
 
 /* ========================================================================== */
 });
+
+/* ========================================================================== */
+console.log("\n--- Clavier et annulation ---");
+await bloc("Clavier et annulation", async () => {
+  /* Sans clavier, on pouvait remplir la reserve et poser une carte, mais ni la
+     deplacer ni la relier : on ne pouvait donc pas faire la fresque. */
+  await A.evaluate(() => { const c = document.querySelector(".c-carte"); c.focus(); });
+  const premier = await A.evaluate(() => document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.n : null);
+  t("une carte du tableau peut recevoir le focus clavier", !!premier);
+
+  await A.keyboard.press("ArrowRight");
+  await dodo(200);
+  const apresFleche = await A.evaluate(() => document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.n : null);
+  t("les fleches passent d'une carte a l'autre", !!apresFleche && apresFleche !== premier,
+    "de " + premier + " vers " + apresFleche);
+
+  if (!apresFleche) {
+    // Sans focus clavier, rien de ce qui suit n'a de sens : on le dit, une fois,
+    // plutot que de laisser une exception masquer toutes les autres mesures.
+    t("Maj + fleches deplacent la carte", false, "pas de carte focalisee");
+    t("la touche L relie deux cartes sans souris", false, "pas de carte focalisee");
+    return;
+  }
+  const avantX = await A.evaluate((n) => { const e = document.querySelector(".c-carte[data-n='" + n + "']"); return e ? +e._x : 0; }, apresFleche);
+  await A.keyboard.down("Shift");
+  for (let i = 0; i < 3; i++) { await A.keyboard.press("ArrowRight"); await dodo(40); }
+  await A.keyboard.up("Shift");
+  await dodo(1200);
+  const apresX = await A.evaluate((n) => +document.querySelector(".c-carte[data-n='" + n + "']")._x, apresFleche);
+  const cote = S.tableau.cartes.filter((c) => c.n === +apresFleche)[0];
+  t("Maj + fleches deplacent la carte, et le serveur l'enregistre",
+    apresX > avantX && cote && Math.abs(cote.x - apresX) < 2,
+    "ecran " + avantX + " -> " + apresX + ", serveur " + (cote ? cote.x : "?"));
+
+  const flAvant = S.tableau.fleches.length;
+  await A.keyboard.press("l");
+  await dodo(250);
+  await A.keyboard.press("ArrowRight");
+  await dodo(200);
+  await A.keyboard.press("l");
+  await dodo(1200);
+  t("la touche L relie deux cartes sans souris", S.tableau.fleches.length === flAvant + 1,
+    flAvant + " -> " + S.tableau.fleches.length);
+
+  /* ANNULATION. On annule SON geste, comme une action ordinaire : memes regles,
+     meme diffusion aux autres. */
+  const boutonAvant = await A.evaluate(() => { const b = document.getElementById("btn-annuler"); return b ? b.disabled : null; });
+  t("le bouton « Annuler » existe et s'active quand il y a quelque chose a annuler", boutonAvant === false);
+  const flAvantAnnul = S.tableau.fleches.length;
+  await A.keyboard.press("Control+z");
+  await dodo(1500);
+  t("Ctrl+Z defait le dernier lien cree", S.tableau.fleches.length === flAvantAnnul - 1,
+    flAvantAnnul + " -> " + S.tableau.fleches.length);
+
+  const xAvantAnnul = S.tableau.cartes.filter((c) => c.n === +apresFleche)[0];
+  await A.keyboard.press("Control+z");
+  await dodo(1500);
+  const xApresAnnul = S.tableau.cartes.filter((c) => c.n === +apresFleche)[0];
+  t("un second Ctrl+Z remet la carte a sa place d'avant",
+    xApresAnnul && xAvantAnnul && Math.abs(xApresAnnul.x - avantX) < 2,
+    "revenue a " + (xApresAnnul ? xApresAnnul.x : "?") + ", attendu " + avantX);
+
+  /* L'annulation doit se voir chez les autres comme n'importe quelle action. */
+  await B.waitForFunction((d) => {
+    const el = document.querySelector(".c-carte[data-n='" + d.n + "']");
+    return !!el && Math.abs((el._x || 0) - d.x) < 2;
+  }, { n: apresFleche, x: avantX }, { timeout: 8000 }).catch(() => {});
+  t("l'annulation arrive chez les autres comme une action ordinaire",
+    await B.evaluate((d) => { const el = document.querySelector(".c-carte[data-n='" + d.n + "']"); return !!el && Math.abs((el._x || 0) - d.x) < 2; }, { n: apresFleche, x: avantX }));
+});
+
 console.log("\n--- Curseurs (confort visuel) ---");
 await bloc("Curseurs", async () => {
 

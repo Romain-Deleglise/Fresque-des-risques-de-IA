@@ -147,6 +147,13 @@ a{color:var(--accent-txt);text-decoration:none}
 @keyframes carte-anneau{from{opacity:.9}to{opacity:0}}
 @keyframes carte-part{from{transform:scale(1);opacity:1}to{transform:scale(.78);opacity:0}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
+/* Focus clavier : il faut le voir de loin, y compris sur une carte dont l'image
+   est claire. Double cerne, comme les etiquettes de curseur, pour etre lisible
+   sur n'importe quel fond. */
+.c-carte:focus-visible{outline:3px solid var(--accent);outline-offset:2px;
+  box-shadow:0 0 0 6px rgba(255,255,255,.92),0 8px 24px rgba(0,0,0,.35);z-index:20}
+.c-carte:focus{outline:3px solid var(--accent);outline-offset:2px}
+.c-carte:focus:not(:focus-visible){box-shadow:var(--ombre)}
 
 /* Ping : cercle qui s'agrandit puis s'efface, place aux coordonnees du monde.
    Contre-mis a l'echelle (--iz) pour rester visible quel que soit le zoom. */

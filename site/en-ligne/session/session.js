@@ -15,6 +15,9 @@
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
     actionPerdue: "That action could not be sent. The board has been refreshed; try again.",
+    annuler: "Undo", annulerTitre: "Undo my last action (Ctrl+Z)",
+    a11yCarte: "Arrow keys to move between cards, Shift plus arrows to move this one, L to link, Enter to select.",
+    annulerImpossible: "Nothing left to undo here (someone may have changed it since).",
     prenomPris: function (p) { return "There is already a \u201C" + p + "\u201D in the room. Add the first letter of your surname, for example \u201C" + p + " D.\u201D, so everyone can tell you apart."; },
     rechargerErreur: "Could not load the board. Check your connection and reload the page.",
     partagezLien: "Copy the invitation link and send it to the group.",
@@ -75,6 +78,9 @@
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
     actionPerdue: "Cette action n'a pas pu être envoyée. Le tableau a été rafraîchi, réessayez.",
+    annuler: "Annuler", annulerTitre: "Annuler ma dernière action (Ctrl+Z)",
+    a11yCarte: "Flèches pour passer d'une carte à l'autre, Maj plus flèches pour déplacer celle-ci, L pour relier, Entrée pour sélectionner.",
+    annulerImpossible: "Plus rien à annuler ici (quelqu'un l'a peut-être modifié depuis).",
     prenomPris: function (p) { return "Il y a déjà « " + p + " » dans la salle. Ajoutez la première lettre de votre nom de famille, par exemple « " + p + " D. », pour que tout le monde s'y retrouve."; },
     rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
     partagezLien: "Copiez le lien d'invitation et envoyez-le au groupe.",
@@ -1154,6 +1160,7 @@
 
     dessinerFleches();
     majPlancher();
+    assurerRoving();   // au moins une carte reste atteignable a la tabulation
     _premierRendu = false;
     var exp = document.getElementById("btn-export");
     if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
@@ -1166,6 +1173,16 @@
     if (c && c.lot) el.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
+    // ACCESSIBILITE AU CLAVIER. Les cartes etaient de simples `div` : on pouvait
+    // remplir la reserve et poser une carte au clavier, mais ni la deplacer ni
+    // la relier, c'est-a-dire ni faire la fresque. Chaque carte devient un
+    // element focalisable et annonce ce qu'elle est.
+    el.setAttribute("tabindex", "-1");   // un seul point d'entree, voir `rovingCarte`
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", n + " " + (c ? c.titre : "") + ". " + S.a11yCarte);
+    el.addEventListener("keydown", function (e) { clavierCarte(e, n, el); });
+    el.addEventListener("focus", function () { rovingCarte(el); montrerSurvol(n); });
+    el.addEventListener("blur", masquerSurvol);
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
     // Encadre fixe au survol (utile quand on est dezoome).
@@ -1215,6 +1232,117 @@
     _survol.hidden = false;
   }
   function masquerSurvol() { if (_survol) _survol.hidden = true; }
+
+  /* NAVIGATION ET MANIPULATION AU CLAVIER.
+     Modele choisi, et pourquoi. Avec trente-huit cartes, les rendre toutes
+     tabulables obligerait a trente-huit tabulations pour traverser le tableau :
+     personne ne le ferait. On applique donc le schema recommande pour les
+     grilles d'elements (« roving tabindex ») : UN seul point d'entree au
+     clavier, puis les fleches pour passer d'une carte a l'autre.
+       Tab              entrer dans le tableau / en sortir
+       Fleches          aller a la carte la plus proche dans cette direction
+       Maj + fleches    DEPLACER la carte (Maj+Ctrl : pas de 100 px)
+       Entree / Espace  selectionner (animateur) ou agrandir
+       L                relier : une fois sur la carte de depart, une fois sur
+                        celle d'arrivee
+       Suppr            retirer la carte (animateur)
+       Echap            annuler le lien en cours ou la selection
+     Le deplacement n'envoie au serveur qu'a la fin de la rafale de touches : on
+     n'ecrit pas une action par pression. */
+  var _rovingN = null;
+  function rovingCarte(el) {
+    if (_rovingN === el) return;
+    if (_rovingN) _rovingN.setAttribute("tabindex", "-1");
+    _rovingN = el; el.setAttribute("tabindex", "0");
+  }
+  // Au moins une carte doit toujours etre atteignable a la tabulation.
+  function assurerRoving() {
+    if (_rovingN && _rovingN.isConnected) return;
+    var prem = E.monde.querySelector(".c-carte");
+    _rovingN = null; if (prem) rovingCarte(prem);
+  }
+  // Carte la plus proche dans une direction, mesuree dans le monde.
+  function carteVoisine(depuis, dx, dy) {
+    var a = centreCarte(+depuis.dataset.n); if (!a) return null;
+    var meilleure = null, score = Infinity;
+    Object.keys(etat.elCartes).forEach(function (k) {
+      var el = etat.elCartes[k]; if (el === depuis) return;
+      var b = centreCarte(+k); if (!b) return;
+      var vx = b.x - a.x, vy = b.y - a.y;
+      var avance = vx * dx + vy * dy;              // distance dans la direction visee
+      if (avance <= 1) return;                     // pas dans cette direction
+      var ecart = Math.abs(vx * dy - vy * dx);     // ecart lateral
+      var c = avance + ecart * 2.2;                // on privilegie l'alignement
+      if (c < score) { score = c; meilleure = el; }
+    });
+    return meilleure;
+  }
+  // Amene la carte dans la partie visible si elle n'y est pas : au clavier, on
+  // ne peut pas faire defiler soi-meme avant d'y arriver.
+  function assurerVisible(el) {
+    var r = rectScene(), z = zoneLibre(r);
+    var x = (el._x || 0) * etat.zoom + etat.panX, y = (el._y || 0) * etat.zoom + etat.panY;
+    dimCarte(el);
+    var w = el._w * etat.zoom, h = el._h * etat.zoom, m = 24;
+    var dx = 0, dy = 0;
+    if (x < z.x + m) dx = z.x + m - x;
+    else if (x + w > z.x + z.largeur - m) dx = z.x + z.largeur - m - (x + w);
+    if (y < z.y + m) dy = z.y + m - y;
+    else if (y + h > z.y + z.hauteur - m) dy = z.y + z.hauteur - m - (y + h);
+    if (!dx && !dy) return;
+    etat.panX += dx; etat.panY += dy; clampPan(); applyView(); majFleches();
+  }
+  var _bougeClavier = null;
+  function clavierCarte(e, n, el) {
+    if (e.altKey || e.ctrlKey && !e.shiftKey || e.metaKey) return;
+    var DIR = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    var d = DIR[e.key];
+    if (d) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Deplacer la carte. On rend la main au serveur seulement a la fin de la
+        // rafale, sinon on lui enverrait une action par pression de touche.
+        var pas = e.ctrlKey ? 100 : 20;
+        dimCarte(el);
+        el._x = Math.max(0, Math.min(PLAN_W - el._w, (el._x || 0) + d[0] * pas));
+        el._y = Math.max(0, Math.min(PLAN_H - el._h, (el._y || 0) + d[1] * pas));
+        el.style.left = el._x + "px"; el.style.top = el._y + "px";
+        majFleches(); assurerVisible(el);
+        envoyerGliss(n, el._x, el._y, 0);
+        clearTimeout(_bougeClavier);
+        _bougeClavier = setTimeout(function () {
+          envoyerGlissFin(n);
+          agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });
+        }, 400);
+      } else {
+        var v = carteVoisine(el, d[0], d[1]);
+        if (v) { assurerVisible(v); try { v.focus(); } catch (x) {} }
+      }
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (estFleche(etat.outil)) { clicFleche(n, el); return; }
+      if (etat.role === "animateur") selCarte(n, el); else ouvrirModal(n);
+      return;
+    }
+    if (e.key === "l" || e.key === "L") {
+      e.preventDefault();
+      if (!estFleche(etat.outil)) setOutil("fleche");
+      clicFleche(n, el);
+      return;
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && etat.role === "animateur") {
+      e.preventDefault();
+      var suiv = carteVoisine(el, 1, 0) || carteVoisine(el, -1, 0);
+      agir({ op: "retirerCarte", n: n });
+      if (suiv) setTimeout(function () { try { suiv.focus(); } catch (x) {} }, 60);
+      return;
+    }
+    if (e.key === "Escape") {
+      if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); } else deselect();
+    }
+  }
 
   function glisserCarte(el, n) {
     var st = null, bouge = false;
@@ -1575,8 +1703,102 @@
   // « Poser » des dizaines de fois. Le rendu optimiste, lui, reste immediat :
   // l'utilisateur voit son geste tout de suite, c'est l'envoi qui fait la queue.
   var fileAgir = [], envoiEnCours = false;
-  function agir(intention, apres) {
+  /* ANNULATION DE SES PROPRES ACTIONS.
+     Pas d'historique partage, pas de transformation d'operations : ce serait
+     hors de proportion ici. Le principe est plus simple et suffit a l'usage
+     reel d'un atelier : au moment ou l'on agit, on sait fabriquer l'action
+     INVERSE a partir de l'etat d'avant. On l'empile ; « Annuler » la rejoue
+     comme une action ordinaire, avec les memes regles, les memes garde-fous et
+     la meme diffusion aux autres.
+     Consequence assumee : on annule SON geste, pas celui du voisin, et si
+     quelqu'un a modifie la meme chose entre-temps, le serveur refuse ou le
+     resultat n'est pas celui qu'on imaginait. C'est le comportement de tous les
+     outils collaboratifs a ce niveau de complexite, et c'est previsible. */
+  var pile = [];
+  var PILE_MAX = 30;
+  function inverseDe(d, v) {
+    if (!d || !v) return null;
+    var tab = v.tableau || {}, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
+    var n = +d.n;
+    function carte(k) { return cartes.filter(function (c) { return c.n === k; })[0]; }
+    switch (d.op) {
+      case "poolAjouter": return { op: "poolRetirer", n: n };
+      case "poolRetirer": return { op: "poolAjouter", n: n };
+      case "poserCarte": return { op: "retirerCarte", n: n, dest: "pool" };
+      case "retirerCarte": {
+        var c = carte(n); if (!c) return null;
+        // Remise en place exacte : la carte repasse par la reserve (regle du
+        // jeu) puis se repose la ou elle etait.
+        return { op: "poolAjouter", n: n, _puis: { op: "poserCarte", n: n, pos: { x: c.x + 80, y: c.y + 75 } } };
+      }
+      case "deplacerCarte": {
+        var c2 = carte(n); if (!c2) return null;
+        return { op: "deplacerCarte", n: n, x: c2.x, y: c2.y };
+      }
+      case "deplacerTexte": {
+        var t1 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t1) return null;
+        return { op: "deplacerTexte", id: d.id, x: t1.x, y: t1.y };
+      }
+      case "modifierTexte": {
+        var t2 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t2) return null;
+        return { op: "modifierTexte", id: d.id, contenu: t2.contenu };
+      }
+      case "supprimerTexte": {
+        var t3 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t3) return null;
+        return { op: "creerTexte", x: t3.x, y: t3.y, contenu: t3.contenu };
+      }
+      case "libellerFleche": {
+        var f1 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f1) return null;
+        return { op: "libellerFleche", id: d.id, libelle: f1.libelle || "" };
+      }
+      case "supprimerFleche": {
+        var f2 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f2) return null;
+        var inv = { op: "creerFleche", de: f2.de, vers: f2.vers, bidir: !!f2.bidir };
+        if (f2.libelle) inv._libelle = f2.libelle;
+        return inv;
+      }
+      // `creerFleche` et `creerTexte` : l'identifiant n'existe pas encore, il
+      // arrive avec la reponse du serveur. Complete dans `agir`.
+      case "creerFleche": return { op: "supprimerFleche", id: null, _attendId: 1 };
+      case "creerTexte": return { op: "supprimerTexte", id: null, _attendId: 1 };
+      default: return null;   // ping, exclure, lien vocal... rien a defaire
+    }
+  }
+  // Une action refusee ou perdue ne doit rien laisser dans la pile : « Annuler »
+  // defairait alors quelque chose qui n'a jamais eu lieu.
+  function depiler(inv) {
+    if (!inv) return;
+    var i = pile.indexOf(inv); if (i >= 0) pile.splice(i, 1);
+    majBoutonAnnuler();
+  }
+  function empiler(inv) {
+    if (!inv) return null;
+    pile.push(inv); if (pile.length > PILE_MAX) pile.shift();
+    majBoutonAnnuler();
+    return inv;
+  }
+  function majBoutonAnnuler() {
+    var b = document.getElementById("btn-annuler");
+    if (b) b.disabled = !pile.length;
+  }
+  function annulerDerniere() {
+    var inv = pile.pop(); majBoutonAnnuler();
+    if (!inv) return;
+    if (inv._attendId && !inv.id) { flash(S.annulerImpossible); return; }
+    var suite = inv._puis, lib = inv._libelle;
+    var envoi = {}; for (var k in inv) { if (k.charAt(0) !== "_") envoi[k] = inv[k]; }
+    agir(envoi, function (d) {
+      if (d && d.refus) { flash(S.annulerImpossible); return; }
+      // Certaines annulations demandent deux temps (remettre une carte passe par
+      // la reserve ; une fleche recreee doit retrouver son libelle).
+      if (suite) agir(suite);
+      if (lib && d && d.resultat && d.resultat.id) agir({ op: "libellerFleche", id: d.resultat.id, libelle: lib });
+    }, true);
+  }
+
+  function agir(intention, apres, sansEmpiler) {
     activite(); // action locale : on passe en mode reactif
+    var inv = sansEmpiler ? null : empiler(inverseDe(intention, etat.vue));
     var change = appliquerOptimiste(intention);
     // LE POINT CLE POUR LE JEU. On pousse aux autres notre vue optimiste AVANT
     // d'avoir la reponse du serveur : ils voient le geste tout de suite. Sans
@@ -1586,7 +1808,7 @@
     if (change) envoyerEtatProvisoire();
     etat.attente++;
     enVol.push(intention);
-    fileAgir.push({ intention: intention, apres: apres, essais: 0 });
+    fileAgir.push({ intention: intention, apres: apres, essais: 0, inv: inv });
     defilerAgir();
   }
   function finEnVol(intention) {
@@ -1607,10 +1829,13 @@
     // que quelqu'un vient de faire.
     api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, idem: t.idem, intention: t.intention }).then(function (res) {
       fileAgir.shift(); finEnVol(t.intention);
-      if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
+      if (res.d && res.d.refus) { depiler(t.inv); if (res.d.refus.message) flash(res.d.refus.message); }
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
       // doublon.
+      // L'identifiant d'un element tout juste cree n'existe que maintenant :
+      // c'est le moment de completer l'action inverse mise de cote.
+      if (t.inv && t.inv._attendId && res.d && res.d.resultat && res.d.resultat.id) t.inv.id = res.d.resultat.id;
       if (t.apres) { try { t.apres(res.d || {}); } catch (e) {} }
       etat.attente = Math.max(0, etat.attente - 1);
       // On ne reconcilie qu'une fois la file vide : appliquer un etat intermediaire
@@ -1638,7 +1863,7 @@
       marquerConnexion(false);
       t.essais++;
       if (t.essais <= 2) { setTimeout(function () { envoiEnCours = false; defilerAgir(); }, 400 * t.essais); return; }
-      fileAgir.shift(); finEnVol(t.intention);
+      fileAgir.shift(); finEnVol(t.intention); depiler(t.inv);
       etat.attente = Math.max(0, etat.attente - 1);
       flash(S.actionPerdue);
       resyncDemande = true; pollerVite();
@@ -2438,6 +2663,13 @@
 
   // Echap : annule un trace de fleche en cours (et referme la selection).
   document.addEventListener("keydown", function (e) {
+    // Ctrl+Z (Cmd+Z sur Mac) : annuler sa derniere action. Jamais pendant une
+    // saisie, ou c'est l'annulation du navigateur qui doit jouer.
+    if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
+      var a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.getAttribute("contenteditable") === "true")) return;
+      e.preventDefault(); annulerDerniere(); return;
+    }
     if (e.key !== "Escape") return;
     if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); }
     else deselect();
@@ -2451,6 +2683,11 @@
   E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
   E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
+  (function () {
+    var b = document.getElementById("btn-annuler"); if (!b) return;
+    b.textContent = S.annuler; b.title = S.annulerTitre;
+    b.addEventListener("click", annulerDerniere);
+  })();
   // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
   // repli sur une classe CSS si l'API n'est pas disponible.
   function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive(); placerPool(); }, 60); }
