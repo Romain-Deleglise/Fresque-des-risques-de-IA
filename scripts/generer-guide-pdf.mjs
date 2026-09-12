@@ -7,13 +7,21 @@
    du site. Il ne peut plus etre en retard d'une version, et le pied de chaque
    page rappelle que la page en ligne fait foi, avec son adresse.
 
-   Usage : node scripts/generer-guide-pdf.mjs
+   Rendre le PDF reproductible ne suffit pas : rien n'empeche de modifier la page
+   et d'oublier de relancer le script. On enregistre donc, a cote des PDF, une
+   empreinte du contenu dont chacun a ete tire. `--verifier` recalcule ces
+   empreintes et sort en erreur si elles ont bouge : la CI refuse alors la
+   modification, et la garantie cesse d'etre une question de discipline.
+
+   Usage : node scripts/generer-guide-pdf.mjs            (engendre les PDF)
+           node scripts/generer-guide-pdf.mjs --verifier (controle, sans ecrire)
    Dependances (dev, non versionnees) : playwright (ou playwright-core +
    PW_CHROMIUM vers un Chromium deja present).
 */
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 
 const { chromium } = await (async () => {
   try { return await import("playwright"); } catch (e) { return await import("playwright-core"); }
@@ -27,11 +35,47 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
   ".woff2": "font/woff2", ".ico": "image/x-icon" };
 
 const PAGES = [
-  { url: "/guide/", sortie: "guide-animateur-fresque-des-risques-de-l-ia.pdf",
+  { url: "/guide/", source: "site/guide/index.html", sortie: "guide-animateur-fresque-des-risques-de-l-ia.pdf",
     pied: "Version en ligne, qui fait foi : fresquedesrisquesdelia.org/guide/" },
-  { url: "/en/guide/", sortie: "facilitator-guide-the-ai-risks-collage.pdf",
+  { url: "/en/guide/", source: "site/en/guide/index.html", sortie: "facilitator-guide-the-ai-risks-collage.pdf",
     pied: "Authoritative online version: fresquedesrisquesdelia.org/en/guide/" }
 ];
+const EMPREINTES = path.join(RACINE, "site", "telechargements", "empreintes.json");
+const VERIFIER = process.argv.includes("--verifier");
+
+/* Empreinte du CONTENU, pas du fichier : on ne retient que le corps du guide,
+   debarrasse des espaces. Un PDF n'a pas a etre regenere parce qu'on a corrige
+   une balise meta ou reindente le pied de page du site. */
+function empreinte(fichier) {
+  const html = fs.readFileSync(path.join(RACINE, fichier), "utf8");
+  const m = html.match(/<main id="contenu">([\s\S]*?)<\/main>/);
+  const corps = (m ? m[1] : html).replace(/\s+/g, " ").trim();
+  return crypto.createHash("sha256").update(corps).digest("hex").slice(0, 16);
+}
+function empreintesLues() {
+  try { return JSON.parse(fs.readFileSync(EMPREINTES, "utf8")).empreintes || {}; } catch (e) { return {}; }
+}
+
+if (VERIFIER) {
+  const connues = empreintesLues();
+  const ecarts = [];
+  for (const p of PAGES) {
+    const e = empreinte(p.source);
+    if (!fs.existsSync(path.join(RACINE, "site", "telechargements", p.sortie))) {
+      ecarts.push(p.sortie + " est absent.");
+    } else if (connues[p.sortie] !== e) {
+      ecarts.push(p.source + " a change depuis que " + p.sortie + " a ete engendre"
+        + " (empreinte " + e + ", enregistree " + (connues[p.sortie] || "aucune") + ").");
+    }
+  }
+  if (ecarts.length) {
+    console.error("\n❌ Le PDF ne correspond plus a la page :\n  " + ecarts.join("\n  ")
+      + "\n\nRelancer : node scripts/generer-guide-pdf.mjs\n");
+    process.exit(1);
+  }
+  console.log("✅ Les PDF correspondent aux pages dont ils sont tires.");
+  process.exit(0);
+}
 
 const site = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
@@ -68,5 +112,12 @@ for (const p of PAGES) {
   console.log("PDF ecrit : " + path.relative(RACINE, dest) + " (" + Math.round(fs.statSync(dest).size / 1024) + " Ko)");
   await page.close();
 }
+const empreintes = {};
+for (const p of PAGES) empreintes[p.sortie] = empreinte(p.source);
+fs.writeFileSync(EMPREINTES, JSON.stringify({
+  _commentaire: "Empreinte du contenu de la page dont chaque PDF a ete tire. Verifiee en CI par scripts/generer-guide-pdf.mjs --verifier : si une page change sans que son PDF soit regenere, la CI refuse. Ne pas modifier a la main.",
+  empreintes: empreintes
+}, null, 2) + "\n");
+console.log("Empreintes enregistrees : " + path.relative(RACINE, EMPREINTES));
 await nav.close();
 site.close();

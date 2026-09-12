@@ -79,7 +79,8 @@ async function purger(st) {
     for (const b of blobs) {
       try {
         const res = await st.getWithMetadata(b.key, { type: "json" });
-        if (res && res.data && isFinite(res.data.quandMs) && Date.now() > res.data.quandMs + TTL_PURGE_MS) await st.delete(b.key);
+        const quandP = res && res.data ? A.instantDe(res.data) : NaN;
+        if (isFinite(quandP) && Date.now() > quandP + TTL_PURGE_MS) await st.delete(b.key);
       } catch (e) {}
     }
   } catch (e) {}
@@ -514,7 +515,7 @@ exports.handler = async (event) => {
           if (a && a.visibilite === "public" && A.visibleCalendrier(a)) out.push(A.vuePublique(a));
         } catch (e) {}
       }
-      out.sort((x, y) => x.quandMs - y.quandMs);
+      out.sort((x, y) => A.instantDe(x) - A.instantDe(y));
       return json(200, { ateliers: out });
     }
 

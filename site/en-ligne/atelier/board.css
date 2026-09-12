@@ -372,14 +372,29 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 .modal .barre .btn.primaire{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 #modal-poser[hidden]{display:none}
 
-/* Message mobile (l'outil vise l'ordinateur, A17.2) */
+/* Message telephone (l'outil vise l'ordinateur, A17.2). Ce n'est plus une
+   impasse : on y donne le lien, de quoi le copier ou se l'envoyer, et une
+   sortie pour qui veut essayer quand meme. */
 .mobile-avis{display:none}
 @media(max-width:760px){
   .app{display:none}
-  .mobile-avis{display:grid;place-items:center;position:fixed;inset:0;background:var(--bg);padding:2rem;text-align:center;z-index:200}
-  .mobile-avis h1{font-family:var(--f-titre);font-size:1.8rem;margin:0 0 .6rem}
-  .mobile-avis p{font-family:var(--f-texte);color:var(--gris);max-width:22rem;margin:0 auto}
+  .mobile-avis{display:grid;place-items:center;position:fixed;inset:0;background:var(--bg);padding:1.6rem;text-align:center;z-index:200;overflow:auto}
+  .mobile-avis > div{max-width:24rem;margin:auto}
+  .mobile-avis h1{font-family:var(--f-titre);font-size:1.6rem;margin:0 0 .6rem;color:var(--ink)}
+  .mobile-avis p{font-family:var(--f-texte);color:var(--gris);margin:0 auto .9rem}
+  .mobile-avis .ma-libelle{margin-bottom:.35rem;font-size:.88rem}
+  .mobile-avis #ma-url{width:100%;font-family:var(--f-ui);font-size:.82rem;padding:.6rem .7rem;
+    border:1px solid var(--ligne);border-radius:8px;background:var(--surface);color:var(--ink);
+    text-overflow:ellipsis;margin-bottom:.9rem}
+  .mobile-avis .ma-actions{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.2rem}
+  .mobile-avis .ma-fine{font-size:.85rem;margin-bottom:.5rem}
+  .mobile-avis .ma-nu{background:none;border:0;padding:0;font:inherit;color:var(--accent-txt);
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 }
+/* « Continuer quand meme » : l'ecran est trop petit, on le dit, mais on ne
+   ferme pas la porte (tablette tenue en portrait, grand telephone). */
+body.mobile-force .mobile-avis{display:none}
+@media(max-width:760px){ body.mobile-force .app{display:flex} }
 
 /* Plein écran : on garde TOUTES les commandes (barre du haut + outils).
    On replie seulement le bandeau d'introduction pour gagner de la place. */

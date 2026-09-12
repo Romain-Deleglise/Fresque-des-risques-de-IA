@@ -52,6 +52,15 @@
 [functions."suivi"]
   schedule = "0 10 * * *"
 
+# SURVEILLANCE : toutes les 15 min, verifie que le service de sessions repond et
+# que son ecriture conditionnelle est operante, et que le relais temps reel
+# repond dans une version au moins aussi recente que celle attendue par le site.
+# Un e-mail a la premiere panne, un au retablissement, rien entre les deux.
+# Sur ce projet, ce qui casse ne fait rien tomber : sans ce controle, on
+# l'apprend en atelier. Destinataire : MAIL_ALERTE (variable Netlify).
+[functions."surveillance"]
+  schedule = "*/15 * * * *"
+
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.
 

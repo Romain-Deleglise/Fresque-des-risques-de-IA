@@ -257,7 +257,88 @@
       show.forEach(function (a) { liste.appendChild(carte(a)); });
     }
     rendre();
+    donneesStructurees(avenirTous);
   }
+
+  /* DONNEES STRUCTUREES (schema.org/Event). Le calendrier est construit dans le
+     navigateur, a partir de l'API : pour un moteur de recherche, cette page ne
+     contenait donc aucun atelier, et aucun n'a jamais pu apparaitre dans les
+     resultats d'evenements. On decrit ici les ateliers A VENIR au format que
+     Google et les autres attendent. Rien de personnel n'y figure : ni e-mail,
+     ni liste d'inscrits ; le prenom de l'animateur·ice n'est repris que s'il est
+     deja affiche sur la page.
+     Volontairement tolerant : si une date est inexploitable, l'atelier est
+     simplement omis du balisage, jamais de la page. */
+  function donneesStructurees(ateliers) {
+    if (!ateliers || !ateliers.length) return;
+    var anciens = document.getElementById("ld-ateliers");
+    if (anciens) anciens.remove();
+    var base = location.origin;
+    var items = [];
+    ateliers.forEach(function (a) {
+      var debut = instantISO(a.date, a.heure);
+      if (!debut) return;
+      var enLigne = a.mode === "enligne";
+      var e = {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": a.titre || (en ? "The AI Risks Collage workshop" : "Atelier La Fresque des risques de l'IA"),
+        "startDate": debut,
+        "eventAttendanceMode": enLigne
+          ? "https://schema.org/OnlineEventAttendanceMode"
+          : "https://schema.org/OfflineEventAttendanceMode",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "inLanguage": en ? "en" : "fr",
+        "isAccessibleForFree": true,
+        "description": a.description || (en
+          ? "A collaborative workshop to understand what is at stake with AI, with no technical background required."
+          : "Un atelier collaboratif pour comprendre les enjeux de l'IA, sans prérequis technique."),
+        "organizer": { "@type": "Organization", "name": "Pause IA", "url": "https://pauseia.fr/" },
+        "offers": {
+          "@type": "Offer", "price": "0", "priceCurrency": "EUR",
+          "availability": a.complet ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+          "url": base + location.pathname
+        }
+      };
+      e.location = enLigne
+        ? { "@type": "VirtualLocation", "url": base + location.pathname }
+        : { "@type": "Place", "name": a.lieu || (en ? "In person" : "En présentiel"),
+            "address": { "@type": "PostalAddress", "addressLocality": a.lieu || "", "addressCountry": "FR" } };
+      if (a.animateur) e.performer = { "@type": "Person", "name": a.animateur };
+      items.push(e);
+    });
+    if (!items.length) return;
+    var sc = document.createElement("script");
+    sc.type = "application/ld+json";
+    sc.id = "ld-ateliers";
+    sc.textContent = JSON.stringify(items.length === 1 ? items[0] : items);
+    document.head.appendChild(sc);
+  }
+  /* "2026-09-30" + "14:00" -> "2026-09-30T14:00:00+02:00".
+     Le decalage est celui de PARIS, pas celui du visiteur : l'heure annoncee est
+     l'heure francaise, et la lire depuis New York en produirait une autre, fausse
+     pour tout le monde. Sans fuseau du tout, un moteur de recherche la lit en UTC
+     et l'affiche avec deux heures d'ecart. */
+  function instantISO(date, heure) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return "";
+    var hm = /^(\d{1,2}):(\d{2})$/.exec(String(heure || "")) || ["", "9", "00"];
+    var h2 = ("0" + hm[1]).slice(-2);
+    var t = Date.parse(date + "T" + h2 + ":" + hm[2] + ":00Z");
+    if (!isFinite(t)) return "";
+    var dec = decalageParis(t);
+    dec = decalageParis(t - dec);          // seconde passe (changement d'heure)
+    var signe = dec < 0 ? "-" : "+", abs = Math.abs(dec) / 60000;
+    var off = signe + ("0" + Math.floor(abs / 60)).slice(-2) + ":" + ("0" + Math.round(abs % 60)).slice(-2);
+    return date + "T" + h2 + ":" + hm[2] + ":00" + off;
+  }
+  function decalageParis(instant) {
+    try {
+      var d = new Date(instant);
+      return new Date(d.toLocaleString("en-US", { timeZone: "Europe/Paris" }))
+           - new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
+    } catch (e) { return 0; }
+  }
+
   function carte(a) {
     var el = document.createElement("article");
     el.className = "atelier-carte" + (a.ouvert ? "" : " passe");

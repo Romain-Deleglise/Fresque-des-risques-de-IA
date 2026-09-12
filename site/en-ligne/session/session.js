@@ -32,6 +32,7 @@
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
     copie: "copied ✓", lienCopie: "Link copied ✓", copieEchec: "Copy failed. Select the code and copy it manually.",
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
+    lienCopie: "Link copied.", lienSujet: "My AI Risks Collage session",
     coachFermer: "Got it",
     coachPartager: "Copy the invitation link (top left) so participants can join.",
     coachPool: "Add cards to the shared reserve (your card deck, at the bottom) so the group can place them.",
@@ -95,6 +96,7 @@
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
     copie: "copié ✓", lienCopie: "Lien copié ✓", copieEchec: "Copie impossible. Sélectionnez le code et copiez-le à la main.",
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
+    lienCopie: "Lien copié.", lienSujet: "Ma session de la Fresque des risques de l'IA",
     coachFermer: "Compris",
     coachPartager: "Copiez le lien d'invitation (en haut à gauche) pour que des participant·es rejoignent.",
     coachPool: "Ajoutez des cartes à la réserve commune (votre jeu de cartes, en bas) pour que le groupe les pose.",
@@ -162,7 +164,12 @@
       "#vocal-lien": "🎧 Join the voice room",
       "#aide-titre": "How to play",
       "#modal-flip": "Flip", "#modal-close": "Close ✕",
-      ".mobile-avis h1": "On a computer"
+      ".mobile-avis h1": "Open this on a computer",
+      ".mobile-avis > div > p:nth-of-type(1)": "You move cards and draw links with a mouse: on a phone, it is not playable.",
+      "#ma-libelle": "Your session link:",
+      "#ma-copier": "Copy the link", "#ma-mail": "E-mail it to myself",
+      ".mobile-avis .ma-fine:nth-of-type(1)": "Then open it on your computer: the session opens on its own, with nothing to type.",
+      "#ma-forcer": "Continue on this screen anyway"
     };
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
@@ -188,8 +195,8 @@
     if (pa) pa.textContent = "Participants";
     var ret = document.querySelector(".lobby-retour");
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
-    var mp = document.querySelector(".mobile-avis p");
-    if (mp) mp.innerHTML = 'The online collage runs on a computer screen. <a href="../">Back</a>.';
+    var mr = document.querySelector(".mobile-avis .ma-fine:last-of-type a");
+    if (mr) mr.textContent = "Back to the site";
     var liste = document.querySelector("#aide-liste");
     if (liste) liste.innerHTML =
       '<li><b>Cards:</b> the facilitator fills the shared reserve; click « Place » (or drag the card) to bring it onto the board. The ⤢ button opens it large.</li>'
@@ -2983,6 +2990,33 @@
     bc.title = curs.montrer ? S.curseursOn : S.curseursOff;
     bc.addEventListener("click", basculerCurseurs);
   })();
+  /* ECRAN TELEPHONE. Ce n'est pas une impasse : la personne vient souvent de son
+     e-mail d'invitation, cinq minutes avant l'atelier. On lui donne le lien, de
+     quoi le copier ou se l'envoyer, et la possibilite d'essayer quand meme
+     (grand telephone, tablette en portrait) plutot que de lui fermer la porte. */
+  (function () {
+    var champ = document.getElementById("ma-url");
+    if (!champ) return;
+    champ.value = location.href;
+    var cop = document.getElementById("ma-copier");
+    if (cop) cop.addEventListener("click", function () {
+      var fait = function () { cop.textContent = S.lienCopie; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(location.href).then(fait, function () { champ.select(); });
+      } else { champ.select(); try { document.execCommand("copy"); fait(); } catch (e) {} }
+    });
+    var ml = document.getElementById("ma-mail");
+    if (ml) ml.href = "mailto:?subject=" + encodeURIComponent(S.lienSujet)
+      + "&body=" + encodeURIComponent(location.href);
+    var forcer = document.getElementById("ma-forcer");
+    if (forcer) forcer.addEventListener("click", function () {
+      document.body.classList.add("mobile-force");
+      // Le tableau n'a jamais ete mesure a cette taille : on recalcule le
+      // cadrage plutot que de laisser une vue calculee pour un ecran absent.
+      setTimeout(function () { try { clampPan(); applyView(); centrer(); } catch (e) {} }, 80);
+    });
+  })();
+
   // Prevenir les autres a la fermeture de l'onglet (retrait immediat du curseur).
   window.addEventListener("beforeunload", function () { curs.ferme = true; try { if (curs.ws) curs.ws.close(); } catch (e) {} });
   (function () {
@@ -3192,6 +3226,25 @@
     if ((!fileAgir.length && etat.attente === 0) || Date.now() > finAvant) { fn(); return; }
     setTimeout(function () { quandCalme(fn, finAvant); }, 80);
   }
+  /* DEPOT DE L'IMAGE POUR L'E-MAIL DE SUIVI. La fresque terminee est la seule
+     chose que le groupe a envie de garder, et elle s'arretait sur la machine de
+     l'animateur·ice. On la depose donc aussi cote serveur, qui la joindra a
+     l'e-mail envoye au groupe apres l'atelier, puis l'effacera.
+     Silencieux de bout en bout : c'est un bonus, il ne doit jamais gener le
+     telechargement, ni inquieter si le depot echoue. Animateur·ice seulement. */
+  var imageDeposee = false;
+  function deposerImage(cv) {
+    if (imageDeposee || etat.role !== "animateur" || !etat.code || !etat.jeton) return;
+    var png;
+    // Qualite volontairement moindre que le fichier telecharge : il s'agit de
+    // tenir dans une piece jointe, pas de remplacer l'original.
+    try { png = cv.toDataURL("image/jpeg", 0.82); } catch (e) { return; }
+    var base64 = String(png).split(",")[1] || "";
+    if (!base64 || base64.length > 3400000) return;
+    imageDeposee = true;
+    api("image", { code: etat.code, jeton: etat.jeton, png: base64 })
+      .catch(function () { imageDeposee = false; });
+  }
   function exporterImage() { poserLaPlume(); quandCalme(dessinerExport); }
   function dessinerExport() {
     if (!etat.vue || !etat.vue.tableau) return;
@@ -3254,6 +3307,7 @@
       var url = URL.createObjectURL(blob), a = document.createElement("a");
       a.href = url; a.download = "fresque-des-risques-de-l-ia.png"; document.body.appendChild(a); a.click();
       setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1000);
+      deposerImage(cv);
     }, "image/png");
     flash(EN ? "Image downloaded." : "Image téléchargée.");
   }

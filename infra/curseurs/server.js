@@ -37,6 +37,7 @@
    le sondage continue en fond et corrige tout ecart.
 */
 "use strict";
+const http = require("http");
 const { WebSocketServer } = require("ws");
 
 /* VERSION DU PROTOCOLE. A incrementer des qu'on ajoute ou change un type de
@@ -60,7 +61,33 @@ const MAX_TOTAL = Number(process.env.MAX_TOTAL || 400);        // connexions sim
 // depuis une adresse demanderait plusieurs annees : le freinage suffit.
 const CONN_PAR_MIN = Number(process.env.CONN_PAR_MIN || 240);
 
-const wss = new WebSocketServer({ port: PORT, maxPayload: 128 * 1024 });
+/* POINT DE SANTE HTTP. Ce relais tourne sur une autre machine que le site et ne
+   se met pas a jour quand le site est deploye. Quand il est en retard, ses
+   fonctions recentes disparaissent EN SILENCE, et quand il est tombe, personne
+   ne le sait avant qu'un atelier commence, devant des gens. Les deux sont
+   arrives. Il annonce donc son etat sur une simple requete HTTP, ce qu'une
+   surveillance automatique peut interroger toutes les quinze minutes (voir
+   netlify/functions/surveillance.js), et ce qu'on peut verifier soi-meme :
+     curl -s https://curseurs.pauseia.fr/sante | jq
+   On n'y publie RIEN de sensible : la version et les capacites sont deja
+   annoncees a chaque connexion, et les compteurs sont des totaux, sans aucun
+   code de session ni prenom. */
+const DEMARRE = Date.now();
+const serveur = http.createServer(function (req, res) {
+  const chemin = String(req.url || "").split("?")[0];
+  if (chemin === "/sante" || chemin === "/sante/") {
+    let clients = 0;
+    for (const s of salons.values()) clients += s.size;
+    const corps = JSON.stringify({ ok: true, v: VERSION, caps: CAPACITES,
+      salons: salons.size, clients: clients, depuis_s: Math.round((Date.now() - DEMARRE) / 1000) });
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    res.end(corps);
+    return;
+  }
+  res.writeHead(426, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Ce service attend une connexion WebSocket.\n");
+});
+const wss = new WebSocketServer({ server: serveur, maxPayload: 128 * 1024 });
 const salons = new Map(); // code -> Set<ws>
 
 /* GARDE-FOUS D'ADMISSION. Ce service est joignable depuis Internet et n'a
@@ -179,4 +206,6 @@ const battement = setInterval(function () {
 }, 30000);
 wss.on("close", function () { clearInterval(battement); });
 
-console.log("[curseurs] relais WebSocket en ecoute sur le port " + PORT);
+serveur.listen(PORT, function () {
+  console.log("[curseurs] relais WebSocket en ecoute sur le port " + PORT + " (sante : GET /sante)");
+});

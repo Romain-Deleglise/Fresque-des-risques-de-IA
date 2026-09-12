@@ -197,7 +197,25 @@
   </div>
 </div>
 
-<div class="mobile-avis"><div><h1>Sur ordinateur</h1><p>La Fresque en ligne se joue sur un écran d'ordinateur. <a href="../">Retour</a>.</p></div></div>
+<!-- TELEPHONE. Beaucoup de gens ouvrent leur lien d'invitation depuis leur
+     boite mail, sur leur telephone, cinq minutes avant l'atelier. Ils tombaient
+     ici sur une impasse : « ca se joue sur ordinateur », et rien a faire
+     ensuite. On leur donne donc de quoi passer a l'ordinateur, tout de suite. -->
+<div class="mobile-avis">
+  <div>
+    <h1>À ouvrir sur un ordinateur</h1>
+    <p>On y déplace des cartes et on trace des liens à la souris : sur un téléphone, ce n'est pas jouable.</p>
+    <p class="ma-libelle" id="ma-libelle">Le lien de votre session :</p>
+    <input id="ma-url" type="text" readonly aria-labelledby="ma-libelle">
+    <p class="ma-actions">
+      <button type="button" class="btn primaire" id="ma-copier">Copier le lien</button>
+      <a class="btn" id="ma-mail" href="#">Me l'envoyer par e-mail</a>
+    </p>
+    <p class="ma-fine">Ouvrez-le ensuite sur votre ordinateur : la session s'ouvre toute seule, il n'y a rien à saisir.</p>
+    <p class="ma-fine"><button type="button" class="ma-nu" id="ma-forcer">Continuer quand même sur cet écran</button></p>
+    <p class="ma-fine"><a href="../">Retour au site</a></p>
+  </div>
+</div>
 
 <script src="session.js" defer></script>
   <script src="../../assets/js/mesure.js" defer></script>
