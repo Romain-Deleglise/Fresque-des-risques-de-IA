@@ -129,6 +129,15 @@
 
   <div class="scene" id="scene">
     <div class="survol-carte" id="survol-carte" hidden></div>
+    <!-- Legende des lots : visible uniquement quand on a assez de recul pour que
+         la couleur soit la seule chose lisible sur une carte. -->
+    <div class="legende" id="legende" aria-hidden="true">
+      <b><i style="--c:#E8811C"></i>1 · L'IA</b>
+      <b><i style="--c:#2f7d4f"></i>2 · Capacités</b>
+      <b><i style="--c:#3b6ea5"></i>3 · Risques actuels</b>
+      <b><i style="--c:#8a4fb3"></i>4 · Risques existentiels</b>
+      <b><i style="--c:#c1444e"></i>5 · Solutions</b>
+    </div>
     <div class="aide" id="aide"></div>
     <div id="monde">
       <div class="plan-bord"></div>

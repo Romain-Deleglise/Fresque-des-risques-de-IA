@@ -197,6 +197,13 @@
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mr = document.querySelector(".mobile-avis .ma-fine:last-of-type a");
     if (mr) mr.textContent = "Back to the site";
+    var leg = document.getElementById("legende");
+    if (leg) {
+      var noms = ["AI", "Capabilities", "Present-day risks", "Existential risks", "Solutions"];
+      leg.querySelectorAll("b").forEach(function (b, i) {
+        b.lastChild.nodeValue = (i + 1) + " · " + noms[i];
+      });
+    }
     var liste = document.querySelector("#aide-liste");
     if (liste) liste.innerHTML =
       '<li><b>Cards:</b> the facilitator fills the shared reserve; click « Place » (or drag the card) to bring it onto the board. The ⤢ button opens it large.</li>'
@@ -2235,13 +2242,38 @@
      d'etat : c'est la meme couche « awareness » que chez Figma ou Excalidraw.
      Sans cela, la carte disparaissait d'un endroit et reapparaissait a un
      autre, et personne ne comprenait ce qui se passait. */
-  var glissTs = 0;
+  /* ENVOI DU GESTE, CALE SUR L'AFFICHAGE.
+     L'envoi etait limite a un message toutes les 33 ms. Ce pas coute deux fois :
+     une fois en moyenne (16 ms d'attente avant de partir), et une seconde fois
+     chez les autres, dont le tampon se regle sur l'intervalle d'arrivee. On
+     envoie donc UNE fois par image, c'est-a-dire exactement au rythme auquel les
+     autres peuvent l'afficher, et jamais plus (garde-fou a 15 ms : un ecran a
+     120 Hz doublerait le trafic pour un gain que personne ne verrait).
+     Les positions intermediaires d'une meme image sont ecrasees plutot
+     qu'empilees : seule la derniere a un sens a l'affichage. */
+  var glissEnAttente = null, glissRAF = 0, glissTs = 0;
   function envoyerGliss(n, wx, wy, depuisReserve) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansGliss) return;
-    var now = Date.now(); if (now - glissTs < 33) return; glissTs = now;   // ~30/s
-    envoyerWS({ t: "gliss", n: n, x: Math.round(wx), y: Math.round(wy), d: depuisReserve ? 1 : 0 });
+    glissEnAttente = { t: "gliss", n: n, x: Math.round(wx), y: Math.round(wy), d: depuisReserve ? 1 : 0 };
+    if (!glissRAF) glissRAF = requestAnimationFrame(viderGliss);
   }
-  function envoyerGlissFin(n) { glissTs = 0; envoyerWS({ t: "gliss0", n: n }); }
+  function viderGliss() {
+    glissRAF = 0;
+    if (!glissEnAttente) return;
+    var now = Date.now();
+    if (now - glissTs < 15) { glissRAF = requestAnimationFrame(viderGliss); return; }
+    glissTs = now;
+    var m = glissEnAttente; glissEnAttente = null;
+    envoyerWS(m);
+  }
+  function envoyerGlissFin(n) {
+    // Le dernier point du geste ne doit pas rester en attente : il porte la
+    // position d'arrivee, et l'autre bout la joue avant de relacher la carte.
+    if (glissRAF) { cancelAnimationFrame(glissRAF); glissRAF = 0; }
+    if (glissEnAttente) { envoyerWS(glissEnAttente); glissEnAttente = null; }
+    glissTs = 0;
+    envoyerWS({ t: "gliss0", n: n });
+  }
 
   var glissLive = {};      // id de la personne -> { n, x, y, dep, ts }
   var glissParCarte = {};  // numero de carte   -> id de la personne qui la tient
@@ -2254,9 +2286,9 @@
     if (!g || g.n !== n) {
       // Nouveau geste : on part de la position recue, sans faire traverser le
       // tableau a la carte depuis l'endroit ou elle etait.
-      g = glissLive[m.id] = { n: n, x: tx, y: ty, tp: tamponNeuf(tx, ty), dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
+      g = glissLive[m.id] = { n: n, x: tx, y: ty, tp: tamponNeuf(tx, ty, m.id), dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
     } else {
-      noterPos(g.tp, tx, ty);
+      noterPos(g.tp, tx, ty, m.id);
     }
     g.dep = m.d ? 1 : 0; g.ts = Date.now(); g.nom = m.nom || g.nom;
     glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
@@ -2277,7 +2309,7 @@
       if (g.n !== n || g.dep) continue;
       var b = g.tp && g.tp.buf, q = b && b[b.length - 1];
       if (q && Math.abs(q.x - x) < 0.5 && Math.abs(q.y - y) < 0.5) return;
-      noterPos(g.tp, x, y); lancerLissage();
+      noterPos(g.tp, x, y, null); lancerLissage();
       return;
     }
   }
@@ -2431,9 +2463,9 @@
     var x = +m.x || 0, y = +m.y || 0;
     if (!el) {
       el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el);
-      curs.pos[m.id] = tamponNeuf(x, y);
+      curs.pos[m.id] = tamponNeuf(x, y, m.id);
     } else {
-      noterPos(curs.pos[m.id], x, y);
+      noterPos(curs.pos[m.id], x, y, m.id);
     }
     el.hidden = !curs.montrer;
     lancerLissage();
@@ -2471,26 +2503,59 @@
      d'une animation decorative mais du rendu fidele du geste de quelqu'un, et
      la version sans lissage (des sauts a 18 images par seconde) serait bien plus
      penible pour une personne sensible au mouvement. */
-  var RETARD_SUIVI = 110;   // un peu plus que l'intervalle d'envoi (55 ms)
-  function tamponNeuf(x, y) {
-    var now = (window.performance && performance.now) ? performance.now() : Date.now();
-    return { buf: [{ t: now - RETARD_SUIVI, x: x, y: y }, { t: now, x: x, y: y }], x: x, y: y };
+  /* LE RETARD N'A PAS DE BONNE VALEUR FIXE.
+     Trop court, le tampon se vide et le geste s'arrete puis repart (la saccade
+     qu'on avait supprimee). Trop long, on regarde le passe : c'est ce qui fait
+     dire, a juste titre, que ce n'est « pas exactement ce que fait le joueur ».
+     Mesure : a 110 ms fixes, le geste arrive avec 128 ms de retard sur un bon
+     lien, alors que 45 ms y suffisent (aucun arret) et ramenent le retard a
+     62 ms. Sur un lien degrade (60 ms, 120 ms de gigue), les memes 45 ms font en
+     revanche s'arreter le geste une image sur cinq.
+     On mesure donc, POUR CHAQUE PERSONNE, l'intervalle d'arrivee de ses messages
+     et sa dispersion (le meme calcul de gigue que RTP, RFC 3550), et on vise
+     juste au-dessus. On MONTE TOUT DE SUITE et on REDESCEND LENTEMENT : un
+     message rate coute plus cher que vingt millisecondes de trop, et une
+     descente brutale serait elle-meme une saccade, puisque changer le retard
+     revient a changer la vitesse de lecture. */
+  var RETARD_MIN = 60, RETARD_MAX = 190, RETARD_DEFAUT = 90;
+  var reseau = {};   // id de la personne -> { intervalle, gigue, retard, dernier }
+  function suivreArrivee(id, now) {
+    var e = reseau[id];
+    if (!e) { e = reseau[id] = { intervalle: 40, gigue: 12, retard: RETARD_DEFAUT, dernier: now }; return e; }
+    var d = now - e.dernier; e.dernier = now;
+    // Une pause (personne immobile) n'est pas de la gigue : on ne la compte pas.
+    if (d <= 0 || d > 1200) return e;
+    e.intervalle += (d - e.intervalle) * 0.12;
+    e.gigue += (Math.abs(d - e.intervalle) - e.gigue) * 0.12;
+    var vise = Math.min(RETARD_MAX, Math.max(RETARD_MIN, e.intervalle + 3 * e.gigue + 12));
+    if (vise > e.retard) e.retard = vise;
+    else e.retard += (vise - e.retard) * 0.02;
+    return e;
   }
-  function noterPos(tp, x, y) {
+  function retardDe(id) { var e = reseau[id]; return e ? e.retard : RETARD_DEFAUT; }
+  function tamponNeuf(x, y, id) {
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    var r = retardDe(id);
+    return { buf: [{ t: now - r, x: x, y: y }, { t: now, x: x, y: y }], x: x, y: y, id: id };
+  }
+  // `id` a null : le point ne vient pas du reseau (position finale donnee par le
+  // serveur). Il ne doit alors pas entrer dans la mesure d'intervalle.
+  function noterPos(tp, x, y, id) {
     if (!tp) return;
     var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    if (id !== null) suivreArrivee(id || tp.id, now);
     var b = tp.buf;
     // Deux messages dans la meme milliseconde : on remplace, sinon la division
     // par la duree donnerait l'infini.
     if (b.length && now - b[b.length - 1].t < 1) { b[b.length - 1].x = x; b[b.length - 1].y = y; return; }
     b.push({ t: now, x: x, y: y });
-    while (b.length > 2 && b[1].t < now - RETARD_SUIVI - 500) b.shift();
+    while (b.length > 2 && b[1].t < now - RETARD_MAX - 500) b.shift();
     if (b.length > 80) b.shift();
   }
   // Position a afficher maintenant, et si le tampon a encore de l'avance.
   function positionDifferee(tp, now) {
     var b = tp && tp.buf; if (!b || !b.length) return null;
-    var cible = now - RETARD_SUIVI;
+    var cible = now - retardDe(tp.id);
     if (cible <= b[0].t) return { x: b[0].x, y: b[0].y, encore: b.length > 1 };
     for (var i = b.length - 1; i > 0; i--) {
       if (b[i - 1].t <= cible && cible <= b[i].t) {
@@ -2545,7 +2610,7 @@
     var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
     return p[h % p.length];
   }
-  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; delete curs.pos[id]; }
+  function enleverCurseur(id) { var el = curs.els[id]; if (el) el.remove(); delete curs.els[id]; delete curs.vus[id]; delete curs.pos[id]; delete reseau[id]; }
   setInterval(function () {
     var now = Date.now(), bouge = false;
     for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); }
@@ -2650,6 +2715,9 @@
     E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
     E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
     E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    // La legende vit sur la scene, pas dans le monde : elle ne doit pas subir la
+    // transformation de zoom.
+    E.scene.classList.toggle("loin", etat.zoom < ZOOM_LOIN);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
     E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }
