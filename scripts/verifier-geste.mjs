@@ -38,10 +38,43 @@ const { chromium } = await (async () => {
   try { return await import('playwright'); } catch (e) { return await import('playwright-core'); }
 })();
 const CHROME = process.env.PW_CHROMIUM || undefined;
-const RACINE='/home/user/Fresque-des-risques-de-IA';
+const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+/* Un serveur de fichiers qui ne trouve pas le site ne tombe pas : il repond 404
+   a tout, la page se charge vide, et l'on cherche la panne dans le navigateur.
+   C'est exactement ce qui est arrive avec un chemin de machine laisse en dur.
+   On verifie donc, tout de suite, qu'on sait ou est le site. */
+if (!fs.existsSync(path.join(RACINE, "site", "index.html"))) {
+  console.error("Site introuvable sous " + RACINE + "/site : ce banc doit etre lance depuis le depot.");
+  process.exit(2);
+}
+
 const PORT_SITE=8135, PORT_RELAIS=8136;
 const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2'};
-const site=http.createServer((req,res)=>{let p=decodeURIComponent(req.url.split('?')[0]);if(p.endsWith('/'))p+='index.html';const f=path.join(RACINE,'site',p);fs.readFile(f,(e,d)=>{if(e){res.writeHead(404).end();return;}res.writeHead(200,{'Content-Type':TYPES[path.extname(f)]||'application/octet-stream'});res.end(d);});});
+/* On sert directement un `session.js` adapte (relais local, reglages figes pour
+   comparer) plutot que d'intercepter la requete dans le navigateur : une
+   interception qui echoue ne laisse AUCUNE trace, la page reste vide et on
+   cherche la panne ailleurs pendant une heure. */
+function adapterSessionJs(t) {
+  t = t.replace('wss://curseurs.pauseia.fr', 'ws://127.0.0.1:' + PORT_RELAIS);
+  if (process.env.RETARD_MIN) t = t.replace(/var RETARD_MIN = \d+,/, 'var RETARD_MIN = ' + Number(process.env.RETARD_MIN) + ',');
+  if (process.env.RETARD_SUIVI) { const v = Number(process.env.RETARD_SUIVI);
+    t = t.replace(/var RETARD_MIN = \d+, RETARD_MAX = \d+, RETARD_DEFAUT = \d+;/,
+      'var RETARD_MIN = ' + v + ', RETARD_MAX = ' + v + ', RETARD_DEFAUT = ' + v + ';'); }
+  if (process.env.PAS_GLISS) t = t.replace(/now - glissTs < 15/, 'now - glissTs < ' + Number(process.env.PAS_GLISS));
+  return t;
+}
+const site=http.createServer((req,res)=>{
+  let p=decodeURIComponent(req.url.split('?')[0]);
+  if(p.endsWith('/'))p+='index.html';
+  const f=path.join(RACINE,'site',p);
+  if(!f.startsWith(path.join(RACINE,'site'))){res.writeHead(403).end();return;}
+  fs.readFile(f,(e,d)=>{
+    if(e){res.writeHead(404).end();return;}
+    if(p.endsWith('/session.js')) d = Buffer.from(adapterSessionJs(d.toString('utf8')), 'utf8');
+    res.writeHead(200,{'Content-Type':TYPES[path.extname(f)]||'application/octet-stream'});
+    res.end(d);
+  });
+});
 await new Promise(r=>site.listen(PORT_SITE,r));
 process.env.PORT=String(PORT_RELAIS);
 await import('../infra/curseurs/server.js');
@@ -53,8 +86,10 @@ let x=400,y=400;
 for(let n=1;n<=6;n++){R.appliquer(S,'jAnim',{op:'poolAjouter',n});R.appliquer(S,'jAnim',{op:'poserCarte',n,pos:{x,y}});x+=350;}
 const LAT=Number(process.env.LATENCE||250), ECR=Number(process.env.LATENCE_ECRIT||900);
 const dodo=(ms)=>new Promise(r=>setTimeout(r,ms));
+const appelsGlobal=[];
 async function servir(route){
   let d={};try{d=JSON.parse(route.request().postData()||'{}');}catch(e){}
+  appelsGlobal.push(String(d.op||'?'));
   await dodo(LAT/2); let corps={};
   if(d.op==='rejoindre'){const o=R.rejoindre(S,d.prenom,d.jeton);corps=o&&o.refus?{refus:o.refus}:{jeton:o.jeton,role:o.role,moi:o.id||null,etat:R.vue(S)};}
   else if(d.op==='etat'){corps={etat:R.vue(S)};}
@@ -66,6 +101,10 @@ const nav=await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 async function ouvrir(jeton,role){
   const ctx=await nav.newContext({viewport:{width:1200,height:800}});
   const p=await ctx.newPage();
+  const erreurs=[];
+  p.on('pageerror',(e)=>erreurs.push(String(e && e.message || e)));
+  p.on('console',(m)=>{ if(m.type()==='error' && !/favicon|Failed to load resource/.test(m.text())) erreurs.push('console: '+m.text()); });
+  p.on('requestfailed',(r)=>erreurs.push('requete echouee: '+r.url()+' ('+((r.failure()||{}).errorText||'?')+')'));
   await p.addInitScript(([j,r,base,gigue])=>{
     localStorage.setItem('coach-multi-off','1');localStorage.setItem('fresque:tuto:animateur','1');localStorage.setItem('fresque:tuto:participant','1');
     localStorage.setItem(r==='animateur'?'fresque:anim:GESTE1':'fresque:GESTE1',j);
@@ -100,17 +139,31 @@ async function ouvrir(jeton,role){
     Retarde.CONNECTING = Vrai.CONNECTING; Retarde.CLOSING = Vrai.CLOSING;
     window.WebSocket = Retarde;
   },[jeton,role,Number(process.env.RESEAU_BASE||0),Number(process.env.RESEAU_GIGUE||0)]);
-  await p.route('**/session.js',async route=>{const rr=await route.fetch();let t=(await rr.text()).replace('wss://curseurs.pauseia.fr','ws://127.0.0.1:'+PORT_RELAIS);
-  // Pour comparer, on peut FIGER le tampon a une valeur donnee.
-  if (process.env.RETARD_MIN) t = t.replace(/var RETARD_MIN = \d+,/, 'var RETARD_MIN = '+Number(process.env.RETARD_MIN)+',');
-  if (process.env.RETARD_SUIVI) { const v=Number(process.env.RETARD_SUIVI);
-    t = t.replace(/var RETARD_MIN = \d+, RETARD_MAX = \d+, RETARD_DEFAUT = \d+;/,
-      'var RETARD_MIN = '+v+', RETARD_MAX = '+v+', RETARD_DEFAUT = '+v+';'); }
-  if (process.env.PAS_GLISS) t = t.replace(/now - glissTs < 15/, 'now - glissTs < '+Number(process.env.PAS_GLISS));await route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:t});});
   await p.route('**/.netlify/functions/fresque',servir);
   await p.goto('http://127.0.0.1:'+PORT_SITE+'/en-ligne/session/?s=GESTE1',{waitUntil:'domcontentloaded'});
-  await p.waitForSelector('#app:not([hidden])',{timeout:30000});
-  await p.waitForFunction(()=>document.querySelectorAll('.c-carte').length>0,null,{timeout:30000});
+  /* Un harnais qui meurt sur « selecteur introuvable » ne dit rien de ce qui
+     s'est passe. On raconte donc ce que la page montre, ce qu'elle a dit, et ce
+     qu'elle a demande : c'est la difference entre une heure et deux minutes. */
+  try {
+    await p.waitForSelector('#app:not([hidden])',{timeout:45000});
+    await p.waitForFunction(()=>document.querySelectorAll('.c-carte').length>0,null,{timeout:45000});
+  } catch (e) {
+    const vu = await p.evaluate(() => ({
+      titre: document.title,
+      lobbyVisible: !document.getElementById('lobby').hidden,
+      appCache: document.getElementById('app').hidden,
+      message: (document.querySelector('.lobby-msg') || {}).textContent || '',
+      sessionJsCharge: typeof window.__fresqueChargee !== 'undefined' ? 'oui' : 'inconnu',
+      cartes: document.querySelectorAll('.c-carte').length
+    })).catch(() => ({}));
+    console.error('\n--- la page n\'a pas demarre ---');
+    console.error('role      : ' + role);
+    console.error('page      : ' + JSON.stringify(vu));
+    console.error('erreurs   : ' + (erreurs.length ? erreurs.join(' | ') : 'aucune'));
+    console.error('requetes  : ' + (appelsGlobal.length ? appelsGlobal.join(', ') : 'aucune au service de sessions'));
+    console.error('---\n');
+    throw e;
+  }
   return p;
 }
 const A=await ouvrir('jAnim','animateur');

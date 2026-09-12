@@ -24,6 +24,15 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+/* Un serveur de fichiers qui ne trouve pas le site ne tombe pas : il repond 404
+   a tout, la page se charge vide, et l'on cherche la panne dans le navigateur.
+   C'est exactement ce qui est arrive avec un chemin de machine laisse en dur.
+   On verifie donc, tout de suite, qu'on sait ou est le site. */
+if (!fs.existsSync(path.join(RACINE, "site", "index.html"))) {
+  console.error("Site introuvable sous " + RACINE + "/site : ce banc doit etre lance depuis le depot.");
+  process.exit(2);
+}
+
 const PORT = Number(process.env.PORT_PDF || 8131);
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8",

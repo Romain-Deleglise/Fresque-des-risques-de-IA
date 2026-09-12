@@ -30,6 +30,15 @@ const { chromium } = await (async () => {
 })();
 
 const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+/* Un serveur de fichiers qui ne trouve pas le site ne tombe pas : il repond 404
+   a tout, la page se charge vide, et l'on cherche la panne dans le navigateur.
+   C'est exactement ce qui est arrive avec un chemin de machine laisse en dur.
+   On verifie donc, tout de suite, qu'on sait ou est le site. */
+if (!fs.existsSync(path.join(RACINE, "site", "index.html"))) {
+  console.error("Site introuvable sous " + RACINE + "/site : ce banc doit etre lance depuis le depot.");
+  process.exit(2);
+}
+
 const PORT_SITE = Number(process.env.PORT_SITE || 8107);
 const PORT_RELAIS = Number(process.env.PORT_RELAIS || 8108);
 const LATENCE = Number(process.env.LATENCE || 250);   // aller-retour du service
