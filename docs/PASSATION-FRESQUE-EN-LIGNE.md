@@ -379,6 +379,30 @@ Mesuré, même geste, même vitesse moyenne :
 | Saccade d'une image à l'autre | 172 % | **2,5 %** |
 | Cycles arrêt / reprise | **19 en 1,35 s** | **0** |
 
+### Tactile, export, et sécurité du relais
+
+- **Pincement à deux doigts.** La scène est en `touch-action:none`, indispensable
+  pour que le glissement d'une carte ne soit pas confisqué par le défilement du
+  navigateur, mais cela supprime aussi le pincement natif : sur tablette il ne
+  restait que les boutons + et -, sur un tableau où le zoom est devenu l'outil
+  principal. Réimplémenté, avec le même plancher de zoom que la molette.
+- **Export : la plume est posée d'abord.** Une note en cours de frappe n'existe,
+  pendant quelques centaines de millisecondes, que dans la page (l'envoi au
+  serveur est étalé). L'image, elle, est dessinée à partir de l'état du serveur.
+  Cliquer « Télécharger l'image » en pleine frappe produisait donc une image où
+  la note manquait, sans rien signaler : c'est le « il y a juste une note qui
+  n'est pas sur l'image » remonté après un atelier. On sort maintenant du champ
+  en cours, on vide les envois en attente, et on attend que la file soit vide.
+- **Garde-fous d'admission sur le relais.** Il est joignable depuis Internet et
+  n'a aucun secret à vérifier : un code de session valide suffit. Sans plafond
+  global, on pouvait ouvrir des dizaines de milliers de connexions et épuiser
+  les 128 Mo du conteneur. Et surtout : le service HTTP freine la recherche de
+  codes par force brute (20 codes inconnus par minute et par adresse), le relais
+  ne freinait rien, alors qu'il transporte désormais **l'état complet du
+  tableau**. C'était devenu le point faible. Plafond global (400 connexions) et
+  fenêtre glissante par adresse (240 par minute, volontairement généreux : un
+  atelier entier derrière un même réseau d'entreprise partage une adresse).
+
 ### Ce qui ne peut plus casser en silence
 
 Trois pannes de ce projet sont passées en production sans rien faire tomber :
@@ -412,6 +436,27 @@ faisait reculer le tableau, `onlyIfMatch` qui ne faisait rien. Aucune n'aurait
 
    Elle répond `ecritureConditionnelle`, `relectureImmediate`, la version de
    `@netlify/blobs` et un `ok` global. **À appeler après chaque déploiement.**
+
+### Ce qui reste ouvert, et qui est une décision de votre part
+
+Rien de tout cela n'est bloquant ; ce sont des choix, pas des oublis.
+
+1. **Manipulation au clavier.** La réserve et le jeu de cartes sont utilisables
+   au clavier (Tab, Entrée), mais poser un lien ou déplacer une carte demande la
+   souris : les cartes du tableau ne sont pas atteignables au clavier. Le
+   combler proprement (sélection au clavier, déplacement aux flèches, création
+   de lien en deux temps) est une vraie fonctionnalité, pas un correctif.
+2. **Pas d'annulation.** Un geste malheureux (une carte retirée, un lien
+   supprimé) ne se défait pas. Le serveur ayant déjà un numéro de version et des
+   actions bien délimitées, un « annuler » sur ses propres actions est
+   réalisable, mais ce n'est pas un petit chantier.
+3. **Huit participants maximum** (plus l'animateur·ice). C'est une décision
+   produit inscrite dans les règles, pas une limite technique : le relais tient
+   trente connexions par salon.
+4. **« Je ne peux plus mettre de flèches »**, remonté une fois après un atelier,
+   n'a jamais été reproduit, y compris en onze créations consécutives et dans le
+   harnais navigateur. Si cela revient, la console du navigateur au moment du
+   blocage est ce qui manquera pour trancher.
 
 ### Les animations, passées en revue une par une
 

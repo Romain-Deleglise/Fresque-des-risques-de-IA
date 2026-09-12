@@ -1960,7 +1960,7 @@
      Il annonce donc sa version a la connexion ; si elle est trop ancienne, ou
      s'il n'annonce rien du tout (relais anterieur a cette convention), on le
      dit clairement dans la console, et a l'animateur a l'ecran. */
-  var RELAIS_MINI = 3;
+  var RELAIS_MINI = 4;
   function relaisBonjour(m) {
     clearTimeout(curs.attenteBonjour);
     curs.v = +m.v || 0;
@@ -2167,6 +2167,17 @@
   frappe.annuler = function (cle) {
     if (frappe.t && frappe.t[cle]) { clearTimeout(frappe.t[cle]); delete frappe.t[cle]; }
   };
+  // Declenche TOUT DE SUITE ce qui attendait la fin de la frappe. Sert avant une
+  // operation qui lit l'etat du serveur et ne peut pas se permettre d'etre en
+  // retard sur ce qui est a l'ecran : l'export de l'image, typiquement.
+  frappe.vider = function () {
+    if (!frappe.t) return;
+    Object.keys(frappe.t).forEach(function (cle) {
+      var h = frappe.t[cle]; delete frappe.t[cle]; clearTimeout(h);
+    });
+    // Les rappels eux-memes sont rejoues par les elements en cours d'edition
+    // via leur `blur` (voir `poserLaPlume`).
+  };
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
@@ -2363,6 +2374,57 @@
   E.scene.addEventListener("pointermove", function (e) { envoyerCurseur(e.clientX, e.clientY); suivreFleche(e.clientX, e.clientY); });
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+
+  /* PINCEMENT A DEUX DOIGTS (tablette, ecran tactile).
+     La scene est en `touch-action:none` : indispensable pour que le glissement
+     d'une carte ne soit pas confisque par le defilement du navigateur, mais cela
+     supprime AUSSI le pincement natif. Sur tablette, il ne restait donc que les
+     boutons + et - pour zoomer, sur un tableau ou le zoom est l'outil principal.
+     On le reimplemente : deux doigts posent une reference (ecartement et point
+     milieu), et chaque mouvement applique le rapport d'ecartement autour de ce
+     milieu, qui sert en meme temps de deplacement. C'est la meme fonction que la
+     molette, donc le meme plancher de zoom et le meme recadrage. */
+  var pince = null;
+  var doigts = new Map();   // pointerId -> { x, y }
+  function milieu() {
+    var a = [];
+    doigts.forEach(function (p) { a.push(p); });
+    return { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2,
+             d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) };
+  }
+  E.scene.addEventListener("pointerdown", function (e) {
+    if (e.pointerType !== "touch") return;
+    doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.size === 2) {
+      // Deux doigts : on abandonne le deplacement a un doigt en cours, sinon le
+      // tableau partirait en meme temps que le zoom.
+      pan = null; E.scene.classList.remove("grabbing");
+      stopVueAnim();
+      var m = milieu();
+      pince = { d0: m.d || 1, z0: etat.zoom, mx: m.x, my: m.y, px: etat.panX, py: etat.panY };
+    }
+  }, true);
+  E.scene.addEventListener("pointermove", function (e) {
+    if (e.pointerType !== "touch" || !doigts.has(e.pointerId)) return;
+    doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.size !== 2 || !pince) return;
+    e.preventDefault();
+    var m = milieu(), r = rectScene();
+    // Point du monde sous le milieu des doigts au moment ou ils se sont poses :
+    // c'est lui qui doit rester sous les doigts pendant tout le geste.
+    var wx = (pince.mx - r.left - pince.px) / pince.z0, wy = (pince.my - r.top - pince.py) / pince.z0;
+    etat.zoom = bornerZoom(pince.z0 * ((m.d || 1) / pince.d0));
+    etat.panX = (m.x - r.left) - wx * etat.zoom;
+    etat.panY = (m.y - r.top) - wy * etat.zoom;
+    clampPan(); applyView(); majFleches();
+  }, true);
+  function finDoigt(e) {
+    if (e.pointerType !== "touch") return;
+    doigts.delete(e.pointerId);
+    if (doigts.size < 2) pince = null;
+  }
+  E.scene.addEventListener("pointerup", finDoigt, true);
+  E.scene.addEventListener("pointercancel", finDoigt, true);
 
   // Ping : clic droit sur le tableau -> cercle qui s'agrandit chez tout le monde,
   // pour attirer l'attention (emprunte a Excalidraw / Foundry). On evite le menu
@@ -2619,7 +2681,31 @@
     ctx.lineTo(tox - s * Math.cos(a + 0.42), toy - s * Math.sin(a + 0.42));
     ctx.closePath(); ctx.fill();
   }
-  function exporterImage() {
+  /* AVANT D'EXPORTER : POSER LA PLUME.
+     Une note qu'on est en train d'ecrire n'existe, pendant quelques centaines de
+     millisecondes, QUE dans la page : l'envoi au serveur est etale pour ne pas
+     ecrire a chaque touche. Or l'image est dessinee a partir de l'etat du
+     SERVEUR. Cliquer « Telecharger l'image » en pleine frappe produisait donc
+     une image ou la note manquait, sans rien signaler. C'est le « il y a juste
+     une note qui n'est pas sur l'image » remonte apres un atelier.
+     On sort donc du champ en cours (ce qui declenche son enregistrement), on
+     vide les envois en attente, et on attend que la file d'actions soit vide
+     avant de dessiner. Attente bornee : mieux vaut une image dans tous les cas
+     qu'un bouton qui ne repond pas. */
+  function poserLaPlume() {
+    var a = document.activeElement;
+    if (a && (a.getAttribute("contenteditable") === "true" || a.tagName === "INPUT" || a.tagName === "TEXTAREA")) {
+      try { a.blur(); } catch (e) {}
+    }
+    frappe.vider();
+  }
+  function quandCalme(fn, finAvant) {
+    finAvant = finAvant || (Date.now() + 2500);
+    if ((!fileAgir.length && etat.attente === 0) || Date.now() > finAvant) { fn(); return; }
+    setTimeout(function () { quandCalme(fn, finAvant); }, 80);
+  }
+  function exporterImage() { poserLaPlume(); quandCalme(dessinerExport); }
+  function dessinerExport() {
     if (!etat.vue || !etat.vue.tableau) return;
     var tab = etat.vue.tableau, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
     if (!cartes.length) return;

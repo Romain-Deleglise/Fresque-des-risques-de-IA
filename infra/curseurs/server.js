@@ -45,16 +45,54 @@ const { WebSocketServer } = require("ws");
    relais non redeploye fait disparaitre des fonctions EN SILENCE (les
    deplacements en direct, par exemple) et on cherche le probleme ailleurs
    pendant des heures. Deja arrive deux fois. */
-const VERSION = 3;
+const VERSION = 4;
 const CAPACITES = ["c", "fl", "fl0", "maj", "etat", "lib", "note", "gliss", "gliss0"];
 
 const PORT = Number(process.env.PORT || 8080);
 const MAX_PAR_SALON = Number(process.env.MAX_PAR_SALON || 30); // garde-fou
 const MSG_MAX = 96 * 1024;                                     // caracteres par message (un etat de tableau)
 const MSG_PAR_SEC = Number(process.env.MSG_PAR_SEC || 150);    // garde-fou de debit, par connexion
+const MAX_TOTAL = Number(process.env.MAX_TOTAL || 400);        // connexions simultanees, tous salons
+// Genereux volontairement : un atelier entier derriere le meme reseau
+// d'entreprise partage UNE adresse, et si le relais redemarre, tout le monde se
+// reconnecte en meme temps. Verrouiller trop serre reviendrait a exclure une
+// salle entiere. A ce rythme, parcourir les 594 millions de codes possibles
+// depuis une adresse demanderait plusieurs annees : le freinage suffit.
+const CONN_PAR_MIN = Number(process.env.CONN_PAR_MIN || 240);
 
 const wss = new WebSocketServer({ port: PORT, maxPayload: 128 * 1024 });
 const salons = new Map(); // code -> Set<ws>
+
+/* GARDE-FOUS D'ADMISSION. Ce service est joignable depuis Internet et n'a
+   aucun secret a verifier : il suffit d'un code de session valide pour entrer
+   dans un salon. Deux consequences a couvrir.
+   1. DISPONIBILITE. Sans plafond global, n'importe qui peut ouvrir des dizaines
+      de milliers de connexions sur autant de codes differents et epuiser les
+      128 Mo du conteneur. Le plafond par salon (30) n'y suffit pas.
+   2. DECOUVERTE DE CODES. Le service HTTP, lui, freine la recherche de codes par
+      force brute (20 codes inconnus par minute et par adresse). Le relais ne
+      freinait rien, alors qu'il transporte desormais l'etat complet du tableau :
+      c'etait devenu le point faible. Une fenetre glissante par adresse remet les
+      deux du meme cote.
+   Tout cela reste tres au-dessus d'un usage normal : un atelier, c'est neuf
+   connexions, une fois. */
+const tentatives = new Map(); // adresse -> { n, debut }
+function adresseDe(req) {
+  const h = req.headers || {};
+  const brut = h["x-forwarded-for"] || (req.socket && req.socket.remoteAddress) || "inconnue";
+  return String(brut).split(",")[0].trim() || "inconnue";
+}
+function tropDeTentatives(adr) {
+  const now = Date.now();
+  let e = tentatives.get(adr);
+  if (!e || now - e.debut > 60000) { e = { n: 0, debut: now }; tentatives.set(adr, e); }
+  e.n++;
+  // Elagage paresseux : on ne garde pas la trace d'adresses qui ne reviennent pas.
+  if (tentatives.size > 5000) {
+    for (const [k, v] of tentatives) { if (now - v.debut > 60000) tentatives.delete(k); }
+  }
+  return e.n > CONN_PAR_MIN;
+}
 
 function salon(code) { let s = salons.get(code); if (!s) { s = new Set(); salons.set(code, s); } return s; }
 function diffuser(set, sauf, obj) {
@@ -70,6 +108,8 @@ wss.on("connection", function (ws, req) {
     nom = (u.searchParams.get("nom") || "").slice(0, 24);
   } catch (e) {}
   if (!/^[A-Z0-9]{4,12}$/.test(code)) { try { ws.close(); } catch (e) {} return; }
+  if (wss.clients.size > MAX_TOTAL) { try { ws.close(1013, "sature"); } catch (e) {} return; }
+  if (tropDeTentatives(adresseDe(req))) { try { ws.close(1013, "trop de tentatives"); } catch (e) {} return; }
   const set = salon(code);
   if (set.size >= MAX_PAR_SALON) { try { ws.close(); } catch (e) {} return; }
   const id = Math.random().toString(36).slice(2, 10);

@@ -71,7 +71,13 @@ La carte de visite (`{t:"bonjour", v, caps}`, envoyee a chaque connexion) est ce
 qui empeche le probleme de se reproduire : le client connait la version qu'il
 lui faut, et si le relais est en retard il le DIT (console, et message a
 l'animateur) au lieu de laisser des fonctions disparaitre en silence. Version
-attendue actuellement : **3**. Ils portent le
+attendue actuellement : **4**.
+
+Cette version ajoute aussi des garde-fous d'admission : plafond global de 400
+connexions simultanees, et 240 tentatives par minute et par adresse. Volontaire-
+ment genereux (un atelier entier derriere un meme reseau d'entreprise partage
+une adresse), mais suffisant : le relais transporte l'etat complet du tableau et
+etait, jusqu'ici, le seul point d'entree sans aucun freinage. Ils portent le
 deplacement d'une carte pendant le geste, pour que tout le monde voie la carte
 bouger en direct. Tant que le relais n'est pas mis a jour, il les ignore :
 personne ne voit les deplacements en cours, mais rien ne casse et tout le reste

@@ -390,6 +390,68 @@ const etapes = await C.evaluate(() => { clearInterval(window.__zi); return windo
 t("avec « mouvement reduit », le recadrage est instantane", etapes <= 2, etapes + " etapes");
 
 });
+
+/* ========================================================================== */
+console.log("\n--- Tactile et export ---");
+await bloc("Tactile et export", async () => {
+  /* PINCEMENT A DEUX DOIGTS. La scene est en `touch-action:none` (sans quoi le
+     navigateur confisquerait le glissement des cartes), ce qui supprime aussi
+     le pincement natif : sur tablette il ne restait que les boutons + et -. */
+  const ctxT = await nav.newContext({ viewport: { width: 1100, height: 800 }, hasTouch: true, isMobile: false });
+  const T = await ctxT.newPage();
+  T.on("pageerror", (e) => erreursJS.push("[tactile] " + e.message));
+  await T.addInitScript(() => {
+    localStorage.setItem("coach-multi-off", "1");
+    localStorage.setItem("fresque:tuto:animateur", "1");
+    localStorage.setItem("fresque:anim:VERIF1", "jAnim");
+  });
+  await T.route("**/session.js", async (route) => {
+    const rr = await route.fetch();
+    const txt = (await rr.text()).replace("wss://curseurs.pauseia.fr", "ws://127.0.0.1:" + PORT_RELAIS);
+    await route.fulfill({ status: 200, contentType: "application/javascript; charset=utf-8", body: txt });
+  });
+  await T.route("**/.netlify/functions/fresque", servir);
+  await T.goto("http://127.0.0.1:" + PORT_SITE + "/en-ligne/session/?s=VERIF1", { waitUntil: "domcontentloaded" });
+  await T.waitForSelector("#app:not([hidden])", { timeout: 30000 });
+  await T.waitForFunction(() => document.querySelectorAll(".c-carte").length > 0, null, { timeout: 30000 });
+  await T.evaluate(() => document.getElementById("z-tout").click());
+  await dodo(700);
+  const zAvant = await T.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
+  const cdp = await ctxT.newCDPSession(T);
+  const sc = await T.evaluate(() => { const r = document.getElementById("scene").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  const doigts = (e1, e2) => [{ x: sc.x - e1, y: sc.y }, { x: sc.x + e2, y: sc.y }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: doigts(40, 40).map((p, i) => ({ ...p, id: i })) });
+  for (let i = 1; i <= 10; i++) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: doigts(40 + i * 12, 40 + i * 12).map((p, j) => ({ ...p, id: j })) });
+    await dodo(20);
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await dodo(400);
+  const zApres = await T.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
+  t("on peut zoomer au pincement sur un ecran tactile", zApres > zAvant + 3,
+    "avant " + zAvant + " %, apres " + zApres + " %");
+
+  /* EXPORT : la plume doit etre posee avant de dessiner, sinon une note encore
+     en cours de frappe manque sur l'image (deja constate apres un atelier). */
+  await T.evaluate(() => {
+    const s = document.getElementById("scene");
+    const r = s.getBoundingClientRect();
+    document.querySelector('[data-outil="texte"]').click();
+    s.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: r.x + 60, clientY: r.y + 60, pointerId: 1, pointerType: "mouse", isPrimary: true }));
+  });
+  await T.waitForFunction(() => !!document.querySelector('.c-texte[contenteditable="true"]'), null, { timeout: 6000 }).catch(() => {});
+  const enEdition = await T.evaluate(() => !!document.querySelector('.c-texte[contenteditable="true"]'));
+  if (enEdition) {
+    await T.keyboard.type("note en cours");
+    await T.evaluate(() => { const b = document.getElementById("btn-export"); if (b) b.click(); });
+    await dodo(300);
+  }
+  t("cliquer « Telecharger l'image » pose d'abord la plume (la note en cours est enregistree)",
+    enEdition && !(await T.evaluate(() => !!document.querySelector('.c-texte[contenteditable="true"]'))),
+    enEdition ? "" : "aucune note en edition : cas non couvert");
+  await ctxT.close();
+});
+
 /* ========================================================================== */
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 4).join(" | "));
 
