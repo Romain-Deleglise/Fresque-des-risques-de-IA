@@ -54,6 +54,25 @@ jobs:
       - name: Audit d'accessibilite (WCAG 2.1 A/AA)
         run: BASE=http://localhost:8099 node scripts/audit-a11y.mjs
 
+  geste:
+    # Fidelite du geste relaye : retard, arrets, deformation du trace. Ce sont
+    # des millisecondes, elles ne se voient dans aucun test unitaire, et elles
+    # font toute la difference entre « on voit ce que fait l'autre » et « on le
+    # voit avec du retard ». Voir scripts/verifier-geste.mjs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --no-audit --no-fund
+      - run: npm install --no-save playwright ws
+      - run: npx playwright install --with-deps chromium
+      - name: Lien correct
+        run: node scripts/verifier-geste.mjs
+      - name: Lien degrade (60 ms, 120 ms de gigue)
+        run: RESEAU_BASE=60 RESEAU_GIGUE=120 node scripts/verifier-geste.mjs
+
   charge:
     # Un atelier entier, neuf navigateurs, sur le vrai relais. Ce qui coute ici
     # croit avec le CARRE du nombre de personnes : ce que deux navigateurs ne

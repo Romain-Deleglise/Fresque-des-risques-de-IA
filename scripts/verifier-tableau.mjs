@@ -30,6 +30,15 @@ const { chromium } = await (async () => {
 })();
 
 const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+/* Un serveur de fichiers qui ne trouve pas le site ne tombe pas : il repond 404
+   a tout, la page se charge vide, et l'on cherche la panne dans le navigateur.
+   C'est exactement ce qui est arrive avec un chemin de machine laisse en dur.
+   On verifie donc, tout de suite, qu'on sait ou est le site. */
+if (!fs.existsSync(path.join(RACINE, "site", "index.html"))) {
+  console.error("Site introuvable sous " + RACINE + "/site : ce banc doit etre lance depuis le depot.");
+  process.exit(2);
+}
+
 const PORT_SITE = Number(process.env.PORT_SITE || 8107);
 const PORT_RELAIS = Number(process.env.PORT_RELAIS || 8108);
 const LATENCE = Number(process.env.LATENCE || 250);   // aller-retour du service
@@ -397,6 +406,57 @@ await bloc("Clavier et annulation", async () => {
     await B.evaluate((d) => { const el = document.querySelector(".c-carte[data-n='" + d.n + "']"); return !!el && Math.abs((el._x || 0) - d.x) < 2; }, { n: apresFleche, x: avantX }));
 });
 
+console.log("\n--- Rassembler (proposer sa vue) ---");
+await bloc("Rassembler", async () => {
+  /* Le ping designe un point ; il ne sert a rien si la personne regarde ailleurs
+     ou n'est pas au meme zoom. L'animateur·ice peut donc proposer sa vue.
+     PROPOSER : rien ne doit bouger chez les autres tant qu'ils n'ont pas
+     accepte. Deplacer la vue de quelqu'un sans prevenir, alors qu'il pose une
+     carte, fait perdre le fil, et le cadrage est personnel dans cet outil. */
+  await A.evaluate(() => document.getElementById("z-tout").click());
+  await dodo(600);
+  await B.evaluate(() => { for (let i = 0; i < 3; i++) document.getElementById("z-plus").click(); });
+  await dodo(700);
+  const avant = await B.evaluate(() => ({ z: parseFloat(document.getElementById("z-niv").textContent) }));
+
+  t("le bouton n'existe que pour l'animateur·ice",
+    (await A.evaluate(() => getComputedStyle(document.getElementById("btn-rassembler")).display)) !== "none"
+    && (await B.evaluate(() => getComputedStyle(document.getElementById("btn-rassembler")).display)) === "none");
+
+  await A.evaluate(() => document.getElementById("btn-rassembler").click());
+  await dodo(500);
+  const invit = await B.evaluate(() => {
+    const el = document.querySelector(".appel-vue");
+    return { la: !!el && !el.hidden, txt: el ? el.textContent : "",
+      z: parseFloat(document.getElementById("z-niv").textContent) };
+  });
+  t("les autres recoivent une invitation, nommee", invit.la && /montrer/i.test(invit.txt), invit.txt);
+  t("ET RIEN N'A BOUGE CHEZ EUX tant qu'ils n'ont pas accepte",
+    Math.abs(invit.z - avant.z) < 0.5, "zoom " + avant.z + " % -> " + invit.z + " %");
+
+  await B.evaluate(() => document.querySelector(".appel-vue .appel-ok").click());
+  await dodo(900);
+  const apres = await B.evaluate(() => ({
+    z: parseFloat(document.getElementById("z-niv").textContent),
+    fermee: document.querySelector(".appel-vue").hidden
+  }));
+  const zA = await A.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
+  t("en acceptant, on arrive bien sur la vue de l'animateur·ice",
+    Math.abs(apres.z - zA) <= 6, "sa vue " + zA + " %, la mienne " + apres.z + " %");
+  t("et l'invitation se referme", apres.fermee);
+
+  /* Elle ne doit pas rester a l'ecran indefiniment : personne ne ferme les
+     bandeaux, et une invitation perimee est un mensonge. */
+  await A.evaluate(() => document.getElementById("btn-rassembler").click());
+  await dodo(400);
+  t("une invitation ignoree s'efface d'elle-meme",
+    await B.evaluate(() => new Promise((r) => {
+      const el = document.querySelector(".appel-vue");
+      if (el.hidden) return r(false);
+      setTimeout(() => r(el.hidden), 12600);
+    })), "au bout de douze secondes");
+});
+
 console.log("\n--- Barre et palette flottante ---");
 await bloc("Barre", async () => {
   /* La barre tenait sur trois rangees des qu'une fenetre n'etait pas large :
@@ -538,6 +598,46 @@ t("les traits de fleche restent epais a l'ecran quand on dezoome",
 t("le numero de carte est contre-mis a l'echelle (lisible de loin)",
   /matrix/.test(semantique.numEchelle) && semantique.numEchelle !== "none");
 t("le titre, illisible a cette distance, est retire de la vue", semantique.titreCache);
+
+/* A cette distance une carte fait une quarantaine de pixels : son illustration
+   n'est plus qu'une tache, et cette tache recouvrait la seule chose encore
+   lisible, la famille de la carte. La tuile prend donc la couleur du lot, et
+   l'image se retire. Sans quoi le dezoom ne sert a rien : on voit que le tableau
+   est rempli, pas ce qu'il raconte. */
+const loin = await A.evaluate(() => {
+  const el = document.querySelector(".c-carte");
+  const img = el.querySelector(".vis img");
+  const st = getComputedStyle(el);
+  return {
+    imageCachee: getComputedStyle(img).visibility === "hidden",
+    fondLot: st.backgroundColor,
+    boite: Math.round(el.offsetWidth) + "x" + Math.round(el.offsetHeight),
+    legende: getComputedStyle(document.getElementById("legende")).display,
+    nbLots: document.querySelectorAll("#legende b").length
+  };
+});
+t("de loin, l'image de la carte s'efface au profit de la couleur du lot",
+  loin.imageCachee && !/rgba\(0, 0, 0, 0\)|transparent/.test(loin.fondLot), JSON.stringify(loin));
+t("et la boite de la carte n'a pas bouge pour autant (l'export en depend)",
+  loin.boite === "150x150" || /^150x/.test(loin.boite), "boite " + loin.boite);
+t("une legende dit ce que les couleurs veulent dire",
+  loin.legende !== "none" && loin.nbLots === 5, "affichage " + loin.legende + ", " + loin.nbLots + " lots");
+
+// Un cran a la fois : six clics dans la meme image ne font qu'un seul pas,
+// puisqu'ils partent tous du meme zoom courant.
+for (let i = 0; i < 5; i++) { await A.evaluate(() => document.getElementById("z-plus").click()); await dodo(260); }
+await dodo(400);
+const apresZoom = await A.evaluate(() => ({
+  z: document.getElementById("z-niv").textContent,
+  d: getComputedStyle(document.getElementById("legende")).display
+}));
+t("et elle disparait des qu'on se rapproche, ou elle n'aurait plus d'objet",
+  apresZoom.d === "none", JSON.stringify(apresZoom));
+await A.evaluate(() => document.getElementById("z-tout").click());
+await dodo(600);
+await A.mouse.move(scA.x, scA.y);
+for (let i = 0; i < 40; i++) { await A.mouse.wheel(0, 120); await dodo(10); }
+await dodo(400);
 
 /* Tableau PEU REMPLI : c'est la que le plancher se voit. On retire la plupart
    des cartes, on laisse le client se mettre a jour, puis on redemande le
