@@ -159,11 +159,21 @@ a{color:var(--accent-txt);text-decoration:none}
 /* Flèches */
 #fleches{position:absolute;top:0;left:0;width:4400px;height:2200px;overflow:visible;pointer-events:none}
 #fleches .hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
-#fleches .trait{stroke:#8a857b;stroke-width:2.2;fill:none}
-#fleches .trait.bidir{stroke:#F0A860}
-#fleches .trait.sel{stroke:var(--accent);stroke-width:3}
+/* Epaisseur pilotee par --fw (calcule dans applyView) : un trait toujours aussi
+   epais A L'ECRAN, quel que soit le zoom. Sans cela, les liens s'effacaient
+   exactement au moment ou on prend du recul pour les lire. La pointe de la
+   fleche suit toute seule : elle est dimensionnee en multiples de stroke-width.
+   La couleur est aussi un cran plus soutenue qu'avant (l'ancien gris pale se
+   confondait avec le fond des le premier dezoom). */
+#fleches .trait{stroke:#6f6a60;stroke-width:var(--fw,2.2);fill:none;stroke-linecap:round}
+#fleches .trait.bidir{stroke:#c9761d}
+#fleches .trait.sel{stroke:var(--accent);stroke-width:calc(var(--fw,2.2) * 1.45)}
+body.canvas-noir #fleches .trait{stroke:#b3ab9c}
+body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 /* Étiquette de flèche : encadré arrondi gris, texte orange, au-dessus des traits */
-.fleche-lib{position:absolute;transform:translate(-50%,-50%);z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;
+/* Etiquette contre-mise a l'echelle : elle garde une taille d'ecran a peu pres
+   constante. A 25 % de zoom, un texte de 13 px en tombait a 3 px. */
+.fleche-lib{position:absolute;transform:translate(-50%,-50%) scale(clamp(.85,var(--iz,1),2.2));z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;
   color:#8a4200;background:#fff7e6;border:1px solid #e0b378;border-radius:7px;padding:2px 7px;white-space:nowrap;
   pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.28)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
@@ -431,6 +441,39 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    besoin). Seules les barres explicitement masquees disparaissent. */
 body.plein .topbar,body.plein .toolbar{display:flex}
 body.plein.barres-cachees .topbar,body.plein.barres-cachees .toolbar{display:none}
+
+/* --- ZOOM SEMANTIQUE : ce qu'on montre change avec la distance -------------
+   Voir le commentaire de `applyView` cote JavaScript pour le pourquoi. Regle
+   absolue ici : on ne touche JAMAIS a la taille de la boite `.c-carte`, sinon
+   l'image exportee (construite sur la hauteur reelle des elements) se casse.
+   D'ou `visibility` et non `display` pour le titre, et des elements en position
+   absolue pour tout le reste. */
+/* Filet de couleur du lot : discret de pres, c'est lui qui fait lire les
+   familles de cartes quand on prend du recul. */
+.c-carte::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--lot,transparent);z-index:2;pointer-events:none;
+  transition:height .16s ease}
+/* Distance moyenne : le bouton d'agrandissement devient du bruit, le numero
+   devient l'identifiant principal. */
+#monde.zoom-moyen .c-carte .agr{opacity:0;pointer-events:none}
+#monde.zoom-moyen .c-carte .num{transform:scale(clamp(1,var(--iz,1),1.7));transform-origin:top left}
+#monde.zoom-moyen .c-carte::before{height:5px}
+/* Distance lointaine : le titre n'est plus lisible, on le retire de la vue (il
+   garde sa place, la boite ne bouge pas) et on montre un gros numero au centre
+   de l'image, a taille d'ecran constante. Survoler une carte donne toujours son
+   titre dans l'encadre du haut. */
+#monde.zoom-loin .c-carte .tit{visibility:hidden}
+#monde.zoom-loin .c-carte::before{height:6px}
+/* La bande laissee libre par le titre ne reste pas blanche pour rien : elle
+   prend la couleur du lot. De loin, les familles de cartes se lisent alors d'un
+   seul coup d'oeil, ce qui est precisement ce qu'on cherche a cette distance. */
+#monde.zoom-loin .c-carte{background:var(--lot,var(--surface));box-shadow:0 1px 3px rgba(0,0,0,.22)}
+/* Le numero devient blanc a cerne fonce : lisible sur n'importe quelle couleur
+   de lot comme sur n'importe quelle image, contrairement a l'orange d'origine
+   qui se confondait avec le lot 1. */
+#monde.zoom-loin .c-carte .num{top:50%;left:50%;background:#ffffff;color:#1b1a17;
+  transform:translate(-50%,-50%) scale(clamp(1,var(--iz,1),3.4));transform-origin:center;
+  box-shadow:0 0 0 2px rgba(20,17,13,.92),0 3px 10px rgba(0,0,0,.45)}
 
 /* --- Reactions au survol et a la selection ---------------------------------
    Tous les changements d'etat de l'interface etaient instantanes : le bouton

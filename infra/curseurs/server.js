@@ -25,6 +25,8 @@
      { t:"lib", id, v }        libelle de fleche en cours de frappe
      { t:"note", id, x, y, v } note en cours de frappe
    serveur -> clients : le meme objet + { id, nom }, ou { t:"leave", id }.
+   A la connexion, le serveur envoie d'abord { t:"bonjour", v, caps } : sa
+   version de protocole et la liste des messages qu'il sait relayer.
    Connexion : wss://.../?code=ABC123&nom=Prenom
 
    POURQUOI l'etat complet et pas un simple signal : le magasin d'etat (Netlify
@@ -36,6 +38,15 @@
 */
 "use strict";
 const { WebSocketServer } = require("ws");
+
+/* VERSION DU PROTOCOLE. A incrementer des qu'on ajoute ou change un type de
+   message. Le relais l'annonce a chaque connexion : c'est la seule facon pour
+   le client de savoir qu'il parle a une version trop ancienne. Sans cela, un
+   relais non redeploye fait disparaitre des fonctions EN SILENCE (les
+   deplacements en direct, par exemple) et on cherche le probleme ailleurs
+   pendant des heures. Deja arrive deux fois. */
+const VERSION = 3;
+const CAPACITES = ["c", "fl", "fl0", "maj", "etat", "lib", "note", "gliss", "gliss0"];
 
 const PORT = Number(process.env.PORT || 8080);
 const MAX_PAR_SALON = Number(process.env.MAX_PAR_SALON || 30); // garde-fou
@@ -65,6 +76,11 @@ wss.on("connection", function (ws, req) {
   ws._meta = { code: code, id: id, nom: nom };
   ws.isAlive = true;
   set.add(ws);
+
+  // Carte de visite, envoyee tout de suite : version et liste des messages
+  // compris. Un client qui ne la recoit pas sait qu'il a affaire a un relais
+  // anterieur a cette convention.
+  try { ws.send(JSON.stringify({ t: "bonjour", v: VERSION, caps: CAPACITES })); } catch (e) {}
 
   ws.on("pong", function () { ws.isAlive = true; });
   // Garde-fou de debit. Le service est joignable depuis Internet : un client

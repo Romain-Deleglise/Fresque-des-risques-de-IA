@@ -1153,6 +1153,7 @@
     Object.keys(etat.elTextes).forEach(function (id) { if (!vusT[id]) { etat.elTextes[id].remove(); delete etat.elTextes[id]; } });
 
     dessinerFleches();
+    majPlancher();
     _premierRendu = false;
     var exp = document.getElementById("btn-export");
     if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
@@ -1160,6 +1161,9 @@
 
   function creerElCarte(n) {
     var c = etat.cartes[n]; var el = document.createElement("div"); el.className = "c-carte"; el.dataset.n = n;
+    // Couleur du lot : invisible de pres (un filet de 3 px en haut), mais c'est
+    // elle qui fait lire les familles de cartes quand on prend du recul.
+    if (c && c.lot) el.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
@@ -1753,7 +1757,8 @@
      on retombe simplement sur le sondage). Reconnexion avec backoff borne. */
   var CURSEURS_WS = "wss://curseurs.pauseia.fr";
   var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false,
-    sansEtat: false, etatTs: 0, coupures: 0 };
+    sansEtat: false, etatTs: 0, coupures: 0,
+    v: 0, caps: null, sansGliss: false, avertiVieux: false, attenteBonjour: 0 };
   // Un etat de tableau complet pese ~4 Ko ; on ne depasse jamais cette borne
   // (le relais accepte 96 Ko). Au-dela, on se contente du signal « maj ».
   var LIMITE_ETAT = 60 * 1024;
@@ -1767,7 +1772,15 @@
       ws = new WebSocket(CURSEURS_WS + "/?code=" + encodeURIComponent(etat.code) + "&nom=" + encodeURIComponent(nomMoi() || ""));
     } catch (e) { planifierReconnexionCurseurs(); return; }
     curs.ws = ws;
-    ws.onopen = function () { curs.essais = 0; };
+    ws.onopen = function () {
+      curs.essais = 0;
+      // Pas de carte de visite dans la seconde et demie : c'est un relais
+      // anterieur a cette convention, donc trop ancien.
+      clearTimeout(curs.attenteBonjour);
+      curs.attenteBonjour = setTimeout(function () {
+        if (!curs.v) relaisDepasse("aucune carte de visite recue");
+      }, 1500);
+    };
     ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirRelais(m); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
     ws.onclose = function (ev) {
@@ -1842,7 +1855,7 @@
      autre, et personne ne comprenait ce qui se passait. */
   var glissTs = 0;
   function envoyerGliss(n, wx, wy, depuisReserve) {
-    var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
+    var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansGliss) return;
     var now = Date.now(); if (now - glissTs < 33) return; glissTs = now;   // ~30/s
     envoyerWS({ t: "gliss", n: n, x: Math.round(wx), y: Math.round(wy), d: depuisReserve ? 1 : 0 });
   }
@@ -1857,26 +1870,27 @@
     var g = glissLive[m.id];
     var tx = +m.x || 0, ty = +m.y || 0;
     if (!g || g.n !== n) {
-      // Premiere position de ce geste : on s'y place sans glisser (sinon la
-      // carte traverserait le tableau depuis sa position precedente).
-      g = glissLive[m.id] = { n: n, x: tx, y: ty, tx: tx, ty: ty, dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
+      // Nouveau geste : on part de la position recue, sans faire traverser le
+      // tableau a la carte depuis l'endroit ou elle etait.
+      g = glissLive[m.id] = { n: n, x: tx, y: ty, tp: tamponNeuf(tx, ty), dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
+    } else {
+      noterPos(g.tp, tx, ty);
     }
-    g.tx = tx; g.ty = ty; g.dep = m.d ? 1 : 0; g.ts = Date.now(); g.nom = m.nom || g.nom;
+    g.dep = m.d ? 1 : 0; g.ts = Date.now(); g.nom = m.nom || g.nom;
     glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
-    dessinerGliss();
     lancerLissage();
   }
-  // Rapproche chaque carte tiree a distance de sa derniere position connue.
-  // Rend `true` s'il reste du chemin a faire (la boucle continue alors).
-  function lisserGliss(k) {
-    var encore = false;
+  // Meme lecture differee que pour les curseurs : la carte tiree par quelqu'un
+  // d'autre avance a la vitesse reelle de son geste, sans a-coup.
+  function lisserGliss(now) {
+    var encore = false, bouge = false;
     for (var id in glissLive) {
       var g = glissLive[id];
-      var dx = g.tx - g.x, dy = g.ty - g.y;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { g.x = g.tx; g.y = g.ty; continue; }
-      g.x += dx * k; g.y += dy * k; encore = true;
+      var p = positionDifferee(g.tp, now); if (!p) continue;
+      if (p.encore) encore = true;
+      if (g.x !== p.x || g.y !== p.y) { g.x = p.x; g.y = p.y; bouge = true; }
     }
-    if (encore) dessinerGliss();
+    if (bouge || encore) dessinerGliss();
     return encore;
   }
   // Remet la carte la ou le serveur la sait, et enleve les marques du geste.
@@ -1939,7 +1953,31 @@
     var w = versMonde(cx, cy);
     envoyerWS({ t: "c", x: Math.round(w.x), y: Math.round(w.y) });
   }
+  /* CARTE DE VISITE DU RELAIS. Le relais tourne sur un serveur a part et ne se
+     met pas a jour tout seul quand le site est deploye. Quand il reste en
+     retard, ses fonctions recentes disparaissent EN SILENCE : on cherche alors
+     la panne dans le site, qui n'y est pour rien. C'est arrive deux fois.
+     Il annonce donc sa version a la connexion ; si elle est trop ancienne, ou
+     s'il n'annonce rien du tout (relais anterieur a cette convention), on le
+     dit clairement dans la console, et a l'animateur a l'ecran. */
+  var RELAIS_MINI = 3;
+  function relaisBonjour(m) {
+    clearTimeout(curs.attenteBonjour);
+    curs.v = +m.v || 0;
+    curs.caps = {};
+    (m.caps || []).forEach(function (k) { curs.caps[k] = 1; });
+    curs.sansGliss = !curs.caps.gliss;
+    if (curs.v < RELAIS_MINI) relaisDepasse("version " + curs.v + ", attendue >= " + RELAIS_MINI);
+  }
+  function relaisDepasse(pourquoi) {
+    if (curs.avertiVieux) return;
+    curs.avertiVieux = true;
+    curs.sansGliss = true;
+    try { console.warn("[fresque] relais temps reel depasse (" + pourquoi + ") : les deplacements en direct ne seront pas visibles par les autres. Voir infra/curseurs/README.md."); } catch (e) {}
+    if (etat.role === "animateur") flash(S.relaisAncien);
+  }
   function recevoirRelais(m) {
+    if (m && m.t === "bonjour") { relaisBonjour(m); return; }
     if (!m || !m.id) return;
     switch (m.t) {
       case "leave": enleverCurseur(m.id); delete flLive[m.id]; finirGliss(m.id); dessinerFlechesLive(); return;
@@ -1967,9 +2005,9 @@
     var x = +m.x || 0, y = +m.y || 0;
     if (!el) {
       el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el);
-      curs.pos[m.id] = { x: x, y: y, tx: x, ty: y };   // premiere position : pas d'interpolation
+      curs.pos[m.id] = tamponNeuf(x, y);
     } else {
-      var p = curs.pos[m.id]; p.tx = x; p.ty = y;
+      noterPos(curs.pos[m.id], x, y);
     }
     el.hidden = !curs.montrer;
     lancerLissage();
@@ -1977,32 +2015,85 @@
   // Lissage des curseurs distants : au lieu de « teleporter » l'element a chaque
   // message (saccade desagreable, voire mal au coeur), on glisse vers la derniere
   // position connue a chaque frame. Le retard ajoute est de l'ordre de 2 frames.
-  var animCurs = 0, _tLissage = 0;
-  function lancerLissage() { if (!animCurs) { _tLissage = 0; animCurs = requestAnimationFrame(lisserCurseurs); } }
-  /* Le rattrapage est calcule SUR LE TEMPS ECOULE, pas par image. Un facteur
-     fixe par image (0,25) rend le curseur deux fois plus rapide sur un ecran a
-     120 Hz que sur un ecran a 60 Hz, et n'importe quoi quand la machine rame.
-     Ici, la meme constante de temps pour tout le monde : environ 60 ms pour
-     couvrir la distance. */
-  function rattrape(dt) { return 1 - Math.pow(0.001, Math.min(dt, 100) / 60); }
-  function lisserCurseurs(t) {
+  /* LECTURE DIFFEREE DES MOUVEMENTS DES AUTRES (« entity interpolation »).
+
+     Le probleme, precisement. On rapprochait le curseur de sa derniere position
+     connue d'un certain pourcentage a chaque image. Entre deux messages (envoyes
+     toutes les ~55 ms), il ralentissait donc jusqu'a presque s'arreter, puis
+     repartait d'un coup au message suivant. La VITESSE dessinait une dent de
+     scie, dix-huit fois par seconde. C'est ce qui donne cette sensation
+     desagreable, jusqu'a la nausee : l'oeil ne percoit pas les ecarts de
+     position, il percoit les ruptures de vitesse. Un mouvement regulier qui
+     s'arrete net se voit comme un a-coup ; dix-huit a-coups par seconde, c'est
+     un scintillement de mouvement.
+
+     Le remede, celui du netcode des jeux en reseau et des tableaux
+     collaboratifs (Liveblocks, tldraw et sa bibliotheque perfect-cursors) :
+     on garde les dernieres positions recues AVEC LEUR HEURE, et on affiche non
+     pas la derniere, mais l'etat tel qu'il etait il y a RETARD millisecondes, en
+     interpolant LINEAIREMENT entre les deux positions qui encadrent cet instant.
+     Le curseur avance alors exactement a la vitesse de la personne, sans
+     a-coup, et le petit retard absorbe au passage l'irregularite du reseau.
+     Linaire et non « ease-in-out » : une courbe d'accueil rajouterait
+     precisement le ralenti qu'on cherche a supprimer.
+
+     On n'extrapole JAMAIS au-dela du dernier point connu : si la personne
+     s'arrete, on s'arrete aussi. Extrapoler ferait depasser puis revenir en
+     arriere, ce qui est encore plus desagreable que l'a-coup.
+
+     Ce lissage-la n'est pas coupe par « mouvement reduit » : il ne s'agit pas
+     d'une animation decorative mais du rendu fidele du geste de quelqu'un, et
+     la version sans lissage (des sauts a 18 images par seconde) serait bien plus
+     penible pour une personne sensible au mouvement. */
+  var RETARD_SUIVI = 110;   // un peu plus que l'intervalle d'envoi (55 ms)
+  function tamponNeuf(x, y) {
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    return { buf: [{ t: now - RETARD_SUIVI, x: x, y: y }, { t: now, x: x, y: y }], x: x, y: y };
+  }
+  function noterPos(tp, x, y) {
+    if (!tp) return;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    var b = tp.buf;
+    // Deux messages dans la meme milliseconde : on remplace, sinon la division
+    // par la duree donnerait l'infini.
+    if (b.length && now - b[b.length - 1].t < 1) { b[b.length - 1].x = x; b[b.length - 1].y = y; return; }
+    b.push({ t: now, x: x, y: y });
+    while (b.length > 2 && b[1].t < now - RETARD_SUIVI - 500) b.shift();
+    if (b.length > 80) b.shift();
+  }
+  // Position a afficher maintenant, et si le tampon a encore de l'avance.
+  function positionDifferee(tp, now) {
+    var b = tp && tp.buf; if (!b || !b.length) return null;
+    var cible = now - RETARD_SUIVI;
+    if (cible <= b[0].t) return { x: b[0].x, y: b[0].y, encore: b.length > 1 };
+    for (var i = b.length - 1; i > 0; i--) {
+      if (b[i - 1].t <= cible && cible <= b[i].t) {
+        var d = b[i].t - b[i - 1].t;
+        var u = d > 0 ? (cible - b[i - 1].t) / d : 1;
+        return { x: b[i - 1].x + (b[i].x - b[i - 1].x) * u,
+                 y: b[i - 1].y + (b[i].y - b[i - 1].y) * u, encore: true };
+      }
+    }
+    var q = b[b.length - 1];
+    return { x: q.x, y: q.y, encore: false };   // rattrape : on tient la position
+  }
+
+  var animCurs = 0;
+  function lancerLissage() { if (!animCurs) animCurs = requestAnimationFrame(lisserCurseurs); }
+  function lisserCurseurs() {
     animCurs = 0;
-    var dt = _tLissage ? t - _tLissage : 16.7; _tLissage = t;
-    var k = mvtReduit ? 1 : rattrape(dt);
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
     var encore = false;
     for (var id in curs.els) {
-      var p = curs.pos[id]; if (!p) continue;
-      var dx = p.tx - p.x, dy = p.ty - p.y;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.x = p.tx; p.y = p.ty; }
-      else { p.x += dx * k; p.y += dy * k; encore = true; }
+      var p = positionDifferee(curs.pos[id], now); if (!p) continue;
+      if (p.encore) encore = true;
       curs.els[id].style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px) scale(var(--iz,1))";
     }
-    // Cartes tirees par quelqu'un d'autre : meme lissage, meme boucle. Sans lui
-    // la carte avancait par a-coups de 30 fois par seconde, alors que le curseur
-    // de la meme personne, lui, glissait : c'etait le detail qui faisait « cheap ».
-    if (lisserGliss(k)) encore = true;
+    // Cartes tirees par quelqu'un d'autre : meme lecture differee, meme boucle.
+    if (lisserGliss(now)) encore = true;
     if (encore) animCurs = requestAnimationFrame(lisserCurseurs);
   }
+
   function creerCurseur(id, nom) {
     var el = document.createElement("div"); el.className = "curseur-live";
     var coul = couleurCurseur(id);
@@ -2079,12 +2170,39 @@
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
+  /* ZOOM SEMANTIQUE : trois distances de lecture.
+     Une carte qui retrecit finit par n'etre qu'une tache : ni le numero, ni le
+     titre, ni le lien ne se lisent, alors que c'est exactement ce qu'on cherche
+     quand on prend du recul pour comprendre l'ensemble. Plutot que de tout
+     reduire, on change CE QU'ON MONTRE selon la distance. C'est le « semantic
+     zoom » de Figma, Miro et de la litterature : de loin, moins d'elements mais
+     plus gros, pas les memes elements en plus petit.
+       pres  (>= 62 %)  : la carte entiere, comme avant
+       moyen (42-62 %)  : on retire le bouton d'agrandissement et on grossit le
+                          numero, qui devient l'identifiant principal
+       loin  (< 42 %)   : plus de titre (illisible de toute facon), un gros
+                          numero au centre et la couleur du lot bien visible
+     La BOITE de la carte, elle, ne change JAMAIS de taille. Une version
+     precedente etirait la hauteur au dezoom : cela cassait l'image exportee,
+     construite a partir de la hauteur reelle des elements. Ici on ne touche qu'a
+     des elements en position absolue et a la VISIBILITE du titre, jamais a la
+     mise en page. */
+  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
-    // --iz (= 1/zoom) sert encore aux elements qui doivent garder une taille
-    // ECRAN constante : curseurs des autres et ping. Les cartes, elles, ne
-    // changent plus d'aspect avec le zoom.
-    E.monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3));
-    E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %"; E["z-moins"].disabled = etat.zoom <= ZMIN + 1e-4; E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
+    // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
+    // quel que soit le zoom (curseurs, ping, numero de carte de loin).
+    var iz = 1 / etat.zoom;
+    E.monde.style.setProperty("--iz", iz.toFixed(3));
+    // Epaisseur des traits de fleche EN PIXELS D'ECRAN. Sans cela un trait de
+    // 2,2 unites fait 0,5 px a 25 % : les liens, qui sont le sujet meme de la
+    // fresque, disparaissaient au moment ou on prend du recul pour les lire.
+    // La pointe suit automatiquement (elle est dimensionnee en stroke-width).
+    E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
+    E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
+    E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
+    E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
+    E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
   // Zone de la scene qui n'est PAS masquee par le panneau de la reserve. Quand
   // le tableau tient en entier a l'ecran (« Tout voir », fort dezoom), on le
   // centre dans cette zone : le panneau ne recouvre plus la fresque.
@@ -2115,12 +2233,14 @@
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
   // Zoom IMMEDIAT, pour la molette et le pincement : le geste est continu, il
   // doit coller au doigt. Toute animation de vue en cours est abandonnee.
-  function zoomVers(nz, cx, cy) { stopVueAnim(); var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
+  // Borne basse : le plancher lie au contenu (jamais en dessous de ZMIN).
+  function bornerZoom(z) { return Math.max(Math.max(ZMIN, _plancher), Math.min(ZMAX, z)); }
+  function zoomVers(nz, cx, cy) { stopVueAnim(); var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = bornerZoom(nz); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
   // Zoom des BOUTONS + et - : un cran discret, qui se voit arriver.
   function zoomAnime(nz, cx, cy) {
     var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
     var wx = (cx - sx) / sz, wy = (cy - sy) / sz;
-    etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz));
+    etat.zoom = bornerZoom(nz);
     etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan();
     var tz = etat.zoom, tx = etat.panX, ty = etat.panY;
     etat.zoom = sz; etat.panX = sx; etat.panY = sy;
@@ -2168,6 +2288,23 @@
     var m = 90;
     var x = Math.max(0, x1 - m), y = Math.max(0, y1 - m);
     return { x: x, y: y, w: Math.min(PLAN_W - x, x2 - x1 + 2 * m), h: Math.min(PLAN_H - y, y2 - y1 + 2 * m) };
+  }
+  /* PLANCHER DE ZOOM LIE AU CONTENU.
+     Dezoomer en dessous du cadrage « Tout voir » n'apporte rien : on ne decouvre
+     que du plan vide, la fresque devient un timbre-poste illisible, et on a
+     perdu son chemin pour rien. Miro et Figma bornent le dezoom pour exactement
+     cette raison. Le plancher suit donc le CONTENU : un peu en dessous du
+     cadrage complet, pour garder une marge de confort, mais jamais plus haut que
+     0,45 (sinon, en debut d'atelier ou le tableau est presque vide, on ne
+     pourrait plus prendre de recul pour repartir les premieres cartes).
+     Recalcule quand le tableau change ou que la fenetre bouge, jamais dans
+     `applyView` : celui-ci tourne a chaque image d'un recadrage. */
+  var _plancher = ZMIN;
+  function majPlancher() {
+    var r = rectScene(), z = zoneLibre(r), c = contenuRect();
+    if (!c.w || !c.h) { _plancher = ZMIN; return; }
+    var ajuste = Math.min(z.largeur / c.w, z.hauteur / c.h);
+    _plancher = Math.max(ZMIN, Math.min(0.45, ajuste * 0.62));
   }
   function toutVoir() {
     var r = rectScene(), z = zoneLibre(r), c = contenuRect();
@@ -2408,7 +2545,11 @@
   // panneau et on recadre : sans cela, le panneau calcule sur une scene plus
   // haute debordait sous le jeu de cartes.
   (function () {
-    var reagir = function () { placerPool(); clampPan(); applyView(); majFleches(); };
+    var reagir = function () {
+      oublierDims();   // la hauteur d'un titre peut changer avec la largeur des polices
+      majPlancher();   // la zone visible a change : le plancher de zoom aussi
+      placerPool(); clampPan(); applyView(); majFleches();
+    };
     // Anti-rebond A RETARDEMENT : la scene se redimensionne par rafales (le jeu
     // de cartes qui se remplit en bas). Un simple debit limite en tete de rafale
     // aurait garde la mesure du DEBUT, donc une scene encore trop haute.

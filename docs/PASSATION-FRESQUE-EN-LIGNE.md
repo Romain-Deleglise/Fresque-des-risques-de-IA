@@ -307,6 +307,112 @@ sérialisation parfaite (plus aucune écriture perdue) et supprimerait Blobs du
 chemin, qui ne servirait plus qu'à la sauvegarde. C'est exactement le modèle
 Figma, et l'infrastructure est déjà là.
 
+### Zoom : ce qu'on montre change avec la distance
+
+Avec 38 cartes, on passe son temps à zoomer et dézoomer. Captures à l'appui, le
+tableau dézoomé était inexploitable : à 25 %, les titres faisaient 3 px, les
+flèches 0,5 px de large (elles disparaissaient **exactement** au moment où on
+prend du recul pour lire les liens, qui sont le sujet de la fresque), et on
+pouvait continuer à dézoomer jusqu'à 20 % pour ne découvrir que du plan vide.
+
+Trois changements.
+
+**1. Un plancher de dézoom lié au contenu.** Descendre sous le cadrage « Tout
+voir » n'apporte rien. Miro et Figma bornent le dézoom pour cette raison. Le
+plancher suit donc le contenu (`majPlancher()`), plafonné à 45 % pour qu'en
+début d'atelier, tableau presque vide, on puisse encore prendre du recul.
+
+**2. Zoom sémantique : trois distances de lecture.** De loin, on ne montre pas
+les mêmes choses en plus petit, on montre **moins de choses, plus grosses**
+(c'est le terme consacré, « semantic zoom »).
+
+| Distance | Ce qu'on voit |
+|---|---|
+| près (≥ 62 %) | la carte entière |
+| moyen (42-62 %) | sans le bouton d'agrandissement, numéro grossi |
+| loin (< 42 %) | plus de titre, gros numéro blanc au centre, fond à la couleur du lot |
+
+**Règle absolue, écrite dans le code et vérifiée par un test** : la BOÎTE de la
+carte ne change jamais de taille. Une version précédente étirait la hauteur au
+dézoom, ce qui cassait l'image exportée (construite sur la hauteur réelle des
+éléments). D'où `visibility` et non `display`, et des éléments en position
+absolue pour tout le reste.
+
+**3. Épaisseur des traits en pixels d'écran.** `--fw`, calculé dans
+`applyView()`, garde les flèches (et leurs pointes, dimensionnées en multiples
+de `stroke-width`) aussi lisibles de loin que de près. Les étiquettes sont
+contre-mises à l'échelle de la même façon.
+
+**Une minicarte ? Non, et voici pourquoi.** Le plan est borné (4400 × 2200),
+« Tout voir » recadre tout en un clic avec un glissement qui garde le lien
+visuel entre l'avant et l'après, et le plancher de dézoom empêche désormais de
+se perdre dans le vide. Une minicarte coûterait un panneau de plus sur un écran
+déjà disputé (le reproche fait à la réserve), pour un service que ces trois
+mécanismes rendent déjà. Elle deviendrait utile si la fresque devenait beaucoup
+plus grande que l'écran à son cadrage complet, ou si le plan devenait infini :
+ce n'est pas le cas.
+
+### Curseurs des autres : la cause du malaise, et sa correction
+
+Le malaise ressenti en regardant les curseurs bouger avait une cause précise et
+mesurable. On rapprochait le curseur de sa dernière position connue d'un
+pourcentage à chaque image ; entre deux messages (~55 ms), il ralentissait donc
+jusqu'à presque s'arrêter, puis repartait d'un coup. La **vitesse** dessinait
+une dent de scie. Or l'œil ne perçoit pas les écarts de position, il perçoit les
+**ruptures de vitesse** : c'était dix-huit à-coups par seconde.
+
+Remède standard du netcode et des tableaux collaboratifs (Liveblocks, tldraw et
+sa bibliothèque `perfect-cursors`) : garder les dernières positions **avec leur
+heure**, et afficher l'état tel qu'il était il y a 110 ms, en interpolant
+**linéairement** entre les deux positions qui encadrent cet instant. Le curseur
+avance alors à la vitesse réelle de la personne. Linéaire et non « ease-in-out »
+: une courbe d'accueil rajouterait précisément le ralenti qu'on supprime. On
+n'extrapole jamais au-delà du dernier point connu : dépasser puis revenir en
+arrière est pire que l'à-coup. Les cartes tirées par quelqu'un d'autre passent
+par la même lecture différée.
+
+Mesuré, même geste, même vitesse moyenne :
+
+| Phase établie | Avant | Après |
+|---|---|---|
+| Irrégularité de la vitesse | 146 % | **7 %** |
+| Saccade d'une image à l'autre | 172 % | **2,5 %** |
+| Cycles arrêt / reprise | **19 en 1,35 s** | **0** |
+
+### Ce qui ne peut plus casser en silence
+
+Trois pannes de ce projet sont passées en production sans rien faire tomber :
+la cohérence forte qui mettait le service à terre, le battement de présence qui
+faisait reculer le tableau, `onlyIfMatch` qui ne faisait rien. Aucune n'aurait
+été vue par un test unitaire.
+
+1. **`scripts/verifier-tableau.mjs`** lance deux navigateurs sur la vraie page,
+   avec le vrai relais et un service de session volontairement lent et
+   éventuellement cohérent, et vérifie **21 points** : le direct, le glissement
+   relayé, la régularité des curseurs (zéro cycle arrêt/reprise), le plancher de
+   dézoom sur tableau rempli ET sur tableau vide, le zoom sémantique,
+   l'épaisseur des traits, l'invariance de la boîte des cartes, le cycle complet
+   des flèches, les animations, le mouvement réduit, et l'absence d'erreur
+   JavaScript. Soumis à la version précédente du code, il échoue sur 8 points :
+   c'est un vrai garde-fou, pas un test qui passe toujours.
+2. **La CI le lance à chaque PR**, et lance désormais `npm test` en entier (elle
+   n'exécutait qu'une partie des tests, en particulier pas ceux du service de
+   sessions, ceux-là mêmes qui verrouillent la panne de cohérence forte).
+3. **Le relais annonce sa version** (`{t:"bonjour", v, caps}`) à chaque
+   connexion. S'il est en retard, ou s'il n'annonce rien, le client le dit dans
+   la console et l'affiche à l'animateur. Un relais non redéployé faisait
+   disparaître des fonctions en silence ; c'est arrivé deux fois.
+4. **Une opération de diagnostic** sur le service de sessions met à l'épreuve,
+   sur un document jetable, ce qui peut lâcher sans bruit :
+
+   ```bash
+   curl -s -X POST https://fresquedesrisquesdelia.org/.netlify/functions/fresque \
+        -H 'Content-Type: application/json' -d '{"op":"sante"}'
+   ```
+
+   Elle répond `ecritureConditionnelle`, `relectureImmediate`, la version de
+   `@netlify/blobs` et un `ok` global. **À appeler après chaque déploiement.**
+
 ### Les animations, passées en revue une par une
 
 Le jeu se joue en regardant les autres faire : les animations ne sont pas de la

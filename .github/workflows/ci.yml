@@ -15,10 +15,13 @@ jobs:
           node-version: "20"
       - name: Valider cartes.json (39 entrees, 0..38, une carte intro)
         run: node scripts/valider-cartes.mjs
-      - name: Tester les regles du service de sessions
-        run: node serveur/tests/regles.test.mjs
-      - name: Tester les garde-fous (limitation de debit)
-        run: node --test serveur/tests/limites.test.mjs
+      - name: Installer les dependances
+        run: npm ci --no-audit --no-fund
+      - name: Tests (regles, limites, ateliers, contacts, service de sessions)
+        # `npm test` et non une liste partielle : les tests du service de
+        # sessions (coherence, ecriture conditionnelle, idempotence) verrouillent
+        # des pannes qui sont DEJA passees en production sans rien faire tomber.
+        run: npm test
       - name: Verifier l'absence de requete vers un domaine tiers dans le HTML
         run: |
           if grep -RniE 'https?://(fonts\.googleapis|fonts\.gstatic|cdn\.|ajax\.googleapis)' site/ ; then
@@ -43,3 +46,21 @@ jobs:
           for i in $(seq 1 20); do curl -sf http://localhost:8099/ >/dev/null && break; sleep 0.5; done
       - name: Audit d'accessibilite (WCAG 2.1 A/AA)
         run: BASE=http://localhost:8099 node scripts/audit-a11y.mjs
+
+  tableau:
+    # Ce qui casse en silence sur ce projet ne casse pas les tests unitaires :
+    # une action perdue de temps en temps, un curseur qui donne mal au coeur,
+    # des liens invisibles au dezoom. Ce travail-la se verifie dans un vrai
+    # navigateur, a deux, avec le vrai relais. Voir scripts/verifier-tableau.mjs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Installer Playwright et le relais
+        run: npm install --no-save playwright-core playwright ws
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verifier le tableau en ligne (temps reel, curseurs, zoom, fleches, animations)
+        run: node scripts/verifier-tableau.mjs

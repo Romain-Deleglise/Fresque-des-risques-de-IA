@@ -365,6 +365,48 @@ exports.handler = async (event) => {
       return json(200, { etat: R.vue(r.s), resultat: r.out && r.out.resultat });
     }
 
+    /* DIAGNOSTIC. Deux choses peuvent lacher EN SILENCE sur cette plateforme, et
+       les deux l'ont deja fait : la coherence des lectures, et l'ecriture
+       conditionnelle (`onlyIfMatch`). Quand elles lachent, rien ne plante : le
+       tableau perd simplement des actions de temps en temps, ce qui est
+       beaucoup plus difficile a diagnostiquer qu'une panne franche.
+       Cette operation les met a l'epreuve sur un document jetable et rend un
+       verdict lisible. A appeler apres chaque deploiement :
+         curl -s -X POST https://<site>/.netlify/functions/fresque \
+              -H 'Content-Type: application/json' -d '{"op":"sante"}' | jq
+       Elle ne lit ni n'ecrit aucune session : elle ne peut rien casser, et ne
+       divulgue rien (aucun code, aucun prenom, aucune cle). */
+    if (d.op === "sante") {
+      const st2 = limites();
+      const k = "sante:" + Math.random().toString(36).slice(2, 10);
+      const out = { ecritureConditionnelle: "inconnu", relectureImmediate: "inconnu", details: [] };
+      try {
+        const w1 = await st2.setJSON(k, { n: 1 });
+        if (!w1 || typeof w1.modified !== "boolean") {
+          out.ecritureConditionnelle = "non";
+          out.details.push("setJSON ne rend aucun verdict : l'ecriture conditionnelle est inoperante, deux actions simultanees peuvent se recouvrir.");
+        } else {
+          // Etag volontairement faux : le magasin DOIT refuser.
+          const w2 = await st2.setJSON(k, { n: 2 }, { onlyIfMatch: '"etag-volontairement-faux"' });
+          out.ecritureConditionnelle = (w2 && w2.modified === false) ? "oui" : "non";
+          if (out.ecritureConditionnelle === "non") {
+            out.details.push("une ecriture avec un etag faux a ete ACCEPTEE : le verrou ne protege rien.");
+          }
+        }
+        const r1 = await st2.getWithMetadata(k, { type: "json" });
+        out.relectureImmediate = (r1 && r1.data && r1.data.n === 1) ? "oui" : "non";
+        if (out.relectureImmediate === "non") {
+          out.details.push("une valeur ecrite a l'instant n'est pas relue : lectures eventuellement coherentes (attendu sur cette plateforme, le direct passe par le relais).");
+        }
+        try { await st2.delete(k); } catch (e) {}
+      } catch (e) {
+        out.details.push("erreur pendant le test : " + String(e && e.message || e));
+      }
+      out.blobs = (() => { try { return require("@netlify/blobs/package.json").version; } catch (e) { return "inconnue"; } })();
+      out.ok = out.ecritureConditionnelle === "oui";
+      return json(200, out);
+    }
+
     return json(400, { error: "Opération inconnue." });
   } catch (e) {
     return json(500, { error: "Erreur du service de sessions.", details: String(e && e.message || e) });
