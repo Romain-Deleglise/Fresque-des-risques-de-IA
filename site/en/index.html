@@ -103,13 +103,24 @@
           <div class="actions">
             <a class="btn btn-1" href="request-a-workshop/#roles">Attend a workshop</a>
             <a class="btn btn-2" href="facilitate/#programmer">Facilitate a workshop</a>
-            <a class="btn btn-noir" href="../telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf" download>Facilitator guide <small>PDF · in French</small></a>
+            <a class="btn btn-noir" href="../telechargements/facilitator-guide-the-ai-risks-collage.pdf" download>Facilitator guide <small>PDF</small></a>
           </div>
         </div>
         <div class="ateliers-apercu">
           <h3>Upcoming workshops</h3>
           <div id="liste-ateliers" class="ateliers-liste" data-passes aria-live="polite"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS. Filled from data/temoignages.json; the section is removed
+         unless there are at least two in the page's language. -->
+    <section class="section" id="temoignages" data-base="../" hidden>
+      <div class="wrap">
+        <div class="entete-sec">
+          <h2>What participants say</h2>
+        </div>
+        <div class="temoins"></div>
       </div>
     </section>
 
@@ -171,6 +182,7 @@
   <script src="../assets/js/cartes.js" defer></script>
   <script src="../assets/js/ateliers.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>
+  <script src="../assets/js/temoignages.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
 </body>
 </html>
