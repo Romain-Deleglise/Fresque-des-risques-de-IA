@@ -152,11 +152,11 @@
       'label[for="join-prenom"]': "Your first name",
       "#btn-rejoindre": "Join",
       "#note-sans-lien": "To join a workshop, open the link you received by e-mail: it takes you straight to the right session, with nothing to type.",
-      "#btn-partager": "Copy the invitation link",
       "#deck-titre": "Card deck",
       "#deck-aide": "Click (or drag) a card to add it to the shared reserve (8 max), which anyone can place.",
-      "#z-tout": "Fit all", "#btn-plein": "Fullscreen",
-      "#btn-barres": "Hide the bars", "#btn-barres-show": "Show the bars",
+      "#z-tout": "Fit all", "#btn-plein": "Fullscreen", "#btn-affichage": "Display",
+      "#btn-barres": "Hide the bar", "#btn-barres-show": "Bar ▾", "#btn-partager": "Invite",
+      "#btn-curseurs": "Other people's cursors",
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
       "#vocal-lien": "🎧 Join the voice room",
@@ -177,10 +177,15 @@
     ];
     attr.forEach(function (a) { var el = document.querySelector(a[0]); if (el) el.setAttribute(a[1], a[2]); });
     document.querySelectorAll(".marque").forEach(function (m) {
-      m.childNodes[m.childNodes.length - 1].nodeValue = " The AI Risks Collage";
+      // Deux formes : le nom complet dans le hall, la forme courte dans la barre
+      // (ou il est dans un `span`, pour pouvoir s'effacer quand la place manque).
+      var court = m.querySelector(".mq-txt");
+      if (court) { court.textContent = "Online collage"; return; }
+      var dernier = m.childNodes[m.childNodes.length - 1];
+      if (dernier) dernier.nodeValue = " The AI Risks Collage";
     });
-    var setFirst = function (sel, v) { var el = document.querySelector(sel); if (el && el.firstChild) el.firstChild.nodeValue = v; };
-    setFirst("#btn-participants", "Participants (");
+    var pa = document.querySelector("#btn-participants .pa-txt");
+    if (pa) pa.textContent = "Participants";
     var ret = document.querySelector(".lobby-retour");
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mp = document.querySelector(".mobile-avis p");
@@ -225,7 +230,7 @@
    "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
    "scene","monde","fleches","fleches-live","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-participants","panneau","fermer-panneau",
-   "btn-barres","btn-barres-show",
+   "btn-barres","btn-barres-show","btn-affichage","menu-affichage","dock","zone-outils","grp-zoom","btn-annuler",
    "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
@@ -459,22 +464,42 @@
      applique ensuite, et corrigera si le serveur a refuse l'action. */
   var retards = 0;          // etats serveur plus vieux que le notre, d'affilee
   var provisoire = 0;       // un rendu provisoire attend sa confirmation
+  var provVersion = 0;      // version ANNONCEE du rendu provisoire affiche
+  var versionServeur = 0;   // plus haute version que le serveur nous ait montree
   var provTimer = null;
   var resyncDemande = false; // redemander l'etat complet au prochain sondage
-  function marquerProvisoire() {
+  function oublierProvisoire() { provisoire = 0; provVersion = 0; clearTimeout(provTimer); }
+  function marquerProvisoire(v) {
     provisoire = 1;
+    if (v > provVersion) provVersion = v;
     clearTimeout(provTimer);
     // Filet : un rendu provisoire qui n'est jamais confirme serait un tableau
     // qui ment. Passe ce delai, on redemande l'etat complet au serveur.
     provTimer = setTimeout(function () {
-      provisoire = 0; resyncDemande = true; pollerVite();
+      provisoire = 0; provVersion = 0; resyncDemande = true; pollerVite();
     }, 2500);
   }
   function appliquerEtat(vue, mode) {
     if (!vue) return;
     var force = mode === true || mode === "force";
     var prov = mode === "prov";
+    // « corr » : etat autoritaire diffuse APRES un refus du serveur. Il porte le
+    // meme numero de version que le rendu provisoire qu'il doit effacer (un refus
+    // ne fait pas avancer la version), et il doit donc echapper au plancher
+    // ci-dessous, sans quoi le geste refuse resterait affiche chez les autres
+    // jusqu'au filet de securite.
+    var corr = mode === "corr";
+    // `_pv` : la version que le tableau AURA quand toutes les actions en vol de
+    // l'emetteur seront enregistrees. C'est la seule facon de savoir jusqu'ou un
+    // rendu provisoire fait autorite : son propre numero de version, lui, est
+    // celui d'AVANT les gestes qu'il montre. Quand quelqu'un enchaine deux
+    // actions, l'etat serveur de la premiere est plus recent en numero et
+    // pourtant en retard sur l'ecran : c'est exactement ce qui faisait repartir
+    // une carte dans la reserve pendant une fraction de seconde.
+    var annonce = Math.max(vue.version || 0, +vue._pv || 0);
     if (vue._prov) { try { delete vue._prov; } catch (e) {} }
+    if (vue._corr) { try { delete vue._corr; } catch (e) {} }
+    if (vue._pv) { try { delete vue._pv; } catch (e) {} }
     // RIEN D'AUTORITAIRE N'EST APPLIQUE QUI NE SOIT STRICTEMENT PLUS RECENT. Le
     // magasin sert des lectures eventuellement coherentes : un sondage peut
     // tres bien nous rendre l'etat d'il y a trois secondes. Le poser sur le
@@ -483,25 +508,51 @@
     // toute seule ». A version EGALE aussi : deux actions parties de la meme
     // version portent le meme numero suivant, avec des contenus differents.
     if (prov) {
-      if (vue.version < etat.version) return;   // notre tableau est deja plus loin
-      marquerProvisoire();
+      // Deja plus loin que ce rendu provisoire : il n'apporte rien.
+      if (annonce < provVersion || annonce < etat.version) return;
+      marquerProvisoire(annonce);
+    } else if (corr) {
+      if (vue.version < etat.version) return;
+      retards = 0;
     } else if (!force) {
       if (vue.version > etat.version) { retards = 0; }
-      // Meme numero : on n'applique que pour remplacer un rendu provisoire par
-      // la verite du serveur. Sinon on garde le notre.
-      else if (vue.version === etat.version) { if (!provisoire) return; }
+      else if (vue.version === etat.version) { retards = 0; }
       // Plus vieux que nous. Presque toujours une lecture perimee, qu'on
       // ignore. Mais si le serveur insiste, c'est que notre version venait d'un
       // etat relaye que le magasin n'a pas conserve : il est l'autorite, on se
       // resynchronise plutot que de rester bloque sur un tableau fantome.
       else if (++retards < 4) { return; }
       else { retards = 0; }
+      // PLANCHER PROVISOIRE. Un rendu provisoire montre deja tout le contenu
+      // autoritaire de sa version de base, PLUS les gestes en cours, et il
+      // annonce le numero qu'aura le tableau quand ceux-ci seront enregistres.
+      // Tout etat serveur en deca de ce numero est donc, du point de vue de
+      // l'ecran, deja connu : l'appliquer ne peut qu'effacer un geste pendant la
+      // fraction de seconde qui precede la version suivante. C'est tout ce qu'on
+      // voyait : la carte qui repart un instant dans la reserve, la carte qui
+      // revient a son ancienne place, le texte d'une note qui recule pendant la
+      // frappe. Et pas seulement pour l'element concerne : un etat est une photo
+      // complete, donc TOUT le tableau reculait d'un cran.
+      // ON LE PREND QUAND MEME EN COMPTE. Ne rien faire du tout laissait notre
+      // numero de version bloque : on redemandait sans fin la meme chose, le
+      // filet de securite finissait par se declencher, et il rendait justement
+      // l'etat en retard qu'on venait d'ecarter. On enregistre donc l'avancee
+      // sans redessiner.
+      if (provisoire && vue.version < provVersion) {
+        if (vue.version > etat.version) etat.version = vue.version;
+        if (vue.version > versionServeur) versionServeur = vue.version;
+        activite();
+        return;
+      }
+      if (vue.version === etat.version && !provisoire) return;
     }
-    if (!prov) { provisoire = 0; clearTimeout(provTimer); }
+    if (!prov) oublierProvisoire();
+    if (!prov && vue.version > versionServeur) versionServeur = vue.version;
     activite();                                  // ca bouge : on reste reactif
     etat.vue = vue;
     if (!prov) etat.version = vue.version;
     rejouerEnVol();   // nos actions pas encore confirmees restent a l'ecran
+    rejouerFrappe(vue);  // et la frappe en direct des autres ne recule pas
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
     rendrePool(vue);
@@ -920,7 +971,7 @@
     if (c && c.lot) d.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
     var verrou = par && par !== moiNom;   // carte en cours de prise par quelqu'un d'autre
     if (verrou) d.classList.add("occupee");
-    d.innerHTML = '<div class="vis"><img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
+    d.innerHTML = '<div class="vis"><img alt="" src="' + srcCarte(c && c.image) + '"><span class="num">' + n + '</span>'
       + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
       + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
       + '<div class="pool-actions"><button class="btn primaire" data-a="poser" title="' + esc(S.prendre) + '"' + (verrou ? ' disabled' : '') + '>' + esc(S.poser) + '</button>'
@@ -959,7 +1010,9 @@
   // poserait par erreur sous le panneau).
   function zoneDepot(cx, cy) {
     if (!surScene(cx, cy)) return false;
-    var obstacles = [E["pool"], E["deck"], E["panneau"], document.querySelector(".toolbar"), document.querySelector(".topbar"), document.getElementById("aide-pop")];
+    var obstacles = [E["pool"], E["deck"], E["panneau"], document.querySelector(".topbar"),
+      E["dock"] && !E["dock"].hidden ? E["dock"] : null, document.getElementById("aide-pop"),
+      E["menu-affichage"] && !E["menu-affichage"].hidden ? E["menu-affichage"] : null];
     for (var i = 0; i < obstacles.length; i++) { if (dansRect(cx, cy, obstacles[i])) return false; }
     return true;
   }
@@ -968,7 +1021,7 @@
   function fantome(n) {
     var c = etat.cartes[n];
     var f = document.createElement("div"); f.className = "pool-fantome";
-    f.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span>' + n + "</span>";
+    f.innerHTML = '<img alt="" src="' + srcCarte(c && c.image) + '"><span>' + n + "</span>";
     document.body.appendChild(f);
     return f;
   }
@@ -999,7 +1052,7 @@
     }
     if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
     var wg = versMonde(e.clientX, e.clientY);
-    envoyerGliss(g.n, wg.x - 75, wg.y - 70, 1);   // meme centrage que la pose
+    envoyerGliss(g.n, wg.x - 80, wg.y - 75, 1);   // meme centrage que la pose (regles.js)
     // Retour visuel : la scene s'illumine quand on survole une zone deposable ;
     // la reserve s'illumine quand on va y renvoyer la carte.
     E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
@@ -1045,7 +1098,7 @@
       b.setAttribute("role", "button"); b.tabIndex = 0;
       b.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
       b.title = n + " · " + c.titre + " : " + S.reserveGlisser;
-      b.innerHTML = '<span class="dvis"><img alt="" loading="lazy" src="' + BASE + (c.image ? c.image.vignette : "") + '"><span class="dn">' + n + '</span></span>'
+      b.innerHTML = '<span class="dvis"><img alt="" loading="lazy" src="' + srcCarte(c.image) + '"><span class="dn">' + n + '</span></span>'
         + '<span class="dt">' + esc(c.titre) + '</span>';
       b.addEventListener("click", function () { if (!this.classList.contains("indispo")) agir({ op: "poolAjouter", n: +this.dataset.n }); });
       b.addEventListener("keydown", function (e) {
@@ -1074,13 +1127,15 @@
     if (!g.bouge) { g.bouge = true; g.fantome = fantome(g.n); g.el.classList.add("en-glisse"); }
     g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px";
     var wd = versMonde(e.clientX, e.clientY);
-    envoyerGliss(g.n, wd.x - 75, wd.y - 70, 1);
+    envoyerGliss(g.n, wd.x - 80, wd.y - 75, 1);   // idem
     if (E["pool"]) E["pool"].classList.toggle("depot-actif", surPool(e.clientX, e.clientY));
   }
   function glisserDeckUp(e) {
     var g = glisseDeck; if (!g) return;
     var surLePool = g.bouge && surPool(e.clientX, e.clientY);
-    finGlisseDeck();
+    // L'action d'abord (c'est elle qui diffuse l'etat), la fin du geste ensuite :
+    // sinon le fantome disparait chez les autres avant que la carte n'existe,
+    // et la pose clignote.
     if (surLePool) agir({ op: "poolAjouter", n: g.n });
     else if (g.bouge && !g.dejaClic && zoneDepot(e.clientX, e.clientY)) {
       // Lachee sur le tableau : elle passe par le pool (regle du jeu) puis se pose.
@@ -1091,6 +1146,7 @@
         agir({ op: "poserCarte", n: n, pos: pos, rect: rectVisible() });
       });
     }
+    finGlisseDeck();
   }
   function finGlisseDeck() {
     var g = glisseDeck; glisseDeck = null;
@@ -1120,6 +1176,45 @@
     if (E["deck-compte"]) E["deck-compte"].textContent = (vue.pool || []).length + " / " + MAX_POOL;
   }
 
+  /* ---------- Netteté des cartes ---------------------------------------------
+     Une carte fait 150 px sur le tableau, l'image fournie en faisait 560 : le
+     navigateur la reduisait d'un facteur 3,7 a chaque affichage, et une
+     reduction aussi forte faite a la volee rend l'image molle. On fournit donc
+     une variante deja reduite a 300 px et legerement accentuee (hors ligne,
+     avec un bon filtre) : il ne reste qu'un facteur 2 a faire sur un ecran
+     ordinaire, et rien du tout sur un ecran a haute densite. Elle est aussi
+     trois fois plus legere que celle qu'on servait.
+     LE ZOOM, LUI, ECHAPPE AU NAVIGATEUR : le tableau est agrandi par une
+     transformation CSS, dont `sizes` ne tient aucun compte. On le lui dit donc
+     nous-memes, par paliers (recalculer a chaque cran de zoom ferait recharger
+     les images sans arret). */
+  var PALIERS_NET = [150, 240, 360, 560, 900];
+  var _netPalier = 150;
+  function srcCarte(im) { return im ? BASE + (im.petite || im.vignette || "") : ""; }
+  function srcsetCarte(im) {
+    if (!im) return "";
+    var l = [];
+    if (im.petite) l.push(BASE + im.petite + " 300w");
+    if (im.vignette) l.push(BASE + im.vignette + " 560w");
+    if (im.grand) l.push(BASE + im.grand + " 900w");
+    return l.length > 1 ? l.join(", ") : "";
+  }
+  function attrsImgCarte(im) {
+    var ss = srcsetCarte(im);
+    return 'src="' + srcCarte(im) + '"' + (ss ? ' srcset="' + ss + '" sizes="' + _netPalier + 'px"' : "");
+  }
+  function palierNet() {
+    var besoin = 150 * (etat.zoom || 1);
+    for (var i = 0; i < PALIERS_NET.length; i++) { if (besoin <= PALIERS_NET[i]) return PALIERS_NET[i]; }
+    return PALIERS_NET[PALIERS_NET.length - 1];
+  }
+  function majNettete() {
+    var p = palierNet(); if (p === _netPalier) return;
+    _netPalier = p;
+    var imgs = E.monde.querySelectorAll(".c-carte .vis img");
+    for (var i = 0; i < imgs.length; i++) { if (imgs[i].srcset) imgs[i].sizes = p + "px"; }
+  }
+
   /* ---------- Tableau (rendu déclaratif) ---------- */
   var _premierRendu = true;
   function rendreTableau(tab) {
@@ -1141,6 +1236,11 @@
       // (glissParCarte) : elle sauterait entre deux positions. En revanche une
       // carte qui vient d'arriver, elle, doit toujours etre placee.
       var fige = neuf ? false : (etat.dragN === c.n || glissParCarte[c.n] === 1);
+      // Carte tiree par quelqu'un d'autre et dont le serveur vient de donner la
+      // position d'arrivee : on ne la pose pas d'autorite (elle sauterait), on
+      // ajoute ce point au tampon du geste. Le trajet se termine tout seul, a la
+      // vitesse de la personne, et s'arrete exactement au bon endroit.
+      if (fige && glissParCarte[c.n] === 1) pointFinalGliss(c.n, c.x, c.y);
       if (!fige) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
     });
     Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) retirerElCarte(n); });
@@ -1171,7 +1271,7 @@
     // Couleur du lot : invisible de pres (un filet de 3 px en haut), mais c'est
     // elle qui fait lire les familles de cartes quand on prend du recul.
     if (c && c.lot) el.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
-    el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
+    el.innerHTML = '<div class="vis"><img alt="" loading="lazy" ' + attrsImgCarte(c && c.image) + '><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
     // ACCESSIBILITE AU CLAVIER. Les cartes etaient de simples `div` : on pouvait
     // remplir la reserve et poser une carte au clavier, mais ni la deplacer ni
@@ -1311,8 +1411,8 @@
         envoyerGliss(n, el._x, el._y, 0);
         clearTimeout(_bougeClavier);
         _bougeClavier = setTimeout(function () {
+          agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });  // l'etat d'abord
           envoyerGlissFin(n);
-          agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });
         }, 400);
       } else {
         var v = carteVoisine(el, d[0], d[1]);
@@ -1363,8 +1463,13 @@
     function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
       try { el.releasePointerCapture(e.pointerId); } catch (x) {}
-      etat.dragN = null; envoyerGlissFin(n);
+      etat.dragN = null;
+      // L'ETAT D'ABORD, LA FIN DU GESTE ENSUITE. Les deux partent par le meme
+      // relais, donc dans l'ordre d'envoi : si « gliss0 » passait devant, les
+      // autres relacheraient la carte avant de connaitre sa nouvelle position,
+      // et c'est exactement l'aller-retour qu'on voyait a chaque depose.
       if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y }); }
+      envoyerGlissFin(n);
       // Annulation (pointercancel) : on ne touche pas au serveur, la carte
       // reprend sa derniere position connue au prochain rendu.
     }
@@ -1654,6 +1759,14 @@
     el.style.left = x + "px"; el.style.top = y + "px"; el._x = x; el._y = y;
     el.setAttribute("contenteditable", "true"); E.monde.appendChild(el); el.focus();
     var enCours = false, aEnvoyer = null;
+    // IDENTIFIANT PROVISOIRE. Une note toute neuve n'a pas encore d'identifiant
+    // serveur, et il n'y avait donc rien a relayer : les autres ne voyaient
+    // apparaitre la note qu'au retour de sa creation, soit un aller-retour
+    // complet. C'etait la seconde ou deux de retard sur les commentaires. On lui
+    // donne un identifiant local, le temps que le vrai arrive : la note s'ecrit
+    // en direct chez les autres des la premiere lettre, et l'etat autoritaire la
+    // remplace ensuite par la vraie, au meme endroit et avec le meme texte.
+    var tmp = "~n" + (++seqProv);
     el.oninput = function () {
       var v = el.textContent;
       if (el._id) {
@@ -1663,6 +1776,7 @@
         });
         return;
       }
+      envoyerWS({ t: "note", cid: tmp, v: v, x: x, y: y });
       if (enCours || !v.trim()) return;
       enCours = true;
       agir({ op: "creerTexte", x: x, y: y, contenu: v }, function (d) {
@@ -1800,15 +1914,17 @@
     activite(); // action locale : on passe en mode reactif
     var inv = sansEmpiler ? null : empiler(inverseDe(intention, etat.vue));
     var change = appliquerOptimiste(intention);
+    etat.attente++;
+    enVol.push(intention);
+    fileAgir.push({ intention: intention, apres: apres, essais: 0, inv: inv });
     // LE POINT CLE POUR LE JEU. On pousse aux autres notre vue optimiste AVANT
     // d'avoir la reponse du serveur : ils voient le geste tout de suite. Sans
     // cela, ils attendaient l'aller-retour HTTP (fonction + magasin), soit
     // plusieurs secondes, ce qui rend la partie illisible. Le serveur tranche
     // ensuite, et son etat autoritaire corrige au besoin.
+    // Apres le remplissage de la file : la diffusion annonce la version visee,
+    // et celle-ci se compte en actions en attente.
     if (change) envoyerEtatProvisoire();
-    etat.attente++;
-    enVol.push(intention);
-    fileAgir.push({ intention: intention, apres: apres, essais: 0, inv: inv });
     defilerAgir();
   }
   function finEnVol(intention) {
@@ -1829,6 +1945,7 @@
     // que quelqu'un vient de faire.
     api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, idem: t.idem, intention: t.intention }).then(function (res) {
       fileAgir.shift(); finEnVol(t.intention);
+      if (res.d && res.d.etat && res.d.etat.version > versionServeur) versionServeur = res.d.etat.version;
       if (res.d && res.d.refus) { depiler(t.inv); if (res.d.refus.message) flash(res.d.refus.message); }
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
@@ -1850,7 +1967,7 @@
       // nous sont encore en file : c'est un etat serveur reel, et les autres
       // n'ont, eux, rien en cours. Ne le diffuser qu'en fin de file laissait
       // fleches et notes attendre le sondage (donc des secondes).
-      envoyerEtat(vue);
+      envoyerEtat(vue, !!(res.d && res.d.refus));
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
       envoiEnCours = false; defilerAgir();
     }).catch(function () {
@@ -1952,6 +2069,31 @@
     for (var i = 0; i < enVol.length; i++) appliquerOptimiste(enVol[i], true);
   }
 
+  /* MEME PRINCIPE POUR LA FRAPPE DES AUTRES. Le texte relaye est toujours en
+     avance sur le texte enregistre : le relais part a chaque touche, alors que
+     l'enregistrement serveur est etale pour ne pas ecrire trente fois par
+     seconde. Poser l'etat serveur tel quel faisait donc RECULER le texte d'une
+     demi-seconde a chaque nouvelle version, et la note semblait s'ecrire avec
+     une ou deux secondes de retard alors que les lettres, elles, arrivaient
+     bien en direct. On rejoue donc la frappe recente par-dessus l'etat, comme
+     on rejoue nos propres actions non acquittees. */
+  var vivant = {};            // id d'element -> { v: texte, ts }
+  var VIVANT_MS = 6000;       // au-dela, la frappe est forcement enregistree
+  function noterVif(id, v) { vivant[id] = { v: String(v == null ? "" : v), ts: Date.now() }; }
+  function rejouerFrappe(vue) {
+    var tab = vue && vue.tableau; if (!tab) return;
+    var now = Date.now(), id, i;
+    for (id in vivant) {
+      if (now - vivant[id].ts > VIVANT_MS) { delete vivant[id]; continue; }
+      var v = vivant[id].v, pose = false;
+      var T = tab.textes || [];
+      for (i = 0; i < T.length; i++) { if (T[i].id === id) { T[i].contenu = v; pose = true; break; } }
+      if (pose) continue;
+      var F = tab.fleches || [];
+      for (i = 0; i < F.length; i++) { if (F[i].id === id) { F[i].libelle = v; break; } }
+    }
+  }
+
   /* ---------- Ping (cercle qui s'agrandit) ---------- */
   // Un seul ping courant cote serveur ; on n'anime que s'il est recent et pas
   // deja vu (par id), et jamais le sien (deja anime au clic).
@@ -2042,12 +2184,16 @@
   }
   // Diffusion de l'etat : la voie rapide. On retombe sur « maj » si le relais
   // ne sait pas la prendre (ancienne version) ou si le tableau est hors norme.
-  function envoyerEtat(vue) {
+  function envoyerEtat(vue, correction) {
     if (!vue) { envoyerWS({ t: "maj" }); return; }
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     if (!curs.sansEtat) {
       var txt = null;
-      try { txt = JSON.stringify({ t: "etat", s: vue }); } catch (e) {}
+      // Le marqueur voyage DANS `s` (seul champ recopie par le relais), et sur
+      // une copie de surface pour ne pas polluer notre propre `etat.vue`.
+      var env = vue;
+      if (correction) { env = {}; for (var k in vue) { if (Object.prototype.hasOwnProperty.call(vue, k)) env[k] = vue[k]; } env._corr = 1; }
+      try { txt = JSON.stringify({ t: "etat", s: env }); } catch (e) {}
       if (txt && txt.length <= LIMITE_ETAT) {
         curs.etatTs = Date.now();
         try { ws.send(txt); } catch (e) {}
@@ -2065,6 +2211,10 @@
     var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansEtat) return;
     var copie; try { copie = JSON.parse(JSON.stringify(v)); } catch (e) { return; }
     copie._prov = 1;
+    // Version visee : celle du serveur telle qu'on la connait, plus une par
+    // action encore en attente. Les autres gardent ce rendu tant qu'ils n'ont
+    // pas recu au moins ce numero-la.
+    copie._pv = Math.max(etat.version || 0, versionServeur || 0) + fileAgir.length;
     var txt; try { txt = JSON.stringify({ t: "etat", s: copie }); } catch (e) { return; }
     if (!txt || txt.length > LIMITE_ETAT) return;
     curs.etatTs = Date.now();
@@ -2105,20 +2255,55 @@
     glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
     lancerLissage();
   }
+  // FIN DU GESTE CHEZ L'AUTRE : ON NE COUPE PAS NET. La lecture est differee de
+  // RETARD_SUIVI : au moment ou « gliss0 » arrive, le tampon contient encore une
+  // centaine de millisecondes de trajet qui n'ont pas ete jouees. Les jeter,
+  // c'est faire sauter la carte de la position affichee a sa position finale,
+  // et c'est la premiere des saccades de fin de deplacement. On marque donc la
+  // fin, la boucle de lissage finit de jouer le geste, et relache ensuite.
+  // Dernier point d'un geste distant : la position exacte donnee par le serveur,
+  // que les messages de geste (envoyes 30 fois par seconde, donc jamais pile sur
+  // la fin) n'ont pas transmise.
+  function pointFinalGliss(n, x, y) {
+    for (var id in glissLive) {
+      var g = glissLive[id];
+      if (g.n !== n || g.dep) continue;
+      var b = g.tp && g.tp.buf, q = b && b[b.length - 1];
+      if (q && Math.abs(q.x - x) < 0.5 && Math.abs(q.y - y) < 0.5) return;
+      noterPos(g.tp, x, y); lancerLissage();
+      return;
+    }
+  }
+  function cloturerGliss(id) {
+    var g = glissLive[id]; if (!g) return;
+    g.fin = Date.now();
+    lancerLissage();
+  }
   // Meme lecture differee que pour les curseurs : la carte tiree par quelqu'un
   // d'autre avance a la vitesse reelle de son geste, sans a-coup.
   function lisserGliss(now) {
-    var encore = false, bouge = false;
+    var encore = false, bouge = false, finis = null, t = Date.now();
     for (var id in glissLive) {
       var g = glissLive[id];
       var p = positionDifferee(g.tp, now); if (!p) continue;
       if (p.encore) encore = true;
       if (g.x !== p.x || g.y !== p.y) { g.x = p.x; g.y = p.y; bouge = true; }
+      // Geste fini ET tampon joue jusqu'au bout. La borne de temps est un filet :
+      // un tampon qui ne se viderait jamais ne doit pas retenir la carte.
+      if (g.fin && (!p.encore || t - g.fin > 400)) (finis || (finis = [])).push(id);
     }
     if (bouge || encore) dessinerGliss();
+    if (finis) { for (var i = 0; i < finis.length; i++) finirGliss(finis[i]); }
     return encore;
   }
-  // Remet la carte la ou le serveur la sait, et enleve les marques du geste.
+  // Enleve les marques du geste. ET SURTOUT : NE REPOSE PAS LA CARTE TOUT DE
+  // SUITE. L'etat qui porte la nouvelle position arrive quelques dizaines de
+  // millisecondes apres la fin du geste ; remettre la carte a l'ancienne place
+  // dans cet intervalle, c'est lui faire faire un aller-retour visible a chaque
+  // deplacement. On la laisse donc la ou le geste l'a laissee, et on ne recale
+  // que si, un instant plus tard, l'etat n'a toujours pas bouge (geste annule,
+  // action refusee, message perdu).
+  var recalages = {};
   function relacherGliss(n) {
     delete glissParCarte[n];
     var f = document.getElementById("gl-" + n); if (f) f.remove();
@@ -2126,9 +2311,18 @@
     el.classList.remove("glisse-autre");
     el.style.removeProperty("--gl-coul");
     el._gl = null;
+    clearTimeout(recalages[n]);
+    recalages[n] = setTimeout(function () { recalerCarte(n); }, 900);
+  }
+  function recalerCarte(n) {
+    delete recalages[n];
+    if (etat.dragN === n || glissParCarte[n] === 1) return;   // quelqu'un la tient de nouveau
+    var el = etat.elCartes[n]; if (!el) return;
     var v = etat.vue && etat.vue.tableau;
     var c = v && v.cartes.filter(function (x) { return x.n === n; })[0];
-    if (c) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
+    if (!c || (el._x === c.x && el._y === c.y)) return;
+    el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y;
+    majFleches();
   }
   function finirGliss(id) {
     var g = glissLive[id]; if (!g) return;
@@ -2163,7 +2357,7 @@
     if (!f) {
       var c = etat.cartes[g.n];
       f = document.createElement("div"); f.className = "gliss-fantome"; f.id = "gl-" + g.n;
-      f.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '">'
+      f.innerHTML = '<img alt="" src="' + srcCarte(c && c.image) + '">'
         + '<span class="gliss-num">' + g.n + "</span>"
         + '<span class="gliss-qui">' + esc(g.nom) + "</span>";
       E.monde.appendChild(f);
@@ -2213,11 +2407,11 @@
       //  - AUTORITAIRE : ce que le serveur vient de lui renvoyer.
       // Les garde-fous de version sont tous dans appliquerEtat.
       case "etat":
-        if (m.s) appliquerEtat(m.s, m.s._prov ? "prov" : undefined);
+        if (m.s) appliquerEtat(m.s, m.s._prov ? "prov" : (m.s._corr ? "corr" : undefined));
         return;
       case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
       case "gliss": recevoirGliss(m); return;
-      case "gliss0": finirGliss(m.id); return;
+      case "gliss0": cloturerGliss(m.id); return;
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;
@@ -2351,6 +2545,17 @@
     for (var gi in glissLive) { if (now - glissLive[gi].ts > 5000) finirGliss(gi); }
     for (var f in flLive) { if (now - flLive[f].ts > 4000) { delete flLive[f]; bouge = true; } }
     if (bouge) dessinerFlechesLive();
+    // Notes provisoires (identifiant local « ~ ») dont la vraie n'est jamais
+    // arrivee : sans ce menage, une creation refusee laisserait un fantome.
+    var tab = etat.vue && etat.vue.tableau, T = tab && tab.textes;
+    if (T && T.length) {
+      var reste = T.filter(function (t) {
+        if (String(t.id).charAt(0) !== "~") return true;
+        var vi = vivant[t.id];
+        return !!(vi && now - vi.ts < VIVANT_MS);
+      });
+      if (reste.length !== T.length) { tab.textes = reste; rendreTableau(tab); }
+    }
   }, 2000);
   function basculerCurseurs() {
     curs.montrer = !curs.montrer;
@@ -2374,6 +2579,7 @@
     var f = (etat.vue.tableau.fleches || []).find(function (x) { return x.id === id; });
     if (!f) return;
     f.libelle = String(v == null ? "" : v);
+    noterVif(id, v);
     dessinerFleches();
   }
   function noteEnDirect(id, v, x, y) {
@@ -2381,6 +2587,7 @@
     var t = (etat.vue.tableau.textes || []).find(function (o) { return o.id === id; });
     if (!t) { t = { id: id, x: +x || 0, y: +y || 0, contenu: "" }; etat.vue.tableau.textes.push(t); }
     t.contenu = String(v == null ? "" : v);
+    noterVif(id, v);
     rendreTableau(etat.vue.tableau);
   }
   // Envoi throttle vers le serveur (memoire) + envoi immediat au relais (vue).
@@ -2438,7 +2645,7 @@
     E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
-    E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
+    E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }
   // Zone de la scene qui n'est PAS masquee par le panneau de la reserve. Quand
   // le tableau tient en entier a l'ecran (« Tout voir », fort dezoom), on le
   // centre dans cette zone : le panneau ne recouvre plus la fresque.
@@ -2694,9 +2901,9 @@
   function syncPlein() {
     var actif = !!(document.fullscreenElement || document.webkitFullscreenElement) || document.body.classList.contains("plein-css");
     document.body.classList.toggle("plein", actif);
-    // En plein ecran on GARDE la barre d'outils : elle est justement ce dont on
-    // a besoin quand tout l'ecran est au tableau.
-    if (actif && document.body.classList.contains("barres-cachees")) majBarres(false);
+    // En plein ecran on GARDE la barre : elle est justement ce dont on a besoin
+    // quand tout l'ecran est au tableau. Et si on choisit malgre tout de la
+    // masquer, la palette flottante prend le relais (voir majBarres).
     if (E["btn-plein"]) { E["btn-plein"].setAttribute("aria-pressed", actif ? "true" : "false"); E["btn-plein"].textContent = actif ? S.quitterPlein : S.plein; }
     reflowPlein();
   }
@@ -2717,14 +2924,58 @@
     } else { document.body.classList.add("plein-css"); syncPlein(); } // navigateur sans API Fullscreen
   });
 
-  // Masquer / afficher les barres (topbar + toolbar) pour agrandir le tableau.
+  /* Masquer / afficher la barre pour agrandir le tableau.
+     LES OUTILS NE DISPARAISSENT JAMAIS. Avant, masquer la barre (ou passer en
+     plein ecran, ce qu'on fait justement pour voir grand) enlevait la main, les
+     liens, les notes, le zoom et l'annulation : il ne restait qu'a regarder. On
+     DEPLACE donc les memes elements du document dans une palette flottante, et
+     on les remet exactement ou ils etaient ensuite. Deplacer plutot que
+     dupliquer : un doublon aurait son propre etat (outil actif, bouton
+     desactive...) et les deux finiraient par se contredire. */
+  function ancrer(el) {
+    if (!el || el._ancre || !el.parentNode) return;
+    el._ancre = document.createComment("place");
+    el.parentNode.insertBefore(el._ancre, el);
+  }
+  function rendreALaBarre(el) {
+    if (el && el._ancre && el._ancre.parentNode) el._ancre.parentNode.insertBefore(el, el._ancre);
+  }
+  function outilsMobiles() {
+    return [document.querySelector(".seg-outils"), E["grp-zoom"], E["btn-annuler"]];
+  }
   function majBarres(cachees) {
     document.body.classList.toggle("barres-cachees", cachees);
-    if (E["btn-barres-show"]) E["btn-barres-show"].hidden = !cachees;
+    var d = E["dock"];
+    if (d) {
+      var m = outilsMobiles();
+      if (cachees) {
+        m.forEach(function (el) { if (el) { ancrer(el); d.appendChild(el); } });
+        d.appendChild(E["btn-barres-show"]);   // toujours en dernier
+      } else {
+        m.forEach(rendreALaBarre);
+      }
+      d.hidden = !cachees;
+    }
     reflowPlein();
   }
   if (E["btn-barres"]) E["btn-barres"].addEventListener("click", function () { majBarres(true); });
   if (E["btn-barres-show"]) E["btn-barres-show"].addEventListener("click", function () { majBarres(false); });
+  /* Menu « Affichage ». Il ne contient que des reglages : rien de ce qui s'y
+     trouve n'est necessaire pour jouer, et rien de ce qui est necessaire pour
+     jouer ne s'y trouve. */
+  (function () {
+    var b = E["btn-affichage"], m = E["menu-affichage"];
+    if (!b || !m) return;
+    function ouvrir(o) { m.hidden = !o; b.setAttribute("aria-expanded", o ? "true" : "false"); }
+    b.addEventListener("click", function (e) { e.stopPropagation(); ouvrir(m.hidden); });
+    m.addEventListener("click", function (e) { if (e.target.closest("button")) ouvrir(false); });
+    document.addEventListener("click", function (e) {
+      if (!m.hidden && !m.contains(e.target) && e.target !== b) ouvrir(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !m.hidden) { ouvrir(false); try { b.focus(); } catch (x) {} }
+    });
+  })();
   (function () {
     var bc = document.getElementById("btn-curseurs");
     if (!bc) return;

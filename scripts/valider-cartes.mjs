@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Validation de site/data/cartes.json (B2.2 / B4.1) — sans dependance.
+// Validation de site/data/cartes.json (B2.2 / B4.1), sans dependance.
 // Verifie : 39 entrees, numeros uniques 0..38, une seule carte intro,
 // champs obligatoires presents. Sort en code 1 si invalide.
 

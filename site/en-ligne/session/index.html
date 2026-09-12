@@ -60,22 +60,27 @@
 
 <!-- APP (tableau) -->
 <div class="app" id="app" hidden>
+  <!-- UNE SEULE BARRE, TROIS ZONES FIXES.
+       Il y en avait deux, qui passaient a trois rangees des que la fenetre
+       n'etait pas large : autant de hauteur prise au tableau, qui est la seule
+       chose qu'on regarde ici. Le classement est celui du geste, pas celui de
+       l'historique des ajouts : a GAUCHE ce qui fait venir les gens, au CENTRE
+       ce avec quoi on dessine, a DROITE ce qui regarde le tableau.
+       Ce qu'on regle une fois par atelier (fond, curseurs, barre, plein ecran)
+       est passe derriere « Affichage » : ces boutons occupaient en permanence
+       une barre qu'on a sous les yeux pendant trois heures. -->
   <div class="topbar">
-    <a class="marque" href="../">
-      <svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg>
-      Fresque en ligne
-    </a>
-    <button class="btn" id="btn-partager" title="Copier le lien d'invitation à envoyer au groupe">Copier le lien d'invitation</button>
-    <span class="spacer"></span>
-    <a class="btn visio-top" id="visio-top" href="#" target="_blank" rel="noopener" hidden title="Rejoindre la visioconférence de l'atelier">🎧 Visio</a>
-    <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Télécharger l'image</button>
-    <button class="btn" id="btn-participants">Participants (<b id="nb-part">0</b>)</button>
-    <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
-    <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
-  </div>
+    <div class="bz bz-g">
+      <a class="marque" href="../">
+        <svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg>
+        <span class="mq-txt">Fresque en ligne</span>
+      </a>
+      <button class="btn" id="btn-partager" title="Copier le lien d'invitation à envoyer au groupe">Inviter</button>
+      <a class="btn visio-top" id="visio-top" href="#" target="_blank" rel="noopener" hidden title="Rejoindre la visioconférence de l'atelier">🎧 Visio</a>
+    </div>
 
-  <div class="toolbar" role="toolbar" aria-label="Outils">
-    <div class="seg-outils" role="group" aria-label="Outils">
+    <div class="bz bz-c" id="zone-outils">
+      <div class="seg-outils" role="group" aria-label="Outils">
       <button class="btn tool ico" data-outil="deplacer" aria-pressed="true" aria-label="Main : déplacer et naviguer" title="Main : déplacer et naviguer sur le tableau">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 11V5.6a1.4 1.4 0 0 1 2.8 0V11"/><path d="M10.8 11V4.6a1.4 1.4 0 0 1 2.8 0V11"/><path d="M13.6 11.2V6a1.4 1.4 0 0 1 2.8 0v6"/><path d="M8 11V9.2a1.4 1.4 0 0 0-2.8 0V13c0 3.3 2.6 6 6 6h1.1a5 5 0 0 0 5-5v-1"/></svg>
       </button>
@@ -89,21 +94,38 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3v3.2L11.5 16H20a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"/></svg>
       </button>
     </div>
-    <span class="sep"></span>
-    <div class="groupe" role="group" aria-label="Zoom">
-      <button class="btn" id="z-moins" aria-label="Dézoomer">−</button>
-      <span class="zoom-niv" id="z-niv">100 %</span>
-      <button class="btn" id="z-plus" aria-label="Zoomer">+</button>
-      <button class="btn" id="z-tout">Tout voir</button>
     </div>
-    <button class="btn" id="btn-annuler" disabled title="Annuler ma derniere action (Ctrl+Z)" aria-keyshortcuts="Control+Z">Annuler</button>
-    <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
-    <button class="btn tool" id="btn-curseurs" aria-pressed="true" title="Afficher ou masquer les curseurs des autres">Curseurs</button>
-    <button class="btn" id="btn-barres" title="Masquer les barres pour agrandir le tableau">Masquer les barres</button>
-    <button class="btn" id="btn-plein">Plein écran</button>
+
+    <div class="bz bz-d">
+      <div class="groupe" role="group" aria-label="Zoom" id="grp-zoom">
+        <button class="btn ico" id="z-moins" aria-label="Dézoomer">−</button>
+        <span class="zoom-niv" id="z-niv">100 %</span>
+        <button class="btn ico" id="z-plus" aria-label="Zoomer">+</button>
+        <button class="btn" id="z-tout" title="Recadrer sur toute la fresque">Tout voir</button>
+      </div>
+      <button class="btn" id="btn-annuler" disabled title="Annuler ma dernière action (Ctrl+Z)" aria-keyshortcuts="Control+Z">Annuler</button>
+      <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Image ⬇</button>
+      <button class="btn" id="btn-participants" title="Qui est connecté"><span aria-hidden="true">👥</span><span class="pa-txt">Participants</span> <b id="nb-part">0</b></button>
+      <button class="btn" id="btn-affichage" aria-haspopup="true" aria-expanded="false" title="Fond, curseurs, plein écran">Affichage</button>
+      <div class="menu-aff" id="menu-affichage" hidden>
+        <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
+        <button class="btn tool" id="btn-curseurs" aria-pressed="true" title="Afficher ou masquer les curseurs des autres">Curseurs des autres</button>
+        <button class="btn" id="btn-barres" title="Masquer la barre pour agrandir le tableau">Masquer la barre</button>
+        <button class="btn" id="btn-plein">Plein écran</button>
+      </div>
+      <button class="btn rond" id="btn-aide" aria-label="Aide" aria-expanded="false" title="Aide">?</button>
+      <span class="etat-conn" id="etat-conn" title="Connexion">•</span>
+    </div>
   </div>
 
-  <button class="btn barres-show" id="btn-barres-show" hidden title="Afficher les barres">Afficher les barres</button>
+  <!-- PALETTE FLOTTANTE. Masquer la barre, ou passer en plein ecran, laissait le
+       tableau sans main, sans lien et sans note : on ne pouvait plus que le
+       regarder. Les memes boutons y sont DEPLACES (les memes elements du
+       document, donc le meme etat et les memes comportements : rien n'est
+       duplique, rien ne peut diverger). -->
+  <div class="dock" id="dock" hidden>
+    <button class="btn" id="btn-barres-show" title="Réafficher la barre complète">Barre ▾</button>
+  </div>
 
   <div class="scene" id="scene">
     <div class="survol-carte" id="survol-carte" hidden></div>
