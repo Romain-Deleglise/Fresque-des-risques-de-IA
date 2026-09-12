@@ -22,7 +22,7 @@ function lienOuvrir(a) {
   return LIEN + "/en-ligne/session/?ouvrir=" + a.code
     + (a.animateur && a.animateur.prenom ? "&prenom=" + encodeURIComponent(a.animateur.prenom) : "");
 }
-function lienGerer(a) { return LIEN + "/participer/?gerer=" + a.code + "#gerer"; }
+function lienGerer(a) { return LIEN + "/devenir-animateur/?gerer=" + a.code + "#gerer"; }
 
 // Deux e-mails DISTINCTS : l'animateur·ice et les inscrit·es n'ont ni le meme
 // role, ni les memes liens, ni les memes informations. L'animateur voit la liste

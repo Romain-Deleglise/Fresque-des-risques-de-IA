@@ -34,7 +34,7 @@
         <a class="lien-ap" href="../../en/about/">About</a>
         <a class="actif" href="../../en/facilitate/">Facilitate</a>
         <a class="" href="../../en/request-a-workshop/">Attend</a>
-        <a class="" href="../../en/online/">Online workshop<span class="bientot">beta</span></a>
+        <a class="" href="../../en/online/">Online workshop</a>
         <a href="../../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" class="btn-nav" download>Download</a>
         <a class="lang" href="../../devenir-animateur/" hreflang="fr" lang="fr">FR</a>
       </nav>
@@ -90,12 +90,97 @@
             will be added to the calendar in the Attend tab.
           </p>
           <p>
-            <a class="btn btn-1" href="../request-a-workshop/#vue-animer">Schedule a workshop</a>
+            <a class="btn btn-1" href="#programmer">Schedule a workshop</a>
             &nbsp; <a class="lien-fleche" href="mailto:contact@pauseia.fr?subject=I%20want%20to%20run%20an%20AI%20Risks%20Collage">Write to us for support</a>
           </p>
         </div>
       </div>
     </section>
+    <section class="section section-doux" id="programmer">
+      <div class="wrap">
+        <div class="entete-sec">
+          <h2>Schedule a workshop</h2>
+          <p class="muted">Choose the format, date and number of seats. You'll receive a confirmation e-mail holding every link you need: the one to share so people can register, the one that opens your session on the day, and the one to move or cancel the workshop. No code to note down or type in. A public workshop appears in the list on the <a href="../request-a-workshop/">Attend</a> page; a private one is reachable only through the link you circulate. For an <strong>online</strong> workshop, your link opens the <a href="../../en-ligne/session/?lang=en">online Collage</a> directly.</p>
+        </div>
+        <form id="form-programmer" class="form-atelier" novalidate>
+          <fieldset class="champ-mode">
+            <legend>Workshop format</legend>
+            <div class="mode-choix">
+              <label class="radio"><input type="radio" name="mode" value="physique" checked> <span>In person</span></label>
+              <label class="radio"><input type="radio" name="mode" value="enligne"> <span>Online</span></label>
+            </div>
+          </fieldset>
+          <div class="grille-champs">
+            <label>Your first name<input name="animateurPrenom" maxlength="24" required autocomplete="given-name"></label>
+            <label>Your e-mail<input name="animateurMail" type="email" maxlength="160" required autocomplete="email"></label>
+            <label>Date<input name="date" type="date" required></label>
+            <label>Time<input name="heure" type="time" required></label>
+            <label>Max participants<input name="maxParticipants" type="number" min="1" max="16" value="8" required>
+              <span class="aide-champ">Tip: 8 per table, 2 tables max per facilitator.</span></label>
+            <label>Visibility
+              <select name="visibilite">
+                <option value="public">Public (shown under "Attend")</option>
+                <option value="prive">Private (code shared by you)</option>
+              </select>
+            </label>
+          </div>
+          <div class="champs-physique grille-champs" hidden>
+            <label>Displayed location<input name="lieu" maxlength="120" placeholder="e.g. Paris 13th">
+              <span class="aide-champ">Public, deliberately vague (not the exact address).</span></label>
+            <label>Exact address<input name="adresse" maxlength="200" placeholder="Street, city…">
+              <span class="aide-champ">Sent only by e-mail to registered participants.</span></label>
+          </div>
+          <label class="champ-titre">Title (optional)<input name="titre" maxlength="80" placeholder="e.g. Intro workshop"></label>
+          <label class="champ-titre">Description (optional)<textarea name="description" maxlength="400" rows="2" placeholder="A few words about this workshop, who it's for, the meeting point…"></textarea></label>
+          <label class="champ-titre">Video call
+            <select name="visioMode" id="visio-mode">
+              <option value="auto">Generate a link automatically (Jitsi Meet, free, no account)</option>
+              <option value="perso">I'll provide my own link</option>
+              <option value="aucune">None (I'll send it myself)</option>
+            </select>
+            <span class="aide-champ">The link is e-mailed to registrants and added to the calendar invite.</span></label>
+          <label class="champ-titre champ-visio-perso" hidden>Your video call link<input name="visioUrl" type="url" maxlength="300" placeholder="https://meet.jit.si/…"></label>
+          <button class="btn btn-1" type="submit">Schedule the workshop</button>
+          <p id="prog-msg" class="msg" role="status" aria-live="polite"></p>
+          <p class="muted rgpd-note">Your first name and e-mail are kept by Pause IA to manage your workshops and for any follow-up. Erasure on request at <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a> (see the <a href="../../en/legal/">legal notice</a>).</p>
+        </form>
+
+        <details class="gerer-atelier" id="gerer">
+          <summary>Manage an existing workshop</summary>
+          <p class="muted" id="gerer-note">Open the "move the workshop" link from your confirmation e-mail: the workshop is recognised automatically, you only enter your e-mail.</p>
+          <div id="gerer-formulaires" hidden>
+            <div class="gerer-bloc">
+              <h3>Move this workshop</h3>
+              <p class="muted">A change of date? Enter your facilitator e-mail and the new date: registrants are notified automatically.</p>
+              <form id="form-deplacer" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                  <label>New date<input name="date" type="date" required></label>
+                  <label>New time<input name="heure" type="time" required></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Move this workshop</button>
+                <p id="deplacer-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
+            </div>
+
+            <div class="gerer-bloc">
+              <h3>Cancel this workshop</h3>
+              <p class="muted">Made a mistake? Enter your facilitator e-mail to remove it from the list. (The "cancel" link in your e-mail also does it in one click.)</p>
+              <form id="form-annuler" class="form-atelier" novalidate>
+                <input type="hidden" name="code" value="">
+                <div class="grille-champs">
+                  <label>Facilitator e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email"></label>
+                </div>
+                <button class="btn btn-noir" type="submit">Cancel this workshop</button>
+                <p id="annul-msg" class="msg" role="status" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
   </main>
 
   <footer class="pied">
@@ -138,6 +223,7 @@
     </div>
   </footer>
   <script src="../../assets/js/nav.js" defer></script>
+  <script src="../../assets/js/ateliers.js" defer></script>
   <script src="../../assets/js/mesure.js" defer></script>
 </body>
 </html>

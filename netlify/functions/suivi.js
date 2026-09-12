@@ -20,7 +20,7 @@ function store() { return getStore({ name: "fresque-ateliers" }); }
 function contenuSuivi() {
   const cartes = LIEN + "/#telecharger";
   const guide = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
-  const programmer = LIEN + "/participer/#vue-animer";
+  const programmer = LIEN + "/devenir-animateur/#programmer";
 
   const l = [];
   l.push("Bonjour,");

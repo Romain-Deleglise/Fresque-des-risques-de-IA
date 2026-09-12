@@ -109,7 +109,7 @@ function lienRejoindre(a, prenom) { // participant : rejoint la session
   return LIEN + "/en-ligne/session/?code=" + a.code + (prenom ? "&prenom=" + encodeURIComponent(prenom) : "");
 }
 function lienPartage(a) { return LIEN + "/participer/?atelier=" + a.code; }  // inscription (atelier prive)
-function lienGerer(a) { return LIEN + "/participer/?gerer=" + a.code + "#gerer"; } // deplacer / annuler
+function lienGerer(a) { return LIEN + "/devenir-animateur/?gerer=" + a.code + "#gerer"; } // deplacer / annuler
 // Encadre « lien a partager » : remplace l'ancienne boite « Code de session ».
 // On montre l'URL en clair pour qu'elle soit copiable a la main au besoin.
 function boiteLienPartage(url) {
@@ -264,7 +264,7 @@ function mailAnnulationAnimateur(a, prevenus) {
   l.push("Votre atelier du " + quand + " est annulé. Il n'apparaît plus dans la liste des ateliers.");
   l.push(prevenus ? (prevenus + " inscrit·e" + (prevenus > 1 ? "s ont" : " a") + " été prévenu·e" + (prevenus > 1 ? "s" : "") + " par e-mail.") : "Il n'y avait aucun inscrit·e à prévenir.");
   l.push("");
-  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/participer/#vue-animer");
+  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/devenir-animateur/#programmer");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
@@ -273,7 +273,7 @@ function mailAnnulationAnimateur(a, prevenus) {
   c += '<p style="margin:0 0 18px;color:#4a473f;">' + (prevenus
     ? h(String(prevenus)) + ' inscrit·e' + (prevenus > 1 ? 's ont' : ' a') + ' été prévenu·e' + (prevenus > 1 ? 's' : '') + ' par e-mail.'
     : 'Il n\'y avait aucun inscrit·e à prévenir.') + '</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/#vue-animer", "Programmer un autre atelier") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/devenir-animateur/#programmer", "Programmer un autre atelier") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 

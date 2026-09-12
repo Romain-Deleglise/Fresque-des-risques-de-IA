@@ -45,7 +45,7 @@
     gererIntro: "Ouvrez le lien \u00ab déplacer l'atelier \u00bb de votre e-mail de confirmation : l'atelier concerné est reconnu tout seul, il ne vous reste que votre e-mail à saisir.",
     lienInconnu: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé)."
   };
-  var HREF_PROG = en ? "/en/request-a-workshop/#vue-animer" : "/participer/#vue-animer";
+  var HREF_PROG = en ? "/en/facilitate/#programmer" : "/devenir-animateur/#programmer";
   function videHtml() {
     return '<div class="ateliers-vide"><p class="muted">' + esc(T.aucun) + "</p>"
       + '<a class="btn btn-2" href="' + HREF_PROG + '">' + esc(T.videCta) + "</a></div>";
@@ -64,23 +64,16 @@
     } catch (e) { return iso + " " + (heure || ""); }
   }
 
-  /* ---------- Bascule Participer / Animer (onglet Participer) ---------- */
-  var bP = document.getElementById("btn-vue-participer"), bA = document.getElementById("btn-vue-animer");
-  var vP = document.getElementById("vue-participer"), vA = document.getElementById("vue-animer");
-  if (bP && bA && vP && vA) {
-    function voir(animer, defiler) {
-      vA.hidden = !animer; vP.hidden = animer;
-      bA.setAttribute("aria-pressed", animer ? "true" : "false");
-      bP.setAttribute("aria-pressed", animer ? "false" : "true");
-      if (defiler) {
-        var cible = animer ? vA : vP;
-        try { cible.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { cible.scrollIntoView(); }
-      }
-    }
-    bP.addEventListener("click", function () { voir(false, true); });
-    bA.addEventListener("click", function () { voir(true, true); });
-    if (location.hash === "#vue-animer") voir(true);
-  }
+  /* ---------- Anciens liens (avant la separation des deux pages) ----------
+     « Programmer » vivait dans un onglet de la page Participer, adresse par
+     `#vue-animer`. Chaque public a maintenant sa page. Les e-mails deja partis
+     contiennent l'ancienne adresse : un fragment n'arrive jamais au serveur, il
+     ne peut donc pas etre redirige cote plateforme. On le rattrape ici. */
+  (function () {
+    if (location.hash !== "#vue-animer") return;
+    if (document.getElementById("form-programmer")) return;   // deja au bon endroit
+    location.replace(en ? "/en/facilitate/#programmer" : "/devenir-animateur/#programmer");
+  })();
 
   /* ---------- Formulaire animateur : programmer un atelier ---------- */
   var form = document.getElementById("form-programmer");
@@ -153,7 +146,7 @@
       hote = document.createElement("div"); hote.id = "recap-atelier"; hote.className = "recap-atelier";
       var ancre = document.getElementById("prog-msg");
       if (ancre && ancre.parentNode) ancre.parentNode.insertBefore(hote, ancre.nextSibling);
-      else (document.getElementById("vue-animer") || document.body).appendChild(hote);
+      else (document.getElementById("programmer") || document.body).appendChild(hote);
     }
     var url = location.origin + (en ? "/en/request-a-workshop/" : "/participer/") + "?atelier=" + encodeURIComponent(a.code);
     hote.innerHTML = "";
@@ -355,11 +348,12 @@
     bloc.open = true;
     try { bloc.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
   })();
-  // Révèle la vue « Programmer / gérer » (les deux vues sont des onglets).
+  // Le formulaire vit maintenant sur sa propre page, toujours visible : il n'y a
+  // plus rien a reveler. La fonction reste, appelee de plusieurs endroits, et
+  // amene simplement la personne au bon bloc.
   function revelerAnimer() {
-    var b = document.getElementById("btn-vue-animer");
-    var v = document.getElementById("vue-animer");
-    if (b && v && v.hidden) b.click();
+    var v = document.getElementById("programmer");
+    if (v) { try { v.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }
   }
 
   /* ---------- Déplacer un atelier (animateur·ice) ---------- */
@@ -416,8 +410,7 @@
     if (!code) return;
     code = code.toUpperCase();
     var token = params.get("t") || "";
-    var bAnim = document.getElementById("btn-vue-animer");
-    if (bAnim) bAnim.click(); // révèle la vue « Programmer / annuler »
+    revelerAnimer();
     var m = document.getElementById("annul-msg");
     if (m) { try { m.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {} }
     if (window.confirm(T.confirmAnnul())) {

@@ -237,6 +237,26 @@ a.btn, a.btn:hover { text-decoration: none; }
 .carte-info h3 { margin-bottom: .5rem; }
 .carte-info p { margin: 0; color: var(--gris); font-size: .98rem; }
 @media (max-width: 640px) { .duo-cartes { grid-template-columns: 1fr; } }
+.trio-cartes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin: 1.2rem 0 0; }
+@media (max-width: 860px) { .trio-cartes { grid-template-columns: 1fr; } }
+
+/* --- Capture d'ecran d'un outil -------------------------------------------
+   Volontairement distincte de `.photo-atelier` : une photo peut se recadrer,
+   une copie d'ecran non. On la montre en entier, sinon on ne montre plus ce
+   qu'on presente. Le liseré et l'ombre la detachent du fond de la page, pour
+   qu'on la lise comme une fenetre et pas comme une illustration. */
+.capture { margin: 0; }
+.capture img { display: block; width: 100%; height: auto; border: 1px solid var(--ligne);
+  border-radius: 14px; box-shadow: 0 14px 40px rgba(27,26,23,.16); background: var(--surface); }
+.capture figcaption { margin-top: .85rem; font-family: var(--f-ui); font-size: .9rem; color: var(--gris); max-width: var(--texte); }
+/* Liste courte de capacites : plus dense qu'une suite de paragraphes, plus
+   lisible qu'une liste a puces quand chaque ligne a un intitule. */
+.capacites { list-style: none; margin: 1.4rem 0 0; padding: 0; border-top: 1px solid var(--ligne); }
+.capacites li { display: grid; grid-template-columns: 12.5rem 1fr; gap: 1.4rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--ligne); align-items: baseline; }
+.capacites .q { font-family: var(--f-ui); font-weight: 600; font-size: .98rem; color: var(--ink); }
+.capacites p { margin: 0; color: var(--gris); font-size: .98rem; }
+@media (max-width: 720px) { .capacites li { grid-template-columns: 1fr; gap: .3rem; } }
 
 /* --- Photo d'atelier ------------------------------------------------------ */
 .section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }

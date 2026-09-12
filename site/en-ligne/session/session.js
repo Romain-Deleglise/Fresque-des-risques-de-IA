@@ -2333,7 +2333,7 @@
     el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'
       + '<path d="' + d + '" fill="none" stroke="#14110d" stroke-width="5.5" stroke-linejoin="round"/>'
       + '<path d="' + d + '" fill="' + coul + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>'
-      + '<span class="curseur-nom" style="background:' + coul + '">' + esc(nom || "") + '</span>';
+      + '<span class="curseur-nom" style="--c:' + coul + '">' + esc(nom || "") + '</span>';
     el.hidden = !curs.montrer;
     return el;
   }

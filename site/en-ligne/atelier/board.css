@@ -405,7 +405,14 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    on le lit de loin, en passant, sans le chercher. */
 .curseur-live{position:absolute;left:0;top:0;z-index:19;pointer-events:none;transform-origin:top left;will-change:transform}
 .curseur-live svg{display:block;overflow:visible}
+/* La couleur d'identite arrive par la variable --c, posee sur l'element. Le
+   REPLI est volontairement fonce : si cette couleur venait a manquer, pour
+   quelque raison que ce soit, on obtient une pastille sombre a texte blanc,
+   toujours lisible. Un fond par defaut transparent ou clair donnerait du blanc
+   sur blanc, c'est-a-dire un prenom invisible, et personne ne comprendrait
+   pourquoi. Une etiquette doit rester lisible meme quand quelque chose rate. */
 .curseur-nom{position:absolute;left:17px;top:14px;font-family:var(--f-ui);font-weight:700;font-size:.78rem;color:#fff;
+  background:var(--c,#2b2722);
   padding:.15rem .46rem;border-radius:8px;white-space:nowrap;letter-spacing:.005em;
   box-shadow:0 0 0 1.7px rgba(20,17,13,.96), 0 0 0 3.4px rgba(255,255,255,.96), 0 2px 5px rgba(0,0,0,.35)}
 
