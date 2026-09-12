@@ -2711,7 +2711,12 @@
      construite a partir de la hauteur reelle des elements. Ici on ne touche qu'a
      des elements en position absolue et a la VISIBILITE du titre, jamais a la
      mise en page. */
-  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42;
+  /* TROIS DISTANCES DE LECTURE, ET UNE QUATRIEME TOUT AU FOND.
+     ZOOM_TUILE est le point ou l'illustration cesse d'apprendre quoi que ce
+     soit : une carte y fait cinquante pixels, l'image n'est plus qu'une tache.
+     Il etait confondu avec ZOOM_LOIN, ce qui retirait l'image des soixante
+     pixels, ou elle dit encore quelque chose, et deux relecteurs l'ont note. */
+  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42, ZOOM_TUILE = 0.34;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
     // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
     // quel que soit le zoom (curseurs, ping, numero de carte de loin).
@@ -2724,9 +2729,13 @@
     E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
     E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
     E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    E.monde.classList.toggle("zoom-tuile", etat.zoom < ZOOM_TUILE);
     // La legende vit sur la scene, pas dans le monde : elle ne doit pas subir la
     // transformation de zoom.
-    E.scene.classList.toggle("loin", etat.zoom < ZOOM_LOIN);
+    // La legende ne sert que quand la couleur du lot est la SEULE information
+    // encore lisible, c'est-a-dire en mode tuile. Plus tot, elle n'explique rien
+    // que l'image ne dise deja, et elle encombre.
+    E.scene.classList.toggle("loin", etat.zoom < ZOOM_TUILE);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
     E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }
