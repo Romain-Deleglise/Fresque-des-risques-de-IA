@@ -52,8 +52,37 @@
 [functions."suivi"]
   schedule = "0 10 * * *"
 
+# SURVEILLANCE : toutes les 15 min, verifie que le service de sessions repond et
+# que son ecriture conditionnelle est operante, et que le relais temps reel
+# repond dans une version au moins aussi recente que celle attendue par le site.
+# Un e-mail a la premiere panne, un au retablissement, rien entre les deux.
+# Sur ce projet, ce qui casse ne fait rien tomber : sans ce controle, on
+# l'apprend en atelier. Destinataire : MAIL_ALERTE (variable Netlify).
+[functions."surveillance"]
+  schedule = "*/15 * * * *"
+
 # Deploy Previews : actifs par defaut pour chaque pull request (rien a ajouter).
 # Chaque PR recoit une URL de previsualisation isolee.
+
+# SEPARATION ANIMER / PARTICIPER. Le formulaire « programmer un atelier » vivait
+# dans un onglet cache de la page Participer ; chaque public a maintenant sa
+# page. Les e-mails DEJA ENVOYES contiennent l'ancienne adresse de gestion :
+# on la redirige, en gardant le code. (Le fragment #vue-animer, lui, n'arrive
+# jamais jusqu'au serveur : c'est le JavaScript qui le rattrape, voir
+# site/assets/js/ateliers.js.)
+[[redirects]]
+  from = "/participer/"
+  query = { gerer = ":code" }
+  to = "/devenir-animateur/?gerer=:code#gerer"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/request-a-workshop/"
+  query = { gerer = ":code" }
+  to = "/en/facilitate/?gerer=:code#gerer"
+  status = 301
+  force = true
 
 # Ancienne URL de la page « Participer » renommee : redirection permanente.
 [[redirects]]
@@ -122,6 +151,16 @@
 
 # Les polices et images changent rarement et peuvent etre mises en cache
 # (leur nom encode deja la variante), mais sans "immutable" par prudence.
+# Le tableau en ligne vit HORS de /assets : ses fichiers n'etaient couverts par
+# aucune regle de cache et dependaient donc du defaut de la plateforme. C'est
+# exactement le genre d'ecart qui fait cohabiter un JavaScript recent avec une
+# feuille de style ancienne dans un navigateur, avec des symptomes
+# incomprehensibles a distance. Meme regle que le reste du site : on revalide.
+[[headers]]
+  for = "/en-ligne/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/assets/fonts/*"
   [headers.values]

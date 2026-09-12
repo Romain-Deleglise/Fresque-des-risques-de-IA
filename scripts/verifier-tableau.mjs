@@ -33,6 +33,11 @@ const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..
 const PORT_SITE = Number(process.env.PORT_SITE || 8107);
 const PORT_RELAIS = Number(process.env.PORT_RELAIS || 8108);
 const LATENCE = Number(process.env.LATENCE || 250);   // aller-retour du service
+// UNE ECRITURE COUTE BIEN PLUS CHER QU'UNE LECTURE, et c'est ce qui rend les
+// pannes visibles : c'est pendant ce temps-la que le tableau des autres n'est
+// tenu que par la couche provisoire. Avec une ecriture aussi rapide qu'une
+// lecture, le harnais passait a cote de trois bugs bien reels.
+const LATENCE_ECRIT = Number(process.env.LATENCE_ECRIT || 900);
 const RETARD = Number(process.env.RETARD || 2000);    // coherence eventuelle
 const CHROME = process.env.PW_CHROMIUM || undefined;
 
@@ -114,6 +119,7 @@ async function servir(route) {
     const connue = Math.max(0, +d.version || 0);
     corps = (connue && vu.version < connue) ? { inchange: true, version: connue } : { etat: vu };
   } else if (d.op === "agir") {
+    await dodo(LATENCE_ECRIT);
     const o = R.appliquer(S, d.jeton, d.intention || {});
     noter();
     corps = o && o.refus ? { refus: o.refus, etat: R.vue(S) } : { etat: R.vue(S), resultat: o && o.resultat };
@@ -205,6 +211,123 @@ t("les deux tableaux finissent a la meme position", memeFin);
 });
 
 /* ========================================================================== */
+console.log("\n--- Aller-retours et frappe ---");
+await bloc("Aller-retours et frappe", async () => {
+
+/* 4. LA CARTE NE DOIT PAS REPARTIR DANS LA RESERVE. Constate en atelier : une
+      carte posee apparaissait chez les autres, disparaissait une fraction de
+      seconde, puis revenait a la bonne place. Cause : le rendu provisoire
+      montrait deja la carte, et le sondage suivant rapportait un etat du magasin
+      portant le MEME numero de version (donc sans la carte), qui etait applique
+      par-dessus. Un etat est une photo complete : tout le tableau reculait d'un
+      cran, pas seulement la carte posee. */
+await B.evaluate(() => {
+  window.__ar = { vu: false, present: false, allersRetours: 0 };
+  window.__iar = setInterval(() => {
+    const la = !!document.querySelector(".c-carte[data-n='26']");
+    if (la) { window.__ar.vu = true; window.__ar.present = true; }
+    else if (window.__ar.present) { window.__ar.present = false; window.__ar.allersRetours++;
+      }
+  }, 5);
+});
+await A.evaluate(() => {
+  const b = [...document.querySelectorAll("#pool button")].find((x) => /poser|place/i.test(x.textContent || ""));
+  if (b) b.click();
+});
+await dodo(RETARD + 1500);
+const ar = await B.evaluate(() => { clearInterval(window.__iar); return window.__ar; });
+t("une carte posee ne repart jamais dans la reserve chez les autres",
+  ar.vu && ar.allersRetours === 0, ar.vu ? ar.allersRetours + " aller(s)-retour(s)" : "carte jamais vue");
+
+/* 5. PAS DE RETOUR EN ARRIERE A LA FIN D'UN DEPLACEMENT. Deux causes, cumulees :
+      la fin du geste partait AVANT l'etat qui porte la nouvelle position (les
+      autres reposaient donc la carte a son ancienne place le temps d'un
+      battement), et le tampon de lecture differee etait jete au lieu d'etre joue
+      jusqu'au bout. */
+await B.evaluate(() => {
+  const el = document.querySelector('.c-carte[data-n="2"]');
+  window.__rt = { pts: [] };
+  window.__irt = setInterval(() => { window.__rt.pts.push(+el._x || parseFloat(el.style.left) || 0); }, 8);
+});
+const b2 = await A.evaluate(() => {
+  const r = document.querySelector('.c-carte[data-n="2"]').getBoundingClientRect();
+  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+});
+await A.mouse.move(b2.x, b2.y);
+await A.mouse.down();
+for (let i = 1; i <= 26; i++) { await A.mouse.move(b2.x + i * 6, b2.y); await dodo(24); }
+await A.mouse.up();
+await dodo(2600);
+const rt = await B.evaluate(() => { clearInterval(window.__irt); return window.__rt.pts; });
+let sommet = -1e9, recul = 0;
+const sauts = [];
+for (let i = 0; i < rt.length; i++) {
+  if (rt[i] > sommet) sommet = rt[i]; else recul = Math.max(recul, sommet - rt[i]);
+  if (i) sauts.push(Math.abs(rt[i] - rt[i - 1]));
+}
+const enMvt = sauts.filter((v) => v > 0.5).sort((a, b) => a - b);
+const median = enMvt.length ? enMvt[Math.floor(enMvt.length / 2)] : 0;
+const saut = sauts.length ? Math.max.apply(null, sauts) : 0;
+t("la carte ne revient jamais en arriere a la fin du deplacement",
+  rt.length > 10 && recul < 14, "recul maximal observe : " + Math.round(recul) + " px");
+/* Le tampon de lecture differee contient une centaine de millisecondes de
+   trajet. Le jeter a la fin du geste faisait bondir la carte d'autant, d'un
+   seul coup : le saut le plus visible du jeu, et il ne se mesure pas comme un
+   retour en arriere puisqu'il va dans le bon sens. */
+t("et elle ne bondit pas non plus quand le geste se termine",
+  rt.length > 10 && saut < Math.max(14, median * 4),
+  "plus grand saut " + Math.round(saut) + " px, pas courant " + Math.round(median) + " px");
+
+/* 6. LA FRAPPE D'UNE NOTE DOIT SE VOIR EN DIRECT, DES LA PREMIERE LETTRE. Une
+      note neuve n'avait pas encore d'identifiant serveur : il n'y avait rien a
+      relayer tant que sa creation n'etait pas revenue, soit un aller-retour
+      complet. Et une fois creee, l'etat autoritaire (en retard d'un cran sur la
+      frappe, qui est volontairement etalee) effacait regulierement les lettres
+      relayees : le texte semblait s'ecrire avec une ou deux secondes de retard. */
+await B.evaluate(() => {
+  window.__nt = { t0: performance.now(), vu: -1 };
+  window.__int = setInterval(() => {
+    if (window.__nt.vu >= 0) return;
+    const n = [...document.querySelectorAll(".c-texte")].find((e) => /risque majeur/.test(e.textContent || ""));
+    if (n) window.__nt.vu = performance.now() - window.__nt.t0;
+  }, 5);
+});
+await A.evaluate(() => {
+  const s = document.getElementById("scene"), r = s.getBoundingClientRect();
+  document.querySelector('[data-outil="texte"]').click();
+  s.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: r.x + 50, clientY: r.y + r.height - 60, pointerId: 1, pointerType: "mouse", isPrimary: true }));
+});
+await A.waitForFunction(() => !!document.querySelector('.c-texte[contenteditable="true"]'), null, { timeout: 6000 }).catch(() => {});
+await A.keyboard.type("risque majeur", { delay: 25 });
+await dodo(900);
+const nt = await B.evaluate(() => { clearInterval(window.__int); return window.__nt.vu; });
+t("une note s'ecrit en direct chez les autres (moins de 600 ms)",
+  nt >= 0 && nt < 600, nt < 0 ? "jamais vue" : "mesure : " + Math.round(nt) + " ms");
+
+/* 7. Et elle ne doit pas RECULER pendant que le serveur rattrape la frappe. */
+await B.evaluate(() => {
+  window.__nr = { court: 0 };
+  window.__inr = setInterval(() => {
+    const n = [...document.querySelectorAll(".c-texte")].find((e) => /risque/.test(e.textContent || ""));
+    if (n && (n.textContent || "").trim().length < "risque majeur".length) window.__nr.court++;
+  }, 10);
+});
+await dodo(RETARD + 900);
+const nr = await B.evaluate(() => { clearInterval(window.__inr); return window.__nr.court; });
+t("le texte de la note ne recule pas apres avoir ete ecrit", nr === 0, nr + " retours en arriere");
+await A.evaluate(() => { const e = document.querySelector('.c-texte[contenteditable="true"]'); if (e) e.blur(); });
+await dodo(600);
+// Menage : la note compte dans l'encombrement du tableau, donc dans le calcul
+// du plancher de zoom mesure plus bas. On la retire pour ne pas fausser une
+// mesure qui n'a rien a voir.
+for (const tx of [...(S.tableau.textes || [])]) R.appliquer(S, "jAnim", { op: "supprimerTexte", id: tx.id });
+noter();
+await A.waitForFunction(() => document.querySelectorAll(".c-texte").length === 0, null, { timeout: 15000 }).catch(() => {});
+
+/* ========================================================================== */
+});
+
+/* ========================================================================== */
 console.log("\n--- Clavier et annulation ---");
 await bloc("Clavier et annulation", async () => {
   /* Sans clavier, on pouvait remplir la reserve et poser une carte, mais ni la
@@ -230,7 +353,7 @@ await bloc("Clavier et annulation", async () => {
   await A.keyboard.down("Shift");
   for (let i = 0; i < 3; i++) { await A.keyboard.press("ArrowRight"); await dodo(40); }
   await A.keyboard.up("Shift");
-  await dodo(1200);
+  await dodo(1400 + LATENCE_ECRIT);
   const apresX = await A.evaluate((n) => +document.querySelector(".c-carte[data-n='" + n + "']")._x, apresFleche);
   const cote = S.tableau.cartes.filter((c) => c.n === +apresFleche)[0];
   t("Maj + fleches deplacent la carte, et le serveur l'enregistre",
@@ -272,6 +395,64 @@ await bloc("Clavier et annulation", async () => {
   }, { n: apresFleche, x: avantX }, { timeout: 8000 }).catch(() => {});
   t("l'annulation arrive chez les autres comme une action ordinaire",
     await B.evaluate((d) => { const el = document.querySelector(".c-carte[data-n='" + d.n + "']"); return !!el && Math.abs((el._x || 0) - d.x) < 2; }, { n: apresFleche, x: avantX }));
+});
+
+console.log("\n--- Barre et palette flottante ---");
+await bloc("Barre", async () => {
+  /* La barre tenait sur trois rangees des qu'une fenetre n'etait pas large :
+     de la hauteur prise au tableau, a chaque atelier, sur tous les ecrans. */
+  const hauteur = async (l) => {
+    await A.setViewportSize({ width: l, height: 860 });
+    await dodo(280);
+    return A.evaluate(() => document.querySelector(".topbar").getBoundingClientRect().height);
+  };
+  const h1360 = await hauteur(1360), h1100 = await hauteur(1100);
+  t("la barre tient sur une seule rangee, du grand ecran au portable",
+    h1360 < 64 && h1100 < 64, "1360 px : " + Math.round(h1360) + " px de haut ; 1100 px : " + Math.round(h1100));
+  await A.setViewportSize({ width: 1360, height: 860 });
+  await dodo(280);
+
+  /* Masquer la barre, c'est ce qu'on fait pour voir grand. Cela ne doit pas
+     retirer la main, les liens et les notes : sans eux il ne reste qu'a
+     regarder le tableau. */
+  await A.evaluate(() => { document.getElementById("btn-affichage").click(); });
+  await dodo(140);
+  t("le menu « Affichage » s'ouvre", await A.evaluate(() => !document.getElementById("menu-affichage").hidden));
+  await A.evaluate(() => { document.getElementById("btn-barres").click(); });
+  await dodo(340);
+  const palette = await A.evaluate(() => {
+    const d = document.getElementById("dock");
+    return {
+      visible: !!d && !d.hidden && d.getBoundingClientRect().height > 10,
+      outils: d ? d.querySelectorAll(".seg-outils .tool").length : 0,
+      zoom: !!(d && d.querySelector("#grp-zoom")),
+      annuler: !!(d && d.querySelector("#btn-annuler")),
+      barreCachee: document.querySelector(".topbar").getBoundingClientRect().height < 1,
+      copies: document.querySelectorAll(".seg-outils").length
+    };
+  });
+  t("barre masquee : les outils restent accessibles dans une palette flottante",
+    palette.visible && palette.outils === 4 && palette.zoom && palette.annuler && palette.barreCachee,
+    JSON.stringify(palette));
+  t("et il n'existe jamais deux jeux d'outils qui pourraient se contredire",
+    palette.copies === 1, palette.copies + " groupes d'outils");
+
+  await A.evaluate(() => { document.querySelector('#dock .tool[data-outil="fleche"]').click(); });
+  await dodo(160);
+  t("un outil choisi depuis la palette s'active vraiment",
+    (await A.evaluate(() => document.querySelector('.tool[data-outil="fleche"]').getAttribute("aria-pressed"))) === "true");
+  await A.evaluate(() => { document.querySelector('.tool[data-outil="deplacer"]').click(); });
+
+  await A.evaluate(() => { document.getElementById("btn-barres-show").click(); });
+  await dodo(340);
+  const revenu = await A.evaluate(() => ({
+    barre: document.querySelector(".topbar").getBoundingClientRect().height > 20,
+    outilsEnPlace: !!document.querySelector(".bz-c .seg-outils"),
+    zoomEnPlace: !!document.querySelector(".bz-d #grp-zoom"),
+    dockCache: document.getElementById("dock").hidden
+  }));
+  t("et tout revient exactement a sa place quand on reaffiche la barre",
+    revenu.barre && revenu.outilsEnPlace && revenu.zoomEnPlace && revenu.dockCache, JSON.stringify(revenu));
 });
 
 console.log("\n--- Curseurs (confort visuel) ---");
@@ -390,7 +571,7 @@ await A.evaluate(() => document.querySelector('[data-outil="fleche"]').click());
 // Deux cartes dont le centre est reellement atteignable a la souris : sinon le
 // clic tombe sur la reserve ou une barre, et le test echoue pour rien.
 const degagees = await A.evaluate(() => {
-  const gene = ["#pool", "#deck", "#panneau", ".toolbar", ".topbar"].map((s) => document.querySelector(s)).filter(Boolean);
+  const gene = ["#pool", "#deck", "#panneau", "#dock", ".topbar"].map((s) => document.querySelector(s)).filter(Boolean);
   const libre = (r) => {
     const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
     if (document.elementFromPoint(cx, cy) === null) return false;

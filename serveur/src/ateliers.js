@@ -28,7 +28,7 @@ function valider(d) {
   var date = tronque(d.date, 10), heure = tronque(d.heure, 5);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return err("date_invalide", "Date invalide.");
   if (!/^\d{2}:\d{2}$/.test(heure)) return err("heure_invalide", "Heure invalide.");
-  var quand = Date.parse(date + "T" + heure + ":00");
+  var quand = instantParis(date, heure);
   if (!isFinite(quand)) return err("date_invalide", "Date ou heure invalide.");
   if (quand < Date.now() - 60 * 1000) return err("date_passee", "La date doit être dans le futur.");
 
@@ -110,7 +110,7 @@ function validerReprogrammation(atelier, d) {
   var date = tronque(d.date, 10), heure = tronque(d.heure, 5);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return err("date_invalide", "Nouvelle date invalide.");
   if (!/^\d{2}:\d{2}$/.test(heure)) return err("heure_invalide", "Nouvelle heure invalide.");
-  var quand = Date.parse(date + "T" + heure + ":00");
+  var quand = instantParis(date, heure);
   if (!isFinite(quand)) return err("date_invalide", "Nouvelle date ou heure invalide.");
   if (quand < Date.now() - 60 * 1000) return err("date_passee", "La nouvelle date doit être dans le futur.");
   if (date === atelier.date && heure === atelier.heure) return err("inchange", "La date et l'heure sont identiques.");
@@ -130,21 +130,60 @@ function retraitParticipant(atelier, d) {
   return { participants: parts.slice(0, i).concat(parts.slice(i + 1)), participant: parts[i] };
 }
 
+/* HEURE DE PARIS, PARTOUT.
+   La date et l'heure d'un atelier sont saisies et lues en heure de Paris : ce
+   sont celles annoncees aux inscrit·es. Or `Date.parse("2026-06-10T18:30:00")`,
+   sans fuseau, lit cette heure dans le fuseau de la MACHINE, et les fonctions
+   de cette plateforme tournent en UTC. Un atelier de 18 h 30 etait donc
+   enregistre a 18 h 30 UTC, soit 20 h 30 a Paris en ete : le rappel « dans une
+   heure » partait apres la fin, et l'atelier restait affiche « a venir » deux
+   heures de trop.
+   On convertit donc explicitement. Le decalage est demande au systeme pour la
+   date concernee (et non une valeur en dur), ce qui suit l'heure d'ete sans
+   table a tenir a jour. */
+function decalageParis(instantUTC) {
+  var d = new Date(instantUTC);
+  var aParis = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+  var aUTC = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
+  return aParis.getTime() - aUTC.getTime();
+}
+function instantParis(date, heure) {
+  var naif = Date.parse(date + "T" + (heure || "00:00") + ":00Z");   // lu comme de l'UTC
+  if (!isFinite(naif)) return NaN;
+  // Deux passes : le decalage depend de l'instant, que l'on cherche justement.
+  // La seconde suffit toujours, sauf a viser l'heure exacte d'un changement
+  // d'heure, ou une heure d'ecart n'a aucune consequence ici.
+  var d1 = decalageParis(naif);
+  return naif - decalageParis(naif - d1);
+}
+/* L'instant reel d'un atelier. On le RECALCULE a partir de la date et de
+   l'heure plutot que de faire confiance au `quandMs` enregistre : les ateliers
+   crees avant cette correction en portent un faux, et ils doivent s'afficher et
+   se rappeler correctement eux aussi. */
+function instantDe(a) {
+  if (!a) return NaN;
+  if (a.date && a.heure) { var t = instantParis(a.date, a.heure); if (isFinite(t)) return t; }
+  return isFinite(a.quandMs) ? a.quandMs : NaN;
+}
+
 function estPasse(a) {
   // On garde l'atelier visible jusqu'a 3h apres l'heure de debut.
-  return a && isFinite(a.quandMs) && (Date.now() > a.quandMs + 3 * 60 * 60 * 1000);
+  var t = instantDe(a);
+  return isFinite(t) && (Date.now() > t + 3 * 60 * 60 * 1000);
 }
 
 // Les inscriptions restent ouvertes jusqu'a 30 min apres le debut ; au-dela,
 // on ne peut plus se rajouter (mais l'atelier reste affiche, voir ci-dessous).
 function inscriptionOuverte(a) {
-  return !!(a && isFinite(a.quandMs) && (Date.now() <= a.quandMs + LIMITE_INSCRIPTION_MS));
+  var t = instantDe(a);
+  return isFinite(t) && (Date.now() <= t + LIMITE_INSCRIPTION_MS);
 }
 
 // L'atelier reste visible dans le calendrier public jusqu'a 7 jours apres le
 // debut (historique, calendrier mieux rempli), meme si l'inscription est close.
 function visibleCalendrier(a) {
-  return !!(a && isFinite(a.quandMs) && (Date.now() <= a.quandMs + 7 * 24 * 60 * 60 * 1000));
+  var t = instantDe(a);
+  return isFinite(t) && (Date.now() <= t + 7 * 24 * 60 * 60 * 1000);
 }
 
 // Vue publique pour l'onglet Participer : AUCUN e-mail expose.
@@ -184,5 +223,6 @@ module.exports = {
   mailValide: mailValide, urlValide: urlValide, valider: valider, validerInscription: validerInscription,
   annulationAutorisee: annulationAutorisee, validerReprogrammation: validerReprogrammation, retraitParticipant: retraitParticipant,
   estPasse: estPasse, inscriptionOuverte: inscriptionOuverte, visibleCalendrier: visibleCalendrier,
+  instantParis: instantParis, instantDe: instantDe, decalageParis: decalageParis,
   vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

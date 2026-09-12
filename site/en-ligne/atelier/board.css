@@ -51,10 +51,57 @@ a{color:var(--accent-txt);text-decoration:none}
 .app{position:relative;display:flex;flex-direction:column;height:100vh}
 
 /* Barre du haut */
-.topbar{display:flex;align-items:center;gap:1rem;padding:.6rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne);flex:0 0 auto}
-.topbar .marque{font-family:var(--f-titre);font-weight:700;font-size:1.05rem;color:var(--ink);display:flex;align-items:center;gap:.55rem}
-.topbar .mk{width:1.6rem;height:1.6rem}
+/* BARRE UNIQUE, TROIS ZONES. Les deux zones laterales ont le meme `flex` : le
+   groupe d'outils reste donc VRAIMENT centre, quelle que soit la longueur de ce
+   qu'il y a de part et d'autre (un bouton « Telecharger l'image » qui apparait
+   en fin d'atelier ne doit pas faire glisser la main et les fleches sous les
+   doigts de tout le monde). */
+.topbar{display:flex;align-items:center;gap:.75rem;padding:.5rem .9rem;background:var(--bg);border-bottom:1px solid var(--ligne);flex:0 0 auto}
+.topbar .bz{display:flex;align-items:center;gap:.45rem}
+/* Les zones laterales prennent la place de leur contenu : un centrage au pixel
+   pres ne vaut pas qu'un bouton disparaisse quand la fenetre retrecit. */
+.topbar .bz-g{flex:1 1 auto;justify-content:flex-start}
+.topbar .bz-c{flex:0 0 auto;justify-content:center}
+.topbar .bz-d{flex:1 1 auto;justify-content:flex-end;position:relative}
+.topbar .marque{font-family:var(--f-titre);font-weight:700;font-size:1.05rem;color:var(--ink);display:flex;align-items:center;gap:.55rem;margin-right:.3rem;white-space:nowrap}
+.topbar .mk{width:1.6rem;height:1.6rem;flex:0 0 auto}
 .topbar .spacer{flex:1}
+/* Quand la place manque, c'est le decor qui cede, jamais un outil : le nom du
+   site s'efface avant que la barre n'accepte de passer a la ligne. */
+/* Une seule hauteur de bouton dans la barre, celle des outils : c'est ce qui
+   fait qu'une rangee reste une rangee, et qu'aucun bouton ne parait plus
+   important qu'un autre par sa seule taille. */
+.topbar .btn,.dock .btn{height:2.15rem;padding:0 .7rem;line-height:1;white-space:nowrap;flex:0 0 auto}
+.topbar .seg-outils,.topbar .groupe,.topbar .marque{flex:0 0 auto}
+.topbar .btn.rond,.topbar .tool.ico{padding:0}
+.menu-aff .btn{height:auto;min-height:2.2rem;padding:.45rem .7rem;line-height:1.2}
+/* Quand la place manque, c'est le texte du decor qui cede, dans cet ordre, et
+   jamais un bouton : le nom du site, puis « Tout voir », puis « Affichage »,
+   puis le mot « Participants » (le nombre, lui, reste toujours lisible). */
+@media(max-width:1300px){.topbar .marque .mq-txt{display:none}}
+@media(max-width:1180px){.topbar #z-tout{font-size:0;padding-inline:.5rem}
+  .topbar #z-tout::after{content:"⤢";font-size:1rem}}
+@media(max-width:1080px){.topbar #btn-affichage{font-size:0;padding-inline:.5rem}
+  .topbar #btn-affichage::after{content:"⚙";font-size:1rem}}
+@media(max-width:980px){.topbar #btn-participants .pa-txt{display:none}}
+
+/* MENU « AFFICHAGE ». Quatre reglages qu'on touche une fois : ils n'ont rien a
+   faire dans une barre qu'on a sous les yeux pendant tout l'atelier. */
+.menu-aff{position:absolute;top:calc(100% + .45rem);right:0;z-index:60;display:flex;flex-direction:column;gap:.3rem;
+  padding:.45rem;min-width:13rem;background:var(--surface);border:1px solid var(--ligne);border-radius:12px;
+  box-shadow:0 10px 30px rgba(27,26,23,.18)}
+.menu-aff[hidden]{display:none}
+.menu-aff .btn{justify-content:flex-start;width:100%}
+
+/* PALETTE FLOTTANTE (barre masquee / plein ecran). Posee sur `.app` et non sur
+   la scene : un clic dessus ne doit pas traverser jusqu'au tableau et y creer
+   une note. */
+.dock{position:absolute;left:50%;top:.6rem;transform:translateX(-50%);z-index:34;
+  display:flex;align-items:center;gap:.4rem;padding:.35rem .4rem;
+  background:var(--surface);border:1px solid var(--ligne);border-radius:13px;box-shadow:0 8px 26px rgba(27,26,23,.22)}
+.dock[hidden]{display:none}
+body.barres-cachees .coach{top:3.7rem}
+body.barres-cachees .aide{top:6.4rem}
 .topbar .compte{font-family:var(--f-ui);font-size:.86rem;color:var(--gris)}
 .topbar .compte b{color:var(--ink)}
 
@@ -93,13 +140,11 @@ a{color:var(--accent-txt);text-decoration:none}
 .aide-liste b{color:var(--accent-txt-fort);font-family:var(--f-ui)}
 
 /* Barre d'outils */
-.toolbar{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.5rem 1.1rem;background:var(--bg);border-bottom:1px solid var(--ligne)}
-.toolbar .groupe{display:flex;gap:.3rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:9px;padding:.25rem}
-.toolbar .sep{flex:1}
+.topbar .groupe,.dock .groupe{display:flex;gap:.25rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:9px;padding:.2rem}
 .tool{border:1px solid transparent;background:transparent}
 .tool[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent)}
 /* Barre d'outils facon Excalidraw : petites icones (main, lien, lien double, note). */
-.toolbar .seg-outils{display:inline-flex;gap:.15rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:10px;padding:.2rem}
+.seg-outils{display:inline-flex;gap:.15rem;align-items:center;background:var(--doux);border:1px solid var(--ligne);border-radius:10px;padding:.2rem}
 .tool.ico{width:2.15rem;height:2.15rem;padding:0;display:grid;place-items:center;border-radius:8px;color:var(--ink);cursor:pointer}
 .tool.ico svg{width:1.2rem;height:1.2rem;display:block}
 .tool.ico:hover:not([aria-pressed="true"]){background:var(--surface)}
@@ -303,7 +348,10 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 /* Modal carte */
 .modal{position:fixed;inset:0;background:rgba(27,26,23,.55);display:none;place-items:center;z-index:100;padding:1rem}
 .modal.on{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
-.modal .carte-grande{height:min(74vh,690px);aspect-ratio:1.414/1;width:auto;max-width:94vw;perspective:1600px}
+/* Plus grande qu'avant : l'image source fait 1862 px de large, on n'en
+   affichait que 690. Les pixels en plus sont de vrais pixels d'image, pas un
+   agrandissement, donc la carte y gagne en nettete et en lisibilite. */
+.modal .carte-grande{height:min(78vh,800px);aspect-ratio:1.414/1;width:auto;max-width:94vw;perspective:1600px}
 .modal .faces{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s}
 .modal .carte-grande.flip .faces{transform:rotateY(180deg)}
 .modal .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column;border:1px solid var(--ligne)}
@@ -324,14 +372,29 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 .modal .barre .btn.primaire{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 #modal-poser[hidden]{display:none}
 
-/* Message mobile (l'outil vise l'ordinateur, A17.2) */
+/* Message telephone (l'outil vise l'ordinateur, A17.2). Ce n'est plus une
+   impasse : on y donne le lien, de quoi le copier ou se l'envoyer, et une
+   sortie pour qui veut essayer quand meme. */
 .mobile-avis{display:none}
 @media(max-width:760px){
   .app{display:none}
-  .mobile-avis{display:grid;place-items:center;position:fixed;inset:0;background:var(--bg);padding:2rem;text-align:center;z-index:200}
-  .mobile-avis h1{font-family:var(--f-titre);font-size:1.8rem;margin:0 0 .6rem}
-  .mobile-avis p{font-family:var(--f-texte);color:var(--gris);max-width:22rem;margin:0 auto}
+  .mobile-avis{display:grid;place-items:center;position:fixed;inset:0;background:var(--bg);padding:1.6rem;text-align:center;z-index:200;overflow:auto}
+  .mobile-avis > div{max-width:24rem;margin:auto}
+  .mobile-avis h1{font-family:var(--f-titre);font-size:1.6rem;margin:0 0 .6rem;color:var(--ink)}
+  .mobile-avis p{font-family:var(--f-texte);color:var(--gris);margin:0 auto .9rem}
+  .mobile-avis .ma-libelle{margin-bottom:.35rem;font-size:.88rem}
+  .mobile-avis #ma-url{width:100%;font-family:var(--f-ui);font-size:.82rem;padding:.6rem .7rem;
+    border:1px solid var(--ligne);border-radius:8px;background:var(--surface);color:var(--ink);
+    text-overflow:ellipsis;margin-bottom:.9rem}
+  .mobile-avis .ma-actions{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.2rem}
+  .mobile-avis .ma-fine{font-size:.85rem;margin-bottom:.5rem}
+  .mobile-avis .ma-nu{background:none;border:0;padding:0;font:inherit;color:var(--accent-txt);
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 }
+/* « Continuer quand meme » : l'ecran est trop petit, on le dit, mais on ne
+   ferme pas la porte (tablette tenue en portrait, grand telephone). */
+body.mobile-force .mobile-avis{display:none}
+@media(max-width:760px){ body.mobile-force .app{display:flex} }
 
 /* Plein écran : on garde TOUTES les commandes (barre du haut + outils).
    On replie seulement le bandeau d'introduction pour gagner de la place. */
@@ -405,7 +468,14 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    on le lit de loin, en passant, sans le chercher. */
 .curseur-live{position:absolute;left:0;top:0;z-index:19;pointer-events:none;transform-origin:top left;will-change:transform}
 .curseur-live svg{display:block;overflow:visible}
+/* La couleur d'identite arrive par la variable --c, posee sur l'element. Le
+   REPLI est volontairement fonce : si cette couleur venait a manquer, pour
+   quelque raison que ce soit, on obtient une pastille sombre a texte blanc,
+   toujours lisible. Un fond par defaut transparent ou clair donnerait du blanc
+   sur blanc, c'est-a-dire un prenom invisible, et personne ne comprendrait
+   pourquoi. Une etiquette doit rester lisible meme quand quelque chose rate. */
 .curseur-nom{position:absolute;left:17px;top:14px;font-family:var(--f-ui);font-weight:700;font-size:.78rem;color:#fff;
+  background:var(--c,#2b2722);
   padding:.15rem .46rem;border-radius:8px;white-space:nowrap;letter-spacing:.005em;
   box-shadow:0 0 0 1.7px rgba(20,17,13,.96), 0 0 0 3.4px rgba(255,255,255,.96), 0 2px 5px rgba(0,0,0,.35)}
 
@@ -444,10 +514,11 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 .scene.outil-fleche .c-carte:hover .vis::after{content:"";position:absolute;inset:0;background:rgba(232,129,28,.16)}
 .c-carte.depart{outline:3px solid var(--accent);outline-offset:2px;box-shadow:0 0 0 5px rgba(232,129,28,.25),var(--ombre)}
 
-/* Plein ecran : la barre d'outils reste visible (c'est justement la qu'on en a
-   besoin). Seules les barres explicitement masquees disparaissent. */
-body.plein .topbar,body.plein .toolbar{display:flex}
-body.plein.barres-cachees .topbar,body.plein.barres-cachees .toolbar{display:none}
+/* Plein ecran : la barre reste visible (c'est justement la qu'on en a besoin).
+   Masquee explicitement, elle laisse la place a la palette flottante : les
+   outils ne disparaissent dans aucun des deux cas. */
+body.plein .topbar{display:flex}
+body.barres-cachees .topbar{display:none}
 
 /* --- ZOOM SEMANTIQUE : ce qu'on montre change avec la distance -------------
    Voir le commentaire de `applyView` cote JavaScript pour le pourquoi. Regle

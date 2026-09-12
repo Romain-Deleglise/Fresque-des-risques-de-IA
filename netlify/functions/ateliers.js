@@ -79,7 +79,8 @@ async function purger(st) {
     for (const b of blobs) {
       try {
         const res = await st.getWithMetadata(b.key, { type: "json" });
-        if (res && res.data && isFinite(res.data.quandMs) && Date.now() > res.data.quandMs + TTL_PURGE_MS) await st.delete(b.key);
+        const quandP = res && res.data ? A.instantDe(res.data) : NaN;
+        if (isFinite(quandP) && Date.now() > quandP + TTL_PURGE_MS) await st.delete(b.key);
       } catch (e) {}
     }
   } catch (e) {}
@@ -109,7 +110,7 @@ function lienRejoindre(a, prenom) { // participant : rejoint la session
   return LIEN + "/en-ligne/session/?code=" + a.code + (prenom ? "&prenom=" + encodeURIComponent(prenom) : "");
 }
 function lienPartage(a) { return LIEN + "/participer/?atelier=" + a.code; }  // inscription (atelier prive)
-function lienGerer(a) { return LIEN + "/participer/?gerer=" + a.code + "#gerer"; } // deplacer / annuler
+function lienGerer(a) { return LIEN + "/devenir-animateur/?gerer=" + a.code + "#gerer"; } // deplacer / annuler
 // Encadre « lien a partager » : remplace l'ancienne boite « Code de session ».
 // On montre l'URL en clair pour qu'elle soit copiable a la main au besoin.
 function boiteLienPartage(url) {
@@ -264,7 +265,7 @@ function mailAnnulationAnimateur(a, prevenus) {
   l.push("Votre atelier du " + quand + " est annulé. Il n'apparaît plus dans la liste des ateliers.");
   l.push(prevenus ? (prevenus + " inscrit·e" + (prevenus > 1 ? "s ont" : " a") + " été prévenu·e" + (prevenus > 1 ? "s" : "") + " par e-mail.") : "Il n'y avait aucun inscrit·e à prévenir.");
   l.push("");
-  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/participer/#vue-animer");
+  l.push("Vous pouvez en programmer un autre quand vous voulez : " + LIEN + "/devenir-animateur/#programmer");
   l.push("");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
   let c = "";
@@ -273,7 +274,7 @@ function mailAnnulationAnimateur(a, prevenus) {
   c += '<p style="margin:0 0 18px;color:#4a473f;">' + (prevenus
     ? h(String(prevenus)) + ' inscrit·e' + (prevenus > 1 ? 's ont' : ' a') + ' été prévenu·e' + (prevenus > 1 ? 's' : '') + ' par e-mail.'
     : 'Il n\'y avait aucun inscrit·e à prévenir.') + '</p>';
-  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/participer/#vue-animer", "Programmer un autre atelier") + '</p>';
+  c += '<p style="margin:0;text-align:center;">' + bouton(LIEN + "/devenir-animateur/#programmer", "Programmer un autre atelier") + '</p>';
   return { text: l.join("\n"), html: mailHtml(c) };
 }
 
@@ -514,7 +515,7 @@ exports.handler = async (event) => {
           if (a && a.visibilite === "public" && A.visibleCalendrier(a)) out.push(A.vuePublique(a));
         } catch (e) {}
       }
-      out.sort((x, y) => x.quandMs - y.quandMs);
+      out.sort((x, y) => A.instantDe(x) - A.instantDe(y));
       return json(200, { ateliers: out });
     }
 

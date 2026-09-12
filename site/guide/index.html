@@ -34,7 +34,7 @@
         <a class="lien-ap" href="../a-propos/">À propos</a>
         <a class="" href="../devenir-animateur/">Animer</a>
         <a class="" href="../participer/">Participer</a>
-        <a class="" href="../en-ligne/">Fresque en ligne<span class="bientot">essai</span></a>
+        <a class="" href="../en-ligne/">Fresque en ligne</a>
         <a href="../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" class="btn-nav" download>Télécharger</a>
         <a class="lang" href="../en/guide/" hreflang="en" lang="en">EN</a>
       </nav>
@@ -44,130 +44,212 @@
   <main id="contenu">
     <div class="page-tete">
       <div class="wrap">
-        <p class="eyebrow">Guide de l'animateur·ice</p>
         <h1>Animer La Fresque des risques de l'IA</h1>
+        <p class="page-sous">Préparation, déroulé, minutage et conseils. Tout ce qu'il faut pour animer un premier atelier.</p>
       </div>
     </div>
 
     <section class="section">
       <div class="wrap">
-        <div class="prose">
-          <div class="avis" role="note">
-            <p><strong>Version 1, à relire.</strong></p>
-            <p class="muted">Ce guide est une première version proposée par l'équipe projet. Il donne une base solide pour animer ; ajustez le minutage et les exemples à votre groupe et à votre expérience. Vos retours sont bienvenus à <a href="mailto:contact@pauseia.fr?subject=Retour%20sur%20le%20guide%20de%20l'animateur">contact@pauseia.fr</a>.</p>
-          </div>
 
-          <p class="meta" style="margin:1.6rem 0 0">
+        <div class="guide-haut">
+          <p class="meta">
             <span><i class="pt"></i> environ 2 heures</span>
             <span><i class="pt"></i> 4 à 8 par table</span>
             <span><i class="pt"></i> 1 animateur·ice</span>
-            <span><i class="pt"></i> 38 cartes en 5 lots</span>
+            <span><i class="pt"></i> 38 cartes en 5 lots, plus la carte d'introduction</span>
           </p>
-
-          <p style="margin-top:1.4rem" class="no-print">
+          <p class="no-print guide-tele">
             <a class="btn btn-1" href="../telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf" download>Télécharger le guide (PDF)</a>
-            &nbsp; <a class="lien-fleche" href="../#telecharger">et les cartes ↓</a>
+            <a class="btn" href="../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" download>Télécharger les 39 cartes (PDF)</a>
           </p>
+          <p class="version"><strong>Version 1.0 · septembre 2026.</strong>
+            Cette page en ligne fait foi : un PDF téléchargé ne se met pas à jour tout seul.
+            Ce guide est une première version ; ajustez le minutage et les exemples à votre groupe.
+            Vos retours sont les bienvenus, sur <a href="https://discord.gg/vyXGd7AeGc" rel="noopener">le Discord</a>
+            ou à <a href="mailto:contact@pauseia.fr?subject=Retour%20sur%20le%20guide%20de%20l'animateur">contact@pauseia.fr</a>.</p>
+        </div>
 
-          <h2 style="margin-top:2.6rem">En bref</h2>
+        <div class="guide-grille">
+          <!-- SOMMAIRE. Quinze titres, et aucun moyen d'atteindre le bon autre que
+               de faire defiler : pendant un atelier, on cherche « ou en est-on du
+               minutage ? » en une seconde, pas en dix. Il est CONSTRUIT A PARTIR
+               DES TITRES de la page (voir sommaire.js) : il ne peut donc pas
+               finir en retard sur le contenu, ce qui est le sort habituel d'un
+               sommaire ecrit a la main. -->
+          <nav class="sommaire no-print" id="sommaire" aria-labelledby="sommaire-titre" hidden>
+            <h2 id="sommaire-titre">Sommaire</h2>
+          </nav>
+
+          <div class="prose" id="guide-corps">
+
+          <h2>En bref</h2>
           <p>
-            La Fresque des risques de l'IA est un atelier collaboratif. Les participant·es reçoivent
-            des cartes par lots, les relient par des flèches de cause à effet, et construisent
-            ensemble une vue d'ensemble : comment l'IA fonctionne, ce qu'elle sait faire, ses risques,
-            et les réponses possibles. Votre rôle n'est pas d'enseigner, mais de distribuer, de
-            rythmer et de faire discuter. Le savoir est sur les cartes ; l'intelligence est dans le
+            La Fresque des risques de l'IA est un atelier collaboratif pour comprendre les enjeux de
+            l'IA sans prérequis technique. Les participant·es reçoivent des cartes représentant des
+            concepts liés aux risques de l'IA et les mettent en relation par des flèches. Les cartes
+            sont regroupées en cinq lots, ajoutés progressivement pour complexifier la fresque.
+            L'atelier se fait avec l'aide de l'animateur·ice, mais l'impulsion et la réflexion
+            viennent des participant·es : le savoir est sur les cartes, l'intelligence est dans le
             groupe.
           </p>
 
-          <h2 style="margin-top:2.4rem">Objectifs</h2>
+          <h2>Objectifs</h2>
           <ul>
-            <li>Donner à chacun·e une vision claire et structurée des enjeux de l'IA, sans prérequis.</li>
-            <li>Faire comprendre les liens de cause à effet plutôt qu'une liste de faits isolés.</li>
+            <li>Donner à chacun·e une vision claire et structurée des enjeux de l'IA, reflétant le consensus scientifique, sans prérequis.</li>
+            <li>Susciter un débat où chacun·e s'approprie les concepts et participe à la réflexion du groupe.</li>
+            <li>Faire comprendre les liens de cause à effet, plutôt qu'une liste de faits isolés.</li>
             <li>Passer des risques aux réponses possibles, pour terminer sur une note constructive.</li>
-            <li>Créer une discussion de groupe, où chacun·e contribue et repart avec des questions.</li>
           </ul>
 
-          <h2 style="margin-top:2.4rem">Avant l'atelier</h2>
+          <h2>Avant un atelier en présentiel</h2>
+          <p><strong>Le matériel :</strong></p>
           <ul>
-            <li><strong>Le matériel :</strong> imprimez un jeu de 38 cartes par table (idéalement en couleur), prévoyez de grandes feuilles ou un mur, des feutres et de quoi tracer des flèches (marqueurs, gommettes, fil).</li>
-            <li><strong>La salle :</strong> une table par groupe de 4 à 8, assez grande pour étaler les cartes ; un mur ou un tableau si vous préférez à la verticale.</li>
-            <li><strong>Vous préparer :</strong> lisez les cartes à l'avance, faites une fresque vous-même une fois, et repérez les 5 lots. Rien ne remplace l'avoir vécu côté participant·e.</li>
-            <li><strong>En ligne :</strong> pour animer à distance, utilisez la <a href="../en-ligne/">Fresque en ligne</a> et un salon vocal (Discord, Google Meet…).</li>
+            <li>Un jeu de 38 cartes imprimé par table (idéalement en couleur), plus la carte d'introduction.</li>
+            <li>Du papier, idéalement 1 × 2 m (en rouleau, dans les magasins de beaux-arts ou de bricolage).</li>
+            <li>Des crayons de papier et de couleur, ou des feutres, pour tracer les flèches.</li>
+            <li>Des gommes.</li>
+            <li>Du scotch ou de la pâte adhésive.</li>
+          </ul>
+          <p><strong>La salle :</strong></p>
+          <ul>
+            <li>Une table par groupe de 4 à 8, assez grande pour étaler les cartes.</li>
+            <li>Des chaises, et de quoi circuler autour des tables.</li>
           </ul>
 
-          <h2 style="margin-top:2.4rem">Le déroulé, en cinq temps</h2>
-          <p class="muted">Minutage indicatif pour un atelier de deux heures. Le cœur, c'est la discussion : gardez du temps pour les lots 3 et 5.</p>
+          <h2>Avant un atelier en ligne</h2>
+          <p>
+            Pour animer à distance, utilisez la <a href="../en-ligne/">Fresque en ligne</a> et un salon
+            vocal (Discord, Google Meet, Teams…). Prévoyez des groupes plus petits qu'en présentiel :
+            la parole circule moins bien à distance.
+          </p>
 
+          <h2>Conseils pratiques</h2>
+          <ul>
+            <li>Lisez les cartes à l'avance, faites une fresque vous-même une fois, et repérez les cinq lots. Rien ne remplace de l'avoir vécu côté participant·e.</li>
+            <li>Commencez à l'heure prévue : le temps perdu au début ne se rattrape pas.</li>
+            <li>En présentiel, anticipez les contraintes matérielles (cartes imprimées, tables, rouleau de papier) et arrivez au moins 15 minutes en avance pour installer la salle.</li>
+          </ul>
+
+          <h2>Le déroulé de l'atelier</h2>
+          <p class="muted">Le minutage est indicatif : adaptez-le au format et au public. Le cœur, c'est la discussion ; gardez du temps pour les lots 3 et 5.</p>
           <ol class="flux guide-lots">
             <li><span class="n">0</span><div>
               <h3>Accueil et mise en route · 15 min</h3>
-              <p>Présentez le principe, sans faire de cours. Posez la carte d'introduction, formez les tables, et invitez chacun·e à dire en un mot ce que l'IA évoque pour lui ou elle. Annoncez la règle du jeu : on reçoit des cartes, on les lit, on les relie.</p>
+              <p>Fixez le cadre et créez un climat bienveillant. Faites un tour des prénoms, présentez-vous, puis présentez l'atelier, ses objectifs et les consignes. Posez la carte d'introduction. Rappelez que l'atelier est collaboratif : tout le monde participe, et chacun·e respecte les idées et les opinions des autres.</p>
             </div></li>
             <li><span class="n">1</span><div>
-              <h3>Comment fonctionne l'IA · 15 min <span class="cartes">cartes 1 à 6</span></h3>
-              <p>Modèle d'IA, données d'entraînement, amélioration des capacités, automatisation du travail, « IA cultivée, pas programmée », boîte noire. On pose les bases : l'IA apprend à partir de données, on ne la programme pas règle par règle, et on ne comprend pas tout ce qu'elle fait.</p>
-              <p class="astuce">Point d'animation : laissez le groupe placer les cartes et tracer les premières flèches. Ne corrigez pas trop vite ; une fresque « imparfaite » qui a fait discuter vaut mieux qu'une fresque parfaite dictée.</p>
+              <h3>Lot 1 · L'IA · 15 min <span class="cartes">cartes 1 à 6</span></h3>
+              <p>Poser les bases : qu'est-ce qu'un modèle d'IA, comment est-il entraîné, et quels facteurs expliquent les avancées actuelles ? Modèle d'IA, données d'entraînement, amélioration des capacités, automatisation du travail, « IA cultivée, pas programmée », boîte noire.</p>
+              <p class="astuce">Point d'animation : laissez le groupe placer les cartes et tracer les premières flèches. Ne corrigez pas trop vite ; une fresque imparfaite qui a fait discuter vaut mieux qu'une fresque parfaite dictée.</p>
             </div></li>
             <li><span class="n">2</span><div>
-              <h3>Ce que l'IA sait faire · 15 min <span class="cartes">cartes 7 à 13</span></h3>
-              <p>Autonomie, génération d'images, recommandation de contenus, robotique, génération de texte et de code, stratégies récurrentes, capacités émergentes. On voit l'étendue des usages et l'apparition de capacités non prévues.</p>
+              <h3>Lot 2 · Capacités · 15 min <span class="cartes">cartes 7 à 13</span></h3>
+              <p>Explorer les capacités et l'étendue des usages actuels de l'IA. Autonomie, génération d'images, recommandation de contenus, robotique, génération de texte et de code, stratégies récurrentes, capacités émergentes.</p>
               <p class="astuce">Point d'animation : reliez ce lot au précédent (les capacités viennent des données et de la puissance de calcul). Demandez des exemples vécus par les participant·es.</p>
             </div></li>
             <li><span class="n">3</span><div>
-              <h3>Les risques · 30 min <span class="cartes">cartes 14 à 27 et 30</span></h3>
-              <p>Le cœur de l'atelier. Deepfakes, manque de fiabilité, impact environnemental, affaiblissement des compétences, santé mentale, biais et discriminations, usage malveillant, cyberattaques, mésalignement, risques systémiques, déluge de contenus, bioterrorisme, tromperie stratégique, systèmes de contrôle, course en avant.</p>
-              <p class="astuce">Point d'animation : c'est beaucoup de cartes. Distribuez-les en deux vagues, laissez les tables s'organiser, et circulez pour aider à relier. Accueillez les émotions (inquiétude, scepticisme) sans juger ; c'est normal.</p>
+              <h3>Lot 3 · Risques actuels · 30 min <span class="cartes">cartes 14 à 27 et 30</span></h3>
+              <p>Le cœur de l'atelier : l'ensemble des risques déjà à l'œuvre, favorisés par les capacités de l'IA et par des garde-fous insuffisants. Deepfakes, manque de fiabilité, impact environnemental, affaiblissement des compétences, santé mentale, biais et discriminations, usage malveillant, cyberattaques, mésalignement, risques systémiques, déluge de contenus, bioterrorisme, tromperie stratégique, systèmes de contrôle, course en avant.</p>
+              <p class="astuce">Point d'animation : c'est beaucoup de cartes. Distribuez-les en deux vagues, laissez les tables s'organiser, et circulez pour aider à relier. Accueillez les émotions (inquiétude, scepticisme) sans juger : c'est normal.</p>
             </div></li>
             <li><span class="n">4</span><div>
-              <h3>Risques majeurs et perte de contrôle · 20 min <span class="cartes">cartes 28, 29, 31, 32, 33</span></h3>
-              <p>Systèmes d'armes létales autonomes, IA générale (AGI), risques existentiels, perte de contrôle, superintelligence. On monte d'un cran : que se passe-t-il si les systèmes deviennent plus capables que nous et échappent à notre contrôle ?</p>
+              <h3>Lot 4 · Risques existentiels · 20 min <span class="cartes">cartes 28, 29, 31, 32 et 33</span></h3>
+              <p>Ce qui se joue lorsque des systèmes deviennent plus capables que les humains et échappent à leur contrôle. Systèmes d'armes létales autonomes, intelligence artificielle générale (AGI), risques existentiels, perte de contrôle, superintelligence.</p>
               <p class="astuce">Point d'animation : gardez une posture ouverte. Ces cartes portent des scénarios débattus ; l'objectif est de comprendre les mécanismes, pas d'imposer une conclusion.</p>
             </div></li>
             <li><span class="n">5</span><div>
-              <h3>Les réponses possibles · 20 min <span class="cartes">cartes 34 à 38</span></h3>
-              <p>Recherche en sécurité de l'IA, lignes rouges, moratoire international sur les modèles frontières, supervision démocratique, évaluations par des tiers indépendants. On termine par l'action : rien n'est joué, des réponses existent.</p>
+              <h3>Lot 5 · Solutions · 20 min <span class="cartes">cartes 34 à 38</span></h3>
+              <p>La fresque se termine par les réponses défendues par Pause IA face à ces enjeux. Recherche en sécurité de l'IA, lignes rouges, moratoire international sur les modèles frontières, supervision démocratique, évaluations par des tiers indépendants.</p>
               <p class="astuce">Point d'animation : reliez chaque réponse aux risques qu'elle adresse. Finir ici évite de laisser le groupe sur un sentiment d'impuissance.</p>
             </div></li>
           </ol>
 
-          <h2 style="margin-top:2.4rem">Restitution et appropriation · 10 min</h2>
+          <h2>Transition · 10 min</h2>
           <p>
-            Une fois la fresque construite, invitez chaque table à lui <strong>donner un titre</strong>,
-            à l'illustrer de quelques dessins et à repérer <strong>deux ou trois liens clés</strong>.
-            Ce moment créatif ancre la compréhension et fait émerger le sens que le groupe a construit.
-            Si plusieurs tables, faites circuler pour découvrir les autres fresques.
+            Cette phase renforce les acquis et laisse aux participant·es un temps pour s'approprier le
+            contenu de la fresque. Demandez-leur de <strong>réorganiser</strong> la fresque, de
+            l'<strong>améliorer visuellement</strong> (un titre, quelques dessins), et de repérer
+            <strong>deux ou trois liens clés</strong>. S'il y a plusieurs tables, faites-les circuler
+            pour découvrir les autres fresques.
           </p>
 
-          <h2 style="margin-top:2.4rem">Débrief et clôture · 15 min</h2>
+          <h2>Discussion · 15 min</h2>
+          <p>Deux approches, au choix :</p>
           <ul>
-            <li>Un tour de table : « qu'est-ce qui vous a surpris·e ? qu'allez-vous regarder autrement ? »</li>
-            <li>Distinguez ce qui est déjà là de ce qui relève de scénarios : nommez l'incertitude.</li>
-            <li>Terminez sur les réponses possibles et sur un premier pas concret (s'informer, en parler, animer à votre tour).</li>
-            <li>Indiquez où aller plus loin : <a href="https://pauseia.fr/" rel="noopener">pauseia.fr</a> et la page <a href="../participer/">participer à un atelier</a>.</li>
+            <li>Introduire un sujet de discussion et laisser les participant·es en débattre.</li>
+            <li>Les laisser faire émerger eux-mêmes leurs questions et leurs remarques.</li>
+          </ul>
+          <p>
+            Adaptez la discussion à votre public et à sa familiarité avec l'IA. Distinguez ce qui est
+            déjà là de ce qui relève de scénarios : nommez l'incertitude. Terminez par un bref résumé
+            de la fresque et par un premier pas concret que chacun·e peut faire (s'informer, en parler
+            autour de soi, ou animer à son tour).
+          </p>
+
+          <h2>Si ça se complique</h2>
+          <div class="avis" role="note">
+            <p><strong>Une personne est angoissée par le sujet.</strong> Nommez l'émotion plutôt que
+              de la contourner : « c'est un sujet lourd, c'est normal d'être secoué·e ». Rappelez que
+              l'atelier se termine sur les réponses possibles, et proposez une pause. Ne cherchez pas
+              à rassurer avec des arguments : écouter suffit.</p>
+            <p><strong>Une personne conteste la validité d'une carte.</strong> Accueillez l'objection,
+              c'est un bon signe. Renvoyez au texte du verso et au groupe : « qu'en pensent les
+              autres ? » Si le désaccord persiste, notez-le sur la fresque comme une question ouverte
+              plutôt que de trancher. Dire « je ne sais pas, je vérifierai » est une réponse
+              parfaitement acceptable.</p>
+            <p><strong>Le groupe décroche.</strong> C'est presque toujours le signe d'un lot trop long
+              ou d'une posture trop descendante. Coupez court, passez au lot suivant, et redonnez la
+              main : faites placer les cartes par les personnes les plus silencieuses, ou demandez un
+              exemple vécu. Une fresque incomplète mais vivante vaut mieux qu'une fresque complète et
+              silencieuse.</p>
+          </div>
+
+          <h2>Conseils d'animation</h2>
+          <p><strong>Attitude à privilégier :</strong></p>
+          <ul>
+            <li>Soyez à l'écoute, sans jugement.</li>
+            <li>Restez factuel·le et nuancé·e : évitez la peur comme la minimisation.</li>
+            <li>Répartissez la parole si certain·es participant·es l'accaparent.</li>
+            <li>Adaptez-vous à votre public.</li>
+          </ul>
+          <p><strong>Pendant l'atelier :</strong></p>
+          <ul>
+            <li>Laissez le groupe placer les cartes et les relier. Intervenez le moins possible : l'atelier doit susciter des discussions, pas les remplacer.</li>
+            <li>Si besoin, suggérez d'abord de relire les cartes.</li>
+            <li>Si un concept est mal compris, intervenez et précisez uniquement ce qui est nécessaire.</li>
+            <li>N'ayez pas peur de dire que vous ne savez pas, et faites des recherches pour la fois suivante.</li>
+            <li>Faites attention au temps : vous n'aurez pas le temps d'aborder toutes les cartes, et c'est normal.</li>
+            <li>Si vous animez plusieurs tables en même temps, répartissez vos passages et centralisez les explications communes.</li>
+            <li>Essayez de ne laisser personne de côté, en particulier si le niveau du groupe est hétérogène.</li>
           </ul>
 
-          <h2 style="margin-top:2.4rem">Conseils d'animation</h2>
+          <h2>Variantes de l'atelier</h2>
           <ul>
-            <li><strong>Vous n'êtes pas l'expert·e.</strong> Renvoyez les questions au groupe et aux cartes. « Bonne question, qu'en pensez-vous ? »</li>
-            <li><strong>Tenez le temps.</strong> Annoncez les durées, prévenez à mi-parcours, et acceptez une fresque incomplète plutôt que de sauter la clôture.</li>
-            <li><strong>Faites circuler la parole.</strong> Encouragez les plus discret·es, cadrez les monologues avec bienveillance.</li>
-            <li><strong>Restez factuel·le et nuancé·e.</strong> Le sujet est chargé ; évitez la peur comme la minimisation. Les cartes suffisent, votre rôle est de faire relier.</li>
-            <li><strong>Grands groupes :</strong> répartissez en tables de 4 à 8, chacune avec son jeu, puis mettez en commun à la restitution.</li>
-          </ul>
-
-          <h2 style="margin-top:2.4rem">Variantes</h2>
-          <ul>
-            <li><strong>Format court (1 h) :</strong> concentrez-vous sur les lots 1, 3 et 5, et allégez la restitution.</li>
+            <li><strong>Format court (1 h) :</strong> concentrez-vous sur les lots 1, 3 et 5, et allégez la discussion.</li>
             <li><strong>À distance :</strong> la <a href="../en-ligne/">Fresque en ligne</a> reproduit le tableau partagé ; prévoyez un salon vocal et des groupes plus petits.</li>
-            <li><strong>Public jeune ou non technique :</strong> passez plus de temps sur les lots 1 et 2, avec des exemples du quotidien.</li>
+            <li><strong>Public jeune ou peu familier avec l'IA :</strong> passez plus de temps sur les lots 1 et 2, avec des exemples d'IA et d'usages du quotidien.</li>
           </ul>
 
-          <h2 style="margin-top:2.4rem">Après l'atelier</h2>
-          <p>
-            Remerciez le groupe, partagez le lien du site pour télécharger les cartes, et proposez à
-            celles et ceux qui ont accroché de <a href="../devenir-animateur/">devenir animateur·ice</a>
-            à leur tour. C'est ainsi que la Fresque se diffuse.
+          <h2>Après l'atelier</h2>
+          <ul>
+            <li>Envoyez un e-mail au groupe : remerciez, rappelez les activités de Pause IA, et partagez le lien du site pour télécharger les cartes.</li>
+            <li>Proposez à celles et ceux qui ont accroché de <a href="../devenir-animateur/">devenir animateur·ice</a> à leur tour. C'est ainsi que la Fresque se diffuse.</li>
+            <li>Venez partager votre retour d'expérience aux autres animateur·ices.</li>
+          </ul>
+
+          <h2>Et maintenant ?</h2>
+          <p class="no-print guide-fin">
+            <a class="btn btn-1" href="https://discord.gg/vyXGd7AeGc" rel="noopener">Partager mon retour sur le Discord</a>
+            <a class="btn" href="../devenir-animateur/#programmer">Programmer un atelier</a>
+            <a class="btn" href="mailto:contact@pauseia.fr?subject=Retour%20d'exp%C3%A9rience%20apr%C3%A8s%20un%20atelier">Écrire à l'équipe</a>
           </p>
+          <p class="muted">
+            Une question avant de vous lancer, une remarque sur ce guide, une situation qu'il n'a pas
+            prévue : tout cela nous est utile, et sert directement à la version suivante.
+          </p>
+
+          </div>
         </div>
       </div>
     </section>
@@ -214,5 +296,6 @@
   </footer>
   <script src="../assets/js/nav.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
+  <script src="../assets/js/sommaire.js" defer></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
    Sans RESEND_API_KEY, ne fait rien. */
 "use strict";
 const { getStore } = require("@netlify/blobs");
+const A = require("../../serveur/src/ateliers.js");
 const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
@@ -22,7 +23,7 @@ function lienOuvrir(a) {
   return LIEN + "/en-ligne/session/?ouvrir=" + a.code
     + (a.animateur && a.animateur.prenom ? "&prenom=" + encodeURIComponent(a.animateur.prenom) : "");
 }
-function lienGerer(a) { return LIEN + "/participer/?gerer=" + a.code + "#gerer"; }
+function lienGerer(a) { return LIEN + "/devenir-animateur/?gerer=" + a.code + "#gerer"; }
 
 // Deux e-mails DISTINCTS : l'animateur·ice et les inscrit·es n'ont ni le meme
 // role, ni les memes liens, ni les memes informations. L'animateur voit la liste
@@ -114,7 +115,11 @@ exports.handler = async () => {
         const res = await st.getWithMetadata(b.key, { type: "json" });
         const a = res && res.data;
         if (!a || a.rappelEnvoye) continue;
-        if (!isFinite(a.quandMs) || a.quandMs < now || a.quandMs > now + FENETRE_MS) continue;
+        // Instant RECALCULE depuis la date et l'heure, en heure de Paris : les
+        // ateliers enregistres avant la correction de fuseau portent un
+        // `quandMs` decale d'une a deux heures (voir serveur/src/ateliers.js).
+        const quand = A.instantDe(a);
+        if (!isFinite(quand) || quand < now || quand > now + FENETRE_MS) continue;
         const parts = (a.participants || []).map((p) => p.mail).filter(Boolean);
         // Un e-mail pour l'animateur·ice, un autre pour les inscrit·es (en Cci
         // seul : personne n'y voit l'adresse de personne).

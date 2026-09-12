@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "_commentaire": "Temoignages affiches sur la page d'accueil. VIDE PAR DEFAUT, ET C'EST VOULU : un temoignage invente vaudrait moins que pas de temoignage du tout. Ajoutez ici des phrases reellement dites, avec l'accord de la personne. La section n'apparait sur le site que s'il y a au moins deux entrees dans la langue affichee. Champs : texte (1 a 3 phrases), qui (prenom, ou prenom + role), contexte (facultatif : lieu, date, type de public), lang ('fr' ou 'en').",
+  "_exemple": { "texte": "…", "qui": "…", "contexte": "…", "lang": "fr" },
+  "temoignages": []
+}

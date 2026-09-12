@@ -22,6 +22,13 @@ jobs:
         # sessions (coherence, ecriture conditionnelle, idempotence) verrouillent
         # des pannes qui sont DEJA passees en production sans rien faire tomber.
         run: npm test
+      - name: Le PDF du guide correspond-il toujours a la page ?
+        # Le PDF est IMPRIME depuis la page (scripts/generer-guide-pdf.mjs).
+        # Sans ce controle, il suffit de modifier la page et d'oublier de le
+        # regenerer pour que les deux repartent chacun de leur cote, et c'est le
+        # PDF, une fois telecharge, qui devient la reference par defaut.
+        run: node scripts/generer-guide-pdf.mjs --verifier
+
       - name: Verifier l'absence de requete vers un domaine tiers dans le HTML
         run: |
           if grep -RniE 'https?://(fonts\.googleapis|fonts\.gstatic|cdn\.|ajax\.googleapis)' site/ ; then
@@ -46,6 +53,25 @@ jobs:
           for i in $(seq 1 20); do curl -sf http://localhost:8099/ >/dev/null && break; sleep 0.5; done
       - name: Audit d'accessibilite (WCAG 2.1 A/AA)
         run: BASE=http://localhost:8099 node scripts/audit-a11y.mjs
+
+  charge:
+    # Un atelier entier, neuf navigateurs, sur le vrai relais. Ce qui coute ici
+    # croit avec le CARRE du nombre de personnes : ce que deux navigateurs ne
+    # peuvent pas montrer, neuf le montrent. Voir scripts/verifier-charge.mjs.
+    # Uniquement sur main : neuf Chromium sur un runner partage peuvent etre
+    # lents, et une mesure de charge instable ne doit jamais bloquer une PR.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --no-audit --no-fund
+      - run: npm install --no-save playwright ws
+      - run: npx playwright install --with-deps chromium
+      - name: Epreuve de charge (1 animateur + 8 participants)
+        run: node scripts/verifier-charge.mjs
 
   tableau:
     # Ce qui casse en silence sur ce projet ne casse pas les tests unitaires :

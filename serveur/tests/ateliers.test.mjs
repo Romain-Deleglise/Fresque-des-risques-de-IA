@@ -125,3 +125,40 @@ test("désinscription participant : par jeton personnel", () => {
   assert.ok(A.retraitParticipant(a, {}).erreur, "sans jeton refusé");
   assert.ok(A.retraitParticipant(null, { token: "x" }).erreur, "atelier inconnu");
 });
+
+/* HEURE DE PARIS. La date et l'heure d'un atelier sont celles annoncees aux
+   inscrit·es, donc l'heure de Paris. Elles etaient lues dans le fuseau de la
+   machine, qui est UTC sur cette plateforme : un atelier de 18 h 30 partait a
+   20 h 30 en ete, le rappel « dans une heure » arrivait apres la fin, et
+   l'atelier restait « a venir » deux heures de trop. */
+test("un atelier est place a l'heure de Paris, ete comme hiver", () => {
+  const ete = A.instantParis("2026-06-10", "18:30");
+  assert.equal(new Date(ete).toISOString(), "2026-06-10T16:30:00.000Z", "18 h 30 a Paris en ete = 16 h 30 UTC");
+  const hiver = A.instantParis("2026-12-10", "18:30");
+  assert.equal(new Date(hiver).toISOString(), "2026-12-10T17:30:00.000Z", "18 h 30 a Paris en hiver = 17 h 30 UTC");
+});
+
+test("l'instant est recalcule, meme pour un atelier enregistre avant la correction", () => {
+  // Ce que le service enregistrait avant : l'heure lue comme de l'UTC.
+  const vieux = { date: "2026-06-10", heure: "18:30", quandMs: Date.parse("2026-06-10T18:30:00Z") };
+  assert.equal(A.instantDe(vieux), Date.parse("2026-06-10T16:30:00Z"),
+    "un enregistrement ancien porte un quandMs faux : il ne doit pas etre cru sur parole");
+});
+
+test("sans date exploitable, on retombe sur la valeur enregistree", () => {
+  assert.equal(A.instantDe({ quandMs: 1234567 }), 1234567);
+  assert.ok(Number.isNaN(A.instantDe({})));
+});
+
+test("un atelier du soir n'est pas declare passe deux heures trop tot", () => {
+  // 18 h 30 heure de Paris, un jour d'ete : il reste a venir jusqu'a 21 h 30.
+  const a = { date: "2026-06-10", heure: "18:30" };
+  const t = A.instantParis("2026-06-10", "18:30");
+  const vrai = Date.now;
+  try {
+    Date.now = () => t + 2 * 60 * 60 * 1000;       // deux heures apres le debut
+    assert.equal(A.estPasse(a), false, "il dure trois heures : a ce moment-la il est encore en cours");
+    Date.now = () => t + 4 * 60 * 60 * 1000;
+    assert.equal(A.estPasse(a), true);
+  } finally { Date.now = vrai; }
+});

@@ -38,7 +38,7 @@
         <a class="lien-ap" href="a-propos/">À propos</a>
         <a class="" href="devenir-animateur/">Animer</a>
         <a class="" href="participer/">Participer</a>
-        <a class="" href="en-ligne/">Fresque en ligne<span class="bientot">essai</span></a>
+        <a class="" href="en-ligne/">Fresque en ligne</a>
         <a href="telechargements/fresque-des-risques-de-l-ia-cartes.pdf" class="btn-nav" download>Télécharger</a>
         <a class="lang" href="en/" hreflang="en" lang="en">EN</a>
       </nav>
@@ -104,7 +104,7 @@
           </p>
           <div class="actions">
             <a class="btn btn-1" href="participer/#roles">Participer à un atelier</a>
-            <a class="btn btn-2" href="participer/#vue-animer">Animer un atelier</a>
+            <a class="btn btn-2" href="devenir-animateur/#programmer">Animer un atelier</a>
             <a class="btn btn-noir" href="telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf" download>Guide animateur <small>PDF</small></a>
           </div>
         </div>
@@ -126,6 +126,17 @@
     </section>
 
     <!-- PARCOURS -->
+
+    <!-- TEMOIGNAGES. Remplis depuis data/temoignages.json ; la section est
+         retiree tant qu'il n'y en a pas au moins deux. -->
+    <section class="section" id="temoignages" data-base="" hidden>
+      <div class="wrap">
+        <div class="entete-sec">
+          <h2>Ce qu'en disent les participant·es</h2>
+        </div>
+        <div class="temoins"></div>
+      </div>
+    </section>
 
     <!-- GALERIE -->
     <section class="section section-doux">
@@ -184,6 +195,7 @@
   <script src="assets/js/cartes.js" defer></script>
   <script src="assets/js/ateliers.js" defer></script>
   <script src="assets/js/nav.js" defer></script>
+  <script src="assets/js/temoignages.js" defer></script>
   <script src="assets/js/mesure.js" defer></script>
 </body>
 </html>

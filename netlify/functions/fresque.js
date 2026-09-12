@@ -38,9 +38,15 @@ const BALAYAGE_MS = 15 * 60 * 1000;
 function store() { return getStore({ name: "fresque-sessions" }); }
 function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }
 function storePresence() { return getStore({ name: "fresque-presence" }); }
+function storeImages() { return getStore({ name: "fresque-images" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
 function clePres(code) { return "presence:" + code; }
+function cleImg(code) { return "image:" + code; }
+// Taille maximale de l'image deposee, en caracteres base64 (~2,6 Mo de PNG).
+// Au-dela, le client n'envoie rien : mieux vaut un e-mail sans image qu'une
+// fonction qui echoue sur un corps trop gros.
+const IMG_MAX = 3500000;
 const json = (statut, corps) => ({
   statusCode: statut,
   headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -376,6 +382,28 @@ exports.handler = async (event) => {
               -H 'Content-Type: application/json' -d '{"op":"sante"}' | jq
        Elle ne lit ni n'ecrit aucune session : elle ne peut rien casser, et ne
        divulgue rien (aucun code, aucun prenom, aucune cle). */
+    /* IMAGE DE FIN D'ATELIER. Le tableau termine est la seule chose que le
+       groupe a envie de garder, et c'est justement ce que l'e-mail de suivi ne
+       contenait pas : l'animateur·ice telechargeait l'image, et elle s'arretait
+       la, sur sa machine. On la depose donc ici, et le suivi la joint a l'envoi
+       (netlify/functions/suivi.js), puis l'efface.
+       Reserve a l'animateur·ice : c'est elle ou lui qui cloture. Conservee au
+       plus quelques jours, le temps de l'envoi, jamais au-dela. */
+    if (d.op === "image") {
+      const code = String(d.code || "").toUpperCase();
+      const png = String(d.png || "");
+      if (!png || png.length > IMG_MAX) return json(413, { refus: { code: "image_trop_grande", message: "Image trop grande." } });
+      const cur = await lire(st, code);
+      if (!cur) return json(404, { refus: { code: "session_inconnue", message: "Code inconnu." } });
+      const info = cur.s.jetons[d.jeton];
+      if (!info || info.role !== "animateur") {
+        return json(403, { refus: { code: "reserve_animateur", message: "Réservé à l'animateur·ice." } });
+      }
+      try { await storeImages().setJSON(cleImg(code), { png: png, ts: Date.now() }); }
+      catch (e) { return json(200, { ok: false }); }   // jamais bloquant : c'est un bonus
+      return json(200, { ok: true });
+    }
+
     if (d.op === "sante") {
       const st2 = limites();
       const k = "sante:" + Math.random().toString(36).slice(2, 10);

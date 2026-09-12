@@ -6,6 +6,7 @@
    la veille (rappels.js). */
 "use strict";
 const { getStore } = require("@netlify/blobs");
+const A = require("../../serveur/src/ateliers.js");
 const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
@@ -78,8 +79,9 @@ exports.handler = async () => {
         const res = await st.getWithMetadata(b.key, { type: "json" });
         const a = res && res.data;
         if (!a || a.rappelHeureEnvoye) continue;
-        if (!isFinite(a.quandMs)) continue;
-        const delta = a.quandMs - now;
+        const quand = A.instantDe(a);   // heure de Paris, recalculee
+        if (!isFinite(quand)) continue;
+        const delta = quand - now;
         if (delta < T_MIN || delta > T_MAX) continue;
         const parts = (a.participants || []).map((p) => p.mail).filter(Boolean);
         const ma = mailImminentAnimateur(a);

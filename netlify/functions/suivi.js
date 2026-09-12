@@ -6,6 +6,7 @@
    ensuite l'atelier comme suivi. Sans RESEND_API_KEY, ne fait rien. */
 "use strict";
 const { getStore } = require("@netlify/blobs");
+const A = require("../../serveur/src/ateliers.js");
 const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, mailHtml = G.mailHtml, bouton = G.bouton;
@@ -16,11 +17,33 @@ const LIMITE_MS = 3 * 24 * 60 * 60 * 1000;  // fenetre d'envoi : jusqu'a 3 j apr
 const DISCORD = "https://discord.gg/vyXGd7AeGc";
 
 function store() { return getStore({ name: "fresque-ateliers" }); }
+function storeImages() { return getStore({ name: "fresque-images" }); }
+// Au-dela, l'image ne sert plus a rien et n'a pas a etre conservee.
+const IMG_LIMITE_MS = 7 * 24 * 60 * 60 * 1000;
 
-function contenuSuivi() {
+/* L'IMAGE DE LA FRESQUE. C'est la seule chose que le groupe a envie de garder,
+   et elle restait sur la machine de l'animateur·ice. Elle est deposee en fin
+   d'atelier (op "image" de fresque.js) et jointe ici, puis effacee : on ne
+   conserve pas le travail d'un groupe plus longtemps que le temps de le lui
+   envoyer. */
+async function imageDe(code) {
+  if (!code) return null;
+  try {
+    const r = await storeImages().get("image:" + code, { type: "json" });
+    if (!r || !r.png) return null;
+    if (Date.now() - (r.ts || 0) > IMG_LIMITE_MS) { await effacerImage(code); return null; }
+    return r.png;
+  } catch (e) { return null; }
+}
+async function effacerImage(code) {
+  if (!code) return;
+  try { await storeImages().delete("image:" + code); } catch (e) {}
+}
+
+function contenuSuivi(avecImage) {
   const cartes = LIEN + "/#telecharger";
   const guide = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
-  const programmer = LIEN + "/participer/#vue-animer";
+  const programmer = LIEN + "/devenir-animateur/#programmer";
 
   const l = [];
   l.push("Bonjour,");
@@ -35,6 +58,7 @@ function contenuSuivi() {
   l.push("- Guide d'animation : " + guide);
   l.push("- Programmer un atelier : " + programmer);
   l.push("");
+  if (avecImage) { l.push("Votre fresque est jointe à ce message, telle que le groupe l'a laissée."); l.push(""); }
   l.push("À bientôt,");
   l.push("L'équipe de la Fresque des risques de l'IA, Pause IA");
 
@@ -49,6 +73,9 @@ function contenuSuivi() {
   c += '<p style="margin:0;text-align:center;">' + bouton(programmer, "Programmer un atelier") + '</p>';
   c += '</div>';
   c += '<p style="margin:12px 0 0;font-size:13px;color:#6b665e;">Ou d\'abord <a href="' + h(guide) + '" style="color:#6b665e;">télécharger le guide d\'animation</a>.</p>';
+  if (avecImage) {
+    c += '<p style="margin:18px 0 0;font-size:13px;color:#6b665e;">Votre fresque est jointe à ce message, telle que le groupe l\'a laissée.</p>';
+  }
 
   return { text: l.join("\n"), html: mailHtml(c) };
 }
@@ -65,19 +92,33 @@ exports.handler = async () => {
         const res = await st.getWithMetadata(b.key, { type: "json" });
         const a = res && res.data;
         if (!a || a.suiviEnvoye) continue;
-        if (!isFinite(a.quandMs)) continue;
-        if (now < a.quandMs + FIN_MS || now > a.quandMs + LIMITE_MS) continue;
+        const quand = A.instantDe(a);   // heure de Paris, recalculee
+        if (!isFinite(quand)) continue;
+        if (now < quand + FIN_MS || now > quand + LIMITE_MS) continue;
         const dest = [a.animateur && a.animateur.mail].filter(Boolean);
         const parts = (a.participants || []).map((p) => p.mail).filter(Boolean);
         if (!dest.length && !parts.length) { a.suiviEnvoye = true; await st.setJSON(b.key, a, { onlyIfMatch: res.etag }); continue; }
-        const m = contenuSuivi();
-        const env = await mail.envoi({ to: dest.length ? dest : parts, bcc: dest.length ? parts : [], subject: "Merci ! Et si vous animiez la Fresque des risques de l'IA ?", text: m.text, html: m.html });
+        const png = await imageDe(a.code);
+        const m = contenuSuivi(!!png);
+        const envoiM = { to: dest.length ? dest : parts, bcc: dest.length ? parts : [], subject: "Merci ! Et si vous animiez la Fresque des risques de l'IA ?", text: m.text, html: m.html };
+        if (png) envoiM.attachments = [{ filename: "fresque-des-risques-de-l-ia.jpg", content: png }];
+        const env = await mail.envoi(envoiM);
         if (env.envoye) {
           a.suiviEnvoye = true;
           await st.setJSON(b.key, a, { onlyIfMatch: res.etag });
+          await effacerImage(a.code);
           envoyes++;
         }
       } catch (e) {}
+    }
+  } catch (e) {}
+  // Menage : une image dont l'atelier n'a jamais donne lieu a un envoi ne doit
+  // pas rester. Le travail d'un groupe n'a pas a trainer sur nos serveurs.
+  try {
+    const { blobs } = await storeImages().list({ prefix: "image:" });
+    for (const b of blobs) {
+      const r = await storeImages().get(b.key, { type: "json" });
+      if (!r || Date.now() - (r.ts || 0) > IMG_LIMITE_MS) { try { await storeImages().delete(b.key); } catch (e) {} }
     }
   } catch (e) {}
   return { statusCode: 200, body: "suivis envoyés: " + envoyes };
