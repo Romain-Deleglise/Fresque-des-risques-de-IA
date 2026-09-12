@@ -616,7 +616,7 @@ const loin = await A.evaluate(() => {
     nbLots: document.querySelectorAll("#legende b").length
   };
 });
-t("de loin, l'image de la carte s'efface au profit de la couleur du lot",
+t("tout au fond, l'image de la carte s'efface au profit de la couleur du lot",
   loin.imageCachee && !/rgba\(0, 0, 0, 0\)|transparent/.test(loin.fondLot), JSON.stringify(loin));
 t("et la boite de la carte n'a pas bouge pour autant (l'export en depend)",
   loin.boite === "150x150" || /^150x/.test(loin.boite), "boite " + loin.boite);
@@ -633,6 +633,42 @@ const apresZoom = await A.evaluate(() => ({
 }));
 t("et elle disparait des qu'on se rapproche, ou elle n'aurait plus d'objet",
   apresZoom.d === "none", JSON.stringify(apresZoom));
+/* LE LIBELLE D'UNE FLECHE NE DOIT JAMAIS DISPARAITRE AU DEZOOM. C'est une
+   annotation ecrite par le groupe : la masquer fait croire qu'elle est perdue.
+   Je l'avais pourtant retiree, en la jugeant illisible ; c'est une relecture
+   humaine qui l'a vu, pas ce banc. D'ou ce controle. */
+{
+  let fl = R.vue(S).tableau.fleches;
+  if (!fl.length) { R.appliquer(S, "jAnim", { op: "creerFleche", de: 1, vers: 2 }); fl = R.vue(S).tableau.fleches; }
+  if (fl.length) { R.appliquer(S, "jAnim", { op: "libellerFleche", id: fl[0].id, libelle: "renforce" }); noter(); }
+  await A.waitForFunction(() => !!document.querySelector(".fleche-lib"), null, { timeout: 20000 }).catch(() => {});
+}
+const mesureLib = () => A.evaluate(() => {
+  const el = document.querySelector(".fleche-lib");
+  const r = el ? el.getBoundingClientRect() : null;
+  return { z: document.getElementById("z-niv").textContent,
+    visible: !!(el && getComputedStyle(el).visibility !== "hidden" && r.height > 0),
+    haut: r ? Math.round(r.height) : 0 };
+});
+const libEtapes = [];
+await A.evaluate(() => document.getElementById("z-tout").click());
+await dodo(600);
+libEtapes.push(await mesureLib());                                   // cadrage d'ensemble
+for (let i = 0; i < 4; i++) { await A.evaluate(() => document.getElementById("z-plus").click()); await dodo(280); }
+libEtapes.push(await mesureLib());                                   // de pres
+await A.evaluate(() => document.getElementById("z-tout").click());
+await dodo(500);
+await A.mouse.move(scA.x, scA.y);
+for (let i = 0; i < 40; i++) { await A.mouse.wheel(0, 120); await dodo(10); }
+await dodo(400);
+libEtapes.push(await mesureLib());                                   // dezoom maximal
+t("le libelle d'une fleche reste visible a toutes les distances",
+  libEtapes.every((e) => e.visible), JSON.stringify(libEtapes));
+t("et il garde une taille d'ecran constante, au lieu de retrecir avec le tableau",
+  libEtapes.every((e) => e.haut >= 14)
+  && (Math.max.apply(null, libEtapes.map((e) => e.haut)) - Math.min.apply(null, libEtapes.map((e) => e.haut))) <= 6,
+  libEtapes.map((e) => e.z + " : " + e.haut + " px").join(", "));
+
 await A.evaluate(() => document.getElementById("z-tout").click());
 await dodo(600);
 await A.mouse.move(scA.x, scA.y);
