@@ -30,7 +30,14 @@ import { createRequire } from 'node:module';
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 const require = createRequire(import.meta.url);
 const R = require('../serveur/src/regles.js');
-const { chromium } = await import('playwright-core');
+// `playwright` en CI (il gere le registre des navigateurs qu'il a installes),
+// `playwright-core` en local, ou l'on pointe un Chromium deja present via
+// PW_CHROMIUM. Meme convention que les autres bancs de ce dossier : un chemin
+// en dur ne marche que sur la machine ou il a ete ecrit.
+const { chromium } = await (async () => {
+  try { return await import('playwright'); } catch (e) { return await import('playwright-core'); }
+})();
+const CHROME = process.env.PW_CHROMIUM || undefined;
 const RACINE='/home/user/Fresque-des-risques-de-IA';
 const PORT_SITE=8135, PORT_RELAIS=8136;
 const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2'};
@@ -55,7 +62,7 @@ async function servir(route){
   await dodo(LAT/2);
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(corps)});
 }
-const nav=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const nav=await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 async function ouvrir(jeton,role){
   const ctx=await nav.newContext({viewport:{width:1200,height:800}});
   const p=await ctx.newPage();
