@@ -33,6 +33,9 @@
     copie: "copied ✓", lienCopie: "Link copied ✓", copieEchec: "Copy failed. Select the code and copy it manually.",
     plein: "Fullscreen", quitterPlein: "Exit fullscreen", vous: "(you)", fondNoir: "Dark board", fondBlanc: "Light board",
     lienCopie: "Link copied.", lienSujet: "My AI Risks Collage session",
+    appelVoir: "Show me", appelEnvoye: "Invitation sent to the group.",
+    appelImpossible: "The relay does not know how to do this yet: it needs redeploying.",
+    appelTexte: function (n) { return (n || "The facilitator") + " would like to show you something."; },
     coachFermer: "Got it",
     coachPartager: "Copy the invitation link (top left) so participants can join.",
     coachPool: "Add cards to the shared reserve (your card deck, at the bottom) so the group can place them.",
@@ -97,6 +100,9 @@
     copie: "copié ✓", lienCopie: "Lien copié ✓", copieEchec: "Copie impossible. Sélectionnez le code et copiez-le à la main.",
     plein: "Plein écran", quitterPlein: "Quitter le plein écran", vous: "(vous)", fondNoir: "Fond noir", fondBlanc: "Fond blanc",
     lienCopie: "Lien copié.", lienSujet: "Ma session de la Fresque des risques de l'IA",
+    appelVoir: "Voir", appelEnvoye: "Invitation envoyée au groupe.",
+    appelImpossible: "Le relais ne sait pas encore faire cela : il doit être redéployé.",
+    appelTexte: function (n) { return (n || "L'animateur·ice") + " voudrait vous montrer quelque chose."; },
     coachFermer: "Compris",
     coachPartager: "Copiez le lien d'invitation (en haut à gauche) pour que des participant·es rejoignent.",
     coachPool: "Ajoutez des cartes à la réserve commune (votre jeu de cartes, en bas) pour que le groupe les pose.",
@@ -157,6 +163,7 @@
       "#deck-titre": "Card deck",
       "#deck-aide": "Click (or drag) a card to add it to the shared reserve (8 max), which anyone can place.",
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen", "#btn-affichage": "Display",
+      "#btn-rassembler": "Gather",
       "#btn-barres": "Hide the bar", "#btn-barres-show": "Bar ▾", "#btn-partager": "Invite",
       "#btn-curseurs": "Other people's cursors",
       "#panneau .panneau-tete h3": "Participants",
@@ -174,6 +181,7 @@
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
       ["#btn-partager", "title", "Copy the invitation link to send to your group"], ["#etat-conn", "title", "Connection"],
+      ["#btn-rassembler", "title", "Invite everyone to come and see what you see"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
@@ -244,7 +252,7 @@
    "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
    "scene","monde","fleches","fleches-live","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-participants","panneau","fermer-panneau",
-   "btn-barres","btn-barres-show","btn-affichage","menu-affichage","dock","zone-outils","grp-zoom","btn-annuler",
+   "btn-barres","btn-barres-show","btn-affichage","menu-affichage","dock","zone-outils","grp-zoom","btn-annuler","btn-rassembler",
    "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","legende","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
@@ -2451,6 +2459,7 @@
       case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
       case "gliss": recevoirGliss(m); return;
       case "gliss0": cloturerGliss(m.id); return;
+      case "voir": recevoirAppelVue(m); return;
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;
@@ -2837,6 +2846,81 @@
     etat.zoom = sz; etat.panX = sx; etat.panY = sy;
     allerVers(nz, nx, ny);
   }
+  /* --- « RASSEMBLER » : proposer aux autres de venir voir sa vue -------------
+     Le ping (clic droit) designe un point, mais il ne sert a rien si la personne
+     regarde ailleurs, ou n'est pas au meme niveau de zoom. A neuf, et sur trois
+     heures, « je suis ou, la ? » coute du temps a chaque changement de lot.
+     ON PROPOSE, ON N'IMPOSE PAS. Deplacer la vue de quelqu'un sans prevenir,
+     alors qu'il est peut-etre en train de poser une carte, fait perdre le fil et
+     desoriente ; le cadrage est personnel dans cet outil, et c'est un bon choix.
+     Chacun recoit donc une invitation qu'il suit ou non, et qui s'efface d'elle-
+     meme au bout de quelques secondes.
+     On transmet le RECTANGLE DU MONDE regarde, pas le zoom ni le decalage : les
+     ecrans n'ont pas la meme taille, et c'est le cadrage qui a un sens, pas les
+     nombres qui le produisent chez l'emetteur.
+     Purement ephemere : le relais repete, rien n'est enregistre nulle part. */
+  var appel = null, appelTimer = null;
+  function envoyerAppelVue() {
+    if (etat.role !== "animateur") return;
+    if (curs.caps && !curs.caps.voir) { flash(S.appelImpossible); return; }
+    var r = rectVu();
+    envoyerWS({ t: "voir", x: Math.round(r.x), y: Math.round(r.y),
+      w: Math.round(r.largeur), h: Math.round(r.hauteur) });
+    flash(S.appelEnvoye);
+  }
+  /* Ce que l'on voit VRAIMENT : la partie de la scene qui n'est pas masquee par
+     le panneau de la reserve. Envoyer la scene entiere ferait arriver les autres
+     un cran trop loin, puisqu'ils recadrent, eux, dans leur propre zone libre. */
+  function rectVu() {
+    var r = rectScene(), z = zoneLibre(r);
+    return { x: (z.x - etat.panX) / etat.zoom, y: (z.y - etat.panY) / etat.zoom,
+      largeur: z.largeur / etat.zoom, hauteur: z.hauteur / etat.zoom };
+  }
+  function assurerAppel() {
+    if (appel) return;
+    appel = document.createElement("div");
+    appel.className = "appel-vue";
+    appel.hidden = true;
+    appel.setAttribute("role", "status");
+    appel.innerHTML = '<span class="appel-txt"></span>'
+      + '<button type="button" class="btn primaire appel-ok"></button>'
+      + '<button type="button" class="btn appel-x" aria-label="' + esc(S.coachFermer || "Fermer") + '">✕</button>';
+    E.scene.appendChild(appel);
+    appel.querySelector(".appel-x").addEventListener("click", fermerAppel);
+  }
+  function recevoirAppelVue(m) {
+    var r = { x: +m.x || 0, y: +m.y || 0,
+      largeur: Math.max(80, +m.w || 0), hauteur: Math.max(80, +m.h || 0) };
+    assurerAppel();
+    appel.querySelector(".appel-txt").textContent = S.appelTexte(m.nom || "");
+    var ok = appel.querySelector(".appel-ok");
+    ok.textContent = S.appelVoir;
+    ok.onclick = function () { cadrerSur(r); fermerAppel(); };
+    appel.hidden = false;
+    E.scene.classList.add("appel-ouvert");
+    clearTimeout(appelTimer);
+    appelTimer = setTimeout(fermerAppel, 12000);
+    try { ok.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function fermerAppel() {
+    clearTimeout(appelTimer);
+    if (appel) appel.hidden = true;
+    E.scene.classList.remove("appel-ouvert");
+  }
+  // Cadre un rectangle du monde dans la partie de la scene qui n'est pas
+  // masquee par le panneau de la reserve, exactement comme « Tout voir ».
+  function cadrerSur(r) {
+    var vr = rectScene(), z = zoneLibre(vr);
+    var nz = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / r.largeur, z.hauteur / r.hauteur)));
+    var nx = z.x + (z.largeur - r.largeur * nz) / 2 - r.x * nz;
+    var ny = z.y + (z.hauteur - r.hauteur * nz) / 2 - r.y * nz;
+    var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
+    etat.zoom = nz; etat.panX = nx; etat.panY = ny; clampPan();
+    nz = etat.zoom; nx = etat.panX; ny = etat.panY;
+    etat.zoom = sz; etat.panX = sx; etat.panY = sy;
+    allerVers(nz, nx, ny);
+  }
+
   /* Le point de depot d'une carte posee au clic est choisi ICI, pas par le
      serveur. Le serveur, lui, tirait une position AU HASARD dans la zone
      visible : impossible a deviner, donc impossible de montrer la carte avant
@@ -3129,6 +3213,7 @@
       reflowPlein();
     });
   }
+  if (E["btn-rassembler"]) E["btn-rassembler"].addEventListener("click", envoyerAppelVue);
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
@@ -3181,7 +3266,7 @@
       if (document.body.classList.contains("barres-cachees")) { majBarres(false); return; }
       if (document.fullscreenElement || document.webkitFullscreenElement) { var so = document.exitFullscreen || document.webkitExitFullscreen; if (so) { try { so.call(document); } catch (e2) {} } return; }
       if (document.body.classList.contains("plein-css")) { document.body.classList.remove("plein-css"); syncPlein(); return; }
-      deselect(); annulerFleche(); if (estFleche(etat.outil)) setOutil("deplacer"); }
+      fermerAppel(); deselect(); annulerFleche(); if (estFleche(etat.outil)) setOutil("deplacer"); }
     if ((e.key === "Delete" || e.key === "Backspace") && etat.sel) {
       if (document.activeElement && (document.activeElement.getAttribute("contenteditable") === "true" || document.activeElement.tagName === "INPUT")) return;
       e.preventDefault();

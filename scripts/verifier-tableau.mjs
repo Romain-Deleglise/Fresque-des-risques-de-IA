@@ -397,6 +397,57 @@ await bloc("Clavier et annulation", async () => {
     await B.evaluate((d) => { const el = document.querySelector(".c-carte[data-n='" + d.n + "']"); return !!el && Math.abs((el._x || 0) - d.x) < 2; }, { n: apresFleche, x: avantX }));
 });
 
+console.log("\n--- Rassembler (proposer sa vue) ---");
+await bloc("Rassembler", async () => {
+  /* Le ping designe un point ; il ne sert a rien si la personne regarde ailleurs
+     ou n'est pas au meme zoom. L'animateur·ice peut donc proposer sa vue.
+     PROPOSER : rien ne doit bouger chez les autres tant qu'ils n'ont pas
+     accepte. Deplacer la vue de quelqu'un sans prevenir, alors qu'il pose une
+     carte, fait perdre le fil, et le cadrage est personnel dans cet outil. */
+  await A.evaluate(() => document.getElementById("z-tout").click());
+  await dodo(600);
+  await B.evaluate(() => { for (let i = 0; i < 3; i++) document.getElementById("z-plus").click(); });
+  await dodo(700);
+  const avant = await B.evaluate(() => ({ z: parseFloat(document.getElementById("z-niv").textContent) }));
+
+  t("le bouton n'existe que pour l'animateur·ice",
+    (await A.evaluate(() => getComputedStyle(document.getElementById("btn-rassembler")).display)) !== "none"
+    && (await B.evaluate(() => getComputedStyle(document.getElementById("btn-rassembler")).display)) === "none");
+
+  await A.evaluate(() => document.getElementById("btn-rassembler").click());
+  await dodo(500);
+  const invit = await B.evaluate(() => {
+    const el = document.querySelector(".appel-vue");
+    return { la: !!el && !el.hidden, txt: el ? el.textContent : "",
+      z: parseFloat(document.getElementById("z-niv").textContent) };
+  });
+  t("les autres recoivent une invitation, nommee", invit.la && /montrer/i.test(invit.txt), invit.txt);
+  t("ET RIEN N'A BOUGE CHEZ EUX tant qu'ils n'ont pas accepte",
+    Math.abs(invit.z - avant.z) < 0.5, "zoom " + avant.z + " % -> " + invit.z + " %");
+
+  await B.evaluate(() => document.querySelector(".appel-vue .appel-ok").click());
+  await dodo(900);
+  const apres = await B.evaluate(() => ({
+    z: parseFloat(document.getElementById("z-niv").textContent),
+    fermee: document.querySelector(".appel-vue").hidden
+  }));
+  const zA = await A.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
+  t("en acceptant, on arrive bien sur la vue de l'animateur·ice",
+    Math.abs(apres.z - zA) <= 6, "sa vue " + zA + " %, la mienne " + apres.z + " %");
+  t("et l'invitation se referme", apres.fermee);
+
+  /* Elle ne doit pas rester a l'ecran indefiniment : personne ne ferme les
+     bandeaux, et une invitation perimee est un mensonge. */
+  await A.evaluate(() => document.getElementById("btn-rassembler").click());
+  await dodo(400);
+  t("une invitation ignoree s'efface d'elle-meme",
+    await B.evaluate(() => new Promise((r) => {
+      const el = document.querySelector(".appel-vue");
+      if (el.hidden) return r(false);
+      setTimeout(() => r(el.hidden), 12600);
+    })), "au bout de douze secondes");
+});
+
 console.log("\n--- Barre et palette flottante ---");
 await bloc("Barre", async () => {
   /* La barre tenait sur trois rangees des qu'une fenetre n'etait pas large :

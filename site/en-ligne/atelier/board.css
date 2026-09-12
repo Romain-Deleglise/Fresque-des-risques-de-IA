@@ -330,6 +330,24 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
   box-shadow:0 6px 18px rgba(0,0,0,.35);transition:opacity .2s;pointer-events:none}
 
 /* Coach pas a pas : bandeau discret en haut, montre l'action suivante. */
+/* INVITATION A VENIR VOIR. Une proposition, pas un deplacement impose : deux
+   boutons, et elle s'efface seule. Elle prend la place du coach le temps
+   qu'elle dure, plutot que de se superposer a lui. */
+.appel-vue{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:26;
+  display:flex;align-items:center;gap:.6rem;padding:.45rem .5rem .45rem .9rem;
+  background:var(--surface);border:1px solid var(--accent);border-radius:999px;
+  box-shadow:0 6px 22px rgba(27,26,23,.22);font-family:var(--f-ui);font-size:.86rem;
+  color:var(--ink);max-width:min(34rem,88%)}
+.appel-vue[hidden]{display:none}
+.appel-vue .appel-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appel-vue .btn{height:1.95rem;padding:0 .75rem;line-height:1;flex:0 0 auto;white-space:nowrap}
+.appel-vue .appel-x{padding:0;width:1.95rem;justify-content:center}
+.scene.appel-ouvert .coach{display:none}
+@media(prefers-reduced-motion:no-preference){
+  .appel-vue{animation:appel-arrive .22s cubic-bezier(.2,.8,.3,1)}
+}
+@keyframes appel-arrive{from{transform:translate(-50%,-8px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+
 .coach{position:absolute;top:.7rem;left:50%;transform:translateX(-50%);z-index:18;
   display:flex;align-items:center;gap:.7rem;max-width:min(92vw,640px);
   font-family:var(--f-ui);font-size:.9rem;font-weight:600;color:var(--sur-accent);
