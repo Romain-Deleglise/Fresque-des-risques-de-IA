@@ -113,6 +113,9 @@ a{color:var(--accent-txt);text-decoration:none}
 .scene.grabbing{cursor:grabbing}
 .scene.outil-fleche,.scene.outil-texte{cursor:crosshair}
 #monde{position:absolute;top:0;left:0;width:4400px;height:2200px;transform-origin:0 0}
+/* Temoin par defaut, remplace par 0 sous « mouvement reduit » (voir la fin du
+   fichier). Le JavaScript le lit pour savoir s'il doit lisser ou non. */
+:root{ --mouvement: 1; }
 .plan-bord{position:absolute;inset:0;border:1px solid var(--ligne);border-radius:10px;background:var(--plan);pointer-events:none}
 
 /* Cartes posées (tuiles blanches lisibles) */
@@ -127,9 +130,30 @@ a{color:var(--accent-txt);text-decoration:none}
 .c-carte .agr{position:absolute;top:5px;right:5px;width:21px;height:21px;border:0;border-radius:5px;background:var(--agr-bg);color:var(--ink);display:grid;place-items:center;font-size:.75rem}
 .c-carte .agr:hover{background:var(--accent);color:var(--sur-accent)}
 .c-carte .tit{font-family:var(--f-titre);font-weight:700;font-size:.82rem;line-height:1.05;color:var(--ink);padding:.4rem .5rem .5rem}
-.c-carte.pose-anim{animation:pulse .7s ease}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,129,28,.5)}100%{box-shadow:0 0 0 18px rgba(232,129,28,0)}}
+/* ARRIVEE ET DEPART D'UNE CARTE. Une carte qui apparait ou disparait d'un coup,
+   on ne sait pas d'ou elle vient ni si on l'a revee : c'est le reproche le plus
+   frequent sur ce genre de tableau. Deux mouvements courts, juste assez pour que
+   l'oeil suive. On n'anime que `transform` et `opacity`, les deux seules
+   proprietes que le navigateur sait traiter sans refaire la mise en page : le
+   reste (une ombre qui grandit, par exemple) fait repeindre la carte a chaque
+   image et fait sauter le deplacement des autres. L'anneau d'accueil est porte
+   par un pseudo-element, en INTERIEUR : la carte est en `overflow:hidden`, un
+   anneau pose a l'exterieur serait tout simplement coupe. */
+.c-carte.pose-anim{animation:carte-arrive .34s cubic-bezier(.2,.8,.3,1)}
+.c-carte.pose-anim::after{content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  box-shadow:inset 0 0 0 2px var(--accent);animation:carte-anneau .7s ease-out forwards}
+.c-carte.sort-anim{animation:carte-part .22s ease-in forwards;pointer-events:none}
+@keyframes carte-arrive{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes carte-anneau{from{opacity:.9}to{opacity:0}}
+@keyframes carte-part{from{transform:scale(1);opacity:1}to{transform:scale(.78);opacity:0}}
 .c-carte.depart{outline:2px solid var(--accent);outline-offset:2px}
+/* Focus clavier : il faut le voir de loin, y compris sur une carte dont l'image
+   est claire. Double cerne, comme les etiquettes de curseur, pour etre lisible
+   sur n'importe quel fond. */
+.c-carte:focus-visible{outline:3px solid var(--accent);outline-offset:2px;
+  box-shadow:0 0 0 6px rgba(255,255,255,.92),0 8px 24px rgba(0,0,0,.35);z-index:20}
+.c-carte:focus{outline:3px solid var(--accent);outline-offset:2px}
+.c-carte:focus:not(:focus-visible){box-shadow:var(--ombre)}
 
 /* Ping : cercle qui s'agrandit puis s'efface, place aux coordonnees du monde.
    Contre-mis a l'echelle (--iz) pour rester visible quel que soit le zoom. */
@@ -142,11 +166,21 @@ a{color:var(--accent-txt);text-decoration:none}
 /* Flèches */
 #fleches{position:absolute;top:0;left:0;width:4400px;height:2200px;overflow:visible;pointer-events:none}
 #fleches .hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
-#fleches .trait{stroke:#8a857b;stroke-width:2.2;fill:none}
-#fleches .trait.bidir{stroke:#F0A860}
-#fleches .trait.sel{stroke:var(--accent);stroke-width:3}
+/* Epaisseur pilotee par --fw (calcule dans applyView) : un trait toujours aussi
+   epais A L'ECRAN, quel que soit le zoom. Sans cela, les liens s'effacaient
+   exactement au moment ou on prend du recul pour les lire. La pointe de la
+   fleche suit toute seule : elle est dimensionnee en multiples de stroke-width.
+   La couleur est aussi un cran plus soutenue qu'avant (l'ancien gris pale se
+   confondait avec le fond des le premier dezoom). */
+#fleches .trait{stroke:#6f6a60;stroke-width:var(--fw,2.2);fill:none;stroke-linecap:round}
+#fleches .trait.bidir{stroke:#c9761d}
+#fleches .trait.sel{stroke:var(--accent);stroke-width:calc(var(--fw,2.2) * 1.45)}
+body.canvas-noir #fleches .trait{stroke:#b3ab9c}
+body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 /* Étiquette de flèche : encadré arrondi gris, texte orange, au-dessus des traits */
-.fleche-lib{position:absolute;transform:translate(-50%,-50%);z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;
+/* Etiquette contre-mise a l'echelle : elle garde une taille d'ecran a peu pres
+   constante. A 25 % de zoom, un texte de 13 px en tombait a 3 px. */
+.fleche-lib{position:absolute;transform:translate(-50%,-50%) scale(clamp(.85,var(--iz,1),2.2));z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;
   color:#8a4200;background:#fff7e6;border:1px solid #e0b378;border-radius:7px;padding:2px 7px;white-space:nowrap;
   pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.28)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
@@ -195,6 +229,10 @@ a{color:var(--accent-txt);text-decoration:none}
 .pool-carte{width:100%;background:var(--surface);border:1px solid var(--ligne);border-top:3px solid var(--lot,var(--accent));
   border-radius:10px;box-shadow:0 2px 8px rgba(27,26,23,.10);overflow:hidden;cursor:grab;touch-action:none}
 .pool-carte.en-glisse{opacity:.45}
+/* Carte qui vient d'arriver dans la reserve : un court mouvement, pour qu'on la
+   voie arriver plutot que de la trouver deja posee la. */
+.pool-carte.pool-neuve{animation:pool-arrive .26s cubic-bezier(.2,.8,.3,1)}
+@keyframes pool-arrive{from{transform:scale(.84);opacity:0}to{transform:scale(1);opacity:1}}
 .pool-carte .vis{position:relative;width:100%;aspect-ratio:1.6/1;background:#14110d}
 .pool-carte .vis img{width:100%;height:100%;object-fit:cover;pointer-events:none}
 .pool-carte .num{position:absolute;top:4px;left:4px;width:19px;height:19px;border-radius:5px;background:var(--lot,var(--accent));color:#fff;display:grid;place-items:center;font-family:var(--f-titre);font-size:.75rem}
@@ -355,16 +393,41 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 /* Le deplacement est LISSE en JavaScript (interpolation a chaque frame) et
    applique par `transform` : plus de saut d'une position a l'autre, et aucune
    transition CSS qui ajouterait du retard.
-   DOUBLE LISERE : un liftage blanc a l'interieur et un cerne fonce a
-   l'exterieur. Sur un tableau blanc c'est le cerne fonce qui detache
-   l'etiquette, sur un tableau noir c'est le liftage blanc. La couleur ne sert
-   plus qu'a identifier la personne (voir creerCurseur pour la fleche). */
+   DOUBLE CERNE, POSE A L'EXTERIEUR. Aucune couleur n'est lisible a la fois sur
+   un tableau blanc et sur un tableau noir : l'etiquette ne compte donc pas sur
+   la sienne, mais sur deux anneaux poses autour d'elle. Le premier est fonce
+   (il la detache d'un fond clair), le second est blanc (il la detache d'un fond
+   sombre) ; l'un des deux est toujours visible, quel que soit le fond. Les deux
+   sont a l'EXTERIEUR : un lisere blanc pose a l'interieur, comme avant,
+   mangeait la pastille de couleur et rapprochait le blanc du texte du blanc du
+   fond. La couleur ne sert plus qu'a identifier la personne (voir creerCurseur
+   pour la fleche). Le corps est un cran plus grand que le texte d'interface :
+   on le lit de loin, en passant, sans le chercher. */
 .curseur-live{position:absolute;left:0;top:0;z-index:19;pointer-events:none;transform-origin:top left;will-change:transform}
 .curseur-live svg{display:block;overflow:visible}
-.curseur-nom{position:absolute;left:17px;top:14px;font-family:var(--f-ui);font-weight:700;font-size:.68rem;color:#fff;
-  padding:.1rem .42rem;border-radius:7px;white-space:nowrap;
-  border:1.5px solid #ffffff;
-  box-shadow:0 0 0 1.5px rgba(20,17,13,.92), 0 2px 6px rgba(0,0,0,.4)}
+.curseur-nom{position:absolute;left:17px;top:14px;font-family:var(--f-ui);font-weight:700;font-size:.78rem;color:#fff;
+  padding:.15rem .46rem;border-radius:8px;white-space:nowrap;letter-spacing:.005em;
+  box-shadow:0 0 0 1.7px rgba(20,17,13,.96), 0 0 0 3.4px rgba(255,255,255,.96), 0 2px 5px rgba(0,0,0,.35)}
+
+/* --- Carte deplacee par quelqu'un d'autre, en direct (couche ephemere) -----
+   Deux cas. La carte est deja sur le tableau : c'est la VRAIE carte qui bouge,
+   cerclee de la couleur de la personne qui la tient. Elle vient de la reserve
+   ou de la pioche : elle n'existe pas encore, on montre un fantome a sa place,
+   avec le prenom. Dans les deux cas rien n'est enregistre : au lacher, l'etat
+   du serveur reprend la main. */
+.c-carte.glisse-autre{outline:3px solid var(--gl-coul,#888);outline-offset:2px;z-index:16;
+  box-shadow:0 10px 26px rgba(0,0,0,.34);transition:none}
+.gliss-fantome{position:absolute;z-index:17;width:150px;pointer-events:none;border-radius:10px;
+  overflow:hidden;background:#14110d;opacity:.92;outline:3px solid var(--gl-coul,#888);outline-offset:2px;
+  box-shadow:0 10px 26px rgba(0,0,0,.38)}
+.gliss-fantome img{display:block;width:100%;aspect-ratio:1.6/1;object-fit:cover}
+.gliss-num{position:absolute;top:5px;left:5px;width:21px;height:21px;border-radius:5px;
+  background:var(--accent);color:var(--sur-accent);display:grid;place-items:center;
+  font-family:var(--f-titre);font-size:.85rem}
+.gliss-qui{position:absolute;left:5px;bottom:5px;max-width:calc(100% - 10px);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;font-family:var(--f-ui);font-weight:700;font-size:.72rem;
+  color:#fff;background:var(--gl-coul,#444);padding:.1rem .4rem;border-radius:7px;
+  box-shadow:0 0 0 1.6px rgba(20,17,13,.96), 0 0 0 3.2px rgba(255,255,255,.96)}
 
 /* --- Trace de fleche en direct (couche ephemere) ---------------------------
    Des le premier clic, une ligne elastique suit le curseur : la sienne, mais
@@ -385,3 +448,75 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
    besoin). Seules les barres explicitement masquees disparaissent. */
 body.plein .topbar,body.plein .toolbar{display:flex}
 body.plein.barres-cachees .topbar,body.plein.barres-cachees .toolbar{display:none}
+
+/* --- ZOOM SEMANTIQUE : ce qu'on montre change avec la distance -------------
+   Voir le commentaire de `applyView` cote JavaScript pour le pourquoi. Regle
+   absolue ici : on ne touche JAMAIS a la taille de la boite `.c-carte`, sinon
+   l'image exportee (construite sur la hauteur reelle des elements) se casse.
+   D'ou `visibility` et non `display` pour le titre, et des elements en position
+   absolue pour tout le reste. */
+/* Filet de couleur du lot : discret de pres, c'est lui qui fait lire les
+   familles de cartes quand on prend du recul. */
+.c-carte::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--lot,transparent);z-index:2;pointer-events:none;
+  transition:height .16s ease}
+/* Distance moyenne : le bouton d'agrandissement devient du bruit, le numero
+   devient l'identifiant principal. */
+#monde.zoom-moyen .c-carte .agr{opacity:0;pointer-events:none}
+#monde.zoom-moyen .c-carte .num{transform:scale(clamp(1,var(--iz,1),1.7));transform-origin:top left}
+#monde.zoom-moyen .c-carte::before{height:5px}
+/* Distance lointaine : le titre n'est plus lisible, on le retire de la vue (il
+   garde sa place, la boite ne bouge pas) et on montre un gros numero au centre
+   de l'image, a taille d'ecran constante. Survoler une carte donne toujours son
+   titre dans l'encadre du haut. */
+#monde.zoom-loin .c-carte .tit{visibility:hidden}
+#monde.zoom-loin .c-carte::before{height:6px}
+/* La bande laissee libre par le titre ne reste pas blanche pour rien : elle
+   prend la couleur du lot. De loin, les familles de cartes se lisent alors d'un
+   seul coup d'oeil, ce qui est precisement ce qu'on cherche a cette distance. */
+#monde.zoom-loin .c-carte{background:var(--lot,var(--surface));box-shadow:0 1px 3px rgba(0,0,0,.22)}
+/* Le numero devient blanc a cerne fonce : lisible sur n'importe quelle couleur
+   de lot comme sur n'importe quelle image, contrairement a l'orange d'origine
+   qui se confondait avec le lot 1. */
+#monde.zoom-loin .c-carte .num{top:50%;left:50%;background:#ffffff;color:#1b1a17;
+  transform:translate(-50%,-50%) scale(clamp(1,var(--iz,1),3.4));transform-origin:center;
+  box-shadow:0 0 0 2px rgba(20,17,13,.92),0 3px 10px rgba(0,0,0,.45)}
+
+/* --- Reactions au survol et a la selection ---------------------------------
+   Tous les changements d'etat de l'interface etaient instantanes : le bouton
+   passait d'une couleur a l'autre d'un seul coup, et l'oeil lisait ca comme un
+   clignotement plutot que comme une reaction. Un fondu tres court suffit a le
+   rendre lisible. On ne liste QUE des proprietes de peinture (couleur, fond,
+   bordure, ombre) : aucune ne declenche de recalcul de mise en page, donc rien
+   de tout cela ne peut ralentir un deplacement de carte. La liste est explicite,
+   jamais `*` : une transition posee partout finirait par retarder quelque chose
+   qui doit etre immediat. */
+.btn,.tool.ico,.pool-act,.pool-taille,.pool-poignee,.pool-toggle,.pool-carte .pool-x,
+.deck-carte,.carte-actions .btn.mini,.aide-pop-x,.c-carte .agr,.coach .coach-x,.tuto-passer,
+.fleche-bidir,.fleche-croix,.texte-croix{
+  transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease}
+/* La carte du tableau : uniquement bordure et ombre (jamais la position, qui
+   doit coller au doigt). `.glisse-autre` remet `transition:none` pendant qu'une
+   autre personne la deplace. */
+.c-carte{transition:border-color .14s ease,box-shadow .14s ease}
+/* Carte prise en main par quelqu'un d'autre dans la reserve : le verrou apparait
+   et disparait en fondu plutot que d'un coup. */
+.pool-carte{transition:opacity .18s ease,filter .18s ease,border-color .14s ease,box-shadow .14s ease}
+
+/* --- MOUVEMENT REDUIT ------------------------------------------------------
+   Cette page est la plus animee du site, et c'etait la seule a ne PAS respecter
+   la preference systeme : la regle de site.css ne s'y applique pas (le tableau
+   ne charge pas cette feuille), et elle ne coupait de toute facon que les
+   `transition`, jamais les `animation`. Ici on coupe les deux, on neutralise les
+   animations d'arrivee et de depart (l'element doit rester visible et a sa
+   place, pas disparaitre), et on pose un temoin que le JavaScript lit pour
+   arreter aussi ses propres lissages (curseurs, cartes tirees par quelqu'un
+   d'autre, recadrage). Le jeu reste entierement utilisable, simplement sans
+   mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  :root{ --mouvement: 0; }
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important }
+  .c-carte.pose-anim::after{ display:none }
+  .c-carte.sort-anim{ animation:none !important; opacity:0 }
+}

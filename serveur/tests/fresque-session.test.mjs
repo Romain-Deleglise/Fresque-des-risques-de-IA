@@ -43,6 +43,12 @@ const stub = {
       async getWithMetadata(k, o) {
         garde(o);
         if (!sessions || !magasin.session) return null;
+        // Lecture EVENTUELLEMENT COHERENTE : tant que `perimeFois` n'est pas
+        // epuise, on rend la vieille valeur, comme le fait le magasin reel.
+        if (magasin.perime && magasin.perimeFois !== 0) {
+          if (magasin.perimeFois > 0) magasin.perimeFois--;
+          return { data: JSON.parse(JSON.stringify(magasin.perime.session)), etag: String(magasin.perime.etag) };
+        }
         return { data: JSON.parse(JSON.stringify(magasin.session)), etag: String(magasin.etag) };
       },
       async setJSON(k, v, opts) {
@@ -71,7 +77,7 @@ const post = async (corps) => JSON.parse((await fresque.handler({ httpMethod: "P
 function sessionNeuve() {
   const c = R.creer("Romain", "ABCDEF");
   c.session.jetons["jAnim"] = { role: "animateur", id: c.idAnim };
-  magasin = { session: c.session, etag: 1, verdict: true, ecritApres: 0 };
+  magasin = { session: c.session, etag: 1, verdict: true, ecritApres: 0, perime: null, perimeFois: -1 };
 }
 const participants = () => (magasin.session.participants || []).map((p) => p.prenom);
 const jetonsPart = () => Object.values(magasin.session.jetons).filter((j) => j.role === "participant").length;
@@ -132,4 +138,85 @@ test("ouvrir un atelier reserve repond bien (pas de coherence forte demandee)", 
   const a = await post({ op: "agir", code: "X6C38E", jeton: r.jeton, intention: { op: "poolAjouter", n: 5 } });
   assert.equal(a.error, undefined, "aucune erreur de service sur une action");
   assert.deepEqual(magasin.session.pool, [5]);
+});
+
+/* --- Le sondage ne doit JAMAIS reecrire le document de session --------------
+   C'etait la cause des pires symptomes du tableau : le battement de presence
+   lisait le document (lecture eventuellement coherente, donc potentiellement
+   perimee de plusieurs secondes), y posait son horodatage et le reecrivait
+   ENTIER, sans changer la version. Il remettait donc le tableau dans son etat
+   d'avant, en silence : la carte qu'on venait de poser repartait dans la
+   reserve, une fleche disparaissait, une carte « bougeait toute seule ».
+   Le magasin ci-dessous imite cette lecture perimee. */
+test("un sondage ne fait jamais reculer le tableau", async () => {
+  sessionNeuve();
+  // Quelqu'un pose une carte : le document courant la contient.
+  magasin.session.pool = [5];
+  magasin.session.version = 7;
+  const frais = JSON.parse(JSON.stringify(magasin.session));
+  frais.tableau.cartes.push({ n: 5, x: 500, y: 500 });
+  frais.pool = [];
+  frais.version = 8;
+  magasin.session = frais; magasin.etag = 9;
+  // ... mais la lecture, elle, rend encore l'etat d'avant.
+  magasin.perime = { session: JSON.parse(JSON.stringify(magasin.session)), etag: magasin.etag };
+  magasin.perime.session.tableau.cartes = [];
+  magasin.perime.session.pool = [5];
+  magasin.perime.session.version = 7;
+
+  const r = await post({ op: "etat", code: "ABCDEF", jeton: "jAnim", version: 8 });
+  assert.equal(magasin.session.version, 8, "le document n'a pas ete reecrit");
+  assert.equal(magasin.session.tableau.cartes.length, 1, "la carte posee est toujours la");
+  assert.deepEqual(magasin.session.pool, [], "elle n'est pas revenue dans la reserve");
+  // Et on ne sert pas non plus la valeur perimee au client, qui reculerait.
+  assert.ok(!r.etat || r.etat.version >= 8, "aucun etat plus vieux que celui du client n'est servi");
+});
+
+test("une action n'est jamais appliquee sur une lecture prouvee perimee", async () => {
+  sessionNeuve();
+  magasin.session.version = 12;
+  magasin.session.pool = [5];
+  // Lecture perimee : version 11, sans la carte 5 dans la reserve.
+  magasin.perime = { session: JSON.parse(JSON.stringify(magasin.session)), etag: magasin.etag };
+  magasin.perime.session.version = 11;
+  magasin.perime.session.pool = [];
+  magasin.perimeFois = 2;   // les deux premieres lectures sont perimees
+  const r = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", version: 12,
+    intention: { op: "poserCarte", n: 5, pos: { x: 400, y: 400 } } });
+  assert.equal(r.refus, undefined, "l'action finit par passer");
+  assert.equal(magasin.session.tableau.cartes.length, 1, "la carte est bien posee");
+  assert.ok(magasin.session.version > 12, "la version a avance");
+});
+
+/* --- Ecriture conditionnelle reellement appliquee (@netlify/blobs >= 9) -----
+   Le magasin refuse maintenant une ecriture dont l'etag a change entre-temps
+   (`{ modified: false }`). Avec des lectures encore eventuellement coherentes,
+   les premieres tentatives peuvent donc echouer : l'action doit finir par
+   passer, une seule fois, sans jamais etre refusee a l'utilisateur. */
+test("une ecriture refusee par l'etag est rejouee jusqu'a passer, une seule fois", async () => {
+  sessionNeuve();
+  magasin.session.pool = [5];
+  magasin.session.version = 20;
+  // Les deux premieres lectures rendent une valeur perimee AVEC UN AUTRE ETAG :
+  // l'ecriture conditionnelle les refusera.
+  magasin.perime = { session: JSON.parse(JSON.stringify(magasin.session)), etag: 999 };
+  magasin.perimeFois = 2;
+  const r = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", version: 20,
+    intention: { op: "poserCarte", n: 5, pos: { x: 300, y: 300 } } });
+  assert.equal(r.refus, undefined, "l'utilisateur ne voit aucun refus");
+  assert.equal(magasin.session.tableau.cartes.length, 1, "la carte est posee une seule fois");
+  assert.deepEqual(magasin.session.pool, [], "et elle a bien quitte la reserve");
+});
+
+test("une action deja appliquee n'est pas rejouee apres un renvoi (idempotence)", async () => {
+  sessionNeuve();
+  magasin.session.pool = [5, 6];
+  await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", intention: { op: "poserCarte", n: 5, pos: { x: 300, y: 300 } } });
+  await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", intention: { op: "poserCarte", n: 6, pos: { x: 900, y: 300 } } });
+  const a = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", idem: "cle-1",
+    intention: { op: "creerFleche", de: 5, vers: 6 } });
+  const b = await post({ op: "agir", code: "ABCDEF", jeton: "jAnim", idem: "cle-1",
+    intention: { op: "creerFleche", de: 5, vers: 6 } });
+  assert.equal(magasin.session.tableau.fleches.length, 1, "une seule fleche");
+  assert.equal(b.resultat && b.resultat.id, a.resultat && a.resultat.id, "meme identifiant rendu");
 });

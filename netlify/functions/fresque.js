@@ -37,8 +37,10 @@ const BALAYAGE_MS = 15 * 60 * 1000;
 // l'etat complet aux autres ; le magasin reste l'autorite et la memoire.
 function store() { return getStore({ name: "fresque-sessions" }); }
 function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }
+function storePresence() { return getStore({ name: "fresque-presence" }); }
 function limites() { return getStore({ name: "fresque-limites" }); }
 function cle(code) { return "session:" + code; }
+function clePres(code) { return "presence:" + code; }
 const json = (statut, corps) => ({
   statusCode: statut,
   headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -128,17 +130,66 @@ async function lire(st, code) {
   const res = await lireBrut(st, cle(code));
   return res ? { s: res.data, etag: res.etag } : null;
 }
-// ATTENTION a ce que fait reellement `onlyIfMatch` : @netlify/blobs 8.x ne
-// connait PAS l'ecriture conditionnelle. `setJSON(cle, valeur, options)` n'y lit
-// que `metadata` et ne renvoie rien. L'option est donc ignoree en silence et
-// `w` vaut `undefined` : aucune ecriture n'est refusee, la derniere ecrase la
-// precedente. On la transmet quand meme, pour qu'une version du client qui sait
-// la lire (`{ modified: false }`) fasse jouer le garde-fou sans rien changer
-// ici. En attendant, la protection contre les ecritures qui se marchent dessus
-// est cote client : les actions d'un meme onglet partent en file, une a la fois.
+// ECRITURE CONDITIONNELLE (`onlyIfMatch`). Elle n'existait pas dans
+// @netlify/blobs 8.x : `setJSON` y ignorait l'option en silence et ne renvoyait
+// rien, si bien que deux ecritures simultanees se recouvraient et qu'une action
+// pouvait disparaitre sans laisser de trace. Depuis la 9, le magasin compare
+// l'etag et repond `{ modified: false }` s'il a change entre-temps : `muter`
+// rejoue alors. Le code reste ecrit pour fonctionner dans les DEUX cas : si la
+// plateforme ne rend pas de verdict, on retombe simplement sur l'ancien
+// comportement (derniere ecriture gagnante) plutot que de bloquer.
 async function ecrire(st, code, s, etag) {
   const opts = etag ? { onlyIfMatch: etag } : {};
-  return st.setJSON(cle(code), s, opts); // { modified: bool } si le magasin sait le dire
+  return st.setJSON(cle(code), s, opts); // { modified: bool }
+}
+
+/* PRESENCE : UN MAGASIN A PART, ET C'EST LE POINT IMPORTANT ---------------
+   Le battement de presence (« je suis toujours la ») s'ecrivait avant DANS le
+   document de session, a chaque sondage. C'etait la cause des pires symptomes
+   du tableau : une carte posee qui n'arrivait jamais chez les autres puis
+   revenait dans la reserve, des cartes qui bougeaient toutes seules, des
+   fleches qui disparaissaient.
+
+   Pourquoi. Le magasin sert des lectures EVENTUELLEMENT COHERENTES : la lecture
+   peut renvoyer un document vieux de plusieurs secondes. Le battement lisait ce
+   document perime, y posait son horodatage, et le reecrivait ENTIER, sans
+   changer le numero de version. Il remettait donc le tableau dans son etat
+   d'avant, en silence, sans que personne puisse s'en apercevoir : meme version,
+   contenu plus ancien. Avec huit personnes qui sondent, cela arrivait en
+   permanence. Et le garde-fou `onlyIfMatch` n'a jamais pu l'arreter, puisqu'il
+   n'existe pas dans cette version de @netlify/blobs (voir `ecrire`).
+
+   Le battement vit donc a cote, dans un document minuscule { id: horodatage }
+   par session. Perdre un battement n'a aucune consequence (le suivant le
+   rattrape), et le document de session n'est plus ecrit que par de vraies
+   actions, qui font toutes avancer la version. */
+async function presenceLire(code) {
+  try {
+    const res = await storePresence().getWithMetadata(clePres(code), { type: "json" });
+    return (res && res.data) || {};
+  } catch (e) { return {}; }
+}
+async function presenceToucher(code, id, pres) {
+  const now = Date.now();
+  if (pres[id] && now - pres[id] < 5000) return pres;   // deja frais : rien a ecrire
+  const suivant = {};
+  for (const k in pres) { if (now - pres[k] < 120000) suivant[k] = pres[k]; } // on elague
+  suivant[id] = now;
+  try { await storePresence().setJSON(clePres(code), suivant); } catch (e) {}
+  return suivant;
+}
+// Reporte les horodatages de presence SUR LA COPIE EN MEMOIRE, juste avant de
+// construire la vue. Rien n'est reecrit dans le document de session.
+function injecterPresence(s, pres) {
+  if (!s || !pres) return s;
+  const pose = (x) => {
+    if (!x) return;
+    const t = pres[x.id] || 0;
+    if (t > (x.vuLe || 0)) { x.vuLe = t; x.connecte = true; }
+  };
+  pose(s.animateur);
+  (s.participants || []).forEach(pose);
+  return s;
 }
 
 function expiree(s) {
@@ -161,14 +212,35 @@ function expiree(s) {
 // Pour `rejoindre`, qui crée une place et un jeton, cela fabriquait un
 // participant fantôme : une seule entrée, deux personnes dans la liste.
 // Une mutation n'est rejouée que sur un refus EXPLICITE du magasin.
-async function muter(st, code, fn) {
+// `base` : la version que le client avait sous les yeux au moment d'agir. Si le
+// magasin nous rend plus ancien que cela, sa lecture est PERIMEE, c'est prouve,
+// et agir sur cette base effacerait ce que quelqu'un vient de faire (la carte
+// posee il y a une seconde retournerait dans la reserve). On laisse alors au
+// magasin quelques dizaines de millisecondes pour rattraper, puis on agit quand
+// meme : mieux vaut une action appliquee sur une base un peu vieille qu'une
+// action perdue.
+async function muter(st, code, fn, base) {
   for (let essai = 0; essai < 6; essai++) {
     const cur = await lire(st, code);
     if (!cur) return { erreur: { statut: 404, code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice. Vérifiez le code et réessayez peu avant le début." } };
+    if (base && cur.s.version < base && essai < 4) { await new Promise((r) => setTimeout(r, 70)); continue; }
     if (expiree(cur.s)) { try { await st.delete(cle(code)); } catch (e) {} return { erreur: { statut: 404, code: "session_inconnue", message: "Session terminée." } }; }
+    // On n'ecrit QUE si quelque chose a change. Une action refusee, ou sans
+    // effet, ne doit pas reecrire le document : chaque ecriture inutile est une
+    // occasion de reposer par-dessus une lecture perimee (meme cause que le
+    // battement de presence, voir plus haut).
+    const avant = JSON.stringify(cur.s);
     const out = fn(cur.s);
+    if (JSON.stringify(cur.s) === avant) return { out, s: cur.s };
     const w = await ecrire(st, code, cur.s, cur.etag);
-    if (w && w.modified === false) continue; // quelqu'un a écrit entre-temps : on rejoue
+    if (w && w.modified === false) {
+      // Quelqu'un a ecrit entre notre lecture et notre ecriture. On rejoue, mais
+      // en laissant au magasin le temps de servir la nouvelle valeur : relire
+      // aussitot redonnerait le meme etag perime et on echouerait six fois de
+      // suite pour rien. Attentes courtes et croissantes, ~1,1 s au total.
+      await new Promise((r) => setTimeout(r, 60 + essai * 90));
+      continue;
+    }
     return { out, s: cur.s };
   }
   return { erreur: { statut: 409, code: "conflit", message: "Trop de monde écrit en même temps, réessayez." } };
@@ -237,22 +309,22 @@ exports.handler = async (event) => {
 
     if (d.op === "etat") {
       const code = String(d.code || "").toUpperCase();
+      const connue = Math.max(0, +d.version || 0);   // version que le client a deja
       let cur = await lire(st, code);
       if (!cur) return json(404, { refus: { code: "session_inconnue", message: "Code inconnu, ou séance pas encore ouverte par l'animateur·ice." } });
-      let s = cur.s;
+      let pres = await presenceLire(code);
+      // Battement de presence : dans SON magasin, jamais dans le document de
+      // session (voir presenceToucher plus haut pour la raison).
+      const info = cur.s.jetons[d.jeton];
+      if (info) pres = await presenceToucher(code, info.role === "animateur" ? cur.s.animateur.id : info.id, pres);
+      let s = injecterPresence(cur.s, pres);
       if (expiree(s)) { try { await st.delete(cle(code)); } catch (e) {} return json(404, { refus: { code: "session_inconnue", message: "Session terminée." } }); }
-      // Heartbeat de presence : on ne reecrit le blob que si vuLe est ancien
-      // (> 5 s), pour eviter un write a chaque poll (contention etag) et garder
-      // un polling rapide fluide. La presence (seuil 15 s) reste a jour.
-      const info = s.jetons[d.jeton];
-      if (info) {
-        const cible = info.role === "animateur" ? s.animateur : s.participants.find((p) => p.id === info.id);
-        if (cible && (!cible.connecte || Date.now() - (cible.vuLe || 0) > 5000)) {
-          cible.connecte = true; cible.vuLe = Date.now();
-          try { const w = await ecrire(st, code, s, cur.etag); if (w && w.modified === false) { cur = await lire(st, code); if (cur) s = cur.s; } } catch (e) {}
-        }
-      }
       let etat = R.vue(s);
+      // LECTURE PERIMEE, PROUVEE. Le client nous dit la version qu'il a deja.
+      // Si le magasin nous rend plus ancien que ca, c'est une valeur perimee :
+      // la renvoyer ferait reculer son tableau. On ne la sert pas, on attend
+      // dans la boucle ci-dessous que le magasin rattrape son retard.
+      const perimee = connue > 0 && etat.version < connue;
       // Attente maintenue ("hold-poll") : si le client est deja a jour, on ne
       // renvoie pas tout de suite « inchange ». On garde la requete ouverte et on
       // relit l'etat a petits intervalles jusqu'a ce que la version change (une
@@ -261,26 +333,78 @@ exports.handler = async (event) => {
       // sondage, tout en divisant le nombre de requetes (une requete tenue vaut
       // des dizaines de sondages). Le client se rabat sur un sondage bref si la
       // plateforme coupe la requete.
-      if (d.version && d.version === etat.version) {
+      if (perimee || (connue > 0 && connue === etat.version)) {
         const finAvant = Date.now() + 8000;   // marge sous la limite de la fonction
         while (Date.now() < finAvant) {
           await new Promise((r) => setTimeout(r, 120));
           const c2 = await lire(st, code);
           if (!c2) break;                       // session supprimee entre-temps
-          const e2 = R.vue(c2.s);
-          if (e2.version !== d.version) { return json(200, { etat: e2 }); }
+          const e2 = R.vue(injecterPresence(c2.s, pres));
+          if (e2.version > connue) { return json(200, { etat: e2 }); }
         }
-        return json(200, { inchange: true, version: etat.version });
+        // Rien de neuf a servir. Si notre derniere lecture etait perimee, on le
+        // dit franchement plutot que d'annoncer une version fausse.
+        return json(200, { inchange: true, version: perimee ? connue : etat.version });
       }
       return json(200, { etat });
     }
 
     if (d.op === "agir") {
       const code = String(d.code || "").toUpperCase();
-      const r = await muter(st, code, (s) => { R.toucher(s, d.jeton); return R.appliquer(s, d.jeton, d.intention || {}); });
+      // Plus de `R.toucher` ici : la presence vit dans son propre magasin, et
+      // ecrire le document de session pour un simple horodatage etait
+      // exactement ce qui faisait reculer le tableau.
+      // `idem` : cle d'idempotence envoyee par le client. Elle sert quand il
+      // renvoie une action apres un echec reseau : sans elle, une reponse perdue
+      // faisait creer DEUX fleches ou DEUX notes. Bornee, comme toute entree.
+      const intention = Object.assign({}, d.intention || {});
+      if (d.idem) intention.idem = String(d.idem).slice(0, 48);
+      const r = await muter(st, code, (s) => R.appliquer(s, d.jeton, intention), Math.max(0, +d.version || 0));
       if (r.erreur) return json(r.erreur.statut, { refus: r.erreur });
       if (r.out && r.out.refus) return json(200, { refus: r.out.refus, etat: R.vue(r.s) });
       return json(200, { etat: R.vue(r.s), resultat: r.out && r.out.resultat });
+    }
+
+    /* DIAGNOSTIC. Deux choses peuvent lacher EN SILENCE sur cette plateforme, et
+       les deux l'ont deja fait : la coherence des lectures, et l'ecriture
+       conditionnelle (`onlyIfMatch`). Quand elles lachent, rien ne plante : le
+       tableau perd simplement des actions de temps en temps, ce qui est
+       beaucoup plus difficile a diagnostiquer qu'une panne franche.
+       Cette operation les met a l'epreuve sur un document jetable et rend un
+       verdict lisible. A appeler apres chaque deploiement :
+         curl -s -X POST https://<site>/.netlify/functions/fresque \
+              -H 'Content-Type: application/json' -d '{"op":"sante"}' | jq
+       Elle ne lit ni n'ecrit aucune session : elle ne peut rien casser, et ne
+       divulgue rien (aucun code, aucun prenom, aucune cle). */
+    if (d.op === "sante") {
+      const st2 = limites();
+      const k = "sante:" + Math.random().toString(36).slice(2, 10);
+      const out = { ecritureConditionnelle: "inconnu", relectureImmediate: "inconnu", details: [] };
+      try {
+        const w1 = await st2.setJSON(k, { n: 1 });
+        if (!w1 || typeof w1.modified !== "boolean") {
+          out.ecritureConditionnelle = "non";
+          out.details.push("setJSON ne rend aucun verdict : l'ecriture conditionnelle est inoperante, deux actions simultanees peuvent se recouvrir.");
+        } else {
+          // Etag volontairement faux : le magasin DOIT refuser.
+          const w2 = await st2.setJSON(k, { n: 2 }, { onlyIfMatch: '"etag-volontairement-faux"' });
+          out.ecritureConditionnelle = (w2 && w2.modified === false) ? "oui" : "non";
+          if (out.ecritureConditionnelle === "non") {
+            out.details.push("une ecriture avec un etag faux a ete ACCEPTEE : le verrou ne protege rien.");
+          }
+        }
+        const r1 = await st2.getWithMetadata(k, { type: "json" });
+        out.relectureImmediate = (r1 && r1.data && r1.data.n === 1) ? "oui" : "non";
+        if (out.relectureImmediate === "non") {
+          out.details.push("une valeur ecrite a l'instant n'est pas relue : lectures eventuellement coherentes (attendu sur cette plateforme, le direct passe par le relais).");
+        }
+        try { await st2.delete(k); } catch (e) {}
+      } catch (e) {
+        out.details.push("erreur pendant le test : " + String(e && e.message || e));
+      }
+      out.blobs = (() => { try { return require("@netlify/blobs/package.json").version; } catch (e) { return "inconnue"; } })();
+      out.ok = out.ecritureConditionnelle === "oui";
+      return json(200, out);
     }
 
     return json(400, { error: "Opération inconnue." });

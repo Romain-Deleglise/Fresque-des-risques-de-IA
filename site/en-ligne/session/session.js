@@ -14,6 +14,11 @@
     ouvrirAtelier: function (c) { return "Opening workshop " + c + ": enter your first name, then click “Open the session”."; },
     indispoMoment: "Service unavailable for now.", code6: "The code is 6 characters.",
     connexion: "Connecting…", codeInconnu: "Unknown code.", indispo: "Service unavailable.",
+    actionPerdue: "That action could not be sent. The board has been refreshed; try again.",
+    annuler: "Undo", annulerTitre: "Undo my last action (Ctrl+Z)",
+    a11yCarte: "Arrow keys to move between cards, Shift plus arrows to move this one, L to link, Enter to select.",
+    annulerImpossible: "Nothing left to undo here (someone may have changed it since).",
+    prenomPris: function (p) { return "There is already a \u201C" + p + "\u201D in the room. Add the first letter of your surname, for example \u201C" + p + " D.\u201D, so everyone can tell you apart."; },
     rechargerErreur: "Could not load the board. Check your connection and reload the page.",
     partagezLien: "Copy the invitation link and send it to the group.",
     sansLien: "To join, open the link you received by e-mail.",
@@ -72,6 +77,11 @@
     ouvrirAtelier: function (c) { return "Ouverture de l'atelier " + c + " : entrez votre prénom, puis cliquez sur « Ouvrir la session »."; },
     indispoMoment: "Service indisponible pour le moment.", code6: "Le code fait 6 caractères.",
     connexion: "Connexion…", codeInconnu: "Code inconnu.", indispo: "Service indisponible.",
+    actionPerdue: "Cette action n'a pas pu être envoyée. Le tableau a été rafraîchi, réessayez.",
+    annuler: "Annuler", annulerTitre: "Annuler ma dernière action (Ctrl+Z)",
+    a11yCarte: "Flèches pour passer d'une carte à l'autre, Maj plus flèches pour déplacer celle-ci, L pour relier, Entrée pour sélectionner.",
+    annulerImpossible: "Plus rien à annuler ici (quelqu'un l'a peut-être modifié depuis).",
+    prenomPris: function (p) { return "Il y a déjà « " + p + " » dans la salle. Ajoutez la première lettre de votre nom de famille, par exemple « " + p + " D. », pour que tout le monde s'y retrouve."; },
     rechargerErreur: "Impossible de charger le tableau. Vérifiez votre connexion et rechargez la page.",
     partagezLien: "Copiez le lien d'invitation et envoyez-le au groupe.",
     sansLien: "Pour rejoindre, ouvrez le lien reçu par e-mail.",
@@ -197,6 +207,19 @@
   var rapideJusqu = 0;
   function activite() { rapideJusqu = Date.now() + FENETRE_RAPIDE_MS; }
 
+  /* MOUVEMENT REDUIT. Certaines personnes reglent leur systeme pour supprimer
+     les animations (vertiges, migraines, troubles vestibulaires). Le CSS le
+     respecte de son cote ; ici on coupe aussi ce que le CSS ne voit pas : le
+     lissage des curseurs, celui des cartes tirees par quelqu'un d'autre, et
+     l'animation du recadrage. On suit le reglage en direct, sans recharger. */
+  var mvtReduit = false;
+  try {
+    var mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    mvtReduit = mq.matches;
+    if (mq.addEventListener) mq.addEventListener("change", function (e) { mvtReduit = e.matches; });
+    else if (mq.addListener) mq.addListener(function (e) { mvtReduit = e.matches; });
+  } catch (e) {}
+
   var E = {}; // éléments DOM
   ["lobby","app","anim-prenom","anim-code","btn-creer","join-code","join-prenom","btn-rejoindre","lobby-msg",
    "code-val","code-chip","btn-partager","nb-part","etat-conn","carte0-txt",
@@ -244,6 +267,18 @@
 
   /* ---------- Lobby ---------- */
   function lobbyMsg(t, type) { E["lobby-msg"].textContent = t || ""; E["lobby-msg"].className = "lobby-msg " + (type || ""); }
+  // Message d'un refus du serveur. Les refus connus sont traduits ici (le
+  // serveur ne parle que francais) ; les autres sont repris tels quels.
+  function msgRefus(r, defaut) {
+    if (!r) return defaut;
+    if (r.code === "prenom_pris" && S.prenomPris) return S.prenomPris(r.prenom || "");
+    return r.message || defaut;
+  }
+  // Prenom deja pris : on garde ce qui a ete tape et on replace le curseur a la
+  // fin du champ, pour n'avoir qu'une lettre a ajouter.
+  function reprendrePrenom(champ) {
+    try { var n = champ.value.length; champ.focus(); champ.setSelectionRange(n, n); } catch (e) {}
+  }
 
   var codeSouhaite = null; // code reserve (atelier) a ouvrir, transmis par ?ouvrir=
   E["btn-creer"].addEventListener("click", function () {
@@ -260,12 +295,12 @@
         var jr = jetonTab(res.d.code) || jetonAnim(res.d.code);
         api("rejoindre", { code: res.d.code, prenom: prenom, jeton: jr }).then(function (r2) {
           if (r2.d && r2.d.jeton) { memoriser(res.d.code, r2.d.jeton, r2.d.role); demarrer(res.d.code, r2.d.jeton, r2.d.role, r2.d.etat, r2.d.moi); }
-          else lobbyMsg((r2.d && r2.d.refus && r2.d.refus.message) || S.echec, "err");
+          else { lobbyMsg(msgRefus(r2.d && r2.d.refus, S.echec), "err"); reprendrePrenom(E["anim-prenom"]); }
         }).catch(function () { lobbyMsg(S.indispoMoment, "err"); });
         return;
       }
       if (res.d && res.d.code) { memoriser(res.d.code, res.d.jeton, res.d.role); demarrer(res.d.code, res.d.jeton, res.d.role, res.d.etat); }
-      else lobbyMsg((res.d && (res.d.error || (res.d.refus && res.d.refus.message))) || S.echec, "err");
+      else { lobbyMsg((res.d && res.d.error) || msgRefus(res.d && res.d.refus, S.echec), "err"); reprendrePrenom(E["anim-prenom"]); }
     }).catch(function () { E["btn-creer"].disabled = false; lobbyMsg(S.indispoMoment, "err"); });
   });
 
@@ -291,7 +326,7 @@
     api("rejoindre", { code: code, prenom: prenom, jeton: jetonTab(code) }).then(function (res) {
       E["btn-rejoindre"].disabled = false;
       if (res.d && res.d.jeton) { memoriser(code, res.d.jeton, res.d.role); demarrer(code, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-      else lobbyMsg((res.d && res.d.refus && res.d.refus.message) || S.codeInconnu, "err");
+      else { lobbyMsg(msgRefus(res.d && res.d.refus, S.codeInconnu), "err"); reprendrePrenom(E["join-prenom"]); }
     }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
 
@@ -369,7 +404,7 @@
   // croissant plutot que de rester sur un tableau nu et sans instructions.
   function demarrerQuandCartes(vue, essai) {
     chargerCartes().then(function () {
-      centrer(); appliquerEtat(vue); setOutil("deplacer");
+      centrer(); appliquerEtat(vue, true); setOutil("deplacer");
       flash(etat.role === "animateur" ? S.partagezLien : S.attenteCarte);
       boucle();
       // Tutoriel guide a la premiere arrivee (une fois par role, rejouable via ?).
@@ -394,9 +429,12 @@
   var pollTimer = null, hs = false;
   function boucle() {
     clearTimeout(pollTimer);
-    api("etat", { code: etat.code, jeton: etat.jeton, version: etat.version }).then(function (res) {
+    // `resyncDemande` : on redemande tout en pretendant ne rien savoir, pour que
+    // le serveur renvoie la vue complete et qu'on la reprenne sans discuter.
+    var resync = resyncDemande; resyncDemande = false;
+    api("etat", { code: etat.code, jeton: etat.jeton, version: resync ? 0 : etat.version }).then(function (res) {
       marquerConnexion(true);
-      if (res.d && res.d.etat) appliquerEtat(res.d.etat);
+      if (res.d && res.d.etat) appliquerEtat(res.d.etat, resync ? "force" : undefined);
       else if (res.d && res.d.refus) { flash(res.d.refus.message || S.sessionTerminee); }
     }).catch(function () { marquerConnexion(false); }).finally(function () {
       pollTimer = setTimeout(boucle, Date.now() < rapideJusqu ? POLL_RAPIDE : POLL_LENT);
@@ -406,16 +444,64 @@
   function marquerConnexion(ok) { if (ok === hs) { hs = !ok; E["etat-conn"].classList.toggle("hs", !ok); } }
 
   /* ---------- Application de l'état serveur (déclaratif) ---------- */
-  function appliquerEtat(vue, force) {
+  /* TROIS COUCHES, comme tous les tableaux collaboratifs (Figma, Excalidraw,
+     Liveblocks...) :
+       - EPHEMERE   : curseurs, fleche en cours, carte en cours de glissement.
+                      Relais uniquement, jamais enregistre.
+       - PROVISOIRE : l'action qu'on vient de faire, poussee aux autres AVANT
+                      meme la reponse du serveur. C'est ce qui rend le jeu
+                      lisible : chacun voit le geste des autres en quelques
+                      dizaines de millisecondes, au lieu d'attendre l'aller-
+                      retour HTTP puis le sondage.
+       - AUTORITAIRE: l'etat renvoye par le serveur, seule verite, seule memoire.
+     La regle d'or : un rendu provisoire ne fait JAMAIS avancer notre numero de
+     version. L'etat autoritaire qui porte le meme numero sera donc bien
+     applique ensuite, et corrigera si le serveur a refuse l'action. */
+  var retards = 0;          // etats serveur plus vieux que le notre, d'affilee
+  var provisoire = 0;       // un rendu provisoire attend sa confirmation
+  var provTimer = null;
+  var resyncDemande = false; // redemander l'etat complet au prochain sondage
+  function marquerProvisoire() {
+    provisoire = 1;
+    clearTimeout(provTimer);
+    // Filet : un rendu provisoire qui n'est jamais confirme serait un tableau
+    // qui ment. Passe ce delai, on redemande l'etat complet au serveur.
+    provTimer = setTimeout(function () {
+      provisoire = 0; resyncDemande = true; pollerVite();
+    }, 2500);
+  }
+  function appliquerEtat(vue, mode) {
     if (!vue) return;
-    if (vue.version < etat.version) return; // vieil état
-    // Rendu optimiste en cours : un etat de MEME version precede forcement notre
-    // action locale ; l'appliquer ferait clignoter l'ecran (la carte reviendrait
-    // dans le pool le temps d'un aller-retour). On l'ignore, la reponse de
-    // l'action (force) ou la version suivante fera foi.
-    if (!force && vue.version === etat.version && etat.attente > 0) return;
-    if (vue.version !== etat.version) activite(); // changement reçu : on reste réactif
-    etat.vue = vue; etat.version = vue.version;
+    var force = mode === true || mode === "force";
+    var prov = mode === "prov";
+    if (vue._prov) { try { delete vue._prov; } catch (e) {} }
+    // RIEN D'AUTORITAIRE N'EST APPLIQUE QUI NE SOIT STRICTEMENT PLUS RECENT. Le
+    // magasin sert des lectures eventuellement coherentes : un sondage peut
+    // tres bien nous rendre l'etat d'il y a trois secondes. Le poser sur le
+    // tableau, c'est faire reculer tout le monde : la carte que quelqu'un vient
+    // de poser repart dans la reserve, une fleche disparait, une carte « bouge
+    // toute seule ». A version EGALE aussi : deux actions parties de la meme
+    // version portent le meme numero suivant, avec des contenus differents.
+    if (prov) {
+      if (vue.version < etat.version) return;   // notre tableau est deja plus loin
+      marquerProvisoire();
+    } else if (!force) {
+      if (vue.version > etat.version) { retards = 0; }
+      // Meme numero : on n'applique que pour remplacer un rendu provisoire par
+      // la verite du serveur. Sinon on garde le notre.
+      else if (vue.version === etat.version) { if (!provisoire) return; }
+      // Plus vieux que nous. Presque toujours une lecture perimee, qu'on
+      // ignore. Mais si le serveur insiste, c'est que notre version venait d'un
+      // etat relaye que le magasin n'a pas conserve : il est l'autorite, on se
+      // resynchronise plutot que de rester bloque sur un tableau fantome.
+      else if (++retards < 4) { return; }
+      else { retards = 0; }
+    }
+    if (!prov) { provisoire = 0; clearTimeout(provTimer); }
+    activite();                                  // ca bouge : on reste reactif
+    etat.vue = vue;
+    if (!prov) etat.version = vue.version;
+    rejouerEnVol();   // nos actions pas encore confirmees restent a l'ecran
     E["nb-part"].textContent = vue.participants.length + 1; // + l'animateur (présent)
     rendreParticipants(vue);
     rendrePool(vue);
@@ -594,9 +680,10 @@
       + "|" + etat.role + "|" + _idMoi;
     if (sig === etat._sigPart) return; etat._sigPart = sig;
     var ul = E["liste-part"]; ul.innerHTML = "";
-    // Distinguer les homonymes : si un prénom apparaît plusieurs fois, on
-    // numérote les occurrences (Antoine ·1, Antoine ·2) pour que tout le monde
-    // s'y retrouve.
+    // Filet de sécurité pour les homonymes. L'entrée les refuse maintenant en
+    // amont (règle `prenom_pris` : on demande une lettre du nom de famille),
+    // mais une session ouverte avant ce changement peut encore en contenir :
+    // dans ce cas on numérote les occurrences (Antoine ·1, Antoine ·2).
     var tous = [vue.animateur].concat(vue.participants || []);
     var compte = {}; tous.forEach(function (x) { var k = (x.prenom || "").toLowerCase(); compte[k] = (compte[k] || 0) + 1; });
     var vus = {};
@@ -728,6 +815,7 @@
     poignee.addEventListener("pointercancel", fin);
   }
 
+  var _poolVues = {};   // cartes deja presentes au rendu precedent
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
@@ -809,10 +897,16 @@
         continue;
       }
       precharger(n);
-      case_.appendChild(carteDePool(n, reserv[n], moiNom, anim));
+      // Nouvelle venue dans la reserve : elle s'annonce. Quand l'animateur
+      // remplit la reserve d'un coup, on voit les cartes arriver au lieu de les
+      // decouvrir posees la.
+      var carte = carteDePool(n, reserv[n], moiNom, anim);
+      if (!_poolVues[n]) carte.classList.add("pool-neuve");
+      case_.appendChild(carte);
       grille.appendChild(case_);
     }
     z.appendChild(grille);
+    _poolVues = {}; pool.forEach(function (n) { if (n != null) _poolVues[n] = 1; });
     if (!pool.length) {
       var v = document.createElement("p"); v.className = "pool-vide";
       v.textContent = anim ? S.poolVideAnim : S.poolVide;
@@ -834,7 +928,7 @@
       + '</div>';
     d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
     d.querySelector('[data-a="poser"]').addEventListener("click", function (e) {
-      e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, rect: rectVisible() });
+      e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, pos: pointLibre(), rect: rectVisible() });
     });
     var bx = d.querySelector('[data-a="retirer"]');
     if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
@@ -895,7 +989,7 @@
     if (!g.bouge) {
       g.bouge = true;
       // Reserver au serveur ; si refuse (deja pris), on annule le glissement.
-      api("agir", { code: etat.code, jeton: etat.jeton, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
+      api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, intention: { op: "reserverPool", n: g.n } }).then(function (res) {
         if (!glissePool || glissePool !== g) return;
         if (res.d && res.d.refus) { g.refuse = true; flash(res.d.refus.message || (S.occupee || "")); finGlissePool(true); }
         else { g.reserve = true; if (res.d && res.d.etat) { appliquerEtat(res.d.etat, true); envoyerEtat(res.d.etat); } }
@@ -904,6 +998,8 @@
       if (g.el) g.el.classList.add("en-glisse");
     }
     if (g.fantome) { g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px"; }
+    var wg = versMonde(e.clientX, e.clientY);
+    envoyerGliss(g.n, wg.x - 75, wg.y - 70, 1);   // meme centrage que la pose
     // Retour visuel : la scene s'illumine quand on survole une zone deposable ;
     // la reserve s'illumine quand on va y renvoyer la carte.
     E.scene.classList.toggle("depot-actif", zoneDepot(e.clientX, e.clientY));
@@ -924,6 +1020,7 @@
   }
   function finGlissePool(silence) {
     var g = glissePool; glissePool = null;
+    if (g && g.bouge) envoyerGlissFin(g.n);
     document.removeEventListener("pointermove", glisserPoolMove, true);
     document.removeEventListener("pointerup", glisserPoolUp, true);
     document.removeEventListener("pointercancel", glisserPoolUp, true);
@@ -976,6 +1073,8 @@
     if (!g.bouge && Math.abs(e.clientX - g.x0) + Math.abs(e.clientY - g.y0) < 5) return;
     if (!g.bouge) { g.bouge = true; g.fantome = fantome(g.n); g.el.classList.add("en-glisse"); }
     g.fantome.style.left = e.clientX + "px"; g.fantome.style.top = e.clientY + "px";
+    var wd = versMonde(e.clientX, e.clientY);
+    envoyerGliss(g.n, wd.x - 75, wd.y - 70, 1);
     if (E["pool"]) E["pool"].classList.toggle("depot-actif", surPool(e.clientX, e.clientY));
   }
   function glisserDeckUp(e) {
@@ -995,6 +1094,7 @@
   }
   function finGlisseDeck() {
     var g = glisseDeck; glisseDeck = null;
+    if (g && g.bouge) envoyerGlissFin(g.n);
     document.removeEventListener("pointermove", glisserDeckMove, true);
     document.removeEventListener("pointerup", glisserDeckUp, true);
     document.removeEventListener("pointercancel", glisserDeckUp, true);
@@ -1021,16 +1121,29 @@
   }
 
   /* ---------- Tableau (rendu déclaratif) ---------- */
+  var _premierRendu = true;
   function rendreTableau(tab) {
     if (!tab) return;
     var vus = {};
     tab.cartes.forEach(function (c) {
       vus[c.n] = 1;
-      var el = etat.elCartes[c.n];
-      if (!el) { el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); flashPose(el); precharger(c.n); }
-      if (etat.dragN !== c.n) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
+      var el = etat.elCartes[c.n], neuf = false;
+      if (!el) {
+        annulerSortie(c.n);
+        el = creerElCarte(c.n); etat.elCartes[c.n] = el; E.monde.appendChild(el); precharger(c.n); neuf = true;
+        // On n'anime QUE les vraies arrivees. En rejoignant une session en
+        // cours, les cartes deja posees ne « viennent » pas d'arriver : les
+        // faire toutes surgir ensemble ferait un feu d'artifice sans aucun sens.
+        if (!_premierRendu) flashPose(el);
+      }
+      // On ne repositionne pas une carte qu'on deplace soi-meme (etat.dragN), ni
+      // une carte du tableau que quelqu'un d'autre est en train de deplacer
+      // (glissParCarte) : elle sauterait entre deux positions. En revanche une
+      // carte qui vient d'arriver, elle, doit toujours etre placee.
+      var fige = neuf ? false : (etat.dragN === c.n || glissParCarte[c.n] === 1);
+      if (!fige) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
     });
-    Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) { etat.elCartes[n].remove(); delete etat.elCartes[n]; } });
+    Object.keys(etat.elCartes).forEach(function (n) { if (!vus[n]) retirerElCarte(n); });
 
     // textes
     var vusT = {};
@@ -1046,14 +1159,30 @@
     Object.keys(etat.elTextes).forEach(function (id) { if (!vusT[id]) { etat.elTextes[id].remove(); delete etat.elTextes[id]; } });
 
     dessinerFleches();
+    majPlancher();
+    assurerRoving();   // au moins une carte reste atteignable a la tabulation
+    _premierRendu = false;
     var exp = document.getElementById("btn-export");
     if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
   }
 
   function creerElCarte(n) {
     var c = etat.cartes[n]; var el = document.createElement("div"); el.className = "c-carte"; el.dataset.n = n;
+    // Couleur du lot : invisible de pres (un filet de 3 px en haut), mais c'est
+    // elle qui fait lire les familles de cartes quand on prend du recul.
+    if (c && c.lot) el.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" src="' + BASE + (c && c.image ? c.image.vignette : "") + '"><span class="num">' + n + '</span>'
       + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
+    // ACCESSIBILITE AU CLAVIER. Les cartes etaient de simples `div` : on pouvait
+    // remplir la reserve et poser une carte au clavier, mais ni la deplacer ni
+    // la relier, c'est-a-dire ni faire la fresque. Chaque carte devient un
+    // element focalisable et annonce ce qu'elle est.
+    el.setAttribute("tabindex", "-1");   // un seul point d'entree, voir `rovingCarte`
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", n + " " + (c ? c.titre : "") + ". " + S.a11yCarte);
+    el.addEventListener("keydown", function (e) { clavierCarte(e, n, el); });
+    el.addEventListener("focus", function () { rovingCarte(el); montrerSurvol(n); });
+    el.addEventListener("blur", masquerSurvol);
     el.querySelector(".agr").addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     el.addEventListener("dblclick", function (e) { e.stopPropagation(); ouvrirModal(n); }); // double-clic = agrandir
     // Encadre fixe au survol (utile quand on est dezoome).
@@ -1069,7 +1198,30 @@
     glisserCarte(el, n);
     return el;
   }
-  function flashPose(el) { el.classList.add("pose-anim"); setTimeout(function () { el.classList.remove("pose-anim"); }, 700); }
+  function flashPose(el) {
+    el.classList.remove("pose-anim");
+    void el.offsetWidth;                 // relance l'animation si la carte revient
+    el.classList.add("pose-anim");
+    setTimeout(function () { el.classList.remove("pose-anim"); }, 750);
+  }
+  /* DEPART D'UNE CARTE. Elle disparaissait d'un coup : on ne savait pas si
+     quelqu'un venait de la retirer ou si on avait mal vu. Elle s'efface
+     maintenant en se retractant. L'element est sorti du registre TOUT DE SUITE
+     (il ne compte plus dans le tableau) et seulement retire du document a la fin
+     du mouvement ; si la carte revient entre-temps, on annule proprement. */
+  var _sorties = {};
+  function retirerElCarte(n) {
+    var el = etat.elCartes[n]; if (!el) return;
+    delete etat.elCartes[n];
+    if (mvtReduit) { el.remove(); return; }
+    if (_sorties[n]) { clearTimeout(_sorties[n].t); _sorties[n].el.remove(); }
+    el.classList.add("sort-anim");
+    _sorties[n] = { el: el, t: setTimeout(function () { el.remove(); delete _sorties[n]; }, 240) };
+  }
+  function annulerSortie(n) {
+    var o = _sorties[n]; if (!o) return;
+    clearTimeout(o.t); o.el.remove(); delete _sorties[n];
+  }
   // Encadre fixe (haut de la scene) qui affiche le titre de la carte survolee.
   var _survol = null;
   function montrerSurvol(n) {
@@ -1081,6 +1233,117 @@
   }
   function masquerSurvol() { if (_survol) _survol.hidden = true; }
 
+  /* NAVIGATION ET MANIPULATION AU CLAVIER.
+     Modele choisi, et pourquoi. Avec trente-huit cartes, les rendre toutes
+     tabulables obligerait a trente-huit tabulations pour traverser le tableau :
+     personne ne le ferait. On applique donc le schema recommande pour les
+     grilles d'elements (« roving tabindex ») : UN seul point d'entree au
+     clavier, puis les fleches pour passer d'une carte a l'autre.
+       Tab              entrer dans le tableau / en sortir
+       Fleches          aller a la carte la plus proche dans cette direction
+       Maj + fleches    DEPLACER la carte (Maj+Ctrl : pas de 100 px)
+       Entree / Espace  selectionner (animateur) ou agrandir
+       L                relier : une fois sur la carte de depart, une fois sur
+                        celle d'arrivee
+       Suppr            retirer la carte (animateur)
+       Echap            annuler le lien en cours ou la selection
+     Le deplacement n'envoie au serveur qu'a la fin de la rafale de touches : on
+     n'ecrit pas une action par pression. */
+  var _rovingN = null;
+  function rovingCarte(el) {
+    if (_rovingN === el) return;
+    if (_rovingN) _rovingN.setAttribute("tabindex", "-1");
+    _rovingN = el; el.setAttribute("tabindex", "0");
+  }
+  // Au moins une carte doit toujours etre atteignable a la tabulation.
+  function assurerRoving() {
+    if (_rovingN && _rovingN.isConnected) return;
+    var prem = E.monde.querySelector(".c-carte");
+    _rovingN = null; if (prem) rovingCarte(prem);
+  }
+  // Carte la plus proche dans une direction, mesuree dans le monde.
+  function carteVoisine(depuis, dx, dy) {
+    var a = centreCarte(+depuis.dataset.n); if (!a) return null;
+    var meilleure = null, score = Infinity;
+    Object.keys(etat.elCartes).forEach(function (k) {
+      var el = etat.elCartes[k]; if (el === depuis) return;
+      var b = centreCarte(+k); if (!b) return;
+      var vx = b.x - a.x, vy = b.y - a.y;
+      var avance = vx * dx + vy * dy;              // distance dans la direction visee
+      if (avance <= 1) return;                     // pas dans cette direction
+      var ecart = Math.abs(vx * dy - vy * dx);     // ecart lateral
+      var c = avance + ecart * 2.2;                // on privilegie l'alignement
+      if (c < score) { score = c; meilleure = el; }
+    });
+    return meilleure;
+  }
+  // Amene la carte dans la partie visible si elle n'y est pas : au clavier, on
+  // ne peut pas faire defiler soi-meme avant d'y arriver.
+  function assurerVisible(el) {
+    var r = rectScene(), z = zoneLibre(r);
+    var x = (el._x || 0) * etat.zoom + etat.panX, y = (el._y || 0) * etat.zoom + etat.panY;
+    dimCarte(el);
+    var w = el._w * etat.zoom, h = el._h * etat.zoom, m = 24;
+    var dx = 0, dy = 0;
+    if (x < z.x + m) dx = z.x + m - x;
+    else if (x + w > z.x + z.largeur - m) dx = z.x + z.largeur - m - (x + w);
+    if (y < z.y + m) dy = z.y + m - y;
+    else if (y + h > z.y + z.hauteur - m) dy = z.y + z.hauteur - m - (y + h);
+    if (!dx && !dy) return;
+    etat.panX += dx; etat.panY += dy; clampPan(); applyView(); majFleches();
+  }
+  var _bougeClavier = null;
+  function clavierCarte(e, n, el) {
+    if (e.altKey || e.ctrlKey && !e.shiftKey || e.metaKey) return;
+    var DIR = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    var d = DIR[e.key];
+    if (d) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Deplacer la carte. On rend la main au serveur seulement a la fin de la
+        // rafale, sinon on lui enverrait une action par pression de touche.
+        var pas = e.ctrlKey ? 100 : 20;
+        dimCarte(el);
+        el._x = Math.max(0, Math.min(PLAN_W - el._w, (el._x || 0) + d[0] * pas));
+        el._y = Math.max(0, Math.min(PLAN_H - el._h, (el._y || 0) + d[1] * pas));
+        el.style.left = el._x + "px"; el.style.top = el._y + "px";
+        majFleches(); assurerVisible(el);
+        envoyerGliss(n, el._x, el._y, 0);
+        clearTimeout(_bougeClavier);
+        _bougeClavier = setTimeout(function () {
+          envoyerGlissFin(n);
+          agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y });
+        }, 400);
+      } else {
+        var v = carteVoisine(el, d[0], d[1]);
+        if (v) { assurerVisible(v); try { v.focus(); } catch (x) {} }
+      }
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (estFleche(etat.outil)) { clicFleche(n, el); return; }
+      if (etat.role === "animateur") selCarte(n, el); else ouvrirModal(n);
+      return;
+    }
+    if (e.key === "l" || e.key === "L") {
+      e.preventDefault();
+      if (!estFleche(etat.outil)) setOutil("fleche");
+      clicFleche(n, el);
+      return;
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && etat.role === "animateur") {
+      e.preventDefault();
+      var suiv = carteVoisine(el, 1, 0) || carteVoisine(el, -1, 0);
+      agir({ op: "retirerCarte", n: n });
+      if (suiv) setTimeout(function () { try { suiv.focus(); } catch (x) {} }, 60);
+      return;
+    }
+    if (e.key === "Escape") {
+      if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); } else deselect();
+    }
+  }
+
   function glisserCarte(el, n) {
     var st = null, bouge = false;
     el.addEventListener("pointerdown", function (e) {
@@ -1091,14 +1354,16 @@
     el.addEventListener("pointermove", function (e) {
       if (!st) return;
       if (!bouge && Math.abs(e.clientX - st.mx) + Math.abs(e.clientY - st.my) > 3) bouge = true;
-      var x = Math.max(0, Math.min(PLAN_W - el.offsetWidth, st.x + (e.clientX - st.mx) / etat.zoom));
-      var y = Math.max(0, Math.min(PLAN_H - el.offsetHeight, st.y + (e.clientY - st.my) / etat.zoom));
+      dimCarte(el);   // taille en cache : pas de calcul de mise en page par image
+      var x = Math.max(0, Math.min(PLAN_W - el._w, st.x + (e.clientX - st.mx) / etat.zoom));
+      var y = Math.max(0, Math.min(PLAN_H - el._h, st.y + (e.clientY - st.my) / etat.zoom));
       el._x = x; el._y = y; el.style.left = x + "px"; el.style.top = y + "px"; majFleches();
+      envoyerGliss(n, x, y, 0);   // les autres voient la carte bouger en direct
     });
     function fin(e, annule) {
       if (!st) return; st = null; el.style.cursor = "grab";
       try { el.releasePointerCapture(e.pointerId); } catch (x) {}
-      etat.dragN = null;
+      etat.dragN = null; envoyerGlissFin(n);
       if (bouge && !annule) { el._justDrag = Date.now(); agir({ op: "deplacerCarte", n: n, x: el._x, y: el._y }); }
       // Annulation (pointercancel) : on ne touche pas au serveur, la carte
       // reprend sa derniere position connue au prochain rendu.
@@ -1136,9 +1401,23 @@
     envoyerWS({ t: "fl", de: etat.flecheDepart.n, x: Math.round(w.x), y: Math.round(w.y) });
   }
 
+  /* TAILLE DES CARTES, MESUREE UNE FOIS. `offsetWidth` force le navigateur a
+     recalculer la mise en page : le lire pour chaque extremite de chaque fleche,
+     a chaque image d'un glissement, revenait a demander des dizaines de calculs
+     de mise en page par image (le « layout thrashing » classique, lecture et
+     ecriture du DOM entrelacees). Une carte fait toujours la meme taille : le
+     zoom passe par une transformation du monde, pas par la carte. On mesure donc
+     une fois et on garde. Invalide au redimensionnement et a l'arrivee des
+     polices, seuls moments ou la hauteur d'un titre peut changer. */
+  function dimCarte(el) {
+    if (!el._w) { el._w = el.offsetWidth || 150; el._h = el.offsetHeight || 150; }
+    return el;
+  }
+  function oublierDims() { for (var n in etat.elCartes) { etat.elCartes[n]._w = 0; etat.elCartes[n]._h = 0; } }
   function centreCarte(n) {
     var el = etat.elCartes[n]; if (!el) return null;
-    return { x: (el._x || 0) + el.offsetWidth / 2, y: (el._y || 0) + el.offsetHeight / 2, w: el.offsetWidth, h: el.offsetHeight };
+    dimCarte(el);
+    return { x: (el._x || 0) + el._w / 2, y: (el._y || 0) + el._h / 2, w: el._w, h: el._h };
   }
   function bord(c, tx, ty) { var dx = tx - c.x, dy = ty - c.y; if (!dx && !dy) return { x: c.x, y: c.y };
     var hw = c.w / 2 + 4, hh = c.h / 2 + 4; var s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
@@ -1151,13 +1430,35 @@
     if (_flechesRAF) return;
     _flechesRAF = requestAnimationFrame(function () { _flechesRAF = 0; dessinerFleches(); dessinerFlechesLive(); });
   }
+  /* DESSIN DES FLECHES SANS RECONSTRUIRE LE SVG.
+     Avant : on refabriquait tout le contenu de `#fleches` par innerHTML, on
+     detruisait puis recreait chaque libelle, et on rebranchait un ecouteur de
+     clic par fleche... a chaque image d'un glissement. Sur une machine modeste
+     cela suffisait a faire sauter le deplacement d'une carte.
+     Maintenant : chaque fleche garde ses deux chemins et son libelle d'une fois
+     sur l'autre ; on ne change que ce qui a change (l'attribut `d`, une classe,
+     une pointe). Un seul ecouteur, pose une fois, sert toutes les fleches. */
+  var FLE_DEFS = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
+    + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
+    + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
+    + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var _fleNoeuds = {};   // id de fleche -> { hit, trait, lib, d, cls, mk, txt }
+  var _flePrete = false;
+  function preparerFleches() {
+    if (_flePrete) return; _flePrete = true;
+    E.fleches.insertAdjacentHTML("afterbegin", FLE_DEFS);
+    // Un seul ecouteur, par delegation : plus rien a rebrancher au redessin.
+    E.fleches.addEventListener("click", function (e) {
+      var h = e.target && e.target.classList && e.target.classList.contains("hit") ? e.target : null;
+      if (!h) return;
+      e.stopPropagation(); selFleche(h.getAttribute("data-id"));
+    });
+  }
   function dessinerFleches() {
     if (!etat.vue) return;
-    var defs = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
-      + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
-      + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
-      + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
-    var html = defs, idx = {}, libs = [];
+    preparerFleches();
+    var idx = {}, vus = {};
     (etat.vue.tableau.fleches || []).forEach(function (f) {
       var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
       var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
@@ -1167,31 +1468,55 @@
       var nx = -dy / len, ny = dx / len, cxp = mx + nx * amp, cyp = my + ny * amp;
       var d = "M" + pa.x + "," + pa.y + " Q" + cxp + "," + cyp + " " + pb.x + "," + pb.y;
       var sel = etat.sel && etat.sel.type === "fleche" && etat.sel.id === f.id;
-      html += '<path class="hit" data-id="' + f.id + '" d="' + d + '"/>';
-      html += '<path class="trait' + (f.bidir ? ' bidir' : '') + (sel ? ' sel' : '') + '" d="' + d + '" marker-end="url(#' + (sel ? 'aho' : (f.bidir ? 'ahb' : 'ah')) + ')"' + (f.bidir ? ' marker-start="url(#ahbs)"' : '') + '/>';
+      var cls = "trait" + (f.bidir ? " bidir" : "") + (sel ? " sel" : "");
+      var mk = "url(#" + (sel ? "aho" : (f.bidir ? "ahb" : "ah")) + ")";
+
+      var g = _fleNoeuds[f.id];
+      if (!g) {
+        g = { hit: document.createElementNS(SVGNS, "path"), trait: document.createElementNS(SVGNS, "path"), lib: null };
+        g.hit.setAttribute("class", "hit"); g.hit.setAttribute("data-id", f.id);
+        E.fleches.appendChild(g.hit); E.fleches.appendChild(g.trait);
+        _fleNoeuds[f.id] = g;
+      }
+      if (g.d !== d) { g.hit.setAttribute("d", d); g.trait.setAttribute("d", d); g.d = d; }
+      if (g.cls !== cls) { g.trait.setAttribute("class", cls); g.cls = cls; }
+      if (g.mk !== mk) {
+        g.trait.setAttribute("marker-end", mk);
+        if (f.bidir) g.trait.setAttribute("marker-start", "url(#ahbs)"); else g.trait.removeAttribute("marker-start");
+        g.mk = mk;
+      }
       f._mid = { x: cxp, y: cyp };
-      if (f.libelle) libs.push({ x: cxp, y: cyp, t: f.libelle });
+      // Libelle : cree seulement s'il y en a un, deplace ensuite.
+      if (f.libelle) {
+        if (!g.lib) { g.lib = document.createElement("div"); g.lib.className = "fleche-lib"; E.monde.appendChild(g.lib); }
+        if (g.txt !== f.libelle) { g.lib.textContent = f.libelle; g.txt = f.libelle; }
+        g.lib.style.left = cxp + "px"; g.lib.style.top = cyp + "px";
+      } else if (g.lib) { g.lib.remove(); g.lib = null; g.txt = null; }
+      vus[f.id] = 1;
     });
-    E.fleches.innerHTML = html;
-    Array.prototype.forEach.call(E.monde.querySelectorAll(".fleche-lib"), function (n) { n.remove(); });
-    libs.forEach(function (l) {
-      var el = document.createElement("div"); el.className = "fleche-lib"; el.textContent = l.t;
-      el.style.left = l.x + "px"; el.style.top = l.y + "px"; E.monde.appendChild(el);
-    });
-    E.fleches.querySelectorAll(".hit").forEach(function (h) {
-      h.addEventListener("click", function (e) { e.stopPropagation(); selFleche(h.dataset.id); });
-    });
+    // Fleches disparues : on retire leurs noeuds.
+    for (var id in _fleNoeuds) {
+      if (vus[id]) continue;
+      var mort = _fleNoeuds[id];
+      mort.hit.remove(); mort.trait.remove(); if (mort.lib) mort.lib.remove();
+      delete _fleNoeuds[id];
+    }
     positionnerEditeurs();
   }
 
   // Couche ephemere : les fleches en cours de trace (la mienne et celles des
   // autres). Separee de #fleches pour ne jamais reconstruire les vraies fleches.
+  var _liveVide = true;
   function dessinerFlechesLive() {
     var L = E["fleches-live"]; if (!L) return;
     var html = "";
     if (etat.flecheDepart && etat.flecheCurseur) html += traitLive(etat.flecheDepart.n, etat.flecheCurseur.x, etat.flecheCurseur.y, "#E8811C");
     for (var id in flLive) { var f = flLive[id]; html += traitLive(f.de, f.x, f.y, couleurCurseur(id)); }
+    // Rien a tracer et deja vide : on ne touche pas au document. Sans ce test on
+    // reecrivait une couche vide a chaque image de chaque deplacement, pour rien.
+    if (!html && _liveVide) return;
     L.innerHTML = html;
+    _liveVide = !html;
   }
   function traitLive(de, x, y, coul) {
     var A = centreCarte(de); if (!A) return "";
@@ -1378,22 +1703,139 @@
   // « Poser » des dizaines de fois. Le rendu optimiste, lui, reste immediat :
   // l'utilisateur voit son geste tout de suite, c'est l'envoi qui fait la queue.
   var fileAgir = [], envoiEnCours = false;
-  function agir(intention, apres) {
+  /* ANNULATION DE SES PROPRES ACTIONS.
+     Pas d'historique partage, pas de transformation d'operations : ce serait
+     hors de proportion ici. Le principe est plus simple et suffit a l'usage
+     reel d'un atelier : au moment ou l'on agit, on sait fabriquer l'action
+     INVERSE a partir de l'etat d'avant. On l'empile ; « Annuler » la rejoue
+     comme une action ordinaire, avec les memes regles, les memes garde-fous et
+     la meme diffusion aux autres.
+     Consequence assumee : on annule SON geste, pas celui du voisin, et si
+     quelqu'un a modifie la meme chose entre-temps, le serveur refuse ou le
+     resultat n'est pas celui qu'on imaginait. C'est le comportement de tous les
+     outils collaboratifs a ce niveau de complexite, et c'est previsible. */
+  var pile = [];
+  var PILE_MAX = 30;
+  function inverseDe(d, v) {
+    if (!d || !v) return null;
+    var tab = v.tableau || {}, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
+    var n = +d.n;
+    function carte(k) { return cartes.filter(function (c) { return c.n === k; })[0]; }
+    switch (d.op) {
+      case "poolAjouter": return { op: "poolRetirer", n: n };
+      case "poolRetirer": return { op: "poolAjouter", n: n };
+      case "poserCarte": return { op: "retirerCarte", n: n, dest: "pool" };
+      case "retirerCarte": {
+        var c = carte(n); if (!c) return null;
+        // Remise en place exacte : la carte repasse par la reserve (regle du
+        // jeu) puis se repose la ou elle etait.
+        return { op: "poolAjouter", n: n, _puis: { op: "poserCarte", n: n, pos: { x: c.x + 80, y: c.y + 75 } } };
+      }
+      case "deplacerCarte": {
+        var c2 = carte(n); if (!c2) return null;
+        return { op: "deplacerCarte", n: n, x: c2.x, y: c2.y };
+      }
+      case "deplacerTexte": {
+        var t1 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t1) return null;
+        return { op: "deplacerTexte", id: d.id, x: t1.x, y: t1.y };
+      }
+      case "modifierTexte": {
+        var t2 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t2) return null;
+        return { op: "modifierTexte", id: d.id, contenu: t2.contenu };
+      }
+      case "supprimerTexte": {
+        var t3 = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t3) return null;
+        return { op: "creerTexte", x: t3.x, y: t3.y, contenu: t3.contenu };
+      }
+      case "libellerFleche": {
+        var f1 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f1) return null;
+        return { op: "libellerFleche", id: d.id, libelle: f1.libelle || "" };
+      }
+      case "supprimerFleche": {
+        var f2 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f2) return null;
+        var inv = { op: "creerFleche", de: f2.de, vers: f2.vers, bidir: !!f2.bidir };
+        if (f2.libelle) inv._libelle = f2.libelle;
+        return inv;
+      }
+      // `creerFleche` et `creerTexte` : l'identifiant n'existe pas encore, il
+      // arrive avec la reponse du serveur. Complete dans `agir`.
+      case "creerFleche": return { op: "supprimerFleche", id: null, _attendId: 1 };
+      case "creerTexte": return { op: "supprimerTexte", id: null, _attendId: 1 };
+      default: return null;   // ping, exclure, lien vocal... rien a defaire
+    }
+  }
+  // Une action refusee ou perdue ne doit rien laisser dans la pile : « Annuler »
+  // defairait alors quelque chose qui n'a jamais eu lieu.
+  function depiler(inv) {
+    if (!inv) return;
+    var i = pile.indexOf(inv); if (i >= 0) pile.splice(i, 1);
+    majBoutonAnnuler();
+  }
+  function empiler(inv) {
+    if (!inv) return null;
+    pile.push(inv); if (pile.length > PILE_MAX) pile.shift();
+    majBoutonAnnuler();
+    return inv;
+  }
+  function majBoutonAnnuler() {
+    var b = document.getElementById("btn-annuler");
+    if (b) b.disabled = !pile.length;
+  }
+  function annulerDerniere() {
+    var inv = pile.pop(); majBoutonAnnuler();
+    if (!inv) return;
+    if (inv._attendId && !inv.id) { flash(S.annulerImpossible); return; }
+    var suite = inv._puis, lib = inv._libelle;
+    var envoi = {}; for (var k in inv) { if (k.charAt(0) !== "_") envoi[k] = inv[k]; }
+    agir(envoi, function (d) {
+      if (d && d.refus) { flash(S.annulerImpossible); return; }
+      // Certaines annulations demandent deux temps (remettre une carte passe par
+      // la reserve ; une fleche recreee doit retrouver son libelle).
+      if (suite) agir(suite);
+      if (lib && d && d.resultat && d.resultat.id) agir({ op: "libellerFleche", id: d.resultat.id, libelle: lib });
+    }, true);
+  }
+
+  function agir(intention, apres, sansEmpiler) {
     activite(); // action locale : on passe en mode reactif
-    appliquerOptimiste(intention);
+    var inv = sansEmpiler ? null : empiler(inverseDe(intention, etat.vue));
+    var change = appliquerOptimiste(intention);
+    // LE POINT CLE POUR LE JEU. On pousse aux autres notre vue optimiste AVANT
+    // d'avoir la reponse du serveur : ils voient le geste tout de suite. Sans
+    // cela, ils attendaient l'aller-retour HTTP (fonction + magasin), soit
+    // plusieurs secondes, ce qui rend la partie illisible. Le serveur tranche
+    // ensuite, et son etat autoritaire corrige au besoin.
+    if (change) envoyerEtatProvisoire();
     etat.attente++;
-    fileAgir.push({ intention: intention, apres: apres });
+    enVol.push(intention);
+    fileAgir.push({ intention: intention, apres: apres, essais: 0, inv: inv });
     defilerAgir();
   }
+  function finEnVol(intention) {
+    var i = enVol.indexOf(intention); if (i >= 0) enVol.splice(i, 1);
+  }
+  // Cle d'idempotence : si la reponse se perd en route, on renvoie la meme
+  // action ; le serveur reconnait la cle et ne l'applique pas deux fois. Sans
+  // elle, un simple renvoi creait DEUX fleches ou DEUX notes.
+  var seqIdem = 0;
+  function cleIdem() { return (etat.jeton || "x").slice(0, 6) + "-" + Date.now().toString(36) + "-" + (++seqIdem); }
   function defilerAgir() {
     if (envoiEnCours || !fileAgir.length) return;
     envoiEnCours = true;
-    var t = fileAgir.shift();
-    api("agir", { code: etat.code, jeton: etat.jeton, intention: t.intention }).then(function (res) {
-      if (res.d && res.d.refus && res.d.refus.message) flash(res.d.refus.message);
+    var t = fileAgir[0];
+    if (!t.idem) t.idem = cleIdem();
+    // `version` : ce que nous avons sous les yeux. Le serveur refuse d'agir sur
+    // une lecture plus ancienne que cela, sans quoi notre action effacerait ce
+    // que quelqu'un vient de faire.
+    api("agir", { code: etat.code, jeton: etat.jeton, version: etat.version, idem: t.idem, intention: t.intention }).then(function (res) {
+      fileAgir.shift(); finEnVol(t.intention);
+      if (res.d && res.d.refus) { depiler(t.inv); if (res.d.refus.message) flash(res.d.refus.message); }
       // Le callback d'abord : il peut avoir besoin d'enregistrer l'element cree
       // (une note) AVANT que le rendu declaratif ne le decouvre et n'en fasse un
       // doublon.
+      // L'identifiant d'un element tout juste cree n'existe que maintenant :
+      // c'est le moment de completer l'action inverse mise de cote.
+      if (t.inv && t.inv._attendId && res.d && res.d.resultat && res.d.resultat.id) t.inv.id = res.d.resultat.id;
       if (t.apres) { try { t.apres(res.d || {}); } catch (e) {} }
       etat.attente = Math.max(0, etat.attente - 1);
       // On ne reconcilie qu'une fois la file vide : appliquer un etat intermediaire
@@ -1410,17 +1852,37 @@
       // fleches et notes attendre le sondage (donc des secondes).
       envoyerEtat(vue);
       pollerVite(); // reprendre l'ecoute tout de suite (voir les autres vite)
+      envoiEnCours = false; defilerAgir();
     }).catch(function () {
-      etat.attente = Math.max(0, etat.attente - 1); marquerConnexion(false);
-    }).finally(function () { envoiEnCours = false; defilerAgir(); });
+      // RESEAU. Une action perdue ici ne l'etait nulle part ailleurs : elle
+      // restait a l'ecran de son auteur, pour toujours, alors que personne
+      // d'autre ne l'avait. On renvoie donc (la cle d'idempotence rend le
+      // renvoi sans danger), et si vraiment ca ne passe pas, on ANNULE
+      // l'affichage en redemandant l'etat au serveur : mieux vaut perdre le
+      // geste que montrer un tableau qui ment.
+      marquerConnexion(false);
+      t.essais++;
+      if (t.essais <= 2) { setTimeout(function () { envoiEnCours = false; defilerAgir(); }, 400 * t.essais); return; }
+      fileAgir.shift(); finEnVol(t.intention); depiler(t.inv);
+      etat.attente = Math.max(0, etat.attente - 1);
+      flash(S.actionPerdue);
+      resyncDemande = true; pollerVite();
+      envoiEnCours = false; defilerAgir();
+    });
   }
 
   // Applique localement, tout de suite, l'effet visible d'une intention. Le
   // serveur tranchera (il peut refuser : pool plein, carte deja prise...) et sa
-  // reponse remet tout d'aplomb. On ne traite que les operations dont l'attente
-  // se voit ; les autres (deplacement, fleche...) sont deja rendues sur place.
-  function appliquerOptimiste(d) {
-    var v = etat.vue; if (!v || !d) return;
+  // reponse remet tout d'aplomb.
+  // On couvre ici TOUTES les operations qui se voient, y compris celles deja
+  // rendues sur place chez nous (deplacement d'une carte, creation d'une
+  // fleche) : c'est cette vue-la qui part aux autres par le relais, et elle
+  // doit contenir le geste, sinon ils ne voient rien avant la reponse serveur.
+  var seqProv = 0;   // identifiants provisoires (fleches pas encore numerotees)
+  // `muet` : appliquer sans redessiner (le rendu se fait une fois, apres le
+  // rejeu de toutes les actions en vol).
+  function appliquerOptimiste(d, muet) {
+    var v = etat.vue; if (!v || !d) return false;
     var tab = v.tableau || (v.tableau = { cartes: [], fleches: [], textes: [] });
     if (!v.pool) v.pool = [];
     var n = +d.n;
@@ -1447,9 +1909,47 @@
         break;
       case "supprimerFleche": tab.fleches = tab.fleches.filter(function (f) { return f.id !== d.id; }); break;
       case "supprimerTexte": tab.textes = tab.textes.filter(function (t) { return t.id !== d.id; }); break;
-      default: return; // rien de visible a anticiper
+      case "deplacerCarte": {
+        var c = tab.cartes.filter(function (x) { return x.n === n; })[0];
+        if (!c) return false; c.x = Math.round(d.x); c.y = Math.round(d.y); break;
+      }
+      case "deplacerTexte": {
+        var t1 = tab.textes.filter(function (x) { return x.id === d.id; })[0];
+        if (!t1) return false; t1.x = Math.round(d.x); t1.y = Math.round(d.y); break;
+      }
+      case "creerFleche": {
+        // Le serveur attribue le vrai identifiant ; en attendant on en pose un
+        // provisoire, remplace des que l'etat autoritaire arrive.
+        if (!surTable(+d.de) || !surTable(+d.vers) || +d.de === +d.vers) return false;
+        tab.fleches.push({ id: "~" + (++seqProv), de: +d.de, vers: +d.vers, bidir: !!d.bidir, libelle: "" });
+        break;
+      }
+      case "libellerFleche": {
+        var f1 = tab.fleches.filter(function (x) { return x.id === d.id; })[0];
+        if (!f1) return false; f1.libelle = String(d.libelle == null ? "" : d.libelle).slice(0, 40); break;
+      }
+      case "modifierTexte": {
+        var t2 = tab.textes.filter(function (x) { return x.id === d.id; })[0];
+        if (!t2) return false; t2.contenu = String(d.contenu == null ? "" : d.contenu).slice(0, 280);
+        if (!t2.contenu.trim()) tab.textes = tab.textes.filter(function (x) { return x.id !== d.id; });
+        break;
+      }
+      default: return false; // rien de visible a anticiper
     }
-    rendrePool(v); rendreDeck(v); rendreTableau(tab);
+    if (!muet) { rendrePool(v); rendreDeck(v); rendreTableau(tab); }
+    return true;
+  }
+
+  /* REJEU DES ACTIONS NON ACQUITTEES. Emprunte au netcode des jeux en reseau
+     (« client-side prediction + server reconciliation ») : tant que le serveur
+     n'a pas confirme nos actions, elles ne sont nulle part sauf chez nous. Si
+     on applique bêtement l'etat recu de quelqu'un d'autre, notre carte a nous
+     disparait de notre ecran, puis revient quand notre reponse arrive. Le
+     remede est toujours le meme : repartir de l'etat recu, puis REAPPLIQUER par
+     dessus les actions encore en vol. */
+  var enVol = [];
+  function rejouerEnVol() {
+    for (var i = 0; i < enVol.length; i++) appliquerOptimiste(enVol[i], true);
   }
 
   /* ---------- Ping (cercle qui s'agrandit) ---------- */
@@ -1482,7 +1982,8 @@
      on retombe simplement sur le sondage). Reconnexion avec backoff borne. */
   var CURSEURS_WS = "wss://curseurs.pauseia.fr";
   var curs = { ws: null, els: {}, pos: {}, vus: {}, montrer: true, envoiTs: 0, reconn: null, essais: 0, ferme: false,
-    sansEtat: false, etatTs: 0, coupures: 0 };
+    sansEtat: false, etatTs: 0, coupures: 0,
+    v: 0, caps: null, sansGliss: false, avertiVieux: false, attenteBonjour: 0 };
   // Un etat de tableau complet pese ~4 Ko ; on ne depasse jamais cette borne
   // (le relais accepte 96 Ko). Au-dela, on se contente du signal « maj ».
   var LIMITE_ETAT = 60 * 1024;
@@ -1496,7 +1997,15 @@
       ws = new WebSocket(CURSEURS_WS + "/?code=" + encodeURIComponent(etat.code) + "&nom=" + encodeURIComponent(nomMoi() || ""));
     } catch (e) { planifierReconnexionCurseurs(); return; }
     curs.ws = ws;
-    ws.onopen = function () { curs.essais = 0; };
+    ws.onopen = function () {
+      curs.essais = 0;
+      // Pas de carte de visite dans la seconde et demie : c'est un relais
+      // anterieur a cette convention, donc trop ancien.
+      clearTimeout(curs.attenteBonjour);
+      curs.attenteBonjour = setTimeout(function () {
+        if (!curs.v) relaisDepasse("aucune carte de visite recue");
+      }, 1500);
+    };
     ws.onmessage = function (ev) { var m; try { m = JSON.parse(ev.data); } catch (e) { return; } recevoirRelais(m); };
     ws.onerror = function () { try { ws.close(); } catch (e) {} };
     ws.onclose = function (ev) {
@@ -1547,26 +2056,168 @@
     }
     envoyerWS({ t: "maj" });
   }
+  // DIFFUSION PROVISOIRE : notre vue optimiste, poussee avant la reponse du
+  // serveur. Le marqueur voyage DANS `s` et non a cote : le relais ne recopie
+  // que ce champ-la, toute autre cle de premier niveau serait perdue en route
+  // (et cela evite d'avoir a redeployer le relais pour cette fonction).
+  function envoyerEtatProvisoire() {
+    var v = etat.vue; if (!v) return;
+    var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansEtat) return;
+    var copie; try { copie = JSON.parse(JSON.stringify(v)); } catch (e) { return; }
+    copie._prov = 1;
+    var txt; try { txt = JSON.stringify({ t: "etat", s: copie }); } catch (e) { return; }
+    if (!txt || txt.length > LIMITE_ETAT) return;
+    curs.etatTs = Date.now();
+    try { ws.send(txt); } catch (e) {}
+  }
+  /* GLISSEMENT EN DIRECT : la troisieme couche, purement EPHEMERE.
+     Pendant qu'une personne deplace une carte, on relaie le GESTE (quelques
+     octets, ~30 fois par seconde), pas l'etat. Les autres voient la carte
+     bouger pendant le deplacement, comme ils voient deja les curseurs et les
+     fleches en cours. Rien n'est enregistre, rien ne passe par le serveur
+     d'etat : c'est la meme couche « awareness » que chez Figma ou Excalidraw.
+     Sans cela, la carte disparaissait d'un endroit et reapparaissait a un
+     autre, et personne ne comprenait ce qui se passait. */
+  var glissTs = 0;
+  function envoyerGliss(n, wx, wy, depuisReserve) {
+    var ws = curs.ws; if (!ws || ws.readyState !== 1 || curs.sansGliss) return;
+    var now = Date.now(); if (now - glissTs < 33) return; glissTs = now;   // ~30/s
+    envoyerWS({ t: "gliss", n: n, x: Math.round(wx), y: Math.round(wy), d: depuisReserve ? 1 : 0 });
+  }
+  function envoyerGlissFin(n) { glissTs = 0; envoyerWS({ t: "gliss0", n: n }); }
+
+  var glissLive = {};      // id de la personne -> { n, x, y, dep, ts }
+  var glissParCarte = {};  // numero de carte   -> id de la personne qui la tient
+  function recevoirGliss(m) {
+    var n = +m.n || 0; if (!n) return;
+    var av = glissLive[m.id];
+    if (av && av.n !== n) relacherGliss(av.n);
+    var g = glissLive[m.id];
+    var tx = +m.x || 0, ty = +m.y || 0;
+    if (!g || g.n !== n) {
+      // Nouveau geste : on part de la position recue, sans faire traverser le
+      // tableau a la carte depuis l'endroit ou elle etait.
+      g = glissLive[m.id] = { n: n, x: tx, y: ty, tp: tamponNeuf(tx, ty), dep: m.d ? 1 : 0, ts: 0, id: m.id, nom: m.nom || "" };
+    } else {
+      noterPos(g.tp, tx, ty);
+    }
+    g.dep = m.d ? 1 : 0; g.ts = Date.now(); g.nom = m.nom || g.nom;
+    glissParCarte[n] = m.d ? 0 : 1;  // 1 = carte du tableau pilotee a distance
+    lancerLissage();
+  }
+  // Meme lecture differee que pour les curseurs : la carte tiree par quelqu'un
+  // d'autre avance a la vitesse reelle de son geste, sans a-coup.
+  function lisserGliss(now) {
+    var encore = false, bouge = false;
+    for (var id in glissLive) {
+      var g = glissLive[id];
+      var p = positionDifferee(g.tp, now); if (!p) continue;
+      if (p.encore) encore = true;
+      if (g.x !== p.x || g.y !== p.y) { g.x = p.x; g.y = p.y; bouge = true; }
+    }
+    if (bouge || encore) dessinerGliss();
+    return encore;
+  }
+  // Remet la carte la ou le serveur la sait, et enleve les marques du geste.
+  function relacherGliss(n) {
+    delete glissParCarte[n];
+    var f = document.getElementById("gl-" + n); if (f) f.remove();
+    var el = etat.elCartes[n]; if (!el) return;
+    el.classList.remove("glisse-autre");
+    el.style.removeProperty("--gl-coul");
+    el._gl = null;
+    var v = etat.vue && etat.vue.tableau;
+    var c = v && v.cartes.filter(function (x) { return x.n === n; })[0];
+    if (c) { el.style.left = c.x + "px"; el.style.top = c.y + "px"; el._x = c.x; el._y = c.y; }
+  }
+  function finirGliss(id) {
+    var g = glissLive[id]; if (!g) return;
+    delete glissLive[id];
+    relacherGliss(g.n);
+    majFleches();
+  }
+  function dessinerGliss() {
+    var now = Date.now();
+    for (var id in glissLive) {
+      var g = glissLive[id];
+      if (now - g.ts > 5000) { finirGliss(id); continue; }  // geste abandonne
+      var el = etat.elCartes[g.n];
+      if (el && !g.dep) {
+        // Carte deja sur le tableau : on deplace la VRAIE carte. C'est le rendu
+        // le plus lisible possible, et il ne coute rien de plus.
+        var x = Math.round(g.x), y = Math.round(g.y);
+        if (el._x !== x) { el.style.left = x + "px"; el._x = x; }
+        if (el._y !== y) { el.style.top = y + "px"; el._y = y; }
+        // Marque et couleur posees une seule fois, pas a chaque image.
+        if (el._gl !== id) { el.classList.add("glisse-autre"); el.style.setProperty("--gl-coul", couleurCurseur(id)); el._gl = id; }
+      } else {
+        // Carte qui vient de la reserve ou de la pioche : elle n'existe pas
+        // encore sur le tableau, on montre un fantome a sa place.
+        fantomeGliss(id, g);
+      }
+    }
+    majFleches();
+  }
+  function fantomeGliss(id, g) {
+    var f = document.getElementById("gl-" + g.n);
+    if (!f) {
+      var c = etat.cartes[g.n];
+      f = document.createElement("div"); f.className = "gliss-fantome"; f.id = "gl-" + g.n;
+      f.innerHTML = '<img alt="" src="' + BASE + (c && c.image ? c.image.vignette : "") + '">'
+        + '<span class="gliss-num">' + g.n + "</span>"
+        + '<span class="gliss-qui">' + esc(g.nom) + "</span>";
+      E.monde.appendChild(f);
+    }
+    f.style.setProperty("--gl-coul", couleurCurseur(id));
+    f.style.left = g.x + "px"; f.style.top = g.y + "px";
+  }
+
   function envoyerCurseur(cx, cy) {
     var ws = curs.ws; if (!ws || ws.readyState !== 1) return;
     var now = Date.now(); if (now - curs.envoiTs < 55) return; curs.envoiTs = now; // ~18 msg/s max
     var w = versMonde(cx, cy);
     envoyerWS({ t: "c", x: Math.round(w.x), y: Math.round(w.y) });
   }
+  /* CARTE DE VISITE DU RELAIS. Le relais tourne sur un serveur a part et ne se
+     met pas a jour tout seul quand le site est deploye. Quand il reste en
+     retard, ses fonctions recentes disparaissent EN SILENCE : on cherche alors
+     la panne dans le site, qui n'y est pour rien. C'est arrive deux fois.
+     Il annonce donc sa version a la connexion ; si elle est trop ancienne, ou
+     s'il n'annonce rien du tout (relais anterieur a cette convention), on le
+     dit clairement dans la console, et a l'animateur a l'ecran. */
+  var RELAIS_MINI = 4;
+  function relaisBonjour(m) {
+    clearTimeout(curs.attenteBonjour);
+    curs.v = +m.v || 0;
+    curs.caps = {};
+    (m.caps || []).forEach(function (k) { curs.caps[k] = 1; });
+    curs.sansGliss = !curs.caps.gliss;
+    if (curs.v < RELAIS_MINI) relaisDepasse("version " + curs.v + ", attendue >= " + RELAIS_MINI);
+  }
+  function relaisDepasse(pourquoi) {
+    if (curs.avertiVieux) return;
+    curs.avertiVieux = true;
+    curs.sansGliss = true;
+    try { console.warn("[fresque] relais temps reel depasse (" + pourquoi + ") : les deplacements en direct ne seront pas visibles par les autres. Voir infra/curseurs/README.md."); } catch (e) {}
+    if (etat.role === "animateur") flash(S.relaisAncien);
+  }
   function recevoirRelais(m) {
+    if (m && m.t === "bonjour") { relaisBonjour(m); return; }
     if (!m || !m.id) return;
     switch (m.t) {
-      case "leave": enleverCurseur(m.id); delete flLive[m.id]; dessinerFlechesLive(); return;
-      // Etat pousse par la personne qui vient d'agir. On ne l'applique que s'il
-      // est STRICTEMENT plus recent que le notre. Un etat de MEME version n'est
-      // pas forcement le meme contenu : si deux personnes agissent depuis la
-      // meme version, les deux resultats portent le numero suivant. L'appliquer
-      // ferait bouger une carte toute seule, ou disparaitre une fleche. A
-      // version egale on garde la notre ; le sondage tranchera.
+      case "leave": enleverCurseur(m.id); delete flLive[m.id]; finirGliss(m.id); dessinerFlechesLive(); return;
+      // Etat pousse par la personne qui vient d'agir. Deux natures :
+      //  - PROVISOIRE (`_prov`) : sa vue optimiste, envoyee avant meme que le
+      //    serveur ait repondu. On l'affiche tout de suite, sans avancer notre
+      //    numero de version (appliquerEtat s'en charge).
+      //  - AUTORITAIRE : ce que le serveur vient de lui renvoyer.
+      // Les garde-fous de version sont tous dans appliquerEtat.
       case "etat":
-        if (m.s && m.s.version > etat.version) { activite(); appliquerEtat(m.s); }
+        if (m.s) appliquerEtat(m.s, m.s._prov ? "prov" : undefined);
         return;
       case "maj": pollerVite(); return;                 // repli : relais ancien, on relit
+      case "gliss": recevoirGliss(m); return;
+      case "gliss0": finirGliss(m.id); return;
       case "fl": flLive[m.id] = { de: +m.de || 0, x: +m.x || 0, y: +m.y || 0, ts: Date.now() }; dessinerFlechesLive(); return;
       case "fl0": delete flLive[m.id]; dessinerFlechesLive(); return;
       case "lib": libelleEnDirect(m.cid, m.v); return;
@@ -1579,9 +2230,9 @@
     var x = +m.x || 0, y = +m.y || 0;
     if (!el) {
       el = creerCurseur(m.id, m.nom); curs.els[m.id] = el; E.monde.appendChild(el);
-      curs.pos[m.id] = { x: x, y: y, tx: x, ty: y };   // premiere position : pas d'interpolation
+      curs.pos[m.id] = tamponNeuf(x, y);
     } else {
-      var p = curs.pos[m.id]; p.tx = x; p.ty = y;
+      noterPos(curs.pos[m.id], x, y);
     }
     el.hidden = !curs.montrer;
     lancerLissage();
@@ -1589,20 +2240,85 @@
   // Lissage des curseurs distants : au lieu de « teleporter » l'element a chaque
   // message (saccade desagreable, voire mal au coeur), on glisse vers la derniere
   // position connue a chaque frame. Le retard ajoute est de l'ordre de 2 frames.
+  /* LECTURE DIFFEREE DES MOUVEMENTS DES AUTRES (« entity interpolation »).
+
+     Le probleme, precisement. On rapprochait le curseur de sa derniere position
+     connue d'un certain pourcentage a chaque image. Entre deux messages (envoyes
+     toutes les ~55 ms), il ralentissait donc jusqu'a presque s'arreter, puis
+     repartait d'un coup au message suivant. La VITESSE dessinait une dent de
+     scie, dix-huit fois par seconde. C'est ce qui donne cette sensation
+     desagreable, jusqu'a la nausee : l'oeil ne percoit pas les ecarts de
+     position, il percoit les ruptures de vitesse. Un mouvement regulier qui
+     s'arrete net se voit comme un a-coup ; dix-huit a-coups par seconde, c'est
+     un scintillement de mouvement.
+
+     Le remede, celui du netcode des jeux en reseau et des tableaux
+     collaboratifs (Liveblocks, tldraw et sa bibliotheque perfect-cursors) :
+     on garde les dernieres positions recues AVEC LEUR HEURE, et on affiche non
+     pas la derniere, mais l'etat tel qu'il etait il y a RETARD millisecondes, en
+     interpolant LINEAIREMENT entre les deux positions qui encadrent cet instant.
+     Le curseur avance alors exactement a la vitesse de la personne, sans
+     a-coup, et le petit retard absorbe au passage l'irregularite du reseau.
+     Linaire et non « ease-in-out » : une courbe d'accueil rajouterait
+     precisement le ralenti qu'on cherche a supprimer.
+
+     On n'extrapole JAMAIS au-dela du dernier point connu : si la personne
+     s'arrete, on s'arrete aussi. Extrapoler ferait depasser puis revenir en
+     arriere, ce qui est encore plus desagreable que l'a-coup.
+
+     Ce lissage-la n'est pas coupe par « mouvement reduit » : il ne s'agit pas
+     d'une animation decorative mais du rendu fidele du geste de quelqu'un, et
+     la version sans lissage (des sauts a 18 images par seconde) serait bien plus
+     penible pour une personne sensible au mouvement. */
+  var RETARD_SUIVI = 110;   // un peu plus que l'intervalle d'envoi (55 ms)
+  function tamponNeuf(x, y) {
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    return { buf: [{ t: now - RETARD_SUIVI, x: x, y: y }, { t: now, x: x, y: y }], x: x, y: y };
+  }
+  function noterPos(tp, x, y) {
+    if (!tp) return;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    var b = tp.buf;
+    // Deux messages dans la meme milliseconde : on remplace, sinon la division
+    // par la duree donnerait l'infini.
+    if (b.length && now - b[b.length - 1].t < 1) { b[b.length - 1].x = x; b[b.length - 1].y = y; return; }
+    b.push({ t: now, x: x, y: y });
+    while (b.length > 2 && b[1].t < now - RETARD_SUIVI - 500) b.shift();
+    if (b.length > 80) b.shift();
+  }
+  // Position a afficher maintenant, et si le tampon a encore de l'avance.
+  function positionDifferee(tp, now) {
+    var b = tp && tp.buf; if (!b || !b.length) return null;
+    var cible = now - RETARD_SUIVI;
+    if (cible <= b[0].t) return { x: b[0].x, y: b[0].y, encore: b.length > 1 };
+    for (var i = b.length - 1; i > 0; i--) {
+      if (b[i - 1].t <= cible && cible <= b[i].t) {
+        var d = b[i].t - b[i - 1].t;
+        var u = d > 0 ? (cible - b[i - 1].t) / d : 1;
+        return { x: b[i - 1].x + (b[i].x - b[i - 1].x) * u,
+                 y: b[i - 1].y + (b[i].y - b[i - 1].y) * u, encore: true };
+      }
+    }
+    var q = b[b.length - 1];
+    return { x: q.x, y: q.y, encore: false };   // rattrape : on tient la position
+  }
+
   var animCurs = 0;
   function lancerLissage() { if (!animCurs) animCurs = requestAnimationFrame(lisserCurseurs); }
   function lisserCurseurs() {
     animCurs = 0;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
     var encore = false;
     for (var id in curs.els) {
-      var p = curs.pos[id]; if (!p) continue;
-      var dx = p.tx - p.x, dy = p.ty - p.y;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { p.x = p.tx; p.y = p.ty; }
-      else { p.x += dx * 0.25; p.y += dy * 0.25; encore = true; }
+      var p = positionDifferee(curs.pos[id], now); if (!p) continue;
+      if (p.encore) encore = true;
       curs.els[id].style.transform = "translate(" + p.x.toFixed(1) + "px," + p.y.toFixed(1) + "px) scale(var(--iz,1))";
     }
+    // Cartes tirees par quelqu'un d'autre : meme lecture differee, meme boucle.
+    if (lisserGliss(now)) encore = true;
     if (encore) animCurs = requestAnimationFrame(lisserCurseurs);
   }
+
   function creerCurseur(id, nom) {
     var el = document.createElement("div"); el.className = "curseur-live";
     var coul = couleurCurseur(id);
@@ -1632,6 +2348,7 @@
   setInterval(function () {
     var now = Date.now(), bouge = false;
     for (var id in curs.vus) { if (now - curs.vus[id] > 5000) enleverCurseur(id); }
+    for (var gi in glissLive) { if (now - glissLive[gi].ts > 5000) finirGliss(gi); }
     for (var f in flLive) { if (now - flLive[f].ts > 4000) { delete flLive[f]; bouge = true; } }
     if (bouge) dessinerFlechesLive();
   }, 2000);
@@ -1675,15 +2392,53 @@
   frappe.annuler = function (cle) {
     if (frappe.t && frappe.t[cle]) { clearTimeout(frappe.t[cle]); delete frappe.t[cle]; }
   };
+  // Declenche TOUT DE SUITE ce qui attendait la fin de la frappe. Sert avant une
+  // operation qui lit l'etat du serveur et ne peut pas se permettre d'etre en
+  // retard sur ce qui est a l'ecran : l'export de l'image, typiquement.
+  frappe.vider = function () {
+    if (!frappe.t) return;
+    Object.keys(frappe.t).forEach(function (cle) {
+      var h = frappe.t[cle]; delete frappe.t[cle]; clearTimeout(h);
+    });
+    // Les rappels eux-memes sont rejoues par les elements en cours d'edition
+    // via leur `blur` (voir `poserLaPlume`).
+  };
 
   /* ---------- Vue locale : zoom / pan / plein écran ---------- */
   function rectScene() { return E.scene.getBoundingClientRect(); }
+  /* ZOOM SEMANTIQUE : trois distances de lecture.
+     Une carte qui retrecit finit par n'etre qu'une tache : ni le numero, ni le
+     titre, ni le lien ne se lisent, alors que c'est exactement ce qu'on cherche
+     quand on prend du recul pour comprendre l'ensemble. Plutot que de tout
+     reduire, on change CE QU'ON MONTRE selon la distance. C'est le « semantic
+     zoom » de Figma, Miro et de la litterature : de loin, moins d'elements mais
+     plus gros, pas les memes elements en plus petit.
+       pres  (>= 62 %)  : la carte entiere, comme avant
+       moyen (42-62 %)  : on retire le bouton d'agrandissement et on grossit le
+                          numero, qui devient l'identifiant principal
+       loin  (< 42 %)   : plus de titre (illisible de toute facon), un gros
+                          numero au centre et la couleur du lot bien visible
+     La BOITE de la carte, elle, ne change JAMAIS de taille. Une version
+     precedente etirait la hauteur au dezoom : cela cassait l'image exportee,
+     construite a partir de la hauteur reelle des elements. Ici on ne touche qu'a
+     des elements en position absolue et a la VISIBILITE du titre, jamais a la
+     mise en page. */
+  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
-    // --iz (= 1/zoom) sert encore aux elements qui doivent garder une taille
-    // ECRAN constante : curseurs des autres et ping. Les cartes, elles, ne
-    // changent plus d'aspect avec le zoom.
-    E.monde.style.setProperty("--iz", (1 / etat.zoom).toFixed(3));
-    E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %"; E["z-moins"].disabled = etat.zoom <= ZMIN + 1e-4; E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
+    // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
+    // quel que soit le zoom (curseurs, ping, numero de carte de loin).
+    var iz = 1 / etat.zoom;
+    E.monde.style.setProperty("--iz", iz.toFixed(3));
+    // Epaisseur des traits de fleche EN PIXELS D'ECRAN. Sans cela un trait de
+    // 2,2 unites fait 0,5 px a 25 % : les liens, qui sont le sujet meme de la
+    // fresque, disparaissaient au moment ou on prend du recul pour les lire.
+    // La pointe suit automatiquement (elle est dimensionnee en stroke-width).
+    E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
+    E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
+    E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
+    E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
+    E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; positionnerEditeurs(); }
   // Zone de la scene qui n'est PAS masquee par le panneau de la reserve. Quand
   // le tableau tient en entier a l'ecran (« Tout voir », fort dezoom), on le
   // centre dans cette zone : le panneau ne recouvre plus la fresque.
@@ -1712,7 +2467,49 @@
       : Math.min(0, Math.max(r.height - ph, etat.panY));
   }
   function centrer() { var r = rectScene(); etat.zoom = 1; etat.panX = (r.width - PLAN_W) / 2; etat.panY = (r.height - PLAN_H) / 2; clampPan(); applyView(); }
-  function zoomVers(nz, cx, cy) { var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = Math.max(ZMIN, Math.min(ZMAX, nz)); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
+  // Zoom IMMEDIAT, pour la molette et le pincement : le geste est continu, il
+  // doit coller au doigt. Toute animation de vue en cours est abandonnee.
+  // Borne basse : le plancher lie au contenu (jamais en dessous de ZMIN).
+  function bornerZoom(z) { return Math.max(Math.max(ZMIN, _plancher), Math.min(ZMAX, z)); }
+  function zoomVers(nz, cx, cy) { stopVueAnim(); var wx = (cx - etat.panX) / etat.zoom, wy = (cy - etat.panY) / etat.zoom; etat.zoom = bornerZoom(nz); etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan(); applyView(); majFleches(); }
+  // Zoom des BOUTONS + et - : un cran discret, qui se voit arriver.
+  function zoomAnime(nz, cx, cy) {
+    var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
+    var wx = (cx - sx) / sz, wy = (cy - sy) / sz;
+    etat.zoom = bornerZoom(nz);
+    etat.panX = cx - wx * etat.zoom; etat.panY = cy - wy * etat.zoom; clampPan();
+    var tz = etat.zoom, tx = etat.panX, ty = etat.panY;
+    etat.zoom = sz; etat.panX = sx; etat.panY = sy;
+    allerVers(tz, tx, ty);
+  }
+
+  /* RECADRAGE ANIME. « Tout voir » et les boutons de zoom sautaient d'un cadrage
+     a l'autre : on perdait de vue ou on etait et il fallait re-chercher sa carte
+     des yeux. Un glissement court (260 ms) garde le lien entre l'avant et
+     l'apres. On anime les trois valeurs de la vue ensemble ; toute action de
+     l'utilisateur (molette, main, nouveau clic) annule l'animation en cours,
+     pour ne jamais lutter contre son geste. Coupe si le systeme demande moins de
+     mouvement. La courbe est une sortie douce : rapide au debut, posee a la fin. */
+  var _vueAnim = 0;
+  function stopVueAnim() { if (_vueAnim) { cancelAnimationFrame(_vueAnim); _vueAnim = 0; } }
+  function allerVers(z, px, py) {
+    stopVueAnim();
+    if (mvtReduit) { etat.zoom = z; etat.panX = px; etat.panY = py; clampPan(); applyView(); majFleches(); return; }
+    var z0 = etat.zoom, x0 = etat.panX, y0 = etat.panY, t0 = 0, DUREE = 260;
+    // Deja au bon endroit : rien a animer.
+    if (Math.abs(z - z0) < 1e-4 && Math.abs(px - x0) < 1 && Math.abs(py - y0) < 1) return;
+    function pas(t) {
+      if (!t0) t0 = t;
+      var u = Math.min(1, (t - t0) / DUREE);
+      var e = 1 - Math.pow(1 - u, 3);           // sortie cubique
+      etat.zoom = z0 + (z - z0) * e;
+      etat.panX = x0 + (px - x0) * e;
+      etat.panY = y0 + (py - y0) * e;
+      applyView(); majFleches();
+      _vueAnim = u < 1 ? requestAnimationFrame(pas) : 0;
+    }
+    _vueAnim = requestAnimationFrame(pas);
+  }
   // Rectangle reellement occupe par la fresque (cartes + notes), avec une marge.
   // A defaut de contenu, le plan entier.
   function contenuRect() {
@@ -1720,7 +2517,7 @@
     var x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9, vu = false;
     function eng(x, y, w, h) { vu = true; x1 = Math.min(x1, x); y1 = Math.min(y1, y); x2 = Math.max(x2, x + w); y2 = Math.max(y2, y + h); }
     if (tab) {
-      (tab.cartes || []).forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });
+      (tab.cartes || []).forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? dimCarte(el)._w : 150, el ? el._h : 150); });
       (tab.textes || []).forEach(function (t) { var el = etat.elTextes[t.id]; eng(t.x, t.y, el ? el.offsetWidth : 90, el ? el.offsetHeight : 30); });
     }
     if (!vu) return { x: 0, y: 0, w: PLAN_W, h: PLAN_H };
@@ -1728,12 +2525,56 @@
     var x = Math.max(0, x1 - m), y = Math.max(0, y1 - m);
     return { x: x, y: y, w: Math.min(PLAN_W - x, x2 - x1 + 2 * m), h: Math.min(PLAN_H - y, y2 - y1 + 2 * m) };
   }
+  /* PLANCHER DE ZOOM LIE AU CONTENU.
+     Dezoomer en dessous du cadrage « Tout voir » n'apporte rien : on ne decouvre
+     que du plan vide, la fresque devient un timbre-poste illisible, et on a
+     perdu son chemin pour rien. Miro et Figma bornent le dezoom pour exactement
+     cette raison. Le plancher suit donc le CONTENU : un peu en dessous du
+     cadrage complet, pour garder une marge de confort, mais jamais plus haut que
+     0,45 (sinon, en debut d'atelier ou le tableau est presque vide, on ne
+     pourrait plus prendre de recul pour repartir les premieres cartes).
+     Recalcule quand le tableau change ou que la fenetre bouge, jamais dans
+     `applyView` : celui-ci tourne a chaque image d'un recadrage. */
+  var _plancher = ZMIN;
+  function majPlancher() {
+    var r = rectScene(), z = zoneLibre(r), c = contenuRect();
+    if (!c.w || !c.h) { _plancher = ZMIN; return; }
+    var ajuste = Math.min(z.largeur / c.w, z.hauteur / c.h);
+    _plancher = Math.max(ZMIN, Math.min(0.45, ajuste * 0.62));
+  }
   function toutVoir() {
     var r = rectScene(), z = zoneLibre(r), c = contenuRect();
-    etat.zoom = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / c.w, z.hauteur / c.h)));
-    etat.panX = z.x + (z.largeur - c.w * etat.zoom) / 2 - c.x * etat.zoom;
-    etat.panY = z.y + (z.hauteur - c.h * etat.zoom) / 2 - c.y * etat.zoom;
-    clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive();
+    var nz = Math.max(ZMIN, Math.min(ZMAX, Math.min(z.largeur / c.w, z.hauteur / c.h)));
+    var nx = z.x + (z.largeur - c.w * nz) / 2 - c.x * nz;
+    var ny = z.y + (z.hauteur - c.h * nz) / 2 - c.y * nz;
+    // On borne la cible AVANT d'animer, sinon l'animation viserait un cadrage
+    // que `clampPan` corrigerait a la derniere image (petit sursaut a l'arrivee).
+    var sz = etat.zoom, sx = etat.panX, sy = etat.panY;
+    etat.zoom = nz; etat.panX = nx; etat.panY = ny; clampPan();
+    nz = etat.zoom; nx = etat.panX; ny = etat.panY;
+    etat.zoom = sz; etat.panX = sx; etat.panY = sy;
+    allerVers(nz, nx, ny);
+  }
+  /* Le point de depot d'une carte posee au clic est choisi ICI, pas par le
+     serveur. Le serveur, lui, tirait une position AU HASARD dans la zone
+     visible : impossible a deviner, donc impossible de montrer la carte avant
+     sa reponse. Or c'est justement ce qu'il faut faire, chez soi comme chez les
+     autres (vue provisoire). En choisissant le point nous-memes, la carte
+     apparait tout de suite, au bon endroit, partout. Le serveur garde le
+     dernier mot : il borne le point au plan et decale si la place est prise. */
+  function pointLibre() {
+    var r = rectVisible(), w = 160, h = 150;
+    var cartes = (etat.vue && etat.vue.tableau && etat.vue.tableau.cartes) || [];
+    function libre(px, py) {
+      return !cartes.some(function (c) { return Math.abs(c.x - px) < w && Math.abs(c.y - py) < h; });
+    }
+    var zw = Math.max(200, r.largeur || 800), zh = Math.max(200, r.hauteur || 600);
+    for (var t = 0; t < 200; t++) {
+      var px = r.x + Math.random() * Math.max(1, zw - w);
+      var py = r.y + Math.random() * Math.max(1, zh - h);
+      if (libre(px, py)) return { x: Math.round(px + w / 2), y: Math.round(py + h / 2) };
+    }
+    return { x: Math.round(r.x + zw / 2), y: Math.round(r.y + zh / 2) };
   }
   function rectVisible() { var r = rectScene(); return { x: -etat.panX / etat.zoom, y: -etat.panY / etat.zoom, largeur: r.width / etat.zoom, hauteur: r.height / etat.zoom }; }
   function versMonde(cx, cy) { var r = rectScene(); return { x: (cx - r.left - etat.panX) / etat.zoom, y: (cy - r.top - etat.panY) / etat.zoom }; }
@@ -1743,6 +2584,7 @@
     if (!fondScene(e.target)) return;
     if (etat.outil === "texte") { e.preventDefault(); var w = versMonde(e.clientX, e.clientY); creerNoteLocale(w.x, w.y); setOutil("deplacer"); return; }
     annulerFleche(); deselect();
+    stopVueAnim();   // la main de l'utilisateur l'emporte toujours sur un recadrage en cours
     pan = { mx: e.clientX, my: e.clientY, px: etat.panX, py: etat.panY }; E.scene.classList.add("grabbing"); E.scene.setPointerCapture(e.pointerId);
   });
   function fondScene(t) { return t === E.scene || t === E.monde || t.classList.contains("plan-bord") || t.id === "fleches"; }
@@ -1758,6 +2600,57 @@
   E.scene.addEventListener("pointerup", function (e) { pan = null; E.scene.classList.remove("grabbing"); try { E.scene.releasePointerCapture(e.pointerId); } catch (x) {} });
   E.scene.addEventListener("wheel", function (e) { e.preventDefault(); var r = rectScene(); zoomVers(etat.zoom * (e.deltaY < 0 ? ZWHEEL : 1 / ZWHEEL), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
 
+  /* PINCEMENT A DEUX DOIGTS (tablette, ecran tactile).
+     La scene est en `touch-action:none` : indispensable pour que le glissement
+     d'une carte ne soit pas confisque par le defilement du navigateur, mais cela
+     supprime AUSSI le pincement natif. Sur tablette, il ne restait donc que les
+     boutons + et - pour zoomer, sur un tableau ou le zoom est l'outil principal.
+     On le reimplemente : deux doigts posent une reference (ecartement et point
+     milieu), et chaque mouvement applique le rapport d'ecartement autour de ce
+     milieu, qui sert en meme temps de deplacement. C'est la meme fonction que la
+     molette, donc le meme plancher de zoom et le meme recadrage. */
+  var pince = null;
+  var doigts = new Map();   // pointerId -> { x, y }
+  function milieu() {
+    var a = [];
+    doigts.forEach(function (p) { a.push(p); });
+    return { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2,
+             d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) };
+  }
+  E.scene.addEventListener("pointerdown", function (e) {
+    if (e.pointerType !== "touch") return;
+    doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.size === 2) {
+      // Deux doigts : on abandonne le deplacement a un doigt en cours, sinon le
+      // tableau partirait en meme temps que le zoom.
+      pan = null; E.scene.classList.remove("grabbing");
+      stopVueAnim();
+      var m = milieu();
+      pince = { d0: m.d || 1, z0: etat.zoom, mx: m.x, my: m.y, px: etat.panX, py: etat.panY };
+    }
+  }, true);
+  E.scene.addEventListener("pointermove", function (e) {
+    if (e.pointerType !== "touch" || !doigts.has(e.pointerId)) return;
+    doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (doigts.size !== 2 || !pince) return;
+    e.preventDefault();
+    var m = milieu(), r = rectScene();
+    // Point du monde sous le milieu des doigts au moment ou ils se sont poses :
+    // c'est lui qui doit rester sous les doigts pendant tout le geste.
+    var wx = (pince.mx - r.left - pince.px) / pince.z0, wy = (pince.my - r.top - pince.py) / pince.z0;
+    etat.zoom = bornerZoom(pince.z0 * ((m.d || 1) / pince.d0));
+    etat.panX = (m.x - r.left) - wx * etat.zoom;
+    etat.panY = (m.y - r.top) - wy * etat.zoom;
+    clampPan(); applyView(); majFleches();
+  }, true);
+  function finDoigt(e) {
+    if (e.pointerType !== "touch") return;
+    doigts.delete(e.pointerId);
+    if (doigts.size < 2) pince = null;
+  }
+  E.scene.addEventListener("pointerup", finDoigt, true);
+  E.scene.addEventListener("pointercancel", finDoigt, true);
+
   // Ping : clic droit sur le tableau -> cercle qui s'agrandit chez tout le monde,
   // pour attirer l'attention (emprunte a Excalidraw / Foundry). On evite le menu
   // contextuel du navigateur et on borne au plan.
@@ -1770,6 +2663,13 @@
 
   // Echap : annule un trace de fleche en cours (et referme la selection).
   document.addEventListener("keydown", function (e) {
+    // Ctrl+Z (Cmd+Z sur Mac) : annuler sa derniere action. Jamais pendant une
+    // saisie, ou c'est l'annulation du navigateur qui doit jouer.
+    if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z") && !e.shiftKey) {
+      var a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.getAttribute("contenteditable") === "true")) return;
+      e.preventDefault(); annulerDerniere(); return;
+    }
     if (e.key !== "Escape") return;
     if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); }
     else deselect();
@@ -1780,9 +2680,14 @@
     E.scene.classList.toggle("outil-fleche", estFleche(o)); E.scene.classList.toggle("outil-texte", o === "texte"); annulerFleche();
     flash(estFleche(o) ? S.flecheDepart : (o === "texte" ? S.texteClic : "")); }
   document.querySelectorAll(".tool[data-outil]").forEach(function (b) { b.addEventListener("click", function () { setOutil(etat.outil === b.dataset.outil ? "deplacer" : b.dataset.outil); }); });
-  E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
-  E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomVers(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
+  E["z-plus"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom * ZSTEP, r.width / 2, r.height / 2); });
+  E["z-moins"].addEventListener("click", function () { var r = rectScene(); zoomAnime(etat.zoom / ZSTEP, r.width / 2, r.height / 2); });
   E["z-tout"].addEventListener("click", toutVoir);
+  (function () {
+    var b = document.getElementById("btn-annuler"); if (!b) return;
+    b.textContent = S.annuler; b.title = S.annulerTitre;
+    b.addEventListener("click", annulerDerniere);
+  })();
   // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
   // repli sur une classe CSS si l'API n'est pas disponible.
   function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive(); placerPool(); }, 60); }
@@ -1939,7 +2844,11 @@
   // panneau et on recadre : sans cela, le panneau calcule sur une scene plus
   // haute debordait sous le jeu de cartes.
   (function () {
-    var reagir = function () { placerPool(); clampPan(); applyView(); majFleches(); };
+    var reagir = function () {
+      oublierDims();   // la hauteur d'un titre peut changer avec la largeur des polices
+      majPlancher();   // la zone visible a change : le plancher de zoom aussi
+      placerPool(); clampPan(); applyView(); majFleches();
+    };
     // Anti-rebond A RETARDEMENT : la scene se redimensionne par rafales (le jeu
     // de cartes qui se remplit en bas). Un simple debit limite en tete de rafale
     // aurait garde la mesure du DEBUT, donc une scene encore trop haute.
@@ -2009,7 +2918,31 @@
     ctx.lineTo(tox - s * Math.cos(a + 0.42), toy - s * Math.sin(a + 0.42));
     ctx.closePath(); ctx.fill();
   }
-  function exporterImage() {
+  /* AVANT D'EXPORTER : POSER LA PLUME.
+     Une note qu'on est en train d'ecrire n'existe, pendant quelques centaines de
+     millisecondes, QUE dans la page : l'envoi au serveur est etale pour ne pas
+     ecrire a chaque touche. Or l'image est dessinee a partir de l'etat du
+     SERVEUR. Cliquer « Telecharger l'image » en pleine frappe produisait donc
+     une image ou la note manquait, sans rien signaler. C'est le « il y a juste
+     une note qui n'est pas sur l'image » remonte apres un atelier.
+     On sort donc du champ en cours (ce qui declenche son enregistrement), on
+     vide les envois en attente, et on attend que la file d'actions soit vide
+     avant de dessiner. Attente bornee : mieux vaut une image dans tous les cas
+     qu'un bouton qui ne repond pas. */
+  function poserLaPlume() {
+    var a = document.activeElement;
+    if (a && (a.getAttribute("contenteditable") === "true" || a.tagName === "INPUT" || a.tagName === "TEXTAREA")) {
+      try { a.blur(); } catch (e) {}
+    }
+    frappe.vider();
+  }
+  function quandCalme(fn, finAvant) {
+    finAvant = finAvant || (Date.now() + 2500);
+    if ((!fileAgir.length && etat.attente === 0) || Date.now() > finAvant) { fn(); return; }
+    setTimeout(function () { quandCalme(fn, finAvant); }, 80);
+  }
+  function exporterImage() { poserLaPlume(); quandCalme(dessinerExport); }
+  function dessinerExport() {
     if (!etat.vue || !etat.vue.tableau) return;
     var tab = etat.vue.tableau, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
     if (!cartes.length) return;
