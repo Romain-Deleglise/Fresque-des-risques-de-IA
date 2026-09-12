@@ -23,10 +23,6 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const { chromium } = await (async () => {
-  try { return await import("playwright"); } catch (e) { return await import("playwright-core"); }
-})();
-
 const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const PORT = Number(process.env.PORT_PDF || 8131);
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -76,6 +72,14 @@ if (VERIFIER) {
   console.log("✅ Les PDF correspondent aux pages dont ils sont tires.");
   process.exit(0);
 }
+
+/* Le navigateur n'est charge qu'ici, et pas en tete de fichier : `--verifier`
+   ne fait que lire des fichiers et comparer des empreintes, et il tourne dans un
+   job d'integration continue qui n'installe pas Playwright. L'y exiger faisait
+   echouer le controle pour une dependance dont il n'a aucun usage. */
+const { chromium } = await (async () => {
+  try { return await import("playwright"); } catch (e) { return await import("playwright-core"); }
+})();
 
 const site = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
