@@ -581,58 +581,176 @@ t("sur un grand tableau, le dezoom reste raisonnable",
 semantique = await A.evaluate(() => {
   const m = document.getElementById("monde");
   const st = getComputedStyle(m);
-  const num = document.querySelector(".c-carte .num");
-  const tit = document.querySelector(".c-carte .tit");
+  const el = document.querySelector(".c-carte");
+  const op = (s) => parseFloat(getComputedStyle(el.querySelector(s)).opacity);
+  const img = el.querySelector(".vis img");
+  const si = getComputedStyle(img);
   return {
     loin: m.classList.contains("zoom-loin"),
-    moyen: m.classList.contains("zoom-moyen"),
     fw: parseFloat(st.getPropertyValue("--fw")) || 0,
-    numEchelle: getComputedStyle(num).transform,
-    titreCache: getComputedStyle(tit).visibility === "hidden",
-    hauteurCarte: document.querySelector(".c-carte").offsetHeight
+    opTitre: op(".tit"),
+    opNum: op(".num"),
+    opAgr: op(".agr"),
+    imageVisible: si.visibility !== "hidden" && parseFloat(si.opacity) > 0.9,
+    largeurImage: Math.round(img.getBoundingClientRect().width),
+    filet: { hauteurEcran: el.querySelector(".tit").getBoundingClientRect().height,
+      fond: getComputedStyle(el.querySelector(".tit")).backgroundColor },
+    partImage: img.getBoundingClientRect().height / el.getBoundingClientRect().height,
+    etiquette: (function () {
+      const e = el.querySelector(".etiq"), r = e.getBoundingClientRect();
+      return { opacite: parseFloat(getComputedStyle(e).opacity), hauteurLigne: r.height,
+        largeur: r.width, texte: e.textContent.slice(0, 40),
+        clics: getComputedStyle(e).pointerEvents, halo: getComputedStyle(e).getPropertyValue("--halo").trim() };
+    })(),
+    hauteurCarte: el.offsetHeight
   };
 });
-t("a bas zoom, la lecture passe en mode « de loin »", semantique.loin && semantique.moyen);
+t("a bas zoom, la lecture passe en mode « de loin »", semantique.loin);
 t("les traits de fleche restent epais a l'ecran quand on dezoome",
   semantique.fw > 4, "--fw = " + semantique.fw);
-t("le numero de carte est contre-mis a l'echelle (lisible de loin)",
-  /matrix/.test(semantique.numEchelle) && semantique.numEchelle !== "none");
-t("le titre, illisible a cette distance, est retire de la vue", semantique.titreCache);
+t("le titre, illisible a cette distance, s'efface", semantique.opTitre === 0);
+/* LE NUMERO S'EFFACE AVEC LE TITRE. Il restait, contre-mis a l'echelle : trente-
+   neuf pastilles de taille fixe posees sur des cartes qui retrecissent finissent
+   par recouvrir l'illustration, et lire trente-neuf numeros un a un n'aide pas a
+   balayer un tableau. Deux relectures l'ont signale (« les cartes deviennent des
+   numeros »). Survol, toucher et clavier donnent toujours numero et titre. */
+t("le numero et le bouton d'agrandissement s'effacent avec lui",
+  semantique.opNum === 0 && semantique.opAgr === 0,
+  "numero " + semantique.opNum + ", agrandir " + semantique.opAgr);
+/* L'ILLUSTRATION NE DISPARAIT JAMAIS. Une version precedente l'effacait sous
+   34 %, en supposant qu'a trente pixels elle n'apprenait plus rien. Mesure faite
+   sur les trente-neuf illustrations reduites a la taille affichee : l'ecart
+   median a la plus proche voisine ne perd que 12 % entre 150 px et 30 px. Elle
+   reste le repere le plus rapide, et deux relecteurs la voulaient. */
+t("l'illustration de la carte reste visible, meme au dezoom maximal",
+  semantique.imageVisible && semantique.largeurImage > 0,
+  "image " + semantique.largeurImage + " px de large");
+/* LE BLOC DU TITRE SE REPLIE EN FILET. Premiere version : il gardait sa place
+   et prenait la couleur du lot, ce qui donnait un aplat sur pres de la moitie
+   de la carte, pour ne rien dire. Aucun texte ne peut le remplacer a cette
+   taille (6,3 px a 48 %). Le filet garde une epaisseur d'ECRAN constante. */
+t("le bloc du titre se replie en un simple filet de couleur",
+  semantique.filet.hauteurEcran > 2.5 && semantique.filet.hauteurEcran < 6
+  && !/rgba\(0, 0, 0, 0\)|transparent/.test(semantique.filet.fond),
+  semantique.filet.hauteurEcran.toFixed(1) + " px a l'ecran, fond " + semantique.filet.fond);
+t("l'illustration occupe desormais presque toute la carte",
+  semantique.partImage > 0.8,
+  Math.round(semantique.partImage * 100) + " % de la hauteur de la carte");
 
-/* A cette distance une carte fait une quarantaine de pixels : son illustration
-   n'est plus qu'une tache, et cette tache recouvrait la seule chose encore
-   lisible, la famille de la carte. La tuile prend donc la couleur du lot, et
-   l'image se retire. Sans quoi le dezoom ne sert a rien : on voit que le tableau
-   est rempli, pas ce qu'il raconte. */
-const loin = await A.evaluate(() => {
-  const el = document.querySelector(".c-carte");
-  const img = el.querySelector(".vis img");
-  const st = getComputedStyle(el);
-  return {
-    imageCachee: getComputedStyle(img).visibility === "hidden",
-    fondLot: st.backgroundColor,
-    boite: Math.round(el.offsetWidth) + "x" + Math.round(el.offsetHeight),
-    legende: getComputedStyle(document.getElementById("legende")).display,
-    nbLots: document.querySelectorAll("#legende b").length
-  };
+/* LE TITRE NE DISPARAIT PAS, IL PASSE SOUS LA CARTE. Imprime sur la carte il
+   suit le zoom : 6,3 px a 48 %, 3,3 px au plancher. Sorti de la carte et
+   contre-mis a l'echelle, il garde onze pixels a toutes les distances. */
+t("le titre passe sous la carte, et il y est lisible",
+  semantique.etiquette.opacite === 1 && semantique.etiquette.hauteurLigne > 8
+  && semantique.etiquette.texte.length > 3,
+  "« " + semantique.etiquette.texte + " », "
+  + semantique.etiquette.hauteurLigne.toFixed(0) + " px de haut a l'ecran");
+t("et l'etiquette ne gene jamais la prise d'une carte",
+  semantique.etiquette.clics === "none", "pointer-events : " + semantique.etiquette.clics);
+
+/* LE CANEVAS PEUT ETRE FORCE EN SOMBRE DANS UN THEME CLAIR, ET L'INVERSE. La
+   couleur du texte doit donc suivre le HALO, pas le theme : autrement on ecrit
+   de l'encre sombre sur un halo sombre, et l'etiquette disparait. */
+const contrastes = await A.evaluate(async () => {
+  // On fait RESOUDRE la couleur par le navigateur (var() et hexa -> rgb) au
+  // lieu de lire le jeton brut de la propriete personnalisee.
+  const lum = (c) => { const m = c.match(/[\d.]+/g) || [0, 0, 0]; return +m[0] * 0.299 + +m[1] * 0.587 + +m[2] * 0.114; };
+  const sonde = document.createElement("span");
+  sonde.style.color = "var(--halo)";
+  document.querySelector(".c-carte .etiq").appendChild(sonde);
+  const out = {};
+  for (const mode of ["canvas-noir", "canvas-blanc"]) {
+    document.body.classList.remove("canvas-noir", "canvas-blanc");
+    document.body.classList.add(mode);
+    await new Promise((r) => requestAnimationFrame(r));
+    out[mode] = Math.abs(lum(getComputedStyle(document.querySelector(".c-carte .etiq")).color)
+      - lum(getComputedStyle(sonde).color));
+  }
+  sonde.remove();
+  document.body.classList.remove("canvas-noir", "canvas-blanc");
+  return out;
 });
-t("tout au fond, l'image de la carte s'efface au profit de la couleur du lot",
-  loin.imageCachee && !/rgba\(0, 0, 0, 0\)|transparent/.test(loin.fondLot), JSON.stringify(loin));
-t("et la boite de la carte n'a pas bouge pour autant (l'export en depend)",
-  loin.boite === "150x150" || /^150x/.test(loin.boite), "boite " + loin.boite);
-t("une legende dit ce que les couleurs veulent dire",
-  loin.legende !== "none" && loin.nbLots === 5, "affichage " + loin.legende + ", " + loin.nbLots + " lots");
+t("l'etiquette reste lisible sur un canevas force en sombre comme en clair",
+  contrastes["canvas-noir"] > 90 && contrastes["canvas-blanc"] > 90,
+  "ecart de luminance : canevas sombre " + Math.round(contrastes["canvas-noir"])
+  + ", canevas clair " + Math.round(contrastes["canvas-blanc"]));
+
+/* UN SEUL PALIER, ET C'EST LE POINT DE CE CONTROLE.
+   Il y en avait trois (62 %, 42 %, 34 %), tous tasses dans la plage de travail :
+   un seul geste de molette faisait changer le tableau d'aspect trois fois. On
+   balaye donc toute la plage de zoom et on compte les apparences DISTINCTES
+   d'une carte. Il doit y en avoir exactement deux. */
+const apparences = await A.evaluate(async () => {
+  const z = document.getElementById("z-plus"), zm = document.getElementById("z-moins");
+  const vues = [];
+  const lire = () => {
+    const el = document.querySelector(".c-carte");
+    const op = (s) => getComputedStyle(el.querySelector(s)).opacity;
+    const img = el.querySelector(".vis img");
+    return [op(".tit"), op(".num"), op(".agr"), op(".etiq"),
+      getComputedStyle(img).visibility, getComputedStyle(el).backgroundColor].join("|");
+  };
+  const pause = () => new Promise((r) => setTimeout(r, 120));
+  // On attend que le recadrage ET le fondu soient FINIS avant de lire : sinon on
+  // echantillonne une opacite a mi-chemin et on compte une apparence qui
+  // n'existe pas.
+  const calme = async () => {
+    let a = null;
+    for (let i = 0; i < 25; i++) {
+      await pause();
+      const b = document.getElementById("z-niv").textContent + "/" + lire();
+      if (b === a) return;
+      a = b;
+    }
+  };
+  for (let i = 0; i < 24 && !z.disabled; i++) { z.click(); await calme(); }
+  for (let i = 0; i < 40; i++) {
+    vues.push({ z: parseFloat(document.getElementById("z-niv").textContent), v: lire() });
+    if (zm.disabled) break;
+    zm.click(); await calme();
+  }
+  const distinctes = [];
+  vues.forEach((o) => { if (distinctes.indexOf(o.v) < 0) distinctes.push(o.v); });
+  return { pas: vues.length, distinctes: distinctes.length,
+    plage: vues.length ? vues[0].z + " % -> " + vues[vues.length - 1].z + " %" : "" };
+});
+/* TAILLE D'ECRAN CONSTANTE : c'est tout l'interet de la contre-mise a
+   l'echelle. On releve la largeur de l'etiquette a chaque palier de zoom : si
+   elle suivait le zoom comme avant, elle fondrait de moitie sur la plage. */
+const etiqTailles = await A.evaluate(async () => {
+  const z = document.getElementById("z-plus"), zm = document.getElementById("z-moins");
+  const pause = () => new Promise((r) => setTimeout(r, 260));
+  const mesures = [];
+  for (let i = 0; i < 24 && !z.disabled; i++) { z.click(); await pause(); }
+  for (let i = 0; i < 40; i++) {
+    const zoom = parseFloat(document.getElementById("z-niv").textContent);
+    const e = document.querySelector(".c-carte .etiq");
+    if (zoom < 55) mesures.push(Math.round(e.getBoundingClientRect().width));
+    if (zm.disabled) break;
+    zm.click(); await pause();
+  }
+  return mesures;
+});
+t("l'etiquette garde la meme taille a l'ecran quel que soit le zoom",
+  etiqTailles.length > 3 && Math.max(...etiqTailles) - Math.min(...etiqTailles) <= 2,
+  etiqTailles.length + " paliers, de " + Math.min(...etiqTailles) + " a " + Math.max(...etiqTailles) + " px");
+
+t("sur toute la plage de zoom, une carte n'a que deux apparences",
+  apparences.distinctes === 2,
+  apparences.distinctes + " apparences sur " + apparences.pas + " paliers (" + apparences.plage + ")");
 
 // Un cran a la fois : six clics dans la meme image ne font qu'un seul pas,
 // puisqu'ils partent tous du meme zoom courant.
 for (let i = 0; i < 5; i++) { await A.evaluate(() => document.getElementById("z-plus").click()); await dodo(260); }
 await dodo(400);
-const apresZoom = await A.evaluate(() => ({
-  z: document.getElementById("z-niv").textContent,
-  d: getComputedStyle(document.getElementById("legende")).display
-}));
-t("et elle disparait des qu'on se rapproche, ou elle n'aurait plus d'objet",
-  apresZoom.d === "none", JSON.stringify(apresZoom));
+const apresZoom = await A.evaluate(() => {
+  const el = document.querySelector(".c-carte");
+  return { z: document.getElementById("z-niv").textContent,
+    titre: getComputedStyle(el.querySelector(".tit")).opacity,
+    num: getComputedStyle(el.querySelector(".num")).opacity };
+});
+t("des qu'on se rapproche, titre et numero reviennent",
+  apresZoom.titre === "1" && apresZoom.num === "1", JSON.stringify(apresZoom));
 /* LE LIBELLE D'UNE FLECHE NE DOIT JAMAIS DISPARAITRE AU DEZOOM. C'est une
    annotation ecrite par le groupe : la masquer fait croire qu'elle est perdue.
    Je l'avais pourtant retiree, en la jugeant illisible ; c'est une relecture
@@ -691,13 +809,18 @@ const zBas2 = await zoomDe(A);
 t("sur un tableau peu rempli, le dezoom s'arrete avant le timbre-poste",
   zBas2 > 0.3, "cadrage complet " + Math.round(zAjuste2 * 100) + " %, plancher atteint " + Math.round(zBas2 * 100) + " %");
 
-/* La BOITE de la carte ne doit JAMAIS changer de taille avec le zoom : l'image
-   exportee est construite a partir de la hauteur reelle des elements. */
+/* LA HAUTEUR DE LA CARTE CHANGE DESORMAIS AVEC LE ZOOM (le bloc du titre se
+   replie). Ce qui ne doit pas changer, c'est l'IMAGE EXPORTEE : elle est
+   construite sur la hauteur reelle des elements, donc exporter en etant dezoome
+   aurait donne des cartes sans place pour leur titre. C'est ce que verifie le
+   controle de l'export, plus bas ; ici on note simplement que le repli a bien
+   lieu, sinon le filet n'aurait servi a rien. */
 await A.evaluate(() => document.getElementById("z-tout").click());
 await dodo(600);
 const hPres = await A.evaluate(() => document.querySelector(".c-carte").offsetHeight);
-t("la taille de la boite des cartes ne change pas avec le zoom (sinon l'image exportee se casse)",
-  hPres === semantique.hauteurCarte, "de loin " + semantique.hauteurCarte + " px, de pres " + hPres + " px");
+t("de pres, la carte retrouve la place de son titre",
+  hPres > semantique.hauteurCarte + 10,
+  "de loin " + semantique.hauteurCarte + " px, de pres " + hPres + " px");
 
 /* ========================================================================== */
 });
@@ -829,6 +952,40 @@ await bloc("Tactile et export", async () => {
   const zApres = await T.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
   t("on peut zoomer au pincement sur un ecran tactile", zApres > zAvant + 3,
     "avant " + zAvant + " %, apres " + zApres + " %");
+
+  /* IDENTIFIER UNE CARTE AU DOIGT. De loin, le titre et le numero s'effacent :
+     a la souris on survole, au clavier on tabule, mais une tablette n'a ni l'un
+     ni l'autre. Sans ce rattrapage, une carte n'aurait plus aucun moyen de dire
+     qui elle est sur un ecran tactile. */
+  {
+    // Le pincement a zoome : on recadre, sinon la carte visee peut etre hors
+    // de l'ecran et le doigt tomberait dans le vide.
+    await T.evaluate(() => document.getElementById("z-tout").click());
+    await dodo(800);
+    const c = await T.evaluate(() => {
+      const dedans = [].slice.call(document.querySelectorAll(".c-carte")).find((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top > 4 && r.left > 4 && r.bottom < innerHeight - 4 && r.right < innerWidth - 4;
+      });
+      if (!dedans) return null;
+      const r = dedans.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, n: dedans.dataset.n };
+    });
+    if (!c) t("toucher une carte donne son numero et son titre (pas de survol au doigt)",
+      false, "aucune carte entierement visible apres recadrage");
+    else {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.x, y: c.y, id: 0 }] });
+      await dodo(160);
+      const vu = await T.evaluate(() => {
+        const s = document.getElementById("survol-carte");
+        return { cache: s.hidden, txt: s.textContent };
+      });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      t("toucher une carte donne son numero et son titre (pas de survol au doigt)",
+        !vu.cache && vu.txt.indexOf(c.n + " ·") === 0,
+        "encadre " + (vu.cache ? "cache" : "« " + vu.txt + " »") + " pour la carte " + c.n);
+    }
+  }
 
   /* EXPORT : la plume doit etre posee avant de dessiner, sinon une note encore
      en cours de frappe manque sur l'image (deja constate apres un atelier). */
@@ -975,6 +1132,52 @@ await bloc("Tactile et export", async () => {
         verdict.ecartCadrage >= 0 && verdict.ecartCadrage < 18,
         "ecart moyen a la decoupe attendue : " + verdict.ecartCadrage + " / 255"
         + (verdict.plates.length ? " ; " + verdict.plates.length + " carte(s) sans illustration" : ""));
+
+      /* L'IMAGE EXPORTEE NE DOIT PAS DEPENDRE DU ZOOM DE QUI LA TELECHARGE.
+         Depuis que le palier replie le bloc du titre, la hauteur d'une carte
+         change avec le zoom, et l'export se construit sur cette hauteur : sans
+         precaution, telecharger en etant dezoome donnerait des cartes sans
+         place pour leur titre. On refait donc exactement le meme export, une
+         fois dezoome a fond, et on compare les deux images. */
+      await T.evaluate(() => document.getElementById("z-tout").click());
+      await dodo(900);
+      const loin = await T.evaluate(() => document.getElementById("monde").classList.contains("zoom-loin"));
+      const tele2 = T.waitForEvent("download", { timeout: 30000 });
+      await T.evaluate(() => document.getElementById("btn-export").click());
+      let fichier2 = null;
+      try { const d = await tele2; fichier2 = await d.path(); } catch (e) {}
+      if (!loin || !fichier2) {
+        t("l'image telechargee est la meme, qu'on soit zoome ou non",
+          false, !loin ? "le dezoom n'a pas atteint le palier" : "aucun second telechargement");
+      } else {
+        const ecart = await T.evaluate(async ([a, b]) => {
+          const lire = (d) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = d; });
+          const ia = await lire(a), ib = await lire(b);
+          if (ia.width !== ib.width || ia.height !== ib.height) return { taille: ia.width + "x" + ia.height + " vs " + ib.width + "x" + ib.height, diff: -1 };
+          const g = (im) => {
+            const cv = document.createElement("canvas"); cv.width = im.width; cv.height = im.height;
+            const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+            const d = cx.getImageData(0, 0, im.width, im.height).data, out = [];
+            for (let j = 0; j < 24; j++) for (let i = 0; i < 32; i++) {
+              let sm = 0, n = 0;
+              for (let dy = 0; dy < im.height / 24; dy += 4) for (let dx = 0; dx < im.width / 32; dx += 4) {
+                const px = Math.floor(i * im.width / 32 + dx), py = Math.floor(j * im.height / 24 + dy);
+                const k = (py * im.width + px) * 4; sm += (d[k] + d[k + 1] + d[k + 2]) / 3; n++;
+              }
+              out.push(sm / Math.max(1, n));
+            }
+            return out;
+          };
+          const ga = g(ia), gb = g(ib);
+          let sm = 0;
+          for (let i = 0; i < ga.length; i++) sm += Math.abs(ga[i] - gb[i]);
+          return { taille: ia.width + "x" + ia.height, diff: sm / ga.length };
+        }, [donnees, "data:image/png;base64," + fs.readFileSync(fichier2).toString("base64")]);
+        t("l'image telechargee est la meme, qu'on soit zoome ou non",
+          ecart.diff >= 0 && ecart.diff < 2,
+          ecart.diff < 0 ? "dimensions differentes : " + ecart.taille
+            : "ecart moyen " + ecart.diff.toFixed(2) + " / 255 (" + ecart.taille + ")");
+      }
     }
   }
   await ctxT.close();
