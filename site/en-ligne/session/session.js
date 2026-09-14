@@ -2711,7 +2711,12 @@
      construite a partir de la hauteur reelle des elements. Ici on ne touche qu'a
      des elements en position absolue et a la VISIBILITE du titre, jamais a la
      mise en page. */
-  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42;
+  /* TROIS DISTANCES DE LECTURE, ET UNE QUATRIEME TOUT AU FOND.
+     ZOOM_TUILE est le point ou l'illustration cesse d'apprendre quoi que ce
+     soit : une carte y fait cinquante pixels, l'image n'est plus qu'une tache.
+     Il etait confondu avec ZOOM_LOIN, ce qui retirait l'image des soixante
+     pixels, ou elle dit encore quelque chose, et deux relecteurs l'ont note. */
+  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42, ZOOM_TUILE = 0.34;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
     // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
     // quel que soit le zoom (curseurs, ping, numero de carte de loin).
@@ -2724,9 +2729,13 @@
     E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
     E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
     E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    E.monde.classList.toggle("zoom-tuile", etat.zoom < ZOOM_TUILE);
     // La legende vit sur la scene, pas dans le monde : elle ne doit pas subir la
     // transformation de zoom.
-    E.scene.classList.toggle("loin", etat.zoom < ZOOM_LOIN);
+    // La legende ne sert que quand la couleur du lot est la SEULE information
+    // encore lisible, c'est-a-dire en mode tuile. Plus tot, elle n'explique rien
+    // que l'image ne dise deja, et elle encombre.
+    E.scene.classList.toggle("loin", etat.zoom < ZOOM_TUILE);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
     E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }
@@ -3398,8 +3407,50 @@
     api("image", { code: etat.code, jeton: etat.jeton, png: base64 })
       .catch(function () { imageDeposee = false; });
   }
-  function exporterImage() { poserLaPlume(); quandCalme(dessinerExport); }
-  function dessinerExport() {
+  /* LES IMAGES DE L'EXPORT NE VIENNENT PAS DE LA PAGE. Deux raisons, toutes deux
+     constatees sur une image telechargee en fin d'atelier :
+       - CHARGEMENT PARESSEUX. Une carte hors de l'ecran n'a jamais charge son
+         illustration : elle sortait NOIRE de l'image. Sur une fresque complete,
+         cela faisait dix cartes vides sur trente-huit.
+       - `srcset`. La taille naturelle d'une image a plusieurs sources est
+         CORRIGEE PAR LA DENSITE (150 pour un bitmap de 300), alors que le
+         decoupage de `drawImage` s'exprime, lui, en pixels reels du bitmap. Le
+         rendu prenait donc le quart superieur gauche de l'illustration, agrandi
+         deux fois, et coupait le titre imprime dessus.
+     On recharge donc chaque illustration explicitement, sans `srcset`, et dans
+     une resolution digne d'une image qu'on garde et qu'on partage. */
+  function chargerImagesExport(cartes) {
+    var attente = cartes.map(function (cc) {
+      var c = etat.cartes[cc.n], src = c && c.image && (c.image.grand || c.image.vignette || c.image.petite);
+      if (!src) return Promise.resolve(null);
+      return new Promise(function (ok) {
+        var i = new Image();
+        i.onload = function () { ok({ n: cc.n, img: i }); };
+        i.onerror = function () { ok(null); };
+        i.src = BASE + src;
+      });
+    });
+    // Filet : une illustration qui ne repond pas ne doit pas retenir l'export.
+    // On dessinera un aplat a sa place, comme avant.
+    return Promise.race([
+      Promise.all(attente),
+      new Promise(function (ok) { setTimeout(function () { ok([]); }, 9000); })
+    ]);
+  }
+  function exporterImage() {
+    poserLaPlume();
+    quandCalme(function () {
+      var tab = etat.vue && etat.vue.tableau;
+      if (!tab || !(tab.cartes || []).length) return;
+      flash(EN ? "Preparing the image…" : "Préparation de l'image…");
+      chargerImagesExport(tab.cartes).then(function (chargees) {
+        var par = {};
+        (chargees || []).forEach(function (e) { if (e) par[e.n] = e.img; });
+        dessinerExport(par);
+      });
+    });
+  }
+  function dessinerExport(imagesCartes) {
     if (!etat.vue || !etat.vue.tableau) return;
     var tab = etat.vue.tableau, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
     if (!cartes.length) return;
@@ -3430,8 +3481,11 @@
       var c = etat.cartes[cc.n], el = etat.elCartes[cc.n], x = cc.x, y = cc.y, w = el ? el.offsetWidth : 150, h = el ? el.offsetHeight : 150, visH = Math.round(w / 1.6);
       ctx.save(); coinRond(ctx, x, y, w, h, 10); ctx.fillStyle = "#fff"; ctx.fill();
       ctx.save(); coinRond(ctx, x, y, w, visH, 10); ctx.clip(); ctx.fillStyle = "#14110d"; ctx.fillRect(x, y, w, visH);
-      var img = el && el.querySelector("img");
-      if (img && img.complete && img.naturalWidth) dessinerCover(ctx, img, x, y, w, visH);
+      // Illustration rechargee pour l'export (voir chargerImagesExport). On ne
+      // retombe JAMAIS sur celle de la page : c'est elle qui donnait un cadrage
+      // faux et des cartes noires.
+      var img = imagesCartes && imagesCartes[cc.n];
+      if (img && img.naturalWidth) dessinerCover(ctx, img, x, y, w, visH);
       ctx.restore();
       ctx.fillStyle = "#E8811C"; coinRond(ctx, x + 5, y + 5, 21, 21, 5); ctx.fill();
       ctx.fillStyle = "#fff"; ctx.font = "700 13px 'Saira Condensed',sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(cc.n, x + 15.5, y + 16.5);
