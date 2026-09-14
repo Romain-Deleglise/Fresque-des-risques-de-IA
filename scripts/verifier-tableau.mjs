@@ -578,6 +578,23 @@ t("sur un grand tableau, le dezoom reste raisonnable",
   zBas >= Math.min(0.45, zAjuste * 0.62) - 0.02,
   "cadrage complet " + Math.round(zAjuste * 100) + " %, plancher atteint " + Math.round(zBas * 100) + " %");
 
+/* PAR DEFAUT, PAS DE TITRE SOUS LES CARTES. Deux relectures ont prefere le
+   tableau nu, et surtout : au dezoom maximal les etiquettes se chevauchent, et
+   on deplace alors de vraies cartes pour corriger un defaut d'affichage. Le
+   titre reste disponible, mais sur demande. */
+const defautTitres = await A.evaluate(() => ({
+  corps: document.body.classList.contains("titres-loin"),
+  bouton: document.getElementById("btn-titres").getAttribute("aria-pressed"),
+  opacite: getComputedStyle(document.querySelector(".c-carte .etiq")).opacity
+}));
+t("par defaut, aucun titre ne s'affiche sous les cartes au dezoom",
+  !defautTitres.corps && defautTitres.bouton === "false" && defautTitres.opacite === "0",
+  JSON.stringify(defautTitres));
+
+// La suite mesure l'etiquette : on l'allume.
+await A.evaluate(() => document.getElementById("btn-titres").click());
+await dodo(300);
+
 semantique = await A.evaluate(() => {
   const m = document.getElementById("monde");
   const st = getComputedStyle(m);
@@ -714,6 +731,10 @@ const apparences = await A.evaluate(async () => {
   return { pas: vues.length, distinctes: distinctes.length,
     plage: vues.length ? vues[0].z + " % -> " + vues[vues.length - 1].z + " %" : "" };
 });
+t("et le choix est retenu pour la prochaine session",
+  await A.evaluate(() => { try { return localStorage.getItem("titres-loin"); } catch (e) { return null; } }) === "1",
+  "cle titres-loin");
+
 /* TAILLE D'ECRAN CONSTANTE : c'est tout l'interet de la contre-mise a
    l'echelle. On releve la largeur de l'etiquette a chaque palier de zoom : si
    elle suivait le zoom comme avant, elle fondrait de moitie sur la plage. */

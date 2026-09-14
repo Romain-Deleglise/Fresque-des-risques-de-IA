@@ -620,7 +620,15 @@ body.barres-cachees .topbar{display:none}
   overflow:hidden;max-height:26px;
   text-shadow:0 0 3px var(--halo),0 0 3px var(--halo),0 0 4px var(--halo);
   transition:opacity .16s ease}
-#monde.zoom-loin .c-carte .etiq{opacity:1}
+/* PAS PAR DEFAUT. Deux relectures de suite ont prefere le tableau nu, et
+   l'argument qui emporte la decision n'est pas esthetique : au dezoom maximal
+   les etiquettes se chevauchent, et on deplace alors de vraies cartes pour
+   corriger un defaut d'affichage. Autrement dit, la vue deformerait la fresque.
+   Le titre reste donc disponible, mais sur demande : « Titres au dezoom » dans
+   le menu Affichage, et le choix est retenu d'une session a l'autre. De pres,
+   le titre est sur la carte comme toujours ; survol, toucher et clavier
+   donnent numero et titre a toutes les distances. */
+body.titres-loin #monde.zoom-loin .c-carte .etiq{opacity:1}
 /* Halo : la couleur du canevas, pour que le titre se detache du plan comme des
    illustrations. LA COULEUR DU TEXTE SUIT LE HALO, elle ne suit pas le theme :
    le canevas peut etre force en sombre dans un theme clair (canvas-noir) et

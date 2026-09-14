@@ -73,6 +73,7 @@
     poolCaseVide: "free slot",
     reserveGlisser: "Drag a card onto the reserve, or click it",
     curseursOn: "Other people's cursors: shown", curseursOff: "Other people's cursors: hidden",
+    titresOn: "Titles when zoomed out: shown", titresOff: "Titles when zoomed out: hidden",
     relaisAncien: "Live sharing is running in reduced mode (the relay needs updating).",
     flecheEchap: "Click the target card (Esc cancels).",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
@@ -140,6 +141,7 @@
     poolCaseVide: "emplacement libre",
     reserveGlisser: "Glissez une carte sur la réserve, ou cliquez-la",
     curseursOn: "Curseurs des autres : affichés", curseursOff: "Curseurs des autres : masqués",
+    titresOn: "Titres au dézoom : affichés", titresOff: "Titres au dézoom : masqués",
     relaisAncien: "Partage en direct en mode réduit (le relais doit être mis à jour).",
     flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
@@ -166,6 +168,7 @@
       "#btn-rassembler": "Gather",
       "#btn-barres": "Hide the bar", "#btn-barres-show": "Bar ▾", "#btn-partager": "Invite",
       "#btn-curseurs": "Other people's cursors",
+      "#btn-titres": "Titles when zoomed out",
       "#panneau .panneau-tete h3": "Participants",
       'label[for="vocal-url"]': "Voice room link (Discord, Meet…)",
       "#vocal-lien": "🎧 Join the voice room",
@@ -2667,6 +2670,29 @@
     flash(curs.montrer ? S.curseursOn : S.curseursOff);
   }
 
+  /* TITRES AU DEZOOM. Sous le palier, le titre imprime sur la carte n'est plus
+     lisible ; on peut le poser sous la carte, a taille d'ecran constante. Ce
+     n'est pas l'affichage par defaut : au dezoom maximal deux etiquettes
+     voisines se chevauchent, et on se met alors a deplacer de vraies cartes
+     pour corriger un defaut d'affichage. Le choix est retenu d'une session a
+     l'autre, comme celui des curseurs. */
+  var titresLoin = false;
+  try { titresLoin = localStorage.getItem("titres-loin") === "1"; } catch (e) {}
+  function appliquerTitres() {
+    document.body.classList.toggle("titres-loin", titresLoin);
+    var b = document.getElementById("btn-titres");
+    if (b) {
+      b.setAttribute("aria-pressed", titresLoin ? "true" : "false");
+      b.title = titresLoin ? S.titresOn : S.titresOff;
+    }
+  }
+  function basculerTitres() {
+    titresLoin = !titresLoin;
+    try { localStorage.setItem("titres-loin", titresLoin ? "1" : "0"); } catch (e) {}
+    appliquerTitres();
+    flash(titresLoin ? S.titresOn : S.titresOff);
+  }
+
   /* ---------- Frappe en direct (libelles de fleche, notes) -------------------
      Le texte des autres s'affiche AU FUR ET A MESURE de leur frappe : chaque
      saisie est relayee en ephemere (WebSocket) et appliquee tout de suite chez
@@ -3181,6 +3207,11 @@
     bc.setAttribute("aria-pressed", curs.montrer ? "true" : "false");
     bc.title = curs.montrer ? S.curseursOn : S.curseursOff;
     bc.addEventListener("click", basculerCurseurs);
+  })();
+  (function () {
+    appliquerTitres();
+    var bt = document.getElementById("btn-titres");
+    if (bt) bt.addEventListener("click", basculerTitres);
   })();
   /* ECRAN TELEPHONE. Ce n'est pas une impasse : la personne vient souvent de son
      e-mail d'invitation, cinq minutes avant l'atelier. On lui donne le lien, de
