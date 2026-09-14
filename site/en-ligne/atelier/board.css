@@ -538,71 +538,61 @@ body.canvas-blanc .plan-bord{background:#fbfaf7;border-color:#e6e2da}
 body.plein .topbar{display:flex}
 body.barres-cachees .topbar{display:none}
 
-/* --- ZOOM SEMANTIQUE : ce qu'on montre change avec la distance -------------
-   Voir le commentaire de `applyView` cote JavaScript pour le pourquoi. Regle
-   absolue ici : on ne touche JAMAIS a la taille de la boite `.c-carte`, sinon
-   l'image exportee (construite sur la hauteur reelle des elements) se casse.
-   D'ou `visibility` et non `display` pour le titre, et des elements en position
-   absolue pour tout le reste. */
+/* --- ZOOM SEMANTIQUE : UN SEUL PALIER --------------------------------------
+   Il y en avait trois (62 %, 42 %, 34 %). Or le cadrage complet d'un tableau
+   rempli tombe autour de 50 % et le plancher de dezoom autour de 32 % : les
+   trois basculements etaient donc tasses dans la plage ou l'on travaille
+   vraiment, et le tableau changeait d'aspect trois fois pendant un seul geste
+   de molette. D'ou le reproche, juste : « ca fait trois comportements ».
+   Un seul palier, et il ne retire que ce qui est devenu illisible.
+
+     pres (>= 55 %) : la carte entiere, telle quelle
+     loin (< 55 %)  : le titre passe sous les sept pixels, le numero sous les
+                      huit, le bouton d'agrandissement sous les douze. Les trois
+                      s'effacent. RESTE L'ILLUSTRATION, plus la couleur du lot
+                      qui prend la place du titre.
+
+   L'IMAGE NE DISPARAIT PLUS JAMAIS. Une version precedente l'effacait tout au
+   fond, en supposant qu'a trente pixels elle n'etait plus qu'une tache. Mesure
+   faite depuis sur les trente-neuf illustrations : l'ecart median entre une
+   carte et sa plus proche voisine ne perd que 12 % entre 150 px et 30 px
+   (63 -> 55 sur 255). La couleur dominante et la composition survivent au
+   dezoom ; c'est le detail qui part. L'illustration reste donc le repere le
+   plus rapide, bien avant un numero qu'il faut lire.
+
+   Regle absolue : on ne touche JAMAIS a la taille de la boite `.c-carte`,
+   sinon l'image exportee (construite sur la hauteur reelle des elements) se
+   casse. D'ou `opacity` et des elements en position absolue, jamais `display`
+   ni une hauteur. `opacity` plutot que `visibility` pour deux raisons : le
+   passage se fait en fondu court au lieu de claquer, et le titre reste dans
+   l'arbre d'accessibilite pour les lecteurs d'ecran. */
 /* Filet de couleur du lot : discret de pres, c'est lui qui fait lire les
    familles de cartes quand on prend du recul. */
 .c-carte::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
   background:var(--lot,transparent);z-index:2;pointer-events:none;
   transition:height .16s ease}
-/* Distance moyenne : le bouton d'agrandissement devient du bruit, le numero
-   devient l'identifiant principal. */
-#monde.zoom-moyen .c-carte .agr{opacity:0;pointer-events:none}
-#monde.zoom-moyen .c-carte .num{transform:scale(clamp(1,var(--iz,1),1.7));transform-origin:top left}
-#monde.zoom-moyen .c-carte::before{height:5px}
-/* Distance lointaine : le titre n'est plus lisible, on le retire de la vue (il
-   garde sa place, la boite ne bouge pas) et on montre un gros numero au centre
-   de l'image, a taille d'ecran constante. Survoler une carte donne toujours son
-   titre dans l'encadre du haut. */
-#monde.zoom-loin .c-carte .tit{visibility:hidden}
-#monde.zoom-loin .c-carte::before{height:6px}
-/* ET L'IMAGE S'EFFACE. A cette distance une carte fait quarante pixels : son
-   illustration n'est plus qu'une tache brune, et cette tache recouvre la seule
-   chose encore lisible, la famille a laquelle la carte appartient. Mesure faite
-   a 25 % : l'image occupe les deux tiers de la tuile et la couleur du lot ne
-   subsiste qu'en un liseré. On inverse : la tuile prend la couleur du lot, le
-   numero reste, l'image disparait. Les cinq familles se lisent alors d'un seul
-   coup d'oeil, ce qui est exactement ce qu'on cherche quand on prend du recul.
-   `visibility` et non `display` : la boite ne change JAMAIS de taille (l'image
-   exportee est construite sur la hauteur reelle des elements). */
+.c-carte .tit,.c-carte .num,.c-carte .agr{transition:opacity .16s ease}
+/* De loin : on retire les trois elements devenus illisibles. Le numero part
+   avec les autres. Le garder contre-mis a l'echelle donnait trente-neuf
+   pastilles de taille fixe posees sur des cartes qui retrecissent : elles
+   finissaient par recouvrir l'illustration, et lire trente-neuf numeros un a
+   un n'aide de toute facon pas a balayer un tableau. Survoler une carte, la
+   toucher ou l'atteindre au clavier donne toujours son numero et son titre
+   dans l'encadre du haut. */
+#monde.zoom-loin .c-carte .tit,
+#monde.zoom-loin .c-carte .num,
+#monde.zoom-loin .c-carte .agr{opacity:0;pointer-events:none}
+/* La couleur du lot prend la place du titre : l'illustration garde le haut de
+   la carte, la famille se lit dans le bandeau du bas. Les cinq familles
+   apparaissent alors d'un coup d'oeil sans rien recouvrir. */
 #monde.zoom-loin .c-carte{background:var(--lot,var(--surface));box-shadow:0 1px 3px rgba(0,0,0,.22)}
-/* Tout au fond SEULEMENT, l'image se retire : a cinquante pixels elle n'est plus
-   qu'une tache, et cette tache recouvre la seule chose encore lisible, la
-   famille de la carte. Entre les deux, on la garde : elle dit encore quelque
-   chose, et la retirer trop tot appauvrit le tableau pour rien. */
-#monde.zoom-tuile .c-carte{border-color:rgba(20,17,13,.28)}
-#monde.zoom-tuile .c-carte .vis{background:transparent}
-#monde.zoom-tuile .c-carte .vis img{visibility:hidden}
-/* Le numero devient blanc a cerne fonce : lisible sur n'importe quelle couleur
-   de lot, contrairement a l'orange d'origine qui se confondait avec le lot 1.
-   Il grandit aussi : il est desormais seul sur la tuile, autant qu'il se lise. */
-#monde.zoom-loin .c-carte .num{top:50%;left:50%;background:#ffffff;color:#1b1a17;
-  transform:translate(-50%,-50%) scale(clamp(1,var(--iz,1),2.6));transform-origin:center;
-  box-shadow:0 0 0 2px rgba(20,17,13,.92),0 3px 10px rgba(0,0,0,.45)}
-#monde.zoom-tuile .c-carte .num{transform:translate(-50%,-50%) scale(clamp(1,var(--iz,1),4.4))}
+#monde.zoom-loin .c-carte::before{height:6px}
 /* LE LIBELLE D'UNE FLECHE NE DISPARAIT PAS. Je l'avais retire au dezoom en le
    jugeant illisible ; c'est une annotation ecrite par le groupe, donc du
    contenu, et la faire disparaitre fait croire qu'elle est perdue. Il suffit de
-   la contre-mettre a l'echelle comme le numero des cartes : elle garde alors une
-   taille d'ecran constante au lieu de retrecir jusqu'a sept pixels. */
+   la contre-mettre a l'echelle : elle garde alors une taille d'ecran constante
+   au lieu de retrecir jusqu'a sept pixels. */
 #monde.zoom-loin .fleche-lib{transform:translate(-50%,-50%) scale(clamp(.85,var(--iz,1),4.4))}
-
-/* LEGENDE DES LOTS. Une couleur ne dit rien tant qu'on ne sait pas ce qu'elle
-   designe. Elle n'apparait qu'a cette distance, la ou la couleur devient la
-   seule information, et disparait des qu'on se rapproche. */
-.legende{position:absolute;left:1rem;top:.9rem;z-index:22;display:none;gap:.85rem;
-  padding:.42rem .7rem;border-radius:10px;background:var(--surface);border:1px solid var(--ligne);
-  box-shadow:0 4px 14px rgba(27,26,23,.14);font-family:var(--f-ui);font-size:.74rem;
-  color:var(--ink-doux);pointer-events:none;flex-wrap:wrap;max-width:min(46rem,60vw)}
-.scene.loin .legende{display:flex}
-.legende b{display:inline-flex;align-items:center;gap:.34rem;font-weight:600}
-.legende i{width:.62rem;height:.62rem;border-radius:3px;background:var(--c);
-  box-shadow:0 0 0 1px rgba(20,17,13,.25)}
-body.canvas-noir .legende{background:#201d16;border-color:#3a352c;color:#e8e3d8}
 
 /* --- Reactions au survol et a la selection ---------------------------------
    Tous les changements d'etat de l'interface etaient instantanes : le bouton

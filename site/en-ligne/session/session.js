@@ -205,13 +205,6 @@
     if (ret) ret.innerHTML = '<a href="../">← Back</a> · The service is in preparation: early trials.';
     var mr = document.querySelector(".mobile-avis .ma-fine:last-of-type a");
     if (mr) mr.textContent = "Back to the site";
-    var leg = document.getElementById("legende");
-    if (leg) {
-      var noms = ["AI", "Capabilities", "Present-day risks", "Existential risks", "Solutions"];
-      leg.querySelectorAll("b").forEach(function (b, i) {
-        b.lastChild.nodeValue = (i + 1) + " · " + noms[i];
-      });
-    }
     var liste = document.querySelector("#aide-liste");
     if (liste) liste.innerHTML =
       '<li><b>Cards:</b> the facilitator fills the shared reserve; click « Place » (or drag the card) to bring it onto the board. The ⤢ button opens it large.</li>'
@@ -253,7 +246,7 @@
    "scene","monde","fleches","fleches-live","pool","deck","deck-cartes","deck-compte","deck-toggle","aide","z-niv","z-moins","z-plus","z-tout","btn-plein",
    "btn-participants","panneau","fermer-panneau",
    "btn-barres","btn-barres-show","btn-affichage","menu-affichage","dock","zone-outils","grp-zoom","btn-annuler","btn-rassembler",
-   "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","legende","modal","carte-grande","modal-flip",
+   "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","modal","carte-grande","modal-flip",
    "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
     E[id] = document.getElementById(id);
   });
@@ -1310,6 +1303,19 @@
     // Encadre fixe au survol (utile quand on est dezoome).
     el.addEventListener("mouseenter", function () { montrerSurvol(n); });
     el.addEventListener("mouseleave", masquerSurvol);
+    // ET AU DOIGT. Un ecran tactile n'a pas de survol : sans cela, de loin, une
+    // carte n'aurait plus aucun moyen de dire qui elle est sur une tablette,
+    // puisque le titre et le numero s'effacent. Toucher la carte affiche son
+    // numero et son titre, comme le survol a la souris.
+    el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "touch" || e.pointerType === "pen") montrerSurvol(n);
+    });
+    // Au doigt, rien ne joue le role du « mouseleave » : on laisse l'encadre le
+    // temps de le lire, puis il s'efface seul.
+    el.addEventListener("pointerup", function (e) {
+      if (e.pointerType === "touch" || e.pointerType === "pen") masquerSurvolPlusTard();
+    });
+    el.addEventListener("pointercancel", masquerSurvolPlusTard);
     el.addEventListener("click", function (e) {
       // Un vrai glissement se termine par un « click » parasite : on l'ignore
       // pour ne pas selectionner / tracer une fleche par accident.
@@ -1350,10 +1356,16 @@
     var c = etat.cartes[n]; if (!c) return;
     if (!_survol) { _survol = document.getElementById("survol-carte"); }
     if (!_survol) return;
+    clearTimeout(_survolT);
     _survol.textContent = n + " · " + c.titre;
     _survol.hidden = false;
   }
-  function masquerSurvol() { if (_survol) _survol.hidden = true; }
+  function masquerSurvol() { clearTimeout(_survolT); if (_survol) _survol.hidden = true; }
+  var _survolT = 0;
+  function masquerSurvolPlusTard() {
+    clearTimeout(_survolT);
+    _survolT = setTimeout(masquerSurvol, 2500);
+  }
 
   /* NAVIGATION ET MANIPULATION AU CLAVIER.
      Modele choisi, et pourquoi. Avec trente-huit cartes, les rendre toutes
@@ -2701,22 +2713,34 @@
      reduire, on change CE QU'ON MONTRE selon la distance. C'est le « semantic
      zoom » de Figma, Miro et de la litterature : de loin, moins d'elements mais
      plus gros, pas les memes elements en plus petit.
-       pres  (>= 62 %)  : la carte entiere, comme avant
-       moyen (42-62 %)  : on retire le bouton d'agrandissement et on grossit le
-                          numero, qui devient l'identifiant principal
-       loin  (< 42 %)   : plus de titre (illisible de toute facon), un gros
-                          numero au centre et la couleur du lot bien visible
+       pres (>= 55 %) : la carte entiere, telle quelle
+       loin (< 55 %)  : le titre, le numero et le bouton d'agrandissement sont
+                        passes sous la taille lisible ; ils s'effacent, et la
+                        couleur du lot prend la place du titre. L'ILLUSTRATION
+                        RESTE, a toutes les distances.
      La BOITE de la carte, elle, ne change JAMAIS de taille. Une version
      precedente etirait la hauteur au dezoom : cela cassait l'image exportee,
      construite a partir de la hauteur reelle des elements. Ici on ne touche qu'a
-     des elements en position absolue et a la VISIBILITE du titre, jamais a la
-     mise en page. */
-  /* TROIS DISTANCES DE LECTURE, ET UNE QUATRIEME TOUT AU FOND.
-     ZOOM_TUILE est le point ou l'illustration cesse d'apprendre quoi que ce
-     soit : une carte y fait cinquante pixels, l'image n'est plus qu'une tache.
-     Il etait confondu avec ZOOM_LOIN, ce qui retirait l'image des soixante
-     pixels, ou elle dit encore quelque chose, et deux relecteurs l'ont note. */
-  var ZOOM_MOYEN = 0.62, ZOOM_LOIN = 0.42, ZOOM_TUILE = 0.34;
+     des elements en position absolue et a l'OPACITE du titre, jamais a la mise
+     en page. */
+  /* UN SEUL PALIER, ET POURQUOI.
+     Il y en avait trois : 62 %, 42 %, 34 %. Or le cadrage complet d'un tableau
+     rempli tombe autour de 50 %, et le plancher de dezoom (62 % de ce cadrage,
+     voir majPlancher) autour de 32 %. Les trois basculements etaient donc tasses
+     dans la plage ou l'on travaille vraiment : un seul geste de molette faisait
+     changer le tableau d'aspect trois fois. Le reproche « ca fait trois
+     comportements differents » etait fonde.
+     Le palier unique est place la ou le titre cesse d'etre lisible : 0,82 rem a
+     55 % font 7,2 px. En dessous, le garder revient a afficher une bouillie
+     grise sur le tiers de la carte.
+     ET L'IMAGE NE SE RETIRE PLUS. Je l'effacais tout au fond en supposant qu'a
+     trente pixels elle n'apprenait plus rien. Mesure faite depuis sur les
+     trente-neuf illustrations reduites a la taille reellement affichee : l'ecart
+     median entre une carte et sa plus proche voisine passe de 63 a 55 sur 255
+     entre 150 px et 30 px, soit 12 % de perte. La couleur dominante et la
+     composition survivent au dezoom ; seul le detail part. L'illustration reste
+     donc le repere le plus rapide, bien avant un numero qu'il faut lire. */
+  var ZOOM_LOIN = 0.55;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
     // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
     // quel que soit le zoom (curseurs, ping, numero de carte de loin).
@@ -2727,15 +2751,7 @@
     // fresque, disparaissaient au moment ou on prend du recul pour les lire.
     // La pointe suit automatiquement (elle est dimensionnee en stroke-width).
     E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
-    E.monde.classList.toggle("zoom-moyen", etat.zoom < ZOOM_MOYEN);
     E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
-    E.monde.classList.toggle("zoom-tuile", etat.zoom < ZOOM_TUILE);
-    // La legende vit sur la scene, pas dans le monde : elle ne doit pas subir la
-    // transformation de zoom.
-    // La legende ne sert que quand la couleur du lot est la SEULE information
-    // encore lisible, c'est-a-dire en mode tuile. Plus tot, elle n'explique rien
-    // que l'image ne dise deja, et elle encombre.
-    E.scene.classList.toggle("loin", etat.zoom < ZOOM_TUILE);
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
     E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }

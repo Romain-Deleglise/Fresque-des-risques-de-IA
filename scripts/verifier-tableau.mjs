@@ -581,58 +581,103 @@ t("sur un grand tableau, le dezoom reste raisonnable",
 semantique = await A.evaluate(() => {
   const m = document.getElementById("monde");
   const st = getComputedStyle(m);
-  const num = document.querySelector(".c-carte .num");
-  const tit = document.querySelector(".c-carte .tit");
+  const el = document.querySelector(".c-carte");
+  const op = (s) => parseFloat(getComputedStyle(el.querySelector(s)).opacity);
+  const img = el.querySelector(".vis img");
+  const si = getComputedStyle(img);
   return {
     loin: m.classList.contains("zoom-loin"),
-    moyen: m.classList.contains("zoom-moyen"),
     fw: parseFloat(st.getPropertyValue("--fw")) || 0,
-    numEchelle: getComputedStyle(num).transform,
-    titreCache: getComputedStyle(tit).visibility === "hidden",
-    hauteurCarte: document.querySelector(".c-carte").offsetHeight
+    opTitre: op(".tit"),
+    opNum: op(".num"),
+    opAgr: op(".agr"),
+    imageVisible: si.visibility !== "hidden" && parseFloat(si.opacity) > 0.9,
+    largeurImage: Math.round(img.getBoundingClientRect().width),
+    fondLot: getComputedStyle(el).backgroundColor,
+    hauteurCarte: el.offsetHeight,
+    boite: Math.round(el.offsetWidth) + "x" + Math.round(el.offsetHeight)
   };
 });
-t("a bas zoom, la lecture passe en mode « de loin »", semantique.loin && semantique.moyen);
+t("a bas zoom, la lecture passe en mode « de loin »", semantique.loin);
 t("les traits de fleche restent epais a l'ecran quand on dezoome",
   semantique.fw > 4, "--fw = " + semantique.fw);
-t("le numero de carte est contre-mis a l'echelle (lisible de loin)",
-  /matrix/.test(semantique.numEchelle) && semantique.numEchelle !== "none");
-t("le titre, illisible a cette distance, est retire de la vue", semantique.titreCache);
-
-/* A cette distance une carte fait une quarantaine de pixels : son illustration
-   n'est plus qu'une tache, et cette tache recouvrait la seule chose encore
-   lisible, la famille de la carte. La tuile prend donc la couleur du lot, et
-   l'image se retire. Sans quoi le dezoom ne sert a rien : on voit que le tableau
-   est rempli, pas ce qu'il raconte. */
-const loin = await A.evaluate(() => {
-  const el = document.querySelector(".c-carte");
-  const img = el.querySelector(".vis img");
-  const st = getComputedStyle(el);
-  return {
-    imageCachee: getComputedStyle(img).visibility === "hidden",
-    fondLot: st.backgroundColor,
-    boite: Math.round(el.offsetWidth) + "x" + Math.round(el.offsetHeight),
-    legende: getComputedStyle(document.getElementById("legende")).display,
-    nbLots: document.querySelectorAll("#legende b").length
-  };
-});
-t("tout au fond, l'image de la carte s'efface au profit de la couleur du lot",
-  loin.imageCachee && !/rgba\(0, 0, 0, 0\)|transparent/.test(loin.fondLot), JSON.stringify(loin));
+t("le titre, illisible a cette distance, s'efface", semantique.opTitre === 0);
+/* LE NUMERO S'EFFACE AVEC LE TITRE. Il restait, contre-mis a l'echelle : trente-
+   neuf pastilles de taille fixe posees sur des cartes qui retrecissent finissent
+   par recouvrir l'illustration, et lire trente-neuf numeros un a un n'aide pas a
+   balayer un tableau. Deux relectures l'ont signale (« les cartes deviennent des
+   numeros »). Survol, toucher et clavier donnent toujours numero et titre. */
+t("le numero et le bouton d'agrandissement s'effacent avec lui",
+  semantique.opNum === 0 && semantique.opAgr === 0,
+  "numero " + semantique.opNum + ", agrandir " + semantique.opAgr);
+/* L'ILLUSTRATION NE DISPARAIT JAMAIS. Une version precedente l'effacait sous
+   34 %, en supposant qu'a trente pixels elle n'apprenait plus rien. Mesure faite
+   sur les trente-neuf illustrations reduites a la taille affichee : l'ecart
+   median a la plus proche voisine ne perd que 12 % entre 150 px et 30 px. Elle
+   reste le repere le plus rapide, et deux relecteurs la voulaient. */
+t("l'illustration de la carte reste visible, meme au dezoom maximal",
+  semantique.imageVisible && semantique.largeurImage > 0,
+  "image " + semantique.largeurImage + " px de large");
+t("la couleur du lot prend la place du titre",
+  !/rgba\(0, 0, 0, 0\)|transparent/.test(semantique.fondLot), "fond " + semantique.fondLot);
 t("et la boite de la carte n'a pas bouge pour autant (l'export en depend)",
-  loin.boite === "150x150" || /^150x/.test(loin.boite), "boite " + loin.boite);
-t("une legende dit ce que les couleurs veulent dire",
-  loin.legende !== "none" && loin.nbLots === 5, "affichage " + loin.legende + ", " + loin.nbLots + " lots");
+  /^150x/.test(semantique.boite), "boite " + semantique.boite);
+
+/* UN SEUL PALIER, ET C'EST LE POINT DE CE CONTROLE.
+   Il y en avait trois (62 %, 42 %, 34 %), tous tasses dans la plage de travail :
+   un seul geste de molette faisait changer le tableau d'aspect trois fois. On
+   balaye donc toute la plage de zoom et on compte les apparences DISTINCTES
+   d'une carte. Il doit y en avoir exactement deux. */
+const apparences = await A.evaluate(async () => {
+  const z = document.getElementById("z-plus"), zm = document.getElementById("z-moins");
+  const vues = [];
+  const lire = () => {
+    const el = document.querySelector(".c-carte");
+    const op = (s) => getComputedStyle(el.querySelector(s)).opacity;
+    const img = el.querySelector(".vis img");
+    return [op(".tit"), op(".num"), op(".agr"),
+      getComputedStyle(img).visibility, getComputedStyle(el).backgroundColor].join("|");
+  };
+  const pause = () => new Promise((r) => setTimeout(r, 120));
+  // On attend que le recadrage ET le fondu soient FINIS avant de lire : sinon on
+  // echantillonne une opacite a mi-chemin et on compte une apparence qui
+  // n'existe pas.
+  const calme = async () => {
+    let a = null;
+    for (let i = 0; i < 25; i++) {
+      await pause();
+      const b = document.getElementById("z-niv").textContent + "/" + lire();
+      if (b === a) return;
+      a = b;
+    }
+  };
+  for (let i = 0; i < 24 && !z.disabled; i++) { z.click(); await calme(); }
+  for (let i = 0; i < 40; i++) {
+    vues.push({ z: parseFloat(document.getElementById("z-niv").textContent), v: lire() });
+    if (zm.disabled) break;
+    zm.click(); await calme();
+  }
+  const distinctes = [];
+  vues.forEach((o) => { if (distinctes.indexOf(o.v) < 0) distinctes.push(o.v); });
+  return { pas: vues.length, distinctes: distinctes.length,
+    plage: vues.length ? vues[0].z + " % -> " + vues[vues.length - 1].z + " %" : "" };
+});
+t("sur toute la plage de zoom, une carte n'a que deux apparences",
+  apparences.distinctes === 2,
+  apparences.distinctes + " apparences sur " + apparences.pas + " paliers (" + apparences.plage + ")");
 
 // Un cran a la fois : six clics dans la meme image ne font qu'un seul pas,
 // puisqu'ils partent tous du meme zoom courant.
 for (let i = 0; i < 5; i++) { await A.evaluate(() => document.getElementById("z-plus").click()); await dodo(260); }
 await dodo(400);
-const apresZoom = await A.evaluate(() => ({
-  z: document.getElementById("z-niv").textContent,
-  d: getComputedStyle(document.getElementById("legende")).display
-}));
-t("et elle disparait des qu'on se rapproche, ou elle n'aurait plus d'objet",
-  apresZoom.d === "none", JSON.stringify(apresZoom));
+const apresZoom = await A.evaluate(() => {
+  const el = document.querySelector(".c-carte");
+  return { z: document.getElementById("z-niv").textContent,
+    titre: getComputedStyle(el.querySelector(".tit")).opacity,
+    num: getComputedStyle(el.querySelector(".num")).opacity };
+});
+t("des qu'on se rapproche, titre et numero reviennent",
+  apresZoom.titre === "1" && apresZoom.num === "1", JSON.stringify(apresZoom));
 /* LE LIBELLE D'UNE FLECHE NE DOIT JAMAIS DISPARAITRE AU DEZOOM. C'est une
    annotation ecrite par le groupe : la masquer fait croire qu'elle est perdue.
    Je l'avais pourtant retiree, en la jugeant illisible ; c'est une relecture
@@ -829,6 +874,40 @@ await bloc("Tactile et export", async () => {
   const zApres = await T.evaluate(() => parseFloat(document.getElementById("z-niv").textContent));
   t("on peut zoomer au pincement sur un ecran tactile", zApres > zAvant + 3,
     "avant " + zAvant + " %, apres " + zApres + " %");
+
+  /* IDENTIFIER UNE CARTE AU DOIGT. De loin, le titre et le numero s'effacent :
+     a la souris on survole, au clavier on tabule, mais une tablette n'a ni l'un
+     ni l'autre. Sans ce rattrapage, une carte n'aurait plus aucun moyen de dire
+     qui elle est sur un ecran tactile. */
+  {
+    // Le pincement a zoome : on recadre, sinon la carte visee peut etre hors
+    // de l'ecran et le doigt tomberait dans le vide.
+    await T.evaluate(() => document.getElementById("z-tout").click());
+    await dodo(800);
+    const c = await T.evaluate(() => {
+      const dedans = [].slice.call(document.querySelectorAll(".c-carte")).find((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top > 4 && r.left > 4 && r.bottom < innerHeight - 4 && r.right < innerWidth - 4;
+      });
+      if (!dedans) return null;
+      const r = dedans.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2, n: dedans.dataset.n };
+    });
+    if (!c) t("toucher une carte donne son numero et son titre (pas de survol au doigt)",
+      false, "aucune carte entierement visible apres recadrage");
+    else {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.x, y: c.y, id: 0 }] });
+      await dodo(160);
+      const vu = await T.evaluate(() => {
+        const s = document.getElementById("survol-carte");
+        return { cache: s.hidden, txt: s.textContent };
+      });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      t("toucher une carte donne son numero et son titre (pas de survol au doigt)",
+        !vu.cache && vu.txt.indexOf(c.n + " ·") === 0,
+        "encadre " + (vu.cache ? "cache" : "« " + vu.txt + " »") + " pour la carte " + c.n);
+    }
+  }
 
   /* EXPORT : la plume doit etre posee avant de dessiner, sinon une note encore
      en cours de frappe manque sur l'image (deja constate apres un atelier). */
