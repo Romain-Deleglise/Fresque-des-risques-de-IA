@@ -796,7 +796,7 @@ await bloc("Tactile et export", async () => {
   /* PINCEMENT A DEUX DOIGTS. La scene est en `touch-action:none` (sans quoi le
      navigateur confisquerait le glissement des cartes), ce qui supprime aussi
      le pincement natif : sur tablette il ne restait que les boutons + et -. */
-  const ctxT = await nav.newContext({ viewport: { width: 1100, height: 800 }, hasTouch: true, isMobile: false });
+  const ctxT = await nav.newContext({ viewport: { width: 1100, height: 800 }, hasTouch: true, isMobile: false, acceptDownloads: true });
   const T = await ctxT.newPage();
   T.on("pageerror", (e) => erreursJS.push("[tactile] " + e.message));
   await T.addInitScript(() => {
@@ -848,6 +848,135 @@ await bloc("Tactile et export", async () => {
   t("cliquer « Telecharger l'image » pose d'abord la plume (la note en cours est enregistree)",
     enEdition && !(await T.evaluate(() => !!document.querySelector('.c-texte[contenteditable="true"]'))),
     enEdition ? "" : "aucune note en edition : cas non couvert");
+
+  /* L'IMAGE TELECHARGEE, EXAMINEE PIXEL PAR PIXEL.
+     C'est le seul livrable que le groupe emporte, et elle etait fausse sans que
+     rien ne le signale : les cartes restees hors de l'ecran sortaient NOIRES
+     (chargement paresseux), et celles qui sortaient montraient le quart
+     superieur gauche de leur illustration, agrandi deux fois (la taille
+     naturelle d'une image a `srcset` est corrigee par la densite, alors que le
+     decoupage de `drawImage` s'exprime en pixels du bitmap). Deux defauts qu'un
+     test de presence n'aurait jamais vus : il faut regarder l'image produite. */
+  // Le bouton n'apparait qu'a la fresque complete : on la complete.
+  for (let n = 1; n <= 38; n++) {
+    if (!S.tableau.cartes.some((c) => c.n === n)) {
+      R.appliquer(S, "jAnim", { op: "poolAjouter", n });
+      R.appliquer(S, "jAnim", { op: "poserCarte", n, pos: { x: 300 + ((n - 1) % 10) * 330, y: 300 + Math.floor((n - 1) / 10) * 320 } });
+    }
+  }
+  noter();
+  await T.waitForFunction(() => document.querySelectorAll(".c-carte").length >= 38, null, { timeout: 25000 }).catch(() => {});
+  /* ON ZOOME DELIBEREMENT, pour que la plupart des cartes soient HORS DE
+     L'ECRAN au moment de l'export. C'est la condition exacte du defaut : une
+     illustration en chargement paresseux qu'on n'a jamais vue n'existe pas, et
+     sortait noire. Sans ce zoom, toutes les images sont chargees et le controle
+     ne prouve rien : verifie dans les deux sens. */
+  for (let i = 0; i < 5; i++) { await T.evaluate(() => document.getElementById("z-plus").click()); await dodo(240); }
+  await dodo(1500);
+  const nbCartes = await T.evaluate(() => document.querySelectorAll(".c-carte").length);
+  if (nbCartes < 38) {
+    t("l'image telechargee montre chaque illustration, cadree comme a l'ecran", false, "fresque incomplete : " + nbCartes + " cartes");
+  } else {
+    /* ON RETIRE LEURS IMAGES AUX CARTES DE LA PAGE, juste avant d'exporter.
+       C'est l'invariant qui compte : l'image telechargee ne doit pas dependre de
+       ce que la page a eu le temps de charger. En atelier, le chargement
+       paresseux laissait dix cartes sur trente-huit sans illustration, et elles
+       sortaient noires. Ce navigateur sans fenetre charge tout, lui, et ne
+       reproduirait donc jamais le defaut : on le provoque. */
+    await T.evaluate(() => {
+      document.querySelectorAll(".c-carte .vis img").forEach((i) => {
+        i.removeAttribute("srcset"); i.removeAttribute("src");
+      });
+    });
+    await dodo(400);
+    const tele = T.waitForEvent("download", { timeout: 30000 });
+    await T.evaluate(() => document.getElementById("btn-export").click());
+    let fichier = null;
+    try { const d = await tele; fichier = await d.path(); } catch (e) {}
+    if (!fichier) {
+      t("l'image telechargee montre chaque illustration, cadree comme a l'ecran", false, "aucun telechargement");
+    } else {
+      const donnees = "data:image/png;base64," + fs.readFileSync(fichier).toString("base64");
+      /* On refait, dans la page, le meme calcul de cadrage que l'export, on
+         releve la zone illustration de chaque carte, et on la compare a ce
+         qu'elle DEVRAIT etre : la meme decoupe de la meme source. */
+      const verdict = await T.evaluate(async (png) => {
+        const tab = window.__etatExport || null;
+        const cartes = [...document.querySelectorAll(".c-carte")].map((el) => ({
+          n: +el.dataset.n, x: +el._x || 0, y: +el._y || 0, w: el.offsetWidth, h: el.offsetHeight
+        }));
+        const textes = [...document.querySelectorAll(".c-texte")].map((el) => ({
+          x: +el._x || 0, y: +el._y || 0, w: el.offsetWidth, h: el.offsetHeight
+        }));
+        const pad = 70;
+        let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+        const eng = (x, y, w, h) => { minx = Math.min(minx, x); miny = Math.min(miny, y); maxx = Math.max(maxx, x + w); maxy = Math.max(maxy, y + h); };
+        cartes.forEach((c) => eng(c.x, c.y, c.w, c.h));
+        textes.forEach((c) => eng(c.x, c.y, c.w, c.h));
+        minx -= pad; miny -= pad; maxx += pad; maxy += pad;
+        const W = maxx - minx, ech = Math.max(0.5, Math.min(2, 2400 / W));
+        const im = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = png; });
+        const cv = document.createElement("canvas"); cv.width = im.width; cv.height = im.height;
+        const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+        // 1. Aucune illustration ne doit etre un aplat (carte restee noire).
+        const plates = [];
+        for (const c of cartes) {
+          const vx = Math.round((c.x - minx) * ech), vy = Math.round((c.y - miny) * ech);
+          const vw = Math.round(c.w * ech), vh = Math.round((c.w / 1.6) * ech);
+          if (vw < 8 || vh < 8) continue;
+          const d = cx.getImageData(vx + 3, vy + 3, vw - 6, vh - 6).data;
+          let s = 0, s2 = 0, n = 0;
+          for (let i = 0; i < d.length; i += 16) { const g = (d[i] + d[i + 1] + d[i + 2]) / 3; s += g; s2 += g * g; n++; }
+          const moy = s / n, ec = Math.sqrt(Math.max(0, s2 / n - moy * moy));
+          if (ec < 6) plates.push(c.n);
+        }
+        /* 2. LE CADRAGE. On redessine, a cote, la decoupe que l'illustration
+           DEVRAIT avoir (meme source, meme « cover »), et on compare. Un
+           decoupage fait en pixels d'ecran au lieu de pixels du bitmap donne la
+           meme zone « non plate » : seule la comparaison le voit. */
+        function grille(ctxSrc, x, y, w, h) {
+          const d = ctxSrc.getImageData(x, y, w, h).data, g = [];
+          for (let j = 0; j < 8; j++) for (let i = 0; i < 12; i++) {
+            let s = 0, n = 0;
+            for (let dy = 0; dy < h / 8; dy += 3) for (let dx = 0; dx < w / 12; dx += 3) {
+              const px = Math.floor(i * w / 12 + dx), py = Math.floor(j * h / 8 + dy);
+              const k = (py * w + px) * 4; s += (d[k] + d[k + 1] + d[k + 2]) / 3; n++;
+            }
+            g.push(s / Math.max(1, n));
+          }
+          return g;
+        }
+        const c1 = cartes.filter((c) => c.n === 1)[0];
+        let ecartCadrage = -1;
+        if (c1) {
+          const vx = Math.round((c1.x - minx) * ech), vy = Math.round((c1.y - miny) * ech);
+          const vw = Math.round(c1.w * ech), vh = Math.round((c1.w / 1.6) * ech);
+          const obtenu = grille(cx, vx + 2, vy + 2, vw - 4, vh - 4);
+          const src = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = "../../assets/img/cartes/01-900.webp"; });
+          const cv2 = document.createElement("canvas"); cv2.width = vw; cv2.height = vh;
+          const cx2 = cv2.getContext("2d");
+          const ir = src.naturalWidth / src.naturalHeight, dr = vw / vh;
+          let sx = 0, sy = 0, sw = src.naturalWidth, sh = src.naturalHeight;
+          if (ir > dr) { sw = sh * dr; sx = (src.naturalWidth - sw) / 2; } else { sh = sw / dr; sy = (src.naturalHeight - sh) / 2; }
+          cx2.drawImage(src, sx, sy, sw, sh, 0, 0, vw, vh);
+          const attendu = grille(cx2, 2, 2, vw - 4, vh - 4);
+          let somme = 0;
+          for (let i = 0; i < obtenu.length; i++) somme += Math.abs(obtenu[i] - attendu[i]);
+          ecartCadrage = Math.round(somme / obtenu.length);
+        }
+        return { cartes: cartes.length, plates: plates, largeur: im.width, ecartCadrage: ecartCadrage };
+      }, donnees);
+      /* UN SEUL VERDICT POUR LES DEUX DEFAUTS. Les images de la page ont ete
+         retirees juste avant : si l'export s'en servait, la zone serait un aplat
+         sombre, tres loin de la decoupe attendue. Et s'il decoupait en pixels
+         d'ecran au lieu de pixels du bitmap, il montrerait le coin superieur
+         gauche agrandi, egalement tres loin. */
+      t("l'image telechargee montre chaque illustration, cadree comme a l'ecran",
+        verdict.ecartCadrage >= 0 && verdict.ecartCadrage < 18,
+        "ecart moyen a la decoupe attendue : " + verdict.ecartCadrage + " / 255"
+        + (verdict.plates.length ? " ; " + verdict.plates.length + " carte(s) sans illustration" : ""));
+    }
+  }
   await ctxT.close();
 });
 
