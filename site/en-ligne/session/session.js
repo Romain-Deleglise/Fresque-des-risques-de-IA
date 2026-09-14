@@ -2740,7 +2740,7 @@
      entre 150 px et 30 px, soit 12 % de perte. La couleur dominante et la
      composition survivent au dezoom ; seul le detail part. L'illustration reste
      donc le repere le plus rapide, bien avant un numero qu'il faut lire. */
-  var ZOOM_LOIN = 0.55;
+  var ZOOM_LOIN = 0.55, _etaitLoin = null;
   function applyView() { E.monde.style.transform = "translate(" + etat.panX + "px," + etat.panY + "px) scale(" + etat.zoom + ")";
     // --iz (= 1/zoom) : pour tout ce qui doit garder une taille ECRAN constante
     // quel que soit le zoom (curseurs, ping, numero de carte de loin).
@@ -2751,7 +2751,17 @@
     // fresque, disparaissaient au moment ou on prend du recul pour les lire.
     // La pointe suit automatiquement (elle est dimensionnee en stroke-width).
     E.monde.style.setProperty("--fw", (2.2 * Math.min(iz, 3.4)).toFixed(2));
-    E.monde.classList.toggle("zoom-loin", etat.zoom < ZOOM_LOIN);
+    /* Le passage du palier replie le bloc du titre : la HAUTEUR de la carte
+       change. Les dimensions sont mises en cache (dimCarte) et servent a placer
+       les fleches ; sans cet oubli, elles continueraient de viser le centre
+       d'une carte qui n'a plus cette taille. On ne le fait qu'AU PASSAGE, pas a
+       chaque image : une lecture de mise en page par image couterait cher. */
+    var loin = etat.zoom < ZOOM_LOIN;
+    if (loin !== _etaitLoin) {
+      _etaitLoin = loin;
+      E.monde.classList.toggle("zoom-loin", loin);
+      oublierDims(); majFleches();
+    }
     E["z-niv"].textContent = Math.round(etat.zoom * 100) + " %";
     E["z-moins"].disabled = etat.zoom <= Math.max(ZMIN, _plancher) + 1e-4;
     E["z-plus"].disabled = etat.zoom >= ZMAX - 1e-4; majNettete(); positionnerEditeurs(); }
@@ -3470,6 +3480,23 @@
     if (!etat.vue || !etat.vue.tableau) return;
     var tab = etat.vue.tableau, cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
     if (!cartes.length) return;
+    /* L'IMAGE EXPORTEE NE DEPEND PAS DU ZOOM DE CELUI QUI LA TELECHARGE.
+       Les hauteurs viennent de la mise en page reelle (offsetHeight), et depuis
+       que le palier replie le bloc du titre, cette hauteur change avec le zoom :
+       exporter en etant dezoome aurait donne des cartes sans place pour leur
+       titre, donc un titre debordant de son cadre. On neutralise donc le palier
+       pendant toute la mesure et le dessin, puis on le remet. Tout est
+       synchrone : le navigateur ne repeint pas entre les deux, il n'y a aucun
+       clignotement a l'ecran. */
+    var etaitLoin = E.monde.classList.contains("zoom-loin");
+    if (etaitLoin) { E.monde.classList.remove("zoom-loin"); oublierDims(); }
+    try {
+      dessinerExportSurCanevas(imagesCartes, cartes, textes, fleches);
+    } finally {
+      if (etaitLoin) { E.monde.classList.add("zoom-loin"); oublierDims(); majFleches(); }
+    }
+  }
+  function dessinerExportSurCanevas(imagesCartes, cartes, textes, fleches) {
     var pad = 70, minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
     function eng(x, y, w, h) { minx = Math.min(minx, x); miny = Math.min(miny, y); maxx = Math.max(maxx, x + w); maxy = Math.max(maxy, y + h); }
     cartes.forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });

@@ -582,11 +582,23 @@ body.barres-cachees .topbar{display:none}
 #monde.zoom-loin .c-carte .tit,
 #monde.zoom-loin .c-carte .num,
 #monde.zoom-loin .c-carte .agr{opacity:0;pointer-events:none}
-/* La couleur du lot prend la place du titre : l'illustration garde le haut de
-   la carte, la famille se lit dans le bandeau du bas. Les cinq familles
-   apparaissent alors d'un coup d'oeil sans rien recouvrir. */
-#monde.zoom-loin .c-carte{background:var(--lot,var(--surface));box-shadow:0 1px 3px rgba(0,0,0,.22)}
-#monde.zoom-loin .c-carte::before{height:6px}
+/* LE BLOC DU TITRE SE REPLIE, il ne devient pas un aplat de couleur.
+   Premiere version : le titre gardait sa place et la carte prenait la couleur
+   du lot, ce qui donnait un pave colore sur pres de la moitie de la carte, pour
+   ne rien dire. Aucun texte ne peut le remplacer : a 48 % le titre fait 6,3 px,
+   a 34 % 4,5 px, alors qu'il en faut huit ou neuf pour lire. Le seul contenu
+   encore lisible a cette distance est l'illustration ; on lui laisse donc toute
+   la carte, et la famille tient dans un filet.
+   Le filet garde une EPAISSEUR D'ECRAN CONSTANTE (--iz = 1/zoom) : quatre
+   pixels a 50 % comme a 25 %, au lieu de disparaitre avec le reste.
+   La hauteur de la boite change donc avec le zoom. Deux consequences, traitees
+   cote JavaScript : les dimensions mises en cache sont oubliees au passage du
+   palier (sinon les fleches viseraient l'ancien centre), et l'export neutralise
+   le palier avant de mesurer (sinon l'image exportee dependrait du zoom de
+   celui qui la telecharge). */
+#monde.zoom-loin .c-carte{box-shadow:0 1px 3px rgba(0,0,0,.22)}
+#monde.zoom-loin .c-carte .tit{padding:0;overflow:hidden;
+  height:clamp(3px,calc(4px * var(--iz,1)),22px);background:var(--lot,var(--ligne))}
 /* LE LIBELLE D'UNE FLECHE NE DISPARAIT PAS. Je l'avais retire au dezoom en le
    jugeant illisible ; c'est une annotation ecrite par le groupe, donc du
    contenu, et la faire disparaitre fait croire qu'elle est perdue. Il suffit de

@@ -593,9 +593,10 @@ semantique = await A.evaluate(() => {
     opAgr: op(".agr"),
     imageVisible: si.visibility !== "hidden" && parseFloat(si.opacity) > 0.9,
     largeurImage: Math.round(img.getBoundingClientRect().width),
-    fondLot: getComputedStyle(el).backgroundColor,
-    hauteurCarte: el.offsetHeight,
-    boite: Math.round(el.offsetWidth) + "x" + Math.round(el.offsetHeight)
+    filet: { hauteurEcran: el.querySelector(".tit").getBoundingClientRect().height,
+      fond: getComputedStyle(el.querySelector(".tit")).backgroundColor },
+    partImage: img.getBoundingClientRect().height / el.getBoundingClientRect().height,
+    hauteurCarte: el.offsetHeight
   };
 });
 t("a bas zoom, la lecture passe en mode « de loin »", semantique.loin);
@@ -618,10 +619,17 @@ t("le numero et le bouton d'agrandissement s'effacent avec lui",
 t("l'illustration de la carte reste visible, meme au dezoom maximal",
   semantique.imageVisible && semantique.largeurImage > 0,
   "image " + semantique.largeurImage + " px de large");
-t("la couleur du lot prend la place du titre",
-  !/rgba\(0, 0, 0, 0\)|transparent/.test(semantique.fondLot), "fond " + semantique.fondLot);
-t("et la boite de la carte n'a pas bouge pour autant (l'export en depend)",
-  /^150x/.test(semantique.boite), "boite " + semantique.boite);
+/* LE BLOC DU TITRE SE REPLIE EN FILET. Premiere version : il gardait sa place
+   et prenait la couleur du lot, ce qui donnait un aplat sur pres de la moitie
+   de la carte, pour ne rien dire. Aucun texte ne peut le remplacer a cette
+   taille (6,3 px a 48 %). Le filet garde une epaisseur d'ECRAN constante. */
+t("le bloc du titre se replie en un simple filet de couleur",
+  semantique.filet.hauteurEcran > 2.5 && semantique.filet.hauteurEcran < 6
+  && !/rgba\(0, 0, 0, 0\)|transparent/.test(semantique.filet.fond),
+  semantique.filet.hauteurEcran.toFixed(1) + " px a l'ecran, fond " + semantique.filet.fond);
+t("l'illustration occupe desormais presque toute la carte",
+  semantique.partImage > 0.8,
+  Math.round(semantique.partImage * 100) + " % de la hauteur de la carte");
 
 /* UN SEUL PALIER, ET C'EST LE POINT DE CE CONTROLE.
    Il y en avait trois (62 %, 42 %, 34 %), tous tasses dans la plage de travail :
@@ -736,13 +744,18 @@ const zBas2 = await zoomDe(A);
 t("sur un tableau peu rempli, le dezoom s'arrete avant le timbre-poste",
   zBas2 > 0.3, "cadrage complet " + Math.round(zAjuste2 * 100) + " %, plancher atteint " + Math.round(zBas2 * 100) + " %");
 
-/* La BOITE de la carte ne doit JAMAIS changer de taille avec le zoom : l'image
-   exportee est construite a partir de la hauteur reelle des elements. */
+/* LA HAUTEUR DE LA CARTE CHANGE DESORMAIS AVEC LE ZOOM (le bloc du titre se
+   replie). Ce qui ne doit pas changer, c'est l'IMAGE EXPORTEE : elle est
+   construite sur la hauteur reelle des elements, donc exporter en etant dezoome
+   aurait donne des cartes sans place pour leur titre. C'est ce que verifie le
+   controle de l'export, plus bas ; ici on note simplement que le repli a bien
+   lieu, sinon le filet n'aurait servi a rien. */
 await A.evaluate(() => document.getElementById("z-tout").click());
 await dodo(600);
 const hPres = await A.evaluate(() => document.querySelector(".c-carte").offsetHeight);
-t("la taille de la boite des cartes ne change pas avec le zoom (sinon l'image exportee se casse)",
-  hPres === semantique.hauteurCarte, "de loin " + semantique.hauteurCarte + " px, de pres " + hPres + " px");
+t("de pres, la carte retrouve la place de son titre",
+  hPres > semantique.hauteurCarte + 10,
+  "de loin " + semantique.hauteurCarte + " px, de pres " + hPres + " px");
 
 /* ========================================================================== */
 });
@@ -1054,6 +1067,52 @@ await bloc("Tactile et export", async () => {
         verdict.ecartCadrage >= 0 && verdict.ecartCadrage < 18,
         "ecart moyen a la decoupe attendue : " + verdict.ecartCadrage + " / 255"
         + (verdict.plates.length ? " ; " + verdict.plates.length + " carte(s) sans illustration" : ""));
+
+      /* L'IMAGE EXPORTEE NE DOIT PAS DEPENDRE DU ZOOM DE QUI LA TELECHARGE.
+         Depuis que le palier replie le bloc du titre, la hauteur d'une carte
+         change avec le zoom, et l'export se construit sur cette hauteur : sans
+         precaution, telecharger en etant dezoome donnerait des cartes sans
+         place pour leur titre. On refait donc exactement le meme export, une
+         fois dezoome a fond, et on compare les deux images. */
+      await T.evaluate(() => document.getElementById("z-tout").click());
+      await dodo(900);
+      const loin = await T.evaluate(() => document.getElementById("monde").classList.contains("zoom-loin"));
+      const tele2 = T.waitForEvent("download", { timeout: 30000 });
+      await T.evaluate(() => document.getElementById("btn-export").click());
+      let fichier2 = null;
+      try { const d = await tele2; fichier2 = await d.path(); } catch (e) {}
+      if (!loin || !fichier2) {
+        t("l'image telechargee est la meme, qu'on soit zoome ou non",
+          false, !loin ? "le dezoom n'a pas atteint le palier" : "aucun second telechargement");
+      } else {
+        const ecart = await T.evaluate(async ([a, b]) => {
+          const lire = (d) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = d; });
+          const ia = await lire(a), ib = await lire(b);
+          if (ia.width !== ib.width || ia.height !== ib.height) return { taille: ia.width + "x" + ia.height + " vs " + ib.width + "x" + ib.height, diff: -1 };
+          const g = (im) => {
+            const cv = document.createElement("canvas"); cv.width = im.width; cv.height = im.height;
+            const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+            const d = cx.getImageData(0, 0, im.width, im.height).data, out = [];
+            for (let j = 0; j < 24; j++) for (let i = 0; i < 32; i++) {
+              let sm = 0, n = 0;
+              for (let dy = 0; dy < im.height / 24; dy += 4) for (let dx = 0; dx < im.width / 32; dx += 4) {
+                const px = Math.floor(i * im.width / 32 + dx), py = Math.floor(j * im.height / 24 + dy);
+                const k = (py * im.width + px) * 4; sm += (d[k] + d[k + 1] + d[k + 2]) / 3; n++;
+              }
+              out.push(sm / Math.max(1, n));
+            }
+            return out;
+          };
+          const ga = g(ia), gb = g(ib);
+          let sm = 0;
+          for (let i = 0; i < ga.length; i++) sm += Math.abs(ga[i] - gb[i]);
+          return { taille: ia.width + "x" + ia.height, diff: sm / ga.length };
+        }, [donnees, "data:image/png;base64," + fs.readFileSync(fichier2).toString("base64")]);
+        t("l'image telechargee est la meme, qu'on soit zoome ou non",
+          ecart.diff >= 0 && ecart.diff < 2,
+          ecart.diff < 0 ? "dimensions differentes : " + ecart.taille
+            : "ecart moyen " + ecart.diff.toFixed(2) + " / 255 (" + ecart.taille + ")");
+      }
     }
   }
   await ctxT.close();
