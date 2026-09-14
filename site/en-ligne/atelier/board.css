@@ -596,9 +596,39 @@ body.barres-cachees .topbar{display:none}
    palier (sinon les fleches viseraient l'ancien centre), et l'export neutralise
    le palier avant de mesurer (sinon l'image exportee dependrait du zoom de
    celui qui la telecharge). */
-#monde.zoom-loin .c-carte{box-shadow:0 1px 3px rgba(0,0,0,.22)}
+#monde.zoom-loin .c-carte{box-shadow:0 1px 3px rgba(0,0,0,.22);overflow:visible}
+#monde.zoom-loin .c-carte .vis{border-radius:10px;overflow:hidden}
 #monde.zoom-loin .c-carte .tit{padding:0;overflow:hidden;
   height:clamp(3px,calc(4px * var(--iz,1)),22px);background:var(--lot,var(--ligne))}
+
+/* --- LE TITRE PASSE SOUS LA CARTE -----------------------------------------
+   Le titre imprime sur la carte devient illisible avant 55 % : il suit le zoom,
+   et a 48 % il fait 6,3 px. La question etait de savoir s'il fallait s'en
+   passer. Non : on le sort de la carte et on le pose dessous, a taille d'ECRAN
+   CONSTANTE (contre-mise a l'echelle par --iz = 1/zoom). Onze pixels a 48 %
+   comme a 25 %, au lieu de 6,3 puis 3,3.
+   Ainsi le titre ne disparait jamais, et il n'y a toujours QUE DEUX apparences
+   d'une carte : titre dedans de pres, titre dessous de loin.
+   Deux lignes au maximum, coupees par des points de suspension : un titre long
+   sur six lignes recouvrirait la carte du dessous. Le halo (text-shadow) le
+   rend lisible meme quand il tombe sur une illustration. */
+.c-carte .etiq{position:absolute;left:50%;top:100%;width:112px;margin-top:3px;
+  transform:translateX(-50%) scale(var(--iz,1));transform-origin:top center;
+  font-family:var(--f-titre);font-weight:700;font-size:11px;line-height:13px;
+  color:var(--etiq-ink,var(--ink));text-align:center;pointer-events:none;opacity:0;
+  display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;max-height:26px;
+  text-shadow:0 0 3px var(--halo),0 0 3px var(--halo),0 0 4px var(--halo);
+  transition:opacity .16s ease}
+#monde.zoom-loin .c-carte .etiq{opacity:1}
+/* Halo : la couleur du canevas, pour que le titre se detache du plan comme des
+   illustrations. LA COULEUR DU TEXTE SUIT LE HALO, elle ne suit pas le theme :
+   le canevas peut etre force en sombre dans un theme clair (canvas-noir) et
+   l'inverse (canvas-blanc). Sans ce couple, on obtenait de l'encre sombre sur
+   un halo sombre, c'est-a-dire une etiquette invisible. */
+.scene{--halo:var(--plan);--etiq-ink:var(--ink)}
+body.canvas-noir .scene{--halo:#14110d;--etiq-ink:#f2efe8}
+body.canvas-blanc .scene{--halo:#f7f5f0;--etiq-ink:#1b1a17}
 /* LE LIBELLE D'UNE FLECHE NE DISPARAIT PAS. Je l'avais retire au dezoom en le
    jugeant illisible ; c'est une annotation ecrite par le groupe, donc du
    contenu, et la faire disparaitre fait croire qu'elle est perdue. Il suffit de

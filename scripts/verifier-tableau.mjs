@@ -596,6 +596,12 @@ semantique = await A.evaluate(() => {
     filet: { hauteurEcran: el.querySelector(".tit").getBoundingClientRect().height,
       fond: getComputedStyle(el.querySelector(".tit")).backgroundColor },
     partImage: img.getBoundingClientRect().height / el.getBoundingClientRect().height,
+    etiquette: (function () {
+      const e = el.querySelector(".etiq"), r = e.getBoundingClientRect();
+      return { opacite: parseFloat(getComputedStyle(e).opacity), hauteurLigne: r.height,
+        largeur: r.width, texte: e.textContent.slice(0, 40),
+        clics: getComputedStyle(e).pointerEvents, halo: getComputedStyle(e).getPropertyValue("--halo").trim() };
+    })(),
     hauteurCarte: el.offsetHeight
   };
 });
@@ -631,6 +637,44 @@ t("l'illustration occupe desormais presque toute la carte",
   semantique.partImage > 0.8,
   Math.round(semantique.partImage * 100) + " % de la hauteur de la carte");
 
+/* LE TITRE NE DISPARAIT PAS, IL PASSE SOUS LA CARTE. Imprime sur la carte il
+   suit le zoom : 6,3 px a 48 %, 3,3 px au plancher. Sorti de la carte et
+   contre-mis a l'echelle, il garde onze pixels a toutes les distances. */
+t("le titre passe sous la carte, et il y est lisible",
+  semantique.etiquette.opacite === 1 && semantique.etiquette.hauteurLigne > 8
+  && semantique.etiquette.texte.length > 3,
+  "« " + semantique.etiquette.texte + " », "
+  + semantique.etiquette.hauteurLigne.toFixed(0) + " px de haut a l'ecran");
+t("et l'etiquette ne gene jamais la prise d'une carte",
+  semantique.etiquette.clics === "none", "pointer-events : " + semantique.etiquette.clics);
+
+/* LE CANEVAS PEUT ETRE FORCE EN SOMBRE DANS UN THEME CLAIR, ET L'INVERSE. La
+   couleur du texte doit donc suivre le HALO, pas le theme : autrement on ecrit
+   de l'encre sombre sur un halo sombre, et l'etiquette disparait. */
+const contrastes = await A.evaluate(async () => {
+  // On fait RESOUDRE la couleur par le navigateur (var() et hexa -> rgb) au
+  // lieu de lire le jeton brut de la propriete personnalisee.
+  const lum = (c) => { const m = c.match(/[\d.]+/g) || [0, 0, 0]; return +m[0] * 0.299 + +m[1] * 0.587 + +m[2] * 0.114; };
+  const sonde = document.createElement("span");
+  sonde.style.color = "var(--halo)";
+  document.querySelector(".c-carte .etiq").appendChild(sonde);
+  const out = {};
+  for (const mode of ["canvas-noir", "canvas-blanc"]) {
+    document.body.classList.remove("canvas-noir", "canvas-blanc");
+    document.body.classList.add(mode);
+    await new Promise((r) => requestAnimationFrame(r));
+    out[mode] = Math.abs(lum(getComputedStyle(document.querySelector(".c-carte .etiq")).color)
+      - lum(getComputedStyle(sonde).color));
+  }
+  sonde.remove();
+  document.body.classList.remove("canvas-noir", "canvas-blanc");
+  return out;
+});
+t("l'etiquette reste lisible sur un canevas force en sombre comme en clair",
+  contrastes["canvas-noir"] > 90 && contrastes["canvas-blanc"] > 90,
+  "ecart de luminance : canevas sombre " + Math.round(contrastes["canvas-noir"])
+  + ", canevas clair " + Math.round(contrastes["canvas-blanc"]));
+
 /* UN SEUL PALIER, ET C'EST LE POINT DE CE CONTROLE.
    Il y en avait trois (62 %, 42 %, 34 %), tous tasses dans la plage de travail :
    un seul geste de molette faisait changer le tableau d'aspect trois fois. On
@@ -643,7 +687,7 @@ const apparences = await A.evaluate(async () => {
     const el = document.querySelector(".c-carte");
     const op = (s) => getComputedStyle(el.querySelector(s)).opacity;
     const img = el.querySelector(".vis img");
-    return [op(".tit"), op(".num"), op(".agr"),
+    return [op(".tit"), op(".num"), op(".agr"), op(".etiq"),
       getComputedStyle(img).visibility, getComputedStyle(el).backgroundColor].join("|");
   };
   const pause = () => new Promise((r) => setTimeout(r, 120));
@@ -670,6 +714,27 @@ const apparences = await A.evaluate(async () => {
   return { pas: vues.length, distinctes: distinctes.length,
     plage: vues.length ? vues[0].z + " % -> " + vues[vues.length - 1].z + " %" : "" };
 });
+/* TAILLE D'ECRAN CONSTANTE : c'est tout l'interet de la contre-mise a
+   l'echelle. On releve la largeur de l'etiquette a chaque palier de zoom : si
+   elle suivait le zoom comme avant, elle fondrait de moitie sur la plage. */
+const etiqTailles = await A.evaluate(async () => {
+  const z = document.getElementById("z-plus"), zm = document.getElementById("z-moins");
+  const pause = () => new Promise((r) => setTimeout(r, 260));
+  const mesures = [];
+  for (let i = 0; i < 24 && !z.disabled; i++) { z.click(); await pause(); }
+  for (let i = 0; i < 40; i++) {
+    const zoom = parseFloat(document.getElementById("z-niv").textContent);
+    const e = document.querySelector(".c-carte .etiq");
+    if (zoom < 55) mesures.push(Math.round(e.getBoundingClientRect().width));
+    if (zm.disabled) break;
+    zm.click(); await pause();
+  }
+  return mesures;
+});
+t("l'etiquette garde la meme taille a l'ecran quel que soit le zoom",
+  etiqTailles.length > 3 && Math.max(...etiqTailles) - Math.min(...etiqTailles) <= 2,
+  etiqTailles.length + " paliers, de " + Math.min(...etiqTailles) + " a " + Math.max(...etiqTailles) + " px");
+
 t("sur toute la plage de zoom, une carte n'a que deux apparences",
   apparences.distinctes === 2,
   apparences.distinctes + " apparences sur " + apparences.pas + " paliers (" + apparences.plage + ")");

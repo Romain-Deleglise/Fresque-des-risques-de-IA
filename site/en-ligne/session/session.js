@@ -1286,8 +1286,13 @@
     // Couleur du lot : invisible de pres (un filet de 3 px en haut), mais c'est
     // elle qui fait lire les familles de cartes quand on prend du recul.
     if (c && c.lot) el.style.setProperty("--lot", LOT_COULEUR[c.lot] || "#8a857b");
+    /* L'ETIQUETTE SOUS LA CARTE ne sert que de loin, quand le titre imprime sur
+       la carte est passe sous la taille lisible. Elle repete le meme texte :
+       `aria-hidden` pour ne pas le faire annoncer deux fois, et
+       `pointer-events:none` pour ne jamais gener la prise d'une carte. */
     el.innerHTML = '<div class="vis"><img alt="" loading="lazy" ' + attrsImgCarte(c && c.image) + '><span class="num">' + n + '</span>'
-      + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>';
+      + '<button class="agr" aria-label="Agrandir">⤢</button></div><div class="tit">' + esc(c ? c.titre : "") + '</div>'
+      + '<div class="etiq" aria-hidden="true">' + esc(c ? c.titre : "") + '</div>';
     // ACCESSIBILITE AU CLAVIER. Les cartes etaient de simples `div` : on pouvait
     // remplir la reserve et poser une carte au clavier, mais ni la deplacer ni
     // la relier, c'est-a-dire ni faire la fresque. Chaque carte devient un
