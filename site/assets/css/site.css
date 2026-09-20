@@ -151,6 +151,20 @@ a.btn, a.btn:hover { text-decoration: none; }
 .hero .meta .pt { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .hero .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 
+/* APPEL AU TELECHARGEMENT, SOUS LES CARTES. Il vivait sous le texte, a gauche,
+   ou il coupait la description de l'atelier en deux : on lisait ce qu'est une
+   fresque, puis on tombait sur une consigne d'impression, puis on reprenait la
+   lecture. Il est maintenant avec les cartes qu'il propose de telecharger, et
+   la colonne de gauche enchaine sans rupture sur « participer » et « animer ».
+   Les deux paragraphes sous le bouton sont des precisions d'impression et de
+   licence : ils tiennent a une taille reduite, comme le reste des mentions. */
+/* Remontee : la pile de cartes a une hauteur fixe (30rem) et les cartes
+   s'arretent cinq rem plus haut. Sans ce rattrapage, l'appel flottait loin
+   sous le visuel, separe de lui par un trou. */
+.hero-appel { margin-top: -3rem; }
+.hero-appel .meta { margin-top: 0; }
+.hero-appel .appel-note { margin-top: .8rem; }
+
 /* Visuel héros : trois cartes en éventail, retournables au clic (fondu) */
 .hero-visuel { display: block; align-self: start; margin-top: 1rem; }
 .pile { position: relative; width: 100%; height: 30rem; display: grid; place-items: center; }
@@ -332,7 +346,12 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* --- Responsive ----------------------------------------------------------- */
 @media (max-width: 860px) {
   .hero .wrap { grid-template-columns: 1fr; gap: 2.5rem; }
-  .hero-visuel { order: -1; }
+  /* `display:contents` fait des enfants de la colonne de droite des elements de
+     la grille : les cartes peuvent alors passer en tete et l'appel en queue,
+     alors qu'ils sont dans le meme bloc sur grand ecran. */
+  .hero-visuel { display: contents; }
+  .hero .pile { order: -1; }
+  .hero-appel { order: 1; margin-top: 0; }
   .pile { height: 19rem; }
   .pile .slot { width: 13.5rem; }
   .pile .s1 { transform: rotate(-8deg) translate(-3.9rem, 2rem); }
@@ -546,7 +565,8 @@ a.btn, a.btn:hover { text-decoration: none; }
 @media (max-width: 560px) { .grille-champs { grid-template-columns: 1fr; } .form-atelier { padding: 1.3rem 1.2rem 1.5rem; } }
 
 .ateliers-apercu { margin-top: 2.6rem; }
-.ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
+.ateliers-apercu:only-child { margin-top: 0; }
+.ateliers-apercu h2, .ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
 .ateliers-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.1rem; }
 .ateliers-vide { grid-column: 1 / -1; }
 .ateliers-vide p { margin: 0 0 .7rem; }
