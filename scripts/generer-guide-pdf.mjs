@@ -48,6 +48,25 @@ const PAGES = [
 const EMPREINTES = path.join(RACINE, "site", "telechargements", "empreintes.json");
 const VERIFIER = process.argv.includes("--verifier");
 
+/* ADRESSE PUBLIQUE DU SITE. Le guide est imprime depuis un serveur local, et
+   Chrome grave dans le PDF l'adresse ABSOLUE de chaque lien : les deux liens
+   internes du guide sont donc sortis en http://127.0.0.1:8131/... pendant des
+   semaines, illisibles pour qui telechargeait le guide. On reecrit donc les
+   liens de meme origine vers l'adresse publique, juste avant d'imprimer. Les
+   images et les feuilles de style, elles, restent servies en local : seuls les
+   `href` des liens sont touches. */
+const PROD = (process.env.BASE_PROD || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+
+/* Les liens d'un PDF sont des annotations, et Chrome les ecrit en clair :
+   `/URI (https://...)`. Pas besoin d'une bibliotheque pour les relire. */
+function liensDuPdf(fichier) {
+  const brut = fs.readFileSync(fichier).toString("latin1");
+  return [...new Set([...brut.matchAll(/\/URI\s*\(([^)]*)\)/g)].map((m) => m[1]))];
+}
+function liensLocaux(fichier) {
+  return liensDuPdf(fichier).filter((u) => /^https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\])/i.test(u));
+}
+
 /* Empreinte du CONTENU, pas du fichier : on ne retient que le corps du guide,
    debarrasse des espaces. Un PDF n'a pas a etre regenere parce qu'on a corrige
    une balise meta ou reindente le pied de page du site. */
@@ -71,6 +90,14 @@ if (VERIFIER) {
     } else if (connues[p.sortie] !== e) {
       ecarts.push(p.source + " a change depuis que " + p.sortie + " a ete engendre"
         + " (empreinte " + e + ", enregistree " + (connues[p.sortie] || "aucune") + ").");
+    }
+    const dest = path.join(RACINE, "site", "telechargements", p.sortie);
+    if (fs.existsSync(dest)) {
+      const locaux = liensLocaux(dest);
+      if (locaux.length) {
+        ecarts.push(p.sortie + " contient " + locaux.length + " lien(s) vers une adresse locale : "
+          + locaux.join(", ") + ".");
+      }
     }
   }
   if (ecarts.length) {
@@ -109,6 +136,13 @@ for (const p of PAGES) {
   const page = await ctx.newPage();
   await page.goto("http://127.0.0.1:" + PORT + p.url, { waitUntil: "networkidle" });
   await page.emulateMedia({ media: "print" });
+  // Les liens internes partent vers le site public, pas vers ce serveur d'appoint.
+  await page.evaluate((prod) => {
+    document.querySelectorAll("a[href]").forEach((a) => {
+      const u = new URL(a.getAttribute("href"), location.href);
+      if (u.origin === location.origin) a.setAttribute("href", prod + u.pathname + u.search + u.hash);
+    });
+  }, PROD);
   const dest = path.join(RACINE, "site", "telechargements", p.sortie);
   await page.pdf({
     path: dest,
@@ -122,7 +156,16 @@ for (const p of PAGES) {
       + 'padding:0 15mm;display:flex;justify-content:space-between">'
       + "<span>" + p.pied + "</span><span class=\"pageNumber\"></span></div>"
   });
-  console.log("PDF ecrit : " + path.relative(RACINE, dest) + " (" + Math.round(fs.statSync(dest).size / 1024) + " Ko)");
+  // Garde-fou : on relit le PDF qu'on vient d'ecrire. Une adresse locale gravee
+  // dans un fichier telecharge par des milliers de personnes ne se rattrape pas.
+  const locaux = liensLocaux(dest);
+  if (locaux.length) {
+    console.error("\n❌ " + p.sortie + " contient encore des liens locaux : " + locaux.join(", ") + "\n");
+    await nav.close();
+    process.exit(1);
+  }
+  console.log("PDF ecrit : " + path.relative(RACINE, dest) + " (" + Math.round(fs.statSync(dest).size / 1024) + " Ko)"
+    + " ; liens : " + liensDuPdf(dest).join(", "));
   await page.close();
 }
 const empreintes = {};
