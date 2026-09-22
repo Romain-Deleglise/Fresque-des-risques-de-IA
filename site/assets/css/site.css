@@ -100,7 +100,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 .btn:hover { text-decoration: none; }
 .btn-1 { background: var(--accent-aplat); color: var(--sur-accent); }
 .btn-1:hover { background: var(--accent-aplat-fort); color: var(--sur-accent); }
-.btn-2 { background: transparent; color: var(--ink); border-color: var(--ligne); }
+.btn-2 { background: var(--surface); color: var(--ink); border-color: var(--ligne); }
 .btn-2:hover { border-color: var(--ink); color: var(--ink); }
 .btn small { display: block; font-weight: 400; font-size: .74rem; color: var(--sur-accent); }
 .btn-2 small { color: var(--gris); }
@@ -571,7 +571,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 .ateliers-apercu { margin-top: 2.6rem; }
 .ateliers-apercu:only-child { margin-top: 0; }
-.ateliers-apercu h2, .ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
+/* « Prochains ateliers » ouvre une section de la page d'accueil : il garde la
+   taille d'un h2, sinon il se lit comme une légende. Les h3 internes, eux,
+   restent des sous-titres. */
+.ateliers-apercu h2 { margin-bottom: 1.4rem; }
+.ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
 .ateliers-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.1rem; }
 .ateliers-vide { grid-column: 1 / -1; }
 .ateliers-vide p { margin: 0 0 .7rem; }
