@@ -20,11 +20,57 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  /* Les chaines produites par le script (celles qui ne sont pas dans le HTML).
+     La page anglaise sert le meme fichier : sans cette table, elle afficherait
+     des messages francais au milieu d'une interface anglaise. */
+  var EN = document.documentElement.lang === 'en';
+  var T = EN ? {
+    aideLecture: 'Click a card to read its back. Drag to move around the fresk.',
+    aideCommentaire: 'Click a card to read its back and leave feedback on it.',
+    envoi: 'Sending…',
+    merci: 'Thank you. Your feedback shows up right away; we review it afterwards.',
+    echecEnvoi: 'Could not send. Please try again later.',
+    echecAction: 'Action failed.',
+    ecrivez: 'Write your feedback before sending.',
+    vide: 'No feedback yet. Be the first.',
+    anonyme: 'Anonymous',
+    attente: 'awaiting review',
+    valider: 'Approve', supprimer: 'Delete',
+    confirmer: 'Permanently delete this feedback?',
+    moderation: 'Moderation enabled',
+    chargement: 'Loading…',
+    echecChargement: 'Could not load. Please reload the page.',
+    mene: 'What leads to it', entraine: 'What it leads to',
+    langue: 'en-GB',
+    sujets: { carte: 'on a card', jeu: 'the card deck', deroule: 'the run-through',
+              reference: 'the reference fresk', autre: 'other' }
+  } : {
+    aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
+    aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
+    envoi: 'Envoi…',
+    merci: 'Merci, c’est noté. Votre retour est visible tout de suite ; nous le relisons ensuite.',
+    echecEnvoi: 'Envoi impossible. Réessayez plus tard.',
+    echecAction: 'Action impossible.',
+    ecrivez: 'Écrivez votre retour avant d’envoyer.',
+    vide: 'Aucun retour pour le moment. Soyez le premier.',
+    anonyme: 'Anonyme',
+    attente: 'en attente de relecture',
+    valider: 'Valider', supprimer: 'Supprimer',
+    confirmer: 'Supprimer définitivement ce retour ?',
+    moderation: 'Modération activée',
+    chargement: 'Chargement…',
+    echecChargement: 'Chargement impossible. Rechargez la page.',
+    mene: 'Ce qui y mène', entraine: 'Ce que ça entraîne',
+    langue: 'fr-FR',
+    sujets: { carte: 'sur une carte', jeu: 'le jeu de cartes',
+              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' }
+  };
+
   /* ── Chargement ─────────────────────────────────────────── */
   function charger() {
     return Promise.all([
-      fetch('../data/cartes.json').then(function (r) { return r.json(); }),
-      fetch('../data/fresque-reference.json').then(function (r) { return r.json(); })
+      fetch(RACINE + 'data/cartes.json').then(function (r) { return r.json(); }),
+      fetch(RACINE + 'data/fresque-reference.json').then(function (r) { return r.json(); })
     ]).then(function (res) {
       res[0].cartes.forEach(function (c) { cartes[c.n] = c; });
       ref = res[1];
@@ -96,7 +142,7 @@
       html += '<button type="button" class="carte" data-n="' + p.n + '"'
         + ' style="left:' + p.x + 'px;top:' + p.y + 'px"'
         + ' aria-label="' + echapper(c.titre) + '" title="' + echapper(c.titre) + '">'
-        + '<img src="../' + c.image.vignette + '" alt="" loading="lazy">'
+        + '<img src="' + RACINE + c.image.vignette + '" alt="" loading="lazy">'
         + '<span class="pastille" hidden></span></button>';
     });
     hote.innerHTML = html;
@@ -142,7 +188,7 @@
   function ouvrirPanneau(n) {
     var c = cartes[n];
     if (!c) return;
-    $('panneau-img').src = '../' + c.image.vignette;
+    $('panneau-img').src = RACINE + c.image.vignette;
     $('panneau-img').alt = c.titre;
     $('panneau-titre').textContent = c.titre;
     $('panneau-verso').innerHTML = (c.verso || []).map(function (p) {
@@ -156,13 +202,13 @@
     });
     var bloc = '';
     if (entre.length) {
-      bloc += '<h4>Ce qui y mène</h4><ul>' + entre.map(function (f) {
+      bloc += '<h4>' + T.mene + '</h4><ul>' + entre.map(function (f) {
         return '<li><span class="fleche">' + echapper(cartes[f.de].titre) + '</span> '
           + '<span class="quoi">— ' + echapper(f.libelle) + ' →</span></li>';
       }).join('') + '</ul>';
     }
     if (sort.length) {
-      bloc += '<h4>Ce que ça entraîne</h4><ul>' + sort.map(function (f) {
+      bloc += '<h4>' + T.entraine + '</h4><ul>' + sort.map(function (f) {
         return '<li><span class="quoi">— ' + echapper(f.libelle) + ' →</span> '
           + '<span class="fleche">' + echapper(cartes[f.vers].titre) + '</span></li>';
       }).join('') + '</ul>';
@@ -222,24 +268,27 @@
 
   /* ── Commentaires ───────────────────────────────────────── */
   var API = '/.netlify/functions/commentaires';
+  /* Chemin vers la racine du site : /animateurs/ est a un niveau,
+     /en/facilitators/ a deux. Le HTML le declare, le script s'y fie. */
+  var RACINE = document.body.dataset.racine || '../';
 
   function envoyer(charge, etatEl) {
     etatEl.className = 'etat';
-    etatEl.textContent = 'Envoi…';
+    etatEl.textContent = T.envoi;
     return fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(charge)
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok || !d.ok) throw new Error(d.erreur || 'Envoi impossible.');
+        if (!r.ok || !d.ok) throw new Error(d.erreur || T.echecEnvoi);
         etatEl.className = 'etat ok';
-        etatEl.textContent = 'Merci, c’est noté. Votre retour est visible tout de suite ; nous le relisons ensuite.';
+        etatEl.textContent = T.merci;
         return d;
       });
     }).catch(function (e) {
       etatEl.className = 'etat err';
-      etatEl.textContent = e.message || 'Envoi impossible. Réessayez plus tard.';
+      etatEl.textContent = e.message || T.echecEnvoi;
       throw e;
     });
   }
@@ -266,29 +315,24 @@
     });
   }
 
-  var SUJET_NOM = {
-    carte: 'sur une carte', jeu: 'le jeu de cartes',
-    deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre'
-  };
-
   function ligneRetour(r) {
-    var quand = new Date(r.date).toLocaleDateString('fr-FR',
+    var quand = new Date(r.date).toLocaleDateString(T.langue,
       { day: 'numeric', month: 'long', year: 'numeric' });
     var quoi = r.carte != null && cartes[r.carte]
       ? cartes[r.carte].titre
-      : (SUJET_NOM[r.sujet] || r.sujet);
+      : (T.sujets[r.sujet] || r.sujet);
     var html = '<li class="' + (r.valide ? '' : 'attente') + '" data-cle="' + echapper(r.cle) + '">'
       + '<div class="meta">'
-      + '<strong>' + echapper(r.nom || 'Anonyme') + '</strong>'
+      + '<strong>' + echapper(r.nom || T.anonyme) + '</strong>'
       + '<span>·</span><span>' + echapper(quoi) + '</span>'
       + '<span>·</span><span>' + echapper(quand) + '</span>'
-      + (r.valide ? '' : '<span class="badge-attente">en attente de relecture</span>')
+      + (r.valide ? '' : '<span class="badge-attente">' + T.attente + '</span>')
       + '</div>'
       + '<p class="texte">' + echapper(r.texte) + '</p>';
     if (jeton) {
       html += '<div class="actions">'
-        + (r.valide ? '' : '<button type="button" class="valider">Valider</button>')
-        + '<button type="button" class="supprimer">Supprimer</button></div>';
+        + (r.valide ? '' : '<button type="button" class="valider">' + T.valider + '</button>')
+        + '<button type="button" class="supprimer">' + T.supprimer + '</button></div>';
     }
     return html + '</li>';
   }
@@ -296,7 +340,7 @@
   function rendreRetours() {
     var hote = $('retours');
     if (!retours.length) {
-      hote.innerHTML = '<li class="retours-vide">Aucun retour pour le moment. Soyez le premier.</li>';
+      hote.innerHTML = '<li class="retours-vide">' + echapper(T.vide) + '</li>';
       return;
     }
     hote.innerHTML = retours.map(ligneRetour).join('');
@@ -315,16 +359,17 @@
       body: JSON.stringify({ action: action, cle: cle, jeton: jeton })
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok || !d.ok) throw new Error(d.erreur || 'Action impossible.');
+        if (!r.ok || !d.ok) throw new Error(d.erreur || T.echecAction);
       });
     }).then(chargerRetours);
   }
 
   /* ── Mise en route ──────────────────────────────────────── */
+  var libelleReveal = $('btn-reveal').textContent;
   $('btn-reveal').addEventListener('click', function () {
     var btn = this;
     btn.disabled = true;
-    btn.textContent = 'Chargement…';
+    btn.textContent = T.chargement;
     charger().then(function () {
       $('reveal').hidden = true;
       $('plateau-section').hidden = false;
@@ -336,8 +381,8 @@
       chargerRetours();
     }).catch(function () {
       btn.disabled = false;
-      btn.textContent = 'Afficher la fresque de référence';
-      alert('Chargement impossible. Rechargez la page.');
+      btn.textContent = libelleReveal;
+      alert(T.echecChargement);
     });
   });
 
@@ -358,9 +403,7 @@
 
   $('mode-commentaires').addEventListener('change', function () {
     modeCom = this.checked;
-    $('barre-aide').textContent = modeCom
-      ? 'Cliquez une carte pour lire son verso et laisser un retour dessus.'
-      : 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.';
+    $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
     $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
   });
 
@@ -369,7 +412,7 @@
     jeton = $('jeton').value.trim();
     var etat = $('jeton-etat');
     etat.className = 'jeton-etat';
-    etat.textContent = jeton ? 'Modération activée' : '';
+    etat.textContent = jeton ? T.moderation : '';
     // Le jeton n'est pas verifie ici : la fonction le refusera a la premiere
     // action. L'afficher comme « activé » sans l'avoir eprouve serait mentir,
     // mais le verifier a vide couterait un appel pour rien.
@@ -382,13 +425,13 @@
     if (!b) return;
     var li = b.closest('li');
     var action = b.classList.contains('valider') ? 'valider' : 'supprimer';
-    if (action === 'supprimer' && !confirm('Supprimer définitivement ce retour ?')) return;
+    if (action === 'supprimer' && !confirm(T.confirmer)) return;
     b.disabled = true;
     moderer(li.dataset.cle, action).catch(function (err) {
       b.disabled = false;
       var etat = $('jeton-etat');
       etat.className = 'jeton-etat err';
-      etat.textContent = err.message || 'Action impossible.';
+      etat.textContent = err.message || T.echecAction;
     });
   });
 

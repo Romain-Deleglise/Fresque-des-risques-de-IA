@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facilitators’ space · The AI Risks Fresk</title>
+  <meta name="description" content="Facilitators only: reference fresk and feedback on the cards.">
+  <!-- NOT A PUBLIC PAGE. It is absent from the navigation and the sitemap, and
+       robots.txt excludes it: we send the link to facilitators by email, and
+       the guide only points to it at the very bottom. A participant who
+       stumbled on it before a workshop would spoil the discovery, which is
+       the whole point of the fresk. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="../../assets/css/site.css">
+  <link rel="stylesheet" href="../../animateurs/animateurs.css">
+</head>
+<body data-racine="../../">
+  <a class="skip" href="#contenu">Skip to content</a>
+
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../../en/"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> The AI Risks Fresk</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../guide/">Guide</a>
+        <a href="../online/">Online fresk</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete">
+      <div class="wrap">
+        <!-- Moderation sur place : saisir le jeton fait apparaitre, sur chaque
+             retour, de quoi le valider ou le supprimer. Rien a ouvrir dans
+             /admin/. Le jeton n'est jamais stocke : il vit le temps de l'onglet. -->
+        <form class="jeton" id="form-jeton">
+          <label for="jeton">Moderation token</label>
+          <input id="jeton" type="password" autocomplete="off" placeholder="optional">
+          <button type="submit" class="btn-outil">Enable</button>
+          <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
+        </form>
+        <h1>Facilitators’ space</h1>
+        <p class="page-sous">A reference fresk to prepare your workshop, and somewhere to tell us what does not work in the cards.</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="wrap etroit">
+        <div class="avert" role="note">
+          <p><strong>This page is not public</strong> and must not be shared with participants.
+          Seeing the links in advance removes most of what the workshop gives: it is by
+          searching for the relationships that a group makes them its own.</p>
+        </div>
+
+        <h2>One possible layout, not an answer key</h2>
+        <p>
+          There is no single right fresk. The layout below is the one we use to find our
+          bearings: it follows the five sets from the guide and connects each card to what
+          brings it about. <strong>A sound fresk can look very different</strong>: other groupings,
+          other arrows, other priorities. Use it to anticipate questions, not to correct tables.
+        </p>
+        <p class="muted">
+          Every arrow carries the cause-and-effect link it expresses. That wording matters more
+          than where the cards sit: in a workshop an arrow without an explanation is worth nothing,
+          and an arrow the group can justify is always acceptable.
+          <br><br>Note: the cards themselves are in French only for now.
+        </p>
+
+        <div class="reveal" id="reveal">
+          <button type="button" class="btn btn-1" id="btn-reveal">Show the reference fresk</button>
+          <p class="muted reveal-note">Make sure nobody is reading your screen over your shoulder.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-doux" id="plateau-section" hidden>
+      <div class="wrap">
+        <div class="barre">
+          <div class="barre-g">
+            <button type="button" class="btn-outil" id="zoom-moins" aria-label="Zoom out">−</button>
+            <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
+            <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoom in">+</button>
+            <button type="button" class="btn-outil" id="zoom-ajuste">Fit</button>
+          </div>
+          <div class="barre-d">
+            <label class="bascule">
+              <input type="checkbox" id="mode-commentaires">
+              <span>Feedback mode</span>
+            </label>
+          </div>
+        </div>
+        <p class="muted barre-aide" id="barre-aide">
+          Click a card to read its back. Drag to move around the fresk.
+        </p>
+
+        <div class="plateau-cadre" id="plateau-cadre">
+          <!-- Deux niveaux, et ce n'est pas superflu : `plateau` garde toujours
+               ses 3200x2200 et porte la mise a l'echelle, tandis que `sizer`
+               prend la taille APRES echelle. Sans lui, le cadre ne sait pas
+               quelle surface faire defiler, et redimensionner le plateau en
+               plus de l'echelonner le retrecissait deux fois. -->
+          <div class="plateau-sizer" id="plateau-sizer">
+            <div class="plateau" id="plateau">
+              <svg class="liens" id="liens" aria-hidden="true"></svg>
+              <div class="cartes" id="cartes"></div>
+              <div class="etiquettes" id="etiquettes"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="retours-section" hidden>
+      <div class="wrap etroit">
+        <h2>Your feedback on the deck</h2>
+        <p>
+          The cards keep changing. If a card is misread in a workshop, if a text ages badly, if a
+          link is missing: tell us here. Turn on <strong>feedback mode</strong> and click the card
+          concerned, or use the form below for general feedback.
+        </p>
+        <form id="form-general" class="form-retour">
+          <label for="g-sujet">Subject</label>
+          <select id="g-sujet">
+            <option value="jeu">The card deck in general</option>
+            <option value="deroule">The run-through and timing</option>
+            <option value="reference">This reference fresk</option>
+            <option value="autre">Something else</option>
+          </select>
+          <label for="g-texte">Your feedback</label>
+          <textarea id="g-texte" rows="4" maxlength="2000" required
+            placeholder="What got stuck, what worked well, what is missing…"></textarea>
+          <label for="g-nom">Your first name <span class="opt">(optional)</span></label>
+          <input id="g-nom" type="text" maxlength="40" autocomplete="given-name">
+          <label for="g-email">Your email <span class="opt">(optional, if you would like a reply)</span></label>
+          <input id="g-email" type="email" maxlength="120" autocomplete="email">
+          <button type="submit" class="btn btn-1">Send</button>
+          <p class="etat" id="g-etat" role="status" aria-live="polite"></p>
+        </form>
+
+        <h3 class="retours-titre">What others have reported</h3>
+        <p class="muted">
+          Feedback shows up as soon as it is sent, <span class="exemple-attente">greyed out</span>
+          until the team has reviewed it.
+        </p>
+        <ul class="retours" id="retours"></ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- Panneau latéral : verso d'une carte, et commentaires la concernant. -->
+  <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+    <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Close">✕</button>
+    <div class="panneau-corps">
+      <img class="panneau-img" id="panneau-img" src="" alt="">
+      <h3 id="panneau-titre"></h3>
+      <div class="panneau-verso" id="panneau-verso"></div>
+      <div class="panneau-liens" id="panneau-liens"></div>
+      <ul class="retours retours-carte" id="retours-carte"></ul>
+      <div class="panneau-commentaire" id="panneau-commentaire" hidden>
+        <h4>Feedback on this card?</h4>
+        <textarea id="c-texte" rows="3" maxlength="2000"
+          placeholder="What was misunderstood, what is missing, a rewording…"></textarea>
+        <input id="c-nom" type="text" maxlength="40" placeholder="Your first name (optional)">
+        <button type="button" class="btn btn-1" id="c-envoi">Send</button>
+        <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="pied">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · Cards under the CC BY-SA 4.0 licence</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../animateurs/animateurs.js" defer></script>
+</body>
+</html>

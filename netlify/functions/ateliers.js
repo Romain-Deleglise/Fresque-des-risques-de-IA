@@ -133,6 +133,12 @@ function boiteCompteur(n, max) {
 }
 // Prenoms des inscrits sous forme de pastilles.
 const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-de-l-ia.pdf";
+// Espace animateur·ices : fresque de référence et retours sur les cartes. La
+// page n'est référencée nulle part (noindex, hors sitemap, hors navigation) :
+// ce mail est l'un des deux seuls chemins pour y arriver, avec la fin du
+// guide. C'est voulu — la fresque de référence divulgâcherait l'atelier à un
+// participant qui la lirait avant d'y venir.
+const ESPACE_URL = LIEN + "/animateurs/";
 // Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.
 // Secondaire : l'action principale reste le tableau en ligne.
 function boutonVisio(a) { return a && a.visio ? '<p style="margin:0 0 16px;text-align:center;">' + boutonSecondaire(a.visio, "Rejoindre la visioconférence") + '</p>' : ''; }
@@ -383,6 +389,10 @@ function mailAnimateur(a) {
   l.push("");
   l.push("Pour préparer votre animation, téléchargez le guide d'animation :");
   l.push(GUIDE_URL);
+  l.push("");
+  l.push("Votre espace animateur·ices, à garder pour vous : une fresque de référence (une disposition possible des 38 cartes, avec le lien que porte chaque flèche) et un endroit pour nous signaler ce qui cloche dans une carte.");
+  l.push(ESPACE_URL);
+  l.push("Ne transmettez pas ce lien aux participant·es : chercher les liens soi-même est tout l'intérêt de l'atelier.");
   l.push("Une invitation calendrier est jointe à cet e-mail (avec un rappel la veille).");
   l.push("");
   if (a.mode === "enligne") {
@@ -416,6 +426,14 @@ function mailAnimateur(a) {
   c += boiteLienPartage(partageUrl);
   c += '<p style="margin:0 0 12px;">Pour préparer votre animation, appuyez-vous sur le guide. Une invitation calendrier (avec rappel la veille) est jointe à cet e-mail.</p>';
   c += '<p style="margin:0 0 20px;text-align:center;">' + boutonSecondaire(GUIDE_URL, "Télécharger le guide d'animation") + '</p>';
+  // Encadre distinct du reste : ce lien ne se diffuse pas, et cela doit se
+  // voir au premier coup d'oeil, pas se lire dans une phrase.
+  c += '<div style="border:1px dashed #ece9e2;background:#faf8f4;border-radius:10px;padding:14px 16px;margin:0 0 20px;">';
+  c += '<p style="margin:0 0 8px;font-weight:600;">Votre espace animateur·ices</p>';
+  c += '<p style="margin:0 0 12px;color:#4a473f;font-size:14px;">Une fresque de référence &mdash; une disposition possible des 38 cartes, avec le lien de cause à effet que porte chaque flèche &mdash; et un endroit pour nous signaler ce qui cloche dans une carte.</p>';
+  c += '<p style="margin:0 0 10px;text-align:center;">' + boutonSecondaire(ESPACE_URL, "Ouvrir mon espace") + '</p>';
+  c += '<p style="margin:0;color:#6b665e;font-size:13px;"><strong>Gardez ce lien pour vous.</strong> Chercher les liens soi-même est tout l\'intérêt de l\'atelier : ne le transmettez pas aux participant·es, et ne l\'ouvrez pas devant eux.</p>';
+  c += '</div>';
   if (a.mode === "enligne") {
     c += '<p style="margin:0 0 18px;color:#4a473f;">Prévoyez un salon vocal (Discord, Google Meet) pour échanger avec le groupe' + (a.visio ? ", ou utilisez la visio ci-dessus" : "") + '.</p>';
   }

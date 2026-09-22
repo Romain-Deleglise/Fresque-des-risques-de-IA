@@ -842,12 +842,24 @@ Améliorations possibles :
 
 ## 22 bis. Espace animateur·ices (`/animateurs/`)
 
+Deux versions : `/animateurs/` (fr) et `/en/facilitators/` (en). Elles partagent
+la même feuille de style et le même script ; les chaînes produites par le script
+sont dans une table `T` choisie sur `<html lang>`. Les cartes elles-mêmes
+n'existent qu'en français, et la page anglaise le dit.
+
 **Page non publique.** Elle n'est ni dans la navigation, ni dans `sitemap.xml`,
-elle se déclare `noindex`, et `robots.txt` l'exclut. On la transmet par courriel
-aux animateur·ices ; le guide n'y renvoie qu'en toute fin de page, dans un
-encart `no-print` absent du PDF téléchargeable. Ces quatre garde-fous sont
+elle se déclare `noindex`, et `robots.txt` l'exclut. Deux chemins seulement y
+mènent, tous deux réservés aux animateur·ices :
+
+1. **le mail « Votre atelier est programmé »**, envoyé à qui programme un
+   atelier (`mailAnimateur` dans `netlify/functions/ateliers.js`), dans un
+   encadré qui dit explicitement de garder le lien pour soi ;
+2. **la toute fin du guide**, dans un encart `no-print` — donc absent du PDF
+   téléchargeable par n'importe qui.
+
+Aucun mail envoyé à un participant ne mentionne l'espace. Ces garde-fous sont
 verrouillés par `serveur/tests/espace-animateurs.test.mjs` : ils tiennent à
-quelques lignes disséminées, faciles à défaire par mégarde.
+quelques lignes disséminées dans six fichiers, faciles à défaire par mégarde.
 
 La raison : la fresque de référence divulgâche l'atelier à qui la lirait avant
 d'y participer, et chercher les liens soi-même est tout ce que la fresque
