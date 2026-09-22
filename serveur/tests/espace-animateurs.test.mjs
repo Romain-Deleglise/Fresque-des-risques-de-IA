@@ -124,3 +124,28 @@ test("aucun mail à un participant ne mentionne l'espace", () => {
   const part = src.slice(src.indexOf("function mailParticipant"));
   assert.ok(!part.includes("ESPACE_URL"), "un mail participant mentionne l'espace");
 });
+
+test("aucun attribut style= : la CSP du site les ignore", () => {
+  // netlify.toml sert `style-src 'self'` sans 'unsafe-inline'. Un
+  // style="left:…" écrit dans du HTML y est purement ignoré par le
+  // navigateur. C'est exactement ce qui a mis la première version en ligne à
+  // terre : 38 cartes empilées en haut à gauche, étiquettes superposées,
+  // flèches à l'échelle 1 — et invisible en local, où le serveur de test
+  // n'envoie aucune CSP. Toutes les positions passent donc par le CSSOM.
+  const csp = lire("netlify.toml");
+  assert.match(csp, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
+  assert.ok(!/unsafe-inline/.test(csp), "la CSP autorise désormais l'inline");
+
+  for (const f of [...PAGES_ESPACE, "site/animateurs/animateurs.js"]) {
+    const src = lire(f).replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    assert.ok(!/\sstyle\s*=\s*["']/.test(src), `${f} contient un attribut style=`);
+  }
+});
+
+test("les cartes portent leur titre, pas seulement une image", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  // Sans titre sur la carte, la fresque vue de loin n'est qu'une mosaïque
+  // d'images : il faut cliquer chaque carte pour savoir ce qu'elle dit.
+  assert.match(js, /tit\.textContent = c\.titre/);
+  assert.match(js, /LOT_COULEUR/, "la couleur de lot doit distinguer les familles");
+});

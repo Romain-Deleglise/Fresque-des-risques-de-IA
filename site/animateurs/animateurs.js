@@ -1,5 +1,14 @@
 /* ESPACE ANIMATEUR·ICES.
 
+   AUCUN ATTRIBUT `style=` DANS CE FICHIER. Le site sert une CSP stricte
+   (`style-src 'self'`, netlify.toml) : un `style="left:…"` ecrit dans du HTML
+   y est purement ignore par le navigateur. Premiere version en ligne : les 38
+   cartes empilees en haut a gauche, les etiquettes les unes sur les autres et
+   les fleches a l'echelle 1. Invisible en local, ou le serveur de test
+   n'envoie aucune CSP. On pose donc TOUTES les positions par le CSSOM
+   (`el.style.left = …`), que la CSP n'atteint pas, comme le fait deja le
+   tableau de la Fresque en ligne.
+
    Affiche la fresque de reference (site/data/fresque-reference.json) avec le
    meme modele de donnees que la Fresque en ligne : cartes 160x150, fleches {de, vers, libelle}. Rien n'est duplique : les titres et les
    versos viennent de cartes.json, la source unique.
@@ -111,48 +120,108 @@
     svg.setAttribute('viewBox', '0 0 ' + PLAN_W + ' ' + PLAN_H);
     svg.setAttribute('width', PLAN_W);
     svg.setAttribute('height', PLAN_H);
-    var html = '';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    var NS = 'http://www.w3.org/2000/svg';
     ref.tableau.fleches.forEach(function (f) {
       var a = centre(f.de), b = centre(f.vers);
       if (!a || !b) return;
       var p1 = bord(a, b), p2 = bord(b, a);
       var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
       var ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-      var t = 13; // demi-longueur de la tete
+      var t = 13;
       var tx = p2.x - Math.cos(ang) * 4, ty = p2.y - Math.sin(ang) * 4;
-      var pts = [
-        (tx) + ',' + (ty),
+
+      var g = document.createElementNS(NS, 'g');
+      g.dataset.de = f.de;
+      g.dataset.vers = f.vers;
+
+      var ligne = document.createElementNS(NS, 'line');
+      ligne.setAttribute('x1', p1.x); ligne.setAttribute('y1', p1.y);
+      ligne.setAttribute('x2', tx); ligne.setAttribute('y2', ty);
+
+      var tete = document.createElementNS(NS, 'polygon');
+      tete.setAttribute('class', 'tete');
+      tete.setAttribute('points', [
+        tx + ',' + ty,
         (tx - Math.cos(ang - 0.42) * t) + ',' + (ty - Math.sin(ang - 0.42) * t),
         (tx - Math.cos(ang + 0.42) * t) + ',' + (ty - Math.sin(ang + 0.42) * t)
-      ].join(' ');
-      html += '<g data-de="' + f.de + '" data-vers="' + f.vers + '">'
-        + '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + tx + '" y2="' + ty + '"/>'
-        + '<polygon class="tete" points="' + pts + '"/>'
-        + '<text class="halo" x="' + mx + '" y="' + (my - 5) + '" text-anchor="middle">'
-        + echapper(f.libelle) + '</text></g>';
+      ].join(' '));
+
+      var txt = document.createElementNS(NS, 'text');
+      txt.setAttribute('class', 'halo');
+      txt.setAttribute('x', mx);
+      txt.setAttribute('y', my - 5);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.textContent = f.libelle;
+
+      g.appendChild(ligne);
+      g.appendChild(tete);
+      g.appendChild(txt);
+      svg.appendChild(g);
     });
-    svg.innerHTML = html;
   }
 
+  // Couleurs des lots, reprises telles quelles du tableau en ligne : un
+  // animateur qui connait l'un reconnait l'autre.
+  var LOT_COULEUR = { 1: '#E8811C', 2: '#2f7d4f', 3: '#3b6ea5', 4: '#8a4fb3', 5: '#c1444e' };
+
   function dessinerCartes() {
-    var hote = $('cartes'), html = '';
+    var hote = $('cartes');
+    hote.textContent = '';
     ref.tableau.cartes.forEach(function (p) {
       var c = cartes[p.n];
       if (!c) return;
-      html += '<button type="button" class="carte" data-n="' + p.n + '"'
-        + ' style="left:' + p.x + 'px;top:' + p.y + 'px"'
-        + ' aria-label="' + echapper(c.titre) + '" title="' + echapper(c.titre) + '">'
-        + '<img src="' + RACINE + c.image.vignette + '" alt="" loading="lazy">'
-        + '<span class="pastille" hidden></span></button>';
-    });
-    hote.innerHTML = html;
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'c-carte';
+      el.dataset.n = p.n;
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+      if (c.lot) el.style.setProperty('--lot', LOT_COULEUR[c.lot] || 'var(--accent)');
+      el.setAttribute('aria-label', c.titre);
 
-    var eti = '';
-    (ref.tableau.textes || []).forEach(function (t) {
-      eti += '<div class="etiquette" style="left:' + t.x + 'px;top:' + t.y + 'px">'
-        + echapper(t.contenu) + '</div>';
+      var vis = document.createElement('span');
+      vis.className = 'vis';
+      var img = document.createElement('img');
+      img.src = RACINE + c.image.vignette;
+      img.alt = '';
+      img.loading = 'lazy';
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = p.n;
+      vis.appendChild(img);
+      vis.appendChild(num);
+
+      // LE TITRE EST SUR LA CARTE, pas seulement dans une bulle. Sans lui, la
+      // fresque vue de loin n'est qu'une mosaique d'images : on ne peut ni la
+      // lire ni s'y reperer, il faut cliquer chaque carte pour savoir ce
+      // qu'elle dit. C'est ce qui rendait la premiere version illisible.
+      var tit = document.createElement('span');
+      tit.className = 'tit';
+      tit.textContent = c.titre;
+
+      var pastille = document.createElement('span');
+      pastille.className = 'pastille';
+      pastille.hidden = true;
+
+      el.appendChild(vis);
+      el.appendChild(tit);
+      el.appendChild(pastille);
+      hote.appendChild(el);
     });
-    $('etiquettes').innerHTML = eti;
+
+    var eti = $('etiquettes');
+    eti.textContent = '';
+    (ref.tableau.textes || []).forEach(function (t, i) {
+      var d = document.createElement('div');
+      d.className = 'etiquette';
+      d.style.left = t.x + 'px';
+      d.style.top = t.y + 'px';
+      d.style.setProperty('--lot', LOT_COULEUR[i + 1] || 'var(--accent)');
+      d.textContent = t.contenu;
+      eti.appendChild(d);
+    });
   }
 
   function echapper(s) {
@@ -172,7 +241,7 @@
         if (f.vers === n) voisins[f.de] = true;
       });
     }
-    Array.prototype.forEach.call(document.querySelectorAll('.carte'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('.c-carte'), function (el) {
       var m = +el.dataset.n;
       el.classList.toggle('actif', n != null && m === n);
       el.classList.toggle('pale', n != null && !voisins[m]);
@@ -182,6 +251,7 @@
       g.classList.toggle('vif', lie);
       g.classList.toggle('pale', n != null && !lie);
     });
+    majLibelles();
   }
 
   /* ── Panneau de lecture ─────────────────────────────────── */
@@ -221,6 +291,26 @@
     $('c-etat').textContent = '';
     $('panneau').hidden = false;
     surligner(n);
+    amenerEnVue(n);
+  }
+
+  /* Le panneau s'ouvre par-dessus la droite du plateau : sans cela, cliquer une
+     carte de la colonne « Solutions » la fait disparaitre derriere le panneau
+     au moment meme ou on la selectionne. On fait donc defiler le plateau pour
+     garder la carte dans la partie restee visible. */
+  function amenerEnVue(n) {
+    var p = ref.tableau.cartes.find(function (c) { return c.n === n; });
+    var cadre = $('plateau-cadre');
+    if (!p || !cadre) return;
+    var largeurPanneau = $('panneau').hidden ? 0 : $('panneau').getBoundingClientRect().width;
+    var cadreRect = cadre.getBoundingClientRect();
+    var visible = Math.max(120, Math.min(cadreRect.right, window.innerWidth - largeurPanneau) - cadreRect.left);
+    var x = (p.x + CARTE_W / 2) * zoom;
+    var y = (p.y + CARTE_H / 2) * zoom;
+    var cibleX = x - visible / 2;
+    var cibleY = y - cadre.clientHeight / 2;
+    if (cadre.scrollTo) cadre.scrollTo({ left: cibleX, top: cibleY, behavior: 'smooth' });
+    else { cadre.scrollLeft = cibleX; cadre.scrollTop = cibleY; }
   }
 
   function fermerPanneau() {
@@ -229,6 +319,15 @@
   }
 
   /* ── Zoom et deplacement ────────────────────────────────── */
+  /* LISIBILITE DES LIBELLES. Soixante-cinq libelles affiches en meme temps a
+     l'echelle d'ajustement donnent un plat de spaghettis ou rien ne se lit.
+     On ne les montre donc que lorsqu'ils sont lisibles (zoom suffisant) ou
+     lorsqu'ils repondent a une question posee (une carte selectionnee, dont on
+     n'eclaire que les liens). */
+  function majLibelles() {
+    $('liens').classList.toggle('tous-libelles', cibleN == null && zoom >= 0.55);
+  }
+
   function appliquerZoom() {
     $('plateau').style.transform = 'scale(' + zoom + ')';
     $('plateau-sizer').style.width = (PLAN_W * zoom) + 'px';
@@ -247,10 +346,24 @@
     cadre.style.height = Math.min(PLAN_H * zoom + 8, vue) + 'px';
   }
 
+  /* ZOOM D'OUVERTURE. Sur un telephone, ajuster la fresque entiere donne 12 % :
+     on voit la forme d'ensemble et pas un seul titre, ce qui ne sert a rien.
+     On ouvre donc a une echelle ou les titres se lisent, quitte a faire
+     defiler. Le bouton « Ajuster » reste la pour prendre du recul. */
+  function zoomInitial() {
+    ajuster();
+    if (zoom < 0.32) {
+      zoom = 0.5;
+      appliquerZoom();
+      var cadre = $('plateau-cadre');
+      cadre.style.height = Math.min(PLAN_H * zoom + 8, Math.min(window.innerHeight * 0.72, 760)) + 'px';
+    }
+  }
+
   function glisser(cadre) {
     var actif = false, x0 = 0, y0 = 0, sx = 0, sy = 0;
     cadre.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('.carte')) return;
+      if (e.target.closest('.c-carte')) return;
       actif = true; x0 = e.clientX; y0 = e.clientY;
       sx = cadre.scrollLeft; sy = cadre.scrollTop;
       cadre.classList.add('attrape');
@@ -307,7 +420,7 @@
   }
 
   function majPastilles(compte) {
-    Array.prototype.forEach.call(document.querySelectorAll('.carte'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('.c-carte'), function (el) {
       var p = el.querySelector('.pastille');
       var k = compte[el.dataset.n] || 0;
       p.hidden = !k;
@@ -376,18 +489,19 @@
       $('retours-section').hidden = false;
       dessinerCartes();
       dessinerLiens();
-      ajuster();
+      zoomInitial();
       glisser($('plateau-cadre'));
       chargerRetours();
-    }).catch(function () {
+    }).catch(function (e) {
       btn.disabled = false;
       btn.textContent = libelleReveal;
+      console.error('espace animateurs :', e);
       alert(T.echecChargement);
     });
   });
 
   document.addEventListener('click', function (e) {
-    var c = e.target.closest('.carte');
+    var c = e.target.closest('.c-carte');
     if (c) { ouvrirPanneau(+c.dataset.n); return; }
     if (e.target.closest('.panneau')) return;
     if (!$('panneau').hidden && !e.target.closest('.plateau')) fermerPanneau();
@@ -396,6 +510,14 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !$('panneau').hidden) fermerPanneau();
   });
+
+  $('plateau-cadre').addEventListener('wheel', function (e) {
+    // Sans Ctrl, la molette fait ce qu'elle fait partout : elle defile.
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    zoom = Math.max(0.12, Math.min(1.6, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    appliquerZoom();
+  }, { passive: false });
 
   $('zoom-plus').addEventListener('click', function () { zoom = Math.min(1.6, zoom * 1.25); appliquerZoom(); });
   $('zoom-moins').addEventListener('click', function () { zoom = Math.max(0.12, zoom / 1.25); appliquerZoom(); });
