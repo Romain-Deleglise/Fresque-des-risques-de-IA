@@ -43,7 +43,14 @@ const PAGES = [
   { url: "/guide/", source: "site/guide/index.html", sortie: "guide-animateur-fresque-des-risques-de-l-ia.pdf",
     pied: "Version en ligne, qui fait foi : fresquedesrisquesdelia.org/guide/" },
   { url: "/en/guide/", source: "site/en/guide/index.html", sortie: "facilitator-guide-the-ai-risks-collage.pdf",
-    pied: "Authoritative online version: fresquedesrisquesdelia.org/en/guide/" }
+    pied: "Authoritative online version: fresquedesrisquesdelia.org/en/guide/" },
+  // L'antiseche vit dans l'espace animateur·ices, qui n'est pas public. Son
+  // PDF, lui, se telecharge : c'est une page qu'on imprime et qu'on emporte a
+  // l'atelier. Il est engendre depuis la meme page, donc il ne peut pas etre
+  // en retard d'une version.
+  { url: "/animateurs/antiseche/", source: "site/animateurs/antiseche/index.html",
+    sortie: "antiseche-fresque-des-risques-de-l-ia.pdf",
+    pied: "Version en ligne, qui fait foi : fresquedesrisquesdelia.org/animateurs/antiseche/" }
 ];
 const EMPREINTES = path.join(RACINE, "site", "telechargements", "empreintes.json");
 const VERIFIER = process.argv.includes("--verifier");

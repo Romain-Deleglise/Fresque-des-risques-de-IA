@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minuteur de déroulé · Espace animateur·ices</title>
+  <meta name="description" content="Les huit temps de l'atelier, chacun avec sa durée, pour suivre le minutage pendant l'animation.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="../../assets/css/site.css">
+  <link rel="stylesheet" href="../animateurs.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../">Espace animateur·ices</a>
+        <a href="../antiseche/">Antisèche</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <section class="section minuteur-page">
+      <div class="wrap">
+
+        <!-- LE TEMPS EN COURS, en très grand : c'est la seule information
+             qu'on lit à deux mètres, debout, en animant. -->
+        <div class="mi-scene">
+          <p class="mi-etape-nom" id="mi-nom">Accueil et mise en route</p>
+          <p class="mi-reste" id="mi-reste" role="timer" aria-live="off">15:00</p>
+          <p class="mi-quoi" id="mi-quoi">Prénoms, cadre, consignes. Poser la carte d'introduction.</p>
+
+          <div class="mi-jauge" aria-hidden="true"><span id="mi-jauge-barre"></span></div>
+
+          <div class="mi-commandes">
+            <button type="button" class="btn btn-1" id="mi-demarrer">Démarrer</button>
+            <button type="button" class="btn btn-2" id="mi-precedent">← Précédent</button>
+            <button type="button" class="btn btn-2" id="mi-suivant">Suivant →</button>
+            <button type="button" class="btn btn-2" id="mi-plus">+ 5 min</button>
+            <button type="button" class="btn btn-2" id="mi-remise">Tout remettre à zéro</button>
+          </div>
+          <p class="muted mi-aide">
+            Barre d'espace&nbsp;: démarrer ou mettre en pause. Flèches ← →&nbsp;: changer de temps.
+            Le minuteur reprend où il en était si vous rechargez la page.
+          </p>
+          <p class="mi-total" id="mi-total"></p>
+        </div>
+
+        <ol class="mi-liste" id="mi-liste"></ol>
+
+        <p class="muted mi-pied">
+          Ce minutage est indicatif&nbsp;: c'est le déroulé du
+          <a href="../../guide/">guide d'animation</a>. Le lot 3 est celui qui déborde&nbsp;; mieux
+          vaut y couper que rogner sur le lot 5, qui termine l'atelier sur les réponses possibles.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · CC BY-SA 4.0</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="minuteur.js" defer></script>
+</body>
+</html>

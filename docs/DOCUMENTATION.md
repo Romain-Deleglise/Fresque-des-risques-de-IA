@@ -865,6 +865,26 @@ La raison : la fresque de référence divulgâche l'atelier à qui la lirait ava
 d'y participer, et chercher les liens soi-même est tout ce que la fresque
 apporte.
 
+### Les pages de l'espace
+
+| Page | Ce qu'elle apporte |
+|---|---|
+| `/animateurs/` | Le sommaire, organisé en trois temps : avant, pendant, après l'atelier |
+| `/animateurs/reference/` | La fresque de référence (plateau interactif) et les retours sur les cartes |
+| `/animateurs/antiseche/` | Une page à imprimer : déroulé, phrases de relance, objections. PDF engendré depuis la page |
+| `/animateurs/minuteur/` | Les huit temps du guide, avec minuteur. L'état survit au rechargement |
+| `/animateurs/kit/` | Affiche personnalisable et trois textes d'annonce prêts à copier |
+
+Version anglaise sous `/en/facilitators/`, même arborescence pour le sommaire
+et la fresque de référence ; l'antisèche, le minuteur et le kit restent en
+français, et la page anglaise le signale.
+
+**AUCUN ATTRIBUT `style=` DANS CET ESPACE.** Le site sert `style-src 'self'`
+sans `'unsafe-inline'` : un `style="left:…"` écrit dans du HTML y est purement
+ignoré. La première version en ligne avait ainsi ses 38 cartes empilées en haut
+à gauche — invisible en local, où le serveur de test n'envoie aucune CSP.
+Toutes les positions passent par le CSSOM, et un test le verrouille.
+
 ### La fresque de référence
 
 `site/data/fresque-reference.json` — 38 cartes placées et 65 flèches, chacune

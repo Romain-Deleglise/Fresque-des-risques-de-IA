@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kit d'annonce · Espace animateur·ices</title>
+  <meta name="description" content="Affiche à imprimer et textes d'invitation prêts à copier pour annoncer votre atelier.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="../../assets/css/site.css">
+  <link rel="stylesheet" href="../animateurs.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="entete no-print">
+    <div class="wrap">
+      <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../">Espace animateur·ices</a>
+        <a href="../antiseche/">Antisèche</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete no-print">
+      <div class="wrap">
+        <h1>Le kit d'annonce</h1>
+        <p class="page-sous">Renseignez votre atelier une fois&nbsp;: l'affiche et les trois textes
+        se remplissent tout seuls.</p>
+      </div>
+    </div>
+
+    <section class="section no-print">
+      <div class="wrap">
+        <form class="kit-form" id="kit-form">
+          <div class="kit-champs">
+            <label for="k-date">Date</label>
+            <input id="k-date" type="text" placeholder="samedi 18 octobre" autocomplete="off">
+
+            <label for="k-heure">Heure</label>
+            <input id="k-heure" type="text" placeholder="14 h 00" autocomplete="off">
+
+            <label for="k-lieu">Lieu</label>
+            <input id="k-lieu" type="text" placeholder="MJC des Tilleuls, Lyon 7e — ou « en ligne »" autocomplete="off">
+
+            <label for="k-lien">Lien d'inscription</label>
+            <input id="k-lien" type="text" placeholder="https://fresquedesrisquesdelia.org/participer/" autocomplete="off">
+
+            <label for="k-contact">Votre contact <span class="opt">(facultatif)</span></label>
+            <input id="k-contact" type="text" placeholder="prenom@exemple.org" autocomplete="off">
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- L'AFFICHE. Une seule page A4, lisible à trois mètres sur un panneau. -->
+    <section class="section section-doux" aria-labelledby="t-affiche">
+      <div class="wrap">
+        <div class="kit-tete no-print">
+          <h2 id="t-affiche">L'affiche</h2>
+          <button type="button" class="btn btn-2" id="k-imprimer">Imprimer l'affiche</button>
+        </div>
+
+        <div class="affiche" id="affiche">
+          <p class="af-sur">Atelier collaboratif · sans prérequis</p>
+          <h3 class="af-titre">La Fresque des&nbsp;risques de&nbsp;l'IA</h3>
+          <p class="af-accroche">
+            Deux heures trente pour comprendre ensemble, à partir de 38 cartes, ce que l'intelligence
+            artificielle sait faire, ce qu'elle met en jeu, et ce qu'on peut y répondre.
+          </p>
+          <dl class="af-infos">
+            <div><dt>Quand</dt><dd id="af-date">—</dd></div>
+            <div><dt>Où</dt><dd id="af-lieu">—</dd></div>
+            <div><dt>Durée</dt><dd>2 h 30 · 2 à 8 participant·es</dd></div>
+          </dl>
+          <p class="af-inscription" id="af-inscription">Inscription&nbsp;: fresquedesrisquesdelia.org</p>
+          <p class="af-pied">Un atelier Pause IA · fresquedesrisquesdelia.org</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section no-print" aria-labelledby="t-textes">
+      <div class="wrap">
+        <h2 id="t-textes">Les textes</h2>
+        <p class="muted">Adaptez-les&nbsp;: un message qui vous ressemble marche mieux qu'un message parfait.</p>
+
+        <div class="kit-textes">
+          <article class="kit-texte">
+            <header>
+              <h3>Un mail</h3>
+              <button type="button" class="btn-outil copier" data-cible="t-mail">Copier</button>
+            </header>
+            <pre id="t-mail"></pre>
+          </article>
+
+          <article class="kit-texte">
+            <header>
+              <h3>Un message court</h3>
+              <button type="button" class="btn-outil copier" data-cible="t-court">Copier</button>
+            </header>
+            <pre id="t-court"></pre>
+          </article>
+
+          <article class="kit-texte">
+            <header>
+              <h3>Un réseau social</h3>
+              <button type="button" class="btn-outil copier" data-cible="t-reseau">Copier</button>
+            </header>
+            <pre id="t-reseau"></pre>
+          </article>
+        </div>
+
+        <p class="etat" id="k-etat" role="status" aria-live="polite"></p>
+
+        <h2>Les visuels</h2>
+        <p>
+          Les 39 cartes sont libres de droits (CC BY-SA 4.0)&nbsp;: servez-vous-en comme illustration.
+          <a href="../../telechargements/fresque-des-risques-de-l-ia-cartes.pdf" download>Télécharger le PDF des cartes</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied no-print">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · CC BY-SA 4.0</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="kit.js" defer></script>
+</body>
+</html>

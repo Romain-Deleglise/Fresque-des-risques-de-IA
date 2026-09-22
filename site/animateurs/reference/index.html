@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fresque de référence · Espace animateur·ices</title>
+  <meta name="description" content="Espace réservé aux animateur·ices : fresque de référence et retours sur les cartes.">
+  <!-- PAGE NON PUBLIQUE. Elle n'est ni dans la navigation, ni dans le plan du
+       site, et robots.txt l'exclut : on la transmet par courriel aux
+       animateur·ices, et le guide n'y renvoie qu'en toute fin de page. Un
+       participant qui tomberait dessus avant un atelier se gâcherait la
+       découverte, qui est tout l'intérêt de la fresque. -->
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../../assets/css/fonts.css">
+  <link rel="stylesheet" href="../../assets/css/site.css">
+  <link rel="stylesheet" href="../animateurs.css">
+</head>
+<body data-racine="../../">
+  <a class="skip" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../">Espace animateur·ices</a>
+        <a href="../../guide/">Guide</a>
+        <a href="../../en-ligne/">Fresque en ligne</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete">
+      <div class="wrap">
+        <!-- Moderation sur place : saisir le jeton fait apparaitre, sur chaque
+             retour, de quoi le valider ou le supprimer. Rien a ouvrir dans
+             /admin/. Le jeton n'est jamais stocke : il vit le temps de l'onglet. -->
+        <form class="jeton" id="form-jeton">
+          <label for="jeton">Jeton de modération</label>
+          <input id="jeton" type="password" autocomplete="off" placeholder="facultatif">
+          <button type="submit" class="btn-outil">Activer</button>
+          <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
+        </form>
+        <h1>La fresque de référence</h1>
+        <p class="page-sous">Une fresque de référence pour préparer votre atelier, et un endroit pour nous dire ce qui cloche dans les cartes.</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="wrap etroit">
+        <div class="avert" role="note">
+          <p><strong>Cette page n'est pas publique</strong> et ne doit pas être diffusée aux participant·es.
+          Découvrir les liens à l'avance retire l'essentiel de ce que l'atelier apporte&nbsp;: c'est en
+          cherchant les relations que le groupe se les approprie.</p>
+        </div>
+
+        <h2>Une disposition possible, pas un corrigé</h2>
+        <p>
+          Il n'existe pas une bonne fresque. La disposition ci-dessous est celle que nous
+          utilisons pour nous repérer&nbsp;: elle suit les cinq lots du guide et relie chaque carte à
+          ce qui la provoque. <strong>Une fresque juste peut être très différente</strong>&nbsp;: d'autres
+          regroupements, d'autres flèches, d'autres priorités. Servez-vous-en pour anticiper les
+          questions, pas pour corriger les tables.
+        </p>
+        <p class="muted">
+          Chaque flèche porte le lien de cause à effet qu'elle exprime. C'est ce libellé qui compte,
+          davantage que la position des cartes&nbsp;: en atelier, une flèche sans explication ne vaut
+          rien, et une flèche que le groupe sait justifier est toujours acceptable.
+        </p>
+
+        <div class="reveal" id="reveal">
+          <button type="button" class="btn btn-1" id="btn-reveal">Afficher la fresque de référence</button>
+          <p class="muted reveal-note">Assurez-vous que personne ne regarde votre écran par-dessus votre épaule.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-doux" id="plateau-section" hidden>
+      <div class="wrap">
+        <div class="barre">
+          <div class="barre-g">
+            <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
+            <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
+            <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
+            <button type="button" class="btn-outil" id="zoom-ajuste">Ajuster</button>
+            <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
+            <label class="recherche">
+              <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
+              <input type="search" id="recherche" placeholder="Chercher une carte…"
+                     aria-labelledby="recherche-label" autocomplete="off">
+            </label>
+          </div>
+          <div class="barre-d">
+            <label class="bascule">
+              <input type="checkbox" id="mode-commentaires">
+              <span>Mode commentaires</span>
+            </label>
+          </div>
+        </div>
+        <!-- Les lots servent de légende ET de filtre : préparer un atelier, c'est
+             réviser un lot à la fois. -->
+        <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
+
+        <p class="muted barre-aide" id="barre-aide">
+          Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
+          Ctrl + molette pour zoomer.
+        </p>
+
+        <div class="plateau-cadre" id="plateau-cadre">
+          <!-- Deux niveaux, et ce n'est pas superflu : `plateau` garde toujours
+               ses 3200x2200 et porte la mise a l'echelle, tandis que `sizer`
+               prend la taille APRES echelle. Sans lui, le cadre ne sait pas
+               quelle surface faire defiler, et redimensionner le plateau en
+               plus de l'echelonner le retrecissait deux fois. -->
+          <div class="plateau-sizer" id="plateau-sizer">
+            <div class="plateau" id="plateau">
+              <svg class="liens" id="liens" aria-hidden="true"></svg>
+              <div class="cartes" id="cartes"></div>
+              <div class="etiquettes" id="etiquettes"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="retours-section" hidden>
+      <div class="wrap etroit">
+        <h2>Vos retours sur le jeu</h2>
+        <p>
+          Les cartes évoluent. Si une carte est mal comprise en atelier, si un texte vieillit, s'il
+          manque un lien&nbsp;: dites-le ici. Activez le <strong>mode commentaires</strong> puis cliquez la carte
+          concernée, ou utilisez le formulaire ci-dessous pour un retour général.
+        </p>
+        <form id="form-general" class="form-retour">
+          <label for="g-sujet">Sujet</label>
+          <select id="g-sujet">
+            <option value="jeu">Le jeu de cartes en général</option>
+            <option value="deroule">Le déroulé et le minutage</option>
+            <option value="reference">Cette fresque de référence</option>
+            <option value="autre">Autre</option>
+          </select>
+          <label for="g-texte">Votre retour</label>
+          <textarea id="g-texte" rows="4" maxlength="2000" required
+            placeholder="Ce qui a coincé, ce qui a bien marché, ce qui manque…"></textarea>
+          <label for="g-nom">Votre prénom <span class="opt">(facultatif)</span></label>
+          <input id="g-nom" type="text" maxlength="40" autocomplete="given-name">
+          <label for="g-email">Votre e-mail <span class="opt">(facultatif, si vous voulez une réponse)</span></label>
+          <input id="g-email" type="email" maxlength="120" autocomplete="email">
+          <button type="submit" class="btn btn-1">Envoyer</button>
+          <p class="etat" id="g-etat" role="status" aria-live="polite"></p>
+        </form>
+
+        <h3 class="retours-titre">Ce que les autres ont remonté</h3>
+        <p class="muted">
+          Un retour apparaît dès son envoi, <span class="exemple-attente">grisé</span> tant qu'il
+          n'a pas été relu par l'équipe.
+        </p>
+        <ul class="retours" id="retours"></ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- Panneau latéral : verso d'une carte, et commentaires la concernant. -->
+  <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+    <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
+    <div class="panneau-corps">
+      <img class="panneau-img" id="panneau-img" src="" alt="">
+      <h3 id="panneau-titre"></h3>
+      <div class="panneau-verso" id="panneau-verso"></div>
+      <div class="panneau-liens" id="panneau-liens"></div>
+      <ul class="retours retours-carte" id="retours-carte"></ul>
+      <div class="panneau-commentaire" id="panneau-commentaire" hidden>
+        <h4>Un retour sur cette carte&nbsp;?</h4>
+        <textarea id="c-texte" rows="3" maxlength="2000"
+          placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
+        <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
+        <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>
+        <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="pied">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · Cartes sous licence CC BY-SA 4.0</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../animateurs.js" defer></script>
+</body>
+</html>

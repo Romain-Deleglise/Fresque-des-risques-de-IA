@@ -47,6 +47,9 @@
     valider: 'Approve', supprimer: 'Delete',
     confirmer: 'Permanently delete this feedback?',
     moderation: 'Moderation enabled',
+    lotNom: { 1: 'AI', 2: 'Capabilities', 3: 'Present risks', 4: 'Existential risks', 5: 'Solutions' },
+    tousLots: 'All', pleinEcran: 'Full screen', quitterPlein: 'Exit full screen',
+    aucunResultat: 'No card matches',
     chargement: 'Loading…',
     echecChargement: 'Could not load. Please reload the page.',
     mene: 'What leads to it', entraine: 'What it leads to',
@@ -67,6 +70,9 @@
     valider: 'Valider', supprimer: 'Supprimer',
     confirmer: 'Supprimer définitivement ce retour ?',
     moderation: 'Modération activée',
+    lotNom: { 1: 'L’IA', 2: 'Capacités', 3: 'Risques actuels', 4: 'Risques existentiels', 5: 'Solutions' },
+    tousLots: 'Tous', pleinEcran: 'Plein écran', quitterPlein: 'Quitter le plein écran',
+    aucunResultat: 'Aucune carte ne correspond',
     chargement: 'Chargement…',
     echecChargement: 'Chargement impossible. Rechargez la page.',
     mene: 'Ce qui y mène', entraine: 'Ce que ça entraîne',
@@ -233,24 +239,67 @@
   /* ── Mise en avant d'une carte et de ses liens ───────────── */
   function surligner(n) {
     cibleN = n;
-    var voisins = {};
-    if (n != null) {
-      voisins[n] = true;
+    appliquerMiseEnAvant();
+  }
+
+  /* ── Filtrer par lot ────────────────────────────────────── */
+  var lotActif = null;
+
+  function construireLots() {
+    var hote = $('lots');
+    if (!hote) return;
+    hote.textContent = '';
+    var faire = function (n, texte) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lot-puce' + (lotActif === n ? ' actif' : '');
+      b.dataset.lot = n === null ? '' : n;
+      b.setAttribute('aria-pressed', String(lotActif === n));
+      if (n !== null) b.style.setProperty('--lot', LOT_COULEUR[n]);
+      b.textContent = texte;
+      hote.appendChild(b);
+    };
+    faire(null, T.tousLots);
+    [1, 2, 3, 4, 5].forEach(function (n) { faire(n, T.lotNom[n]); });
+  }
+
+  /* Un seul endroit décide de ce qui est mis en avant : la carte choisie, le
+     lot filtré, ou la recherche. Sans cela les trois se marchent dessus et
+     l'on voit apparaître des cartes que l'on vient d'écarter. */
+  function appliquerMiseEnAvant() {
+    var q = ($('recherche') && $('recherche').value || '').trim().toLowerCase();
+    var voisins = null;
+    if (cibleN != null) {
+      voisins = {};
+      voisins[cibleN] = true;
       ref.tableau.fleches.forEach(function (f) {
-        if (f.de === n) voisins[f.vers] = true;
-        if (f.vers === n) voisins[f.de] = true;
+        if (f.de === cibleN) voisins[f.vers] = true;
+        if (f.vers === cibleN) voisins[f.de] = true;
       });
     }
+    var trouves = 0;
     Array.prototype.forEach.call(document.querySelectorAll('.c-carte'), function (el) {
-      var m = +el.dataset.n;
-      el.classList.toggle('actif', n != null && m === n);
-      el.classList.toggle('pale', n != null && !voisins[m]);
+      var n = +el.dataset.n;
+      var c = cartes[n];
+      var gardee = true;
+      if (lotActif != null && c && c.lot !== lotActif) gardee = false;
+      if (q && c && c.titre.toLowerCase().indexOf(q) === -1) gardee = false;
+      if (voisins && !voisins[n]) gardee = false;
+      if (gardee) trouves++;
+      el.classList.toggle('pale', !gardee);
+      el.classList.toggle('actif', cibleN != null && n === cibleN);
+      el.classList.toggle('trouve', !!q && gardee);
     });
     Array.prototype.forEach.call(document.querySelectorAll('#liens g'), function (g) {
-      var lie = n != null && (+g.dataset.de === n || +g.dataset.vers === n);
+      var lie = cibleN != null && (+g.dataset.de === cibleN || +g.dataset.vers === cibleN);
+      var dedans = lotActif == null
+        || (cartes[+g.dataset.de] && cartes[+g.dataset.de].lot === lotActif)
+        || (cartes[+g.dataset.vers] && cartes[+g.dataset.vers].lot === lotActif);
       g.classList.toggle('vif', lie);
-      g.classList.toggle('pale', n != null && !lie);
+      g.classList.toggle('pale', (cibleN != null && !lie) || (lotActif != null && !dedans));
     });
+    var vide = $('recherche-vide');
+    if (vide) vide.hidden = !(q && trouves === 0);
     majLibelles();
   }
 
@@ -270,18 +319,25 @@
       if (f.de === n && cartes[f.vers]) sort.push(f);
       if (f.vers === n && cartes[f.de]) entre.push(f);
     });
+    /* Les cartes liées sont CLIQUABLES : c'est ainsi qu'on suit une chaîne de
+       cause à effet, qui est exactement ce qu'on vient préparer. Une liste de
+       titres inertes obligerait à les retrouver à l'œil sur le plateau. */
     var bloc = '';
+    var lien = function (n, libelle, avant) {
+      var t = '<button type="button" class="vers-carte" data-vers="' + n + '">'
+        + echapper(cartes[n].titre) + '</button>';
+      var q = '<span class="quoi">' + echapper(libelle) + '</span>';
+      return '<li>' + (avant ? t + ' ' + q : q + ' ' + t) + '</li>';
+    };
     if (entre.length) {
-      bloc += '<h4>' + T.mene + '</h4><ul>' + entre.map(function (f) {
-        return '<li><span class="fleche">' + echapper(cartes[f.de].titre) + '</span> '
-          + '<span class="quoi">— ' + echapper(f.libelle) + ' →</span></li>';
-      }).join('') + '</ul>';
+      bloc += '<h4>' + T.mene + '</h4><ul>'
+        + entre.map(function (f) { return lien(f.de, '— ' + f.libelle + ' →', true); }).join('')
+        + '</ul>';
     }
     if (sort.length) {
-      bloc += '<h4>' + T.entraine + '</h4><ul>' + sort.map(function (f) {
-        return '<li><span class="quoi">— ' + echapper(f.libelle) + ' →</span> '
-          + '<span class="fleche">' + echapper(cartes[f.vers].titre) + '</span></li>';
-      }).join('') + '</ul>';
+      bloc += '<h4>' + T.entraine + '</h4><ul>'
+        + sort.map(function (f) { return lien(f.vers, '— ' + f.libelle + ' →', false); }).join('')
+        + '</ul>';
     }
     $('panneau-liens').innerHTML = bloc;
 
@@ -489,6 +545,7 @@
       $('retours-section').hidden = false;
       dessinerCartes();
       dessinerLiens();
+      construireLots();
       zoomInitial();
       glisser($('plateau-cadre'));
       chargerRetours();
@@ -527,6 +584,40 @@
     modeCom = this.checked;
     $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
     $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
+  });
+
+  $('lots').addEventListener('click', function (e) {
+    var b = e.target.closest('.lot-puce');
+    if (!b) return;
+    var n = b.dataset.lot === '' ? null : +b.dataset.lot;
+    lotActif = (lotActif === n) ? null : n;
+    construireLots();
+    appliquerMiseEnAvant();
+  });
+
+  var minuteurRecherche = null;
+  $('recherche').addEventListener('input', function () {
+    // On attend une courte pause : filtrer à chaque frappe sur 38 cartes est
+    // sans douleur, mais le panneau ouvert se rafraîchirait sous les doigts.
+    clearTimeout(minuteurRecherche);
+    minuteurRecherche = setTimeout(appliquerMiseEnAvant, 120);
+  });
+
+  $('plein-ecran').addEventListener('click', function () {
+    var cible = $('plateau-section');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (cible.requestFullscreen) cible.requestFullscreen();
+  });
+  document.addEventListener('fullscreenchange', function () {
+    $('plein-ecran').textContent = document.fullscreenElement ? T.quitterPlein : T.pleinEcran;
+    // La hauteur du cadre est calculée d'après la fenêtre : elle vient de
+    // changer du tout au tout.
+    setTimeout(ajuster, 60);
+  });
+
+  $('panneau-liens').addEventListener('click', function (e) {
+    var b = e.target.closest('.vers-carte');
+    if (b) ouvrirPanneau(+b.dataset.vers);
   });
 
   $('form-jeton').addEventListener('submit', function (e) {

@@ -16,8 +16,17 @@ import { fileURLToPath } from "node:url";
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const lire = (p) => fs.readFileSync(path.join(RACINE, p), "utf8");
 
-const PAGES_ESPACE = ["site/animateurs/index.html", "site/en/facilitators/index.html"];
-const PAGE = lire(PAGES_ESPACE[0]);
+// Toutes les pages de l'espace : chacune doit porter les mêmes garde-fous.
+const PAGES_ESPACE = [
+  "site/animateurs/index.html",
+  "site/animateurs/reference/index.html",
+  "site/animateurs/antiseche/index.html",
+  "site/animateurs/minuteur/index.html",
+  "site/animateurs/kit/index.html",
+  "site/en/facilitators/index.html",
+  "site/en/facilitators/reference/index.html"
+];
+const PAGE = lire("site/animateurs/reference/index.html");
 
 test("les deux versions de la page se declarent noindex", () => {
   for (const p of PAGES_ESPACE) {
@@ -73,8 +82,11 @@ test("le lien du guide reste hors du PDF public et tout en bas de page", () => {
 });
 
 test("la navigation du site ne mentionne pas l'espace", () => {
-  const nav = PAGE.slice(PAGE.indexOf("<nav"), PAGE.indexOf("</nav>"));
-  assert.ok(!nav.includes("animateurs"));
+  // La navigation de l'espace renvoie vers l'espace lui-même, c'est normal.
+  // Ce qu'on vérifie, c'est la navigation des pages PUBLIQUES.
+  const accueil = lire("site/index.html");
+  const nav = accueil.slice(accueil.indexOf("<nav"), accueil.indexOf("</nav>"));
+  assert.ok(!nav.includes("animateurs") && !nav.includes("facilitators"));
 });
 
 test("la modération se fait sur la page, sans détour par /admin/", () => {
@@ -136,7 +148,9 @@ test("aucun attribut style= : la CSP du site les ignore", () => {
   assert.match(csp, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
   assert.ok(!/unsafe-inline/.test(csp), "la CSP autorise désormais l'inline");
 
-  for (const f of [...PAGES_ESPACE, "site/animateurs/animateurs.js"]) {
+  const scripts = ["site/animateurs/animateurs.js", "site/animateurs/minuteur/minuteur.js",
+                   "site/animateurs/kit/kit.js", "site/animateurs/antiseche/antiseche.js"];
+  for (const f of [...PAGES_ESPACE, ...scripts]) {
     const src = lire(f).replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
     assert.ok(!/\sstyle\s*=\s*["']/.test(src), `${f} contient un attribut style=`);
   }
@@ -148,4 +162,46 @@ test("les cartes portent leur titre, pas seulement une image", () => {
   // d'images : il faut cliquer chaque carte pour savoir ce qu'elle dit.
   assert.match(js, /tit\.textContent = c\.titre/);
   assert.match(js, /LOT_COULEUR/, "la couleur de lot doit distinguer les familles");
+});
+
+test("le sommaire mène à chaque ressource, et chaque ressource revient au sommaire", () => {
+  const sommaire = lire("site/animateurs/index.html");
+  for (const cible of ["../guide/", "reference/", "antiseche/", "kit/", "minuteur/"]) {
+    assert.ok(sommaire.includes('href="' + cible + '"'), `le sommaire ne mène pas à ${cible}`);
+  }
+  // Sans retour vers le sommaire, on se retrouve coincé sur une page dont
+  // aucune navigation publique ne parle.
+  for (const p of ["site/animateurs/reference/index.html", "site/animateurs/antiseche/index.html",
+                   "site/animateurs/minuteur/index.html", "site/animateurs/kit/index.html"]) {
+    assert.match(lire(p), /href="\.\.\/"/, `${p} ne revient pas au sommaire`);
+  }
+});
+
+test("le PDF de l'antisèche est engendré depuis sa page, pas rédigé à part", () => {
+  // Deux supports du même contenu finissent toujours par diverger, et c'est le
+  // PDF qui gagne : une fois téléchargé il circule, et personne ne sait qu'il
+  // est périmé. Le script d'empreintes garantit qu'il suit la page.
+  const script = lire("scripts/generer-guide-pdf.mjs");
+  assert.match(script, /site\/animateurs\/antiseche\/index\.html/);
+  assert.match(script, /antiseche-fresque-des-risques-de-l-ia\.pdf/);
+  const { empreintes } = JSON.parse(lire("site/telechargements/empreintes.json"));
+  assert.ok(Object.keys(empreintes).some((k) => k.includes("antiseche")),
+    "l'antisèche n'a pas d'empreinte enregistrée");
+});
+
+test("l'antisèche donne des phrases à dire, pas seulement un minutage", () => {
+  const as = lire("site/animateurs/antiseche/index.html");
+  // C'est ce qu'on cherche debout, au milieu d'une table qui ne repart pas.
+  assert.match(as, /Les phrases qui débloquent/);
+  const phrases = as.match(/<li>«/g) || [];
+  assert.ok(phrases.length >= 15, `seulement ${phrases.length} phrases de relance`);
+  assert.match(as, /transitions entre les lots/);
+});
+
+test("le minuteur couvre les huit temps du guide", () => {
+  const js = lire("site/animateurs/minuteur/minuteur.js");
+  const durees = [...js.matchAll(/min: (\d+)/g)].map((m) => +m[1]);
+  assert.equal(durees.length, 8, "il faut les huit temps du déroulé");
+  // 2 h 20 de contenu pour 2 h 30 annoncées : si l'un bouge, l'autre doit suivre.
+  assert.equal(durees.reduce((a, b) => a + b, 0), 140);
 });
