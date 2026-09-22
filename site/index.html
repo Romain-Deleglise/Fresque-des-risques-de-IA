@@ -116,13 +116,40 @@
       </div>
     </section>
 
-    <!-- PHOTO D'ATELIER (affichée seulement si le fichier existe) -->
-    <section class="section-photo" aria-label="En atelier">
+    <!-- EN ATELIER. La photo mise en avant est la seule du lot en paysage, et la
+         seule sans visage : elle montre le materiel et le geste, ce qu'on vient
+         comprendre en arrivant sur la page. Les quatre autres, en portrait,
+         suivent en bande : elles montrent qui fait la fresque. -->
+    <section class="section-photo" id="en-atelier" aria-labelledby="en-atelier-titre">
       <div class="wrap">
+        <h2 id="en-atelier-titre" class="titre-photos">En atelier</h2>
         <figure class="photo-atelier">
-          <img src="assets/img/photos/atelier.jpg" alt="Des participant·es disposent et relient les cartes de la Fresque sur une table."
-               loading="lazy" onerror="this.closest('.section-photo').remove()">
+          <img src="assets/img/photos/atelier-table-et-cartes-1024.webp"
+               srcset="assets/img/photos/atelier-table-et-cartes-400.webp 400w,
+                       assets/img/photos/atelier-table-et-cartes-800.webp 800w,
+                       assets/img/photos/atelier-table-et-cartes-1024.webp 1024w"
+               sizes="(max-width: 62rem) 100vw, 62rem"
+               width="1024" height="768" alt="Autour d'une table recouverte de papier kraft, plusieurs personnes posent et pointent du doigt les cartes de la Fresque."
+               loading="lazy">
         </figure>
+        <ul class="bande-photos">
+          <li><img src="assets/img/photos/atelier-fresque-en-cours-400.webp"
+                   srcset="assets/img/photos/atelier-fresque-en-cours-400.webp 400w, assets/img/photos/atelier-fresque-en-cours-575.webp 575w"
+                   sizes="(max-width: 46rem) 45vw, 15rem" width="575" height="768"
+                   alt="Cinq participant·es debout observent les premières cartes disposées sur la table." loading="lazy"></li>
+          <li><img src="assets/img/photos/atelier-tour-de-table-400.webp"
+                   srcset="assets/img/photos/atelier-tour-de-table-400.webp 400w, assets/img/photos/atelier-tour-de-table-575.webp 575w"
+                   sizes="(max-width: 46rem) 45vw, 15rem" width="575" height="768"
+                   alt="Un groupe échange autour de la table pendant que deux personnes placent une carte." loading="lazy"></li>
+          <li><img src="assets/img/photos/atelier-premieres-cartes-400.webp"
+                   srcset="assets/img/photos/atelier-premieres-cartes-400.webp 400w, assets/img/photos/atelier-premieres-cartes-575.webp 575w"
+                   sizes="(max-width: 46rem) 45vw, 15rem" width="575" height="768"
+                   alt="L'animateur explique une carte à deux participant·es, au début de l'atelier." loading="lazy"></li>
+          <li><img src="assets/img/photos/atelier-photo-de-groupe-400.webp"
+                   srcset="assets/img/photos/atelier-photo-de-groupe-400.webp 400w, assets/img/photos/atelier-photo-de-groupe-575.webp 575w"
+                   sizes="(max-width: 46rem) 45vw, 15rem" width="575" height="768"
+                   alt="Photo de groupe en fin d'atelier, la fresque terminée sur la table." loading="lazy"></li>
+        </ul>
       </div>
     </section>
 

@@ -5,8 +5,13 @@ Lit les originaux deposes dans contenus/photos/ (n'importe quelle taille,
 JPEG / PNG / WebP / HEIC deja converti) et produit dans
 site/assets/img/photos/ deux variantes WebP par photo :
 
-    <nom>-800.webp    (vignette de la galerie)
+    <nom>-400.webp    (vignette de la galerie)
+    <nom>-800.webp    (photo moyenne)
     <nom>-1600.webp   (photo mise en avant, accueil)
+
+Chaque fichier porte sa largeur REELLE. Une photo source de 1024 px ne produit
+donc pas de fichier « -1600 » : elle s'arrete a -1024, et le `srcset` de la page
+reste honnete.
 
 Le nom de sortie est celui du fichier source, en minuscules, accents retires,
 espaces remplaces par des tirets. Aucun agrandissement : une photo de 900 px
@@ -34,7 +39,11 @@ except ImportError:
 RACINE = Path(__file__).resolve().parent.parent
 SRC = RACINE / "contenus" / "photos"
 DST = RACINE / "site" / "assets" / "img" / "photos"
-VARIANTES = {"800": 800, "1600": 1600}
+# Largeurs VISEES. Le fichier produit porte sa largeur REELLE, jamais la
+# largeur visee : une source de 575 px ne devient pas un fichier « -800 » large
+# de 575, qui mentirait au `srcset` de la page et ferait choisir au navigateur
+# une image trop petite pour la place qu'il lui donne.
+LARGEURS = (400, 800, 1600)
 EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 QUALITE = 80
 
@@ -78,17 +87,18 @@ def main():
         propre = Image.new("RGB", img.size)
         propre.paste(img)          # copie des pixels seuls : aucun EXIF ne suit
 
-        petite = min(VARIANTES.values())
-        for suffixe, largeur in sorted(VARIANTES.items(), key=lambda kv: kv[1]):
-            # Jamais d'agrandissement : on saute une variante plus large que
-            # l'original, sauf la plus petite, qui sert toujours de vignette.
-            if propre.width < largeur and largeur != petite:
+        # Jamais d'agrandissement : une largeur visee au-dela de l'original est
+        # ramenee a l'original, et les doublons qui en resultent sont ecartes.
+        faites = set()
+        for visee in LARGEURS:
+            largeur = min(visee, propre.width)
+            if largeur in faites:
                 continue
-            ech = min(1.0, largeur / propre.width)
-            taille = (max(1, round(propre.width * ech)), max(1, round(propre.height * ech)))
-            sortie = DST / f"{nom}-{suffixe}.webp"
-            propre.resize(taille, Image.LANCZOS).save(sortie, "WEBP", quality=QUALITE, method=6)
-            print(f"  {sortie.relative_to(RACINE)}  ({taille[0]}x{taille[1]}, "
+            faites.add(largeur)
+            hauteur = max(1, round(propre.height * largeur / propre.width))
+            sortie = DST / f"{nom}-{largeur}.webp"
+            propre.resize((largeur, hauteur), Image.LANCZOS).save(sortie, "WEBP", quality=QUALITE, method=6)
+            print(f"  {sortie.relative_to(RACINE)}  ({largeur}x{hauteur}, "
                   f"{sortie.stat().st_size // 1024} Ko)")
             generes += 1
 
