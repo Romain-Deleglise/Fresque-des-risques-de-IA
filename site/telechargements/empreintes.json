@@ -1,7 +1,7 @@
 {
   "_commentaire": "Empreinte du contenu de la page dont chaque PDF a ete tire. Verifiee en CI par scripts/generer-guide-pdf.mjs --verifier : si une page change sans que son PDF soit regenere, la CI refuse. Ne pas modifier a la main.",
   "empreintes": {
-    "guide-animateur-fresque-des-risques-de-l-ia.pdf": "bcd6593593c9f896",
+    "guide-animateur-fresque-des-risques-de-l-ia.pdf": "e7d3e057a22f64e3",
     "facilitator-guide-the-ai-risks-collage.pdf": "3de0c2297e46a552"
   }
 }

@@ -746,7 +746,7 @@ dans le dépôt) :
 | `VISIO_BASE` | ateliers.js | (optionnel) domaine des salons visio auto, ex. `https://visio.pauseia.fr` (défaut `meet.jit.si`) |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
-| `ADMIN_TOKEN` | admin.js | Clé secrète de l'espace `/admin/`. Sans elle, l'espace est désactivé (503) |
+| `ADMIN_TOKEN` | admin.js, commentaires.js | Clé secrète de l'espace `/admin/`, et jeton de modération des retours dans `/animateurs/`. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |
@@ -837,6 +837,57 @@ Améliorations possibles :
 - Intégrer un logo définitif (favicon, Open Graph) une fois la piste choisie.
 - Le `README.md` d'origine décrit un état antérieur (service « à venir ») :
   cette documentation reflète l'état actuel et fait foi.
+
+---
+
+## 22 bis. Espace animateur·ices (`/animateurs/`)
+
+**Page non publique.** Elle n'est ni dans la navigation, ni dans `sitemap.xml`,
+elle se déclare `noindex`, et `robots.txt` l'exclut. On la transmet par courriel
+aux animateur·ices ; le guide n'y renvoie qu'en toute fin de page, dans un
+encart `no-print` absent du PDF téléchargeable. Ces quatre garde-fous sont
+verrouillés par `serveur/tests/espace-animateurs.test.mjs` : ils tiennent à
+quelques lignes disséminées, faciles à défaire par mégarde.
+
+La raison : la fresque de référence divulgâche l'atelier à qui la lirait avant
+d'y participer, et chercher les liens soi-même est tout ce que la fresque
+apporte.
+
+### La fresque de référence
+
+`site/data/fresque-reference.json` — 38 cartes placées et 65 flèches, chacune
+portant le lien de cause à effet qu'elle exprime. Même modèle de données que le
+tableau de la Fresque en ligne (`{cartes:[{n,x,y}], fleches:[{de,vers,libelle}],
+textes:[]}`), à ceci près que le plan est dimensionné sur le contenu.
+
+Ce n'est **pas un corrigé** et la page le dit : une fresque juste peut être très
+différente. `serveur/tests/fresque-reference.test.mjs` vérifie qu'elle reste
+cohérente avec `cartes.json` (toutes les cartes jouables placées, aucune en
+double, aucune isolée, aucun chevauchement, graphe d'un seul tenant, chaque
+solution du lot 5 pointant au moins un risque).
+
+Les titres et les versos ne sont jamais recopiés : la page lit `cartes.json`,
+qui reste la source unique.
+
+### Les retours sur les cartes
+
+`netlify/functions/commentaires.js`, règles pures dans
+`serveur/src/commentaires.js`, stockage Netlify Blobs (`fresque-commentaires`).
+
+Modération **a posteriori, sur la page** : un retour s'affiche immédiatement,
+grisé et marqué « en attente de relecture ». Saisir `ADMIN_TOKEN` dans le champ
+en haut de la page fait apparaître, sur chaque retour, de quoi le valider ou le
+supprimer. Il n'y a rien à ouvrir dans `/admin/` : une file d'attente que
+personne ne consulte ne modère rien, et les autres animateur·ices profitent du
+signalement dès l'instant où il est fait.
+
+Le jeton n'est jamais conservé (ni cookie, ni `localStorage`) : il vit le temps
+de l'onglet, et il est comparé à durée constante côté fonction. L'adresse
+e-mail laissée par un animateur n'est jamais renvoyée par l'API.
+
+**Contrepartie assumée :** un retour indésirable est visible, grisé, jusqu'à ce
+que quelqu'un le supprime. L'exposition reste bornée — la page n'est pas
+publique — et le débit est limité à 30 dépôts par IP et par heure.
 
 ---
 

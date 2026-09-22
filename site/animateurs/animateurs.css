@@ -1,0 +1,187 @@
+/* Espace animateur·ices : plateau de la fresque de référence et panneau de
+   lecture. Reprend les jetons de site.css ; rien n'est redéfini en dur. */
+
+.wrap.etroit { max-width: var(--texte); }
+
+.avert {
+  border-left: 4px solid var(--accent);
+  background: var(--accent-doux);
+  padding: .9rem 1.1rem;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 2rem;
+}
+.avert p { margin: 0; }
+
+.reveal { margin: 2rem 0 0; }
+.reveal-note { margin-top: .6rem; }
+
+/* ── Barre d'outils ─────────────────────────────────────────── */
+.barre {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  align-items: center; justify-content: space-between;
+  margin-bottom: .4rem;
+}
+.barre-g { display: flex; align-items: center; gap: .4rem; }
+.btn-outil {
+  font: inherit; font-family: var(--f-ui); font-size: .9rem;
+  min-width: 44px; min-height: 44px; padding: 0 .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.btn-outil:hover { border-color: var(--accent); color: var(--accent-txt); }
+.zoom-val { font-family: var(--f-ui); font-size: .85rem; color: var(--gris); min-width: 4ch; text-align: center; }
+.bascule { display: inline-flex; align-items: center; gap: .5rem; font-family: var(--f-ui); font-size: .9rem; cursor: pointer; }
+.bascule input { width: 18px; height: 18px; accent-color: var(--accent); }
+.barre-aide { margin: 0 0 .8rem; font-size: .88rem; }
+
+/* ── Plateau ────────────────────────────────────────────────── */
+.plateau-cadre {
+  position: relative; overflow: auto;
+  border: 1px solid var(--ligne); border-radius: 12px;
+  background: var(--bg);
+  /* Hauteur bornée par la fenêtre : le plateau reste visible d'un coup d'œil
+     sans chasser le reste de la page. */
+  height: min(72vh, 760px);
+  cursor: grab;
+}
+.plateau-cadre.attrape { cursor: grabbing; }
+.plateau-sizer { position: relative; }
+/* Les dimensions du plan sont posées par le script, d'après le fichier de
+   référence : les fixer ici les ferait mentir dès qu'on déplace une carte. */
+.plateau { position: absolute; inset: 0; transform-origin: 0 0; }
+.liens { position: absolute; inset: 0; pointer-events: none; }
+.liens line { stroke: var(--gris-clair); stroke-width: 2; }
+.liens .tete { fill: var(--gris-clair); }
+.liens text { fill: var(--gris); font-family: var(--f-ui); font-size: 13px; }
+.liens .halo { stroke: var(--bg); stroke-width: 6; paint-order: stroke; }
+.liens g.vif line { stroke: var(--accent); stroke-width: 3.5; }
+.liens g.vif .tete { fill: var(--accent); }
+.liens g.vif text { fill: var(--accent-txt); font-weight: 600; }
+.liens g.pale { opacity: .18; }
+
+.carte {
+  position: absolute; width: 160px; height: 150px;
+  padding: 0; border: 2px solid transparent; border-radius: 10px;
+  background: var(--surface); cursor: pointer; overflow: hidden;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+.carte img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.carte:hover, .carte:focus-visible { border-color: var(--accent); outline: none; }
+.carte.actif { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-doux); }
+.carte.pale { opacity: .3; }
+.carte .pastille {
+  position: absolute; top: 4px; right: 4px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 10px; background: var(--accent); color: var(--sur-accent);
+  font-family: var(--f-ui); font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.etiquette {
+  position: absolute;
+  font-family: var(--f-titre); font-size: 30px; letter-spacing: .02em;
+  color: var(--gris-clair); text-transform: uppercase; white-space: nowrap;
+}
+
+/* ── Panneau latéral ────────────────────────────────────────── */
+.panneau {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--ligne);
+  box-shadow: -8px 0 28px rgb(0 0 0 / 12%);
+  overflow-y: auto; z-index: 60;
+}
+.panneau-fermer {
+  position: absolute; top: .5rem; right: .5rem;
+  width: 44px; height: 44px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--gris); font-size: 1.1rem; cursor: pointer;
+}
+.panneau-fermer:hover { background: var(--bg-doux); color: var(--ink); }
+.panneau-corps { padding: 1.4rem; }
+.panneau-img { width: 100%; max-width: 240px; border-radius: 8px; margin-bottom: 1rem; }
+.panneau h3 { font-family: var(--f-titre); font-size: 1.5rem; margin: 0 0 .7rem; }
+.panneau-verso p { font-size: .95rem; line-height: 1.6; }
+.panneau-liens { margin-top: 1.2rem; border-top: 1px solid var(--ligne); padding-top: 1rem; }
+.panneau-liens h4 { font-family: var(--f-ui); font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--gris); margin: 0 0 .5rem; }
+.panneau-liens ul { list-style: none; margin: 0 0 1rem; padding: 0; }
+.panneau-liens li { font-size: .9rem; line-height: 1.45; margin-bottom: .45rem; }
+.panneau-liens .fleche { color: var(--accent-txt); font-weight: 600; }
+.panneau-liens .quoi { color: var(--gris); }
+
+.panneau-commentaire { margin-top: 1.2rem; border-top: 1px solid var(--ligne); padding-top: 1rem; }
+.panneau-commentaire h4 { font-family: var(--f-ui); font-size: .95rem; margin: 0 0 .6rem; }
+
+/* ── Formulaires ────────────────────────────────────────────── */
+.form-retour { margin-top: 1.5rem; }
+.form-retour label, .panneau-commentaire label {
+  display: block; font-family: var(--f-ui); font-size: .85rem;
+  font-weight: 600; margin: .9rem 0 .3rem;
+}
+.form-retour .opt { font-weight: 400; color: var(--gris); }
+.form-retour input, .form-retour select, .form-retour textarea,
+.panneau-commentaire input, .panneau-commentaire textarea {
+  width: 100%; font: inherit; font-family: var(--f-ui); font-size: .95rem;
+  padding: .6rem .7rem; margin-bottom: .6rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.form-retour textarea, .panneau-commentaire textarea { resize: vertical; }
+.form-retour :focus-visible, .panneau-commentaire :focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
+.form-retour button { margin-top: .6rem; }
+.etat { font-family: var(--f-ui); font-size: .88rem; margin: .7rem 0 0; min-height: 1.2em; }
+.etat.ok { color: var(--ok); }
+.etat.err { color: var(--err); }
+
+@media (max-width: 640px) {
+  .plateau-cadre { height: 60vh; }
+  .barre { gap: .6rem; }
+}
+
+/* ── Jeton de modération ────────────────────────────────────── */
+.jeton {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  justify-content: flex-end; margin-bottom: .8rem;
+  font-family: var(--f-ui); font-size: .85rem;
+}
+.jeton label { color: var(--gris); }
+.jeton input {
+  font: inherit; padding: .45rem .6rem; width: 11rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.jeton .btn-outil { min-height: 36px; font-size: .82rem; }
+.jeton-etat { color: var(--ok); font-weight: 600; }
+.jeton-etat.err { color: var(--err); }
+
+/* ── Retours affichés ───────────────────────────────────────── */
+.retours { list-style: none; margin: 1rem 0 0; padding: 0; }
+.retours li {
+  border: 1px solid var(--ligne); border-radius: 10px;
+  padding: .8rem 1rem; margin-bottom: .7rem; background: var(--surface);
+}
+.retours .meta {
+  font-family: var(--f-ui); font-size: .78rem; color: var(--gris);
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: .35rem;
+}
+.retours .texte { margin: 0; font-size: .95rem; line-height: 1.55; white-space: pre-wrap; }
+/* Grisé = en attente de relecture. L'opacité seule ne suffirait pas à le dire :
+   la mention l'écrit, pour qui ne perçoit pas la nuance. */
+.retours li.attente { opacity: .55; border-style: dashed; }
+.retours .badge-attente {
+  border: 1px solid var(--ligne); border-radius: 999px; padding: .1rem .5rem;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+}
+.exemple-attente { opacity: .55; }
+.retours .actions { margin-top: .6rem; display: flex; gap: .5rem; }
+.retours .actions button {
+  font-family: var(--f-ui); font-size: .8rem; min-height: 36px; padding: 0 .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.retours .actions .valider:hover { border-color: var(--ok); color: var(--ok); }
+.retours .actions .supprimer:hover { border-color: var(--err); color: var(--err); }
+.retours-vide { color: var(--gris); font-family: var(--f-ui); font-size: .9rem; }
+.retours-titre { font-family: var(--f-titre); font-size: 1.4rem; margin: 2.5rem 0 .3rem; }
+.retours-carte { margin-top: 1rem; }
+.retours-carte li { padding: .6rem .8rem; }

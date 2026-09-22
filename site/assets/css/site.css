@@ -606,3 +606,15 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 .form-atelier textarea { resize: vertical; min-height: 3.2rem; line-height: 1.5; font-family: var(--f-ui); }
 .atelier-desc { font-size: .9rem; color: var(--ink-doux); margin: .5rem 0 0; white-space: pre-wrap; }
+
+/* Encart réservé aux animateur·ices, en fin de guide. Discret par construction :
+   il n'apparaît ni dans le PDF (.no-print) ni pour les moteurs (robots.txt). */
+.encart-reserve {
+  margin-top: 2.5rem;
+  padding: 1.2rem 1.4rem;
+  border: 1px dashed var(--ligne);
+  border-radius: 10px;
+  background: var(--bg-doux);
+}
+.encart-reserve h3 { font-family: var(--f-titre); font-size: 1.3rem; margin: 0 0 .6rem; }
+.encart-reserve p:last-child { margin-bottom: 0; }

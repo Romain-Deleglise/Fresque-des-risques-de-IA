@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
+# Espace reserve aux animateur·ices : la fresque de reference divulgacherait
+# l'atelier a qui la lirait avant d'y participer.
+Disallow: /animateurs/
 
 Sitemap: https://fresquedesrisquesdelia.org/sitemap.xml

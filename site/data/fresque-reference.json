@@ -1,0 +1,695 @@
+{
+ "version": 1,
+ "_commentaire": "Fresque de reference : une disposition possible, pas un corrige. Meme modele de donnees que le tableau de la Fresque en ligne (cartes 160x150, fleches {de, vers, libelle}). Le plan est dimensionne sur le contenu, pas sur les 3200x2200 de l'outil en ligne, pour ne pas laisser de zone vide a l'ecran. Modifiable a la main ; chaque fleche porte le lien de cause a effet qu'elle exprime.",
+ "plan": {
+  "largeur": 2840,
+  "hauteur": 1750,
+  "carte": {
+   "largeur": 160,
+   "hauteur": 150
+  }
+ },
+ "tableau": {
+  "cartes": [
+   {
+    "n": 3,
+    "x": 100,
+    "y": 140
+   },
+   {
+    "n": 2,
+    "x": 100,
+    "y": 370
+   },
+   {
+    "n": 1,
+    "x": 100,
+    "y": 600
+   },
+   {
+    "n": 5,
+    "x": 100,
+    "y": 830
+   },
+   {
+    "n": 6,
+    "x": 100,
+    "y": 1060
+   },
+   {
+    "n": 4,
+    "x": 100,
+    "y": 1290
+   },
+   {
+    "n": 13,
+    "x": 500,
+    "y": 140
+   },
+   {
+    "n": 11,
+    "x": 500,
+    "y": 370
+   },
+   {
+    "n": 8,
+    "x": 500,
+    "y": 600
+   },
+   {
+    "n": 9,
+    "x": 500,
+    "y": 830
+   },
+   {
+    "n": 7,
+    "x": 500,
+    "y": 1060
+   },
+   {
+    "n": 10,
+    "x": 500,
+    "y": 1290
+   },
+   {
+    "n": 12,
+    "x": 500,
+    "y": 1520
+   },
+   {
+    "n": 16,
+    "x": 900,
+    "y": 140
+   },
+   {
+    "n": 24,
+    "x": 900,
+    "y": 370
+   },
+   {
+    "n": 14,
+    "x": 900,
+    "y": 600
+   },
+   {
+    "n": 20,
+    "x": 900,
+    "y": 830
+   },
+   {
+    "n": 18,
+    "x": 900,
+    "y": 1060
+   },
+   {
+    "n": 17,
+    "x": 1300,
+    "y": 140
+   },
+   {
+    "n": 19,
+    "x": 1300,
+    "y": 370
+   },
+   {
+    "n": 15,
+    "x": 1300,
+    "y": 600
+   },
+   {
+    "n": 21,
+    "x": 1300,
+    "y": 830
+   },
+   {
+    "n": 25,
+    "x": 1300,
+    "y": 1060
+   },
+   {
+    "n": 30,
+    "x": 1700,
+    "y": 140
+   },
+   {
+    "n": 22,
+    "x": 1700,
+    "y": 370
+   },
+   {
+    "n": 26,
+    "x": 1700,
+    "y": 600
+   },
+   {
+    "n": 27,
+    "x": 1700,
+    "y": 830
+   },
+   {
+    "n": 23,
+    "x": 1700,
+    "y": 1060
+   },
+   {
+    "n": 29,
+    "x": 2150,
+    "y": 200
+   },
+   {
+    "n": 33,
+    "x": 2150,
+    "y": 430
+   },
+   {
+    "n": 32,
+    "x": 2150,
+    "y": 660
+   },
+   {
+    "n": 28,
+    "x": 2150,
+    "y": 890
+   },
+   {
+    "n": 31,
+    "x": 2150,
+    "y": 1120
+   },
+   {
+    "n": 34,
+    "x": 2600,
+    "y": 200
+   },
+   {
+    "n": 38,
+    "x": 2600,
+    "y": 430
+   },
+   {
+    "n": 35,
+    "x": 2600,
+    "y": 660
+   },
+   {
+    "n": 36,
+    "x": 2600,
+    "y": 890
+   },
+   {
+    "n": 37,
+    "x": 2600,
+    "y": 1120
+   }
+  ],
+  "fleches": [
+   {
+    "id": "r1",
+    "de": 2,
+    "vers": 1,
+    "bidir": false,
+    "libelle": "entraînent"
+   },
+   {
+    "id": "r2",
+    "de": 3,
+    "vers": 1,
+    "bidir": false,
+    "libelle": "rendent plus puissants"
+   },
+   {
+    "id": "r3",
+    "de": 1,
+    "vers": 5,
+    "bidir": false,
+    "libelle": "comment on l'obtient"
+   },
+   {
+    "id": "r4",
+    "de": 5,
+    "vers": 6,
+    "bidir": false,
+    "libelle": "d'où l'opacité"
+   },
+   {
+    "id": "r5",
+    "de": 1,
+    "vers": 4,
+    "bidir": false,
+    "libelle": "automatise des tâches"
+   },
+   {
+    "id": "r6",
+    "de": 1,
+    "vers": 11,
+    "bidir": false,
+    "libelle": "sait faire"
+   },
+   {
+    "id": "r7",
+    "de": 1,
+    "vers": 8,
+    "bidir": false,
+    "libelle": "sait faire"
+   },
+   {
+    "id": "r8",
+    "de": 1,
+    "vers": 9,
+    "bidir": false,
+    "libelle": "sait faire"
+   },
+   {
+    "id": "r9",
+    "de": 1,
+    "vers": 7,
+    "bidir": false,
+    "libelle": "sait faire"
+   },
+   {
+    "id": "r10",
+    "de": 7,
+    "vers": 10,
+    "bidir": false,
+    "libelle": "agir dans le monde réel"
+   },
+   {
+    "id": "r11",
+    "de": 3,
+    "vers": 13,
+    "bidir": false,
+    "libelle": "font apparaître"
+   },
+   {
+    "id": "r12",
+    "de": 5,
+    "vers": 13,
+    "bidir": false,
+    "libelle": "capacités non programmées"
+   },
+   {
+    "id": "r13",
+    "de": 7,
+    "vers": 12,
+    "bidir": false,
+    "libelle": "poursuivre un but implique"
+   },
+   {
+    "id": "r14",
+    "de": 8,
+    "vers": 14,
+    "bidir": false,
+    "libelle": "visages et voix crédibles"
+   },
+   {
+    "id": "r15",
+    "de": 11,
+    "vers": 14,
+    "bidir": false,
+    "libelle": "textes crédibles"
+   },
+   {
+    "id": "r16",
+    "de": 8,
+    "vers": 24,
+    "bidir": false,
+    "libelle": "produit en masse"
+   },
+   {
+    "id": "r17",
+    "de": 11,
+    "vers": 24,
+    "bidir": false,
+    "libelle": "produit en masse"
+   },
+   {
+    "id": "r18",
+    "de": 14,
+    "vers": 20,
+    "bidir": false,
+    "libelle": "sert à"
+   },
+   {
+    "id": "r19",
+    "de": 11,
+    "vers": 20,
+    "bidir": false,
+    "libelle": "abaisse le niveau requis"
+   },
+   {
+    "id": "r20",
+    "de": 20,
+    "vers": 21,
+    "bidir": false,
+    "libelle": "attaques informatiques"
+   },
+   {
+    "id": "r21",
+    "de": 20,
+    "vers": 25,
+    "bidir": false,
+    "libelle": "manipulation du vivant"
+   },
+   {
+    "id": "r22",
+    "de": 9,
+    "vers": 18,
+    "bidir": false,
+    "libelle": "capte l'attention"
+   },
+   {
+    "id": "r23",
+    "de": 11,
+    "vers": 18,
+    "bidir": false,
+    "libelle": "chatbots compagnons"
+   },
+   {
+    "id": "r24",
+    "de": 2,
+    "vers": 19,
+    "bidir": false,
+    "libelle": "reproduisent les préjugés"
+   },
+   {
+    "id": "r25",
+    "de": 5,
+    "vers": 15,
+    "bidir": false,
+    "libelle": "d'où les erreurs"
+   },
+   {
+    "id": "r26",
+    "de": 4,
+    "vers": 17,
+    "bidir": false,
+    "libelle": "on délègue"
+   },
+   {
+    "id": "r27",
+    "de": 3,
+    "vers": 16,
+    "bidir": false,
+    "libelle": "centres de données"
+   },
+   {
+    "id": "r28",
+    "de": 6,
+    "vers": 22,
+    "bidir": false,
+    "libelle": "impossible de vérifier"
+   },
+   {
+    "id": "r29",
+    "de": 5,
+    "vers": 22,
+    "bidir": false,
+    "libelle": "comportements imprévus"
+   },
+   {
+    "id": "r30",
+    "de": 12,
+    "vers": 26,
+    "bidir": false,
+    "libelle": "mentir peut aider"
+   },
+   {
+    "id": "r31",
+    "de": 22,
+    "vers": 26,
+    "bidir": false,
+    "libelle": "se manifeste par"
+   },
+   {
+    "id": "r32",
+    "de": 4,
+    "vers": 23,
+    "bidir": false,
+    "libelle": "concentre richesses et pouvoir"
+   },
+   {
+    "id": "r33",
+    "de": 15,
+    "vers": 23,
+    "bidir": false,
+    "libelle": "infrastructures peu fiables"
+   },
+   {
+    "id": "r34",
+    "de": 21,
+    "vers": 23,
+    "bidir": false,
+    "libelle": "hôpitaux, banques, réseaux"
+   },
+   {
+    "id": "r35",
+    "de": 24,
+    "vers": 23,
+    "bidir": false,
+    "libelle": "la confiance publique s'effondre"
+   },
+   {
+    "id": "r36",
+    "de": 9,
+    "vers": 27,
+    "bidir": false,
+    "libelle": "surveillance et censure"
+   },
+   {
+    "id": "r37",
+    "de": 23,
+    "vers": 27,
+    "bidir": false,
+    "libelle": "verrouille les rapports de force"
+   },
+   {
+    "id": "r38",
+    "de": 30,
+    "vers": 22,
+    "bidir": false,
+    "libelle": "déployer avant d'avoir vérifié"
+   },
+   {
+    "id": "r39",
+    "de": 30,
+    "vers": 3,
+    "bidir": false,
+    "libelle": "pousse à investir"
+   },
+   {
+    "id": "r40",
+    "de": 7,
+    "vers": 28,
+    "bidir": false,
+    "libelle": "armes sans contrôle humain"
+   },
+   {
+    "id": "r41",
+    "de": 10,
+    "vers": 28,
+    "bidir": false,
+    "libelle": "drones et robots"
+   },
+   {
+    "id": "r42",
+    "de": 13,
+    "vers": 29,
+    "bidir": false,
+    "libelle": "capacités inattendues"
+   },
+   {
+    "id": "r43",
+    "de": 3,
+    "vers": 29,
+    "bidir": false,
+    "libelle": "objectif déclaré"
+   },
+   {
+    "id": "r44",
+    "de": 30,
+    "vers": 29,
+    "bidir": false,
+    "libelle": "course à l'AGI"
+   },
+   {
+    "id": "r45",
+    "de": 29,
+    "vers": 33,
+    "bidir": false,
+    "libelle": "puis au-delà"
+   },
+   {
+    "id": "r46",
+    "de": 29,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "plus rapide que nous"
+   },
+   {
+    "id": "r47",
+    "de": 33,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "hors de portée"
+   },
+   {
+    "id": "r48",
+    "de": 22,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "des buts qui ne sont pas les nôtres"
+   },
+   {
+    "id": "r49",
+    "de": 12,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "résiste à l'arrêt"
+   },
+   {
+    "id": "r50",
+    "de": 26,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "on ne voit pas venir"
+   },
+   {
+    "id": "r51",
+    "de": 32,
+    "vers": 31,
+    "bidir": false,
+    "libelle": "plus personne ne reprend la main"
+   },
+   {
+    "id": "r52",
+    "de": 28,
+    "vers": 31,
+    "bidir": false,
+    "libelle": "conflits incontrôlables"
+   },
+   {
+    "id": "r53",
+    "de": 25,
+    "vers": 31,
+    "bidir": false,
+    "libelle": "pandémie artificielle"
+   },
+   {
+    "id": "r54",
+    "de": 27,
+    "vers": 31,
+    "bidir": false,
+    "libelle": "verrouillage irréversible"
+   },
+   {
+    "id": "r55",
+    "de": 33,
+    "vers": 31,
+    "bidir": false,
+    "libelle": "dépasse l'humanité"
+   },
+   {
+    "id": "r56",
+    "de": 34,
+    "vers": 22,
+    "bidir": false,
+    "libelle": "répond à"
+   },
+   {
+    "id": "r57",
+    "de": 34,
+    "vers": 6,
+    "bidir": false,
+    "libelle": "rendre explicable"
+   },
+   {
+    "id": "r58",
+    "de": 35,
+    "vers": 32,
+    "bidir": false,
+    "libelle": "interdit d'y arriver"
+   },
+   {
+    "id": "r59",
+    "de": 35,
+    "vers": 12,
+    "bidir": false,
+    "libelle": "borne les stratégies"
+   },
+   {
+    "id": "r60",
+    "de": 36,
+    "vers": 30,
+    "bidir": false,
+    "libelle": "répond à"
+   },
+   {
+    "id": "r61",
+    "de": 36,
+    "vers": 3,
+    "bidir": false,
+    "libelle": "suspend l'escalade"
+   },
+   {
+    "id": "r62",
+    "de": 37,
+    "vers": 23,
+    "bidir": false,
+    "libelle": "répond à"
+   },
+   {
+    "id": "r63",
+    "de": 37,
+    "vers": 27,
+    "bidir": false,
+    "libelle": "répond à"
+   },
+   {
+    "id": "r64",
+    "de": 38,
+    "vers": 22,
+    "bidir": false,
+    "libelle": "vérifie avant déploiement"
+   },
+   {
+    "id": "r65",
+    "de": 38,
+    "vers": 35,
+    "bidir": false,
+    "libelle": "contrôle le respect des"
+   }
+  ],
+  "textes": [
+   {
+    "id": "t1",
+    "x": 100,
+    "y": 50,
+    "contenu": "Lot 1 · L'IA"
+   },
+   {
+    "id": "t2",
+    "x": 500,
+    "y": 50,
+    "contenu": "Lot 2 · Capacités"
+   },
+   {
+    "id": "t3",
+    "x": 900,
+    "y": 50,
+    "contenu": "Lot 3 · Risques actuels"
+   },
+   {
+    "id": "t4",
+    "x": 2150,
+    "y": 110,
+    "contenu": "Lot 4 · Risques existentiels"
+   },
+   {
+    "id": "t5",
+    "x": 2600,
+    "y": 110,
+    "contenu": "Lot 5 · Solutions"
+   }
+  ]
+ }
+}
