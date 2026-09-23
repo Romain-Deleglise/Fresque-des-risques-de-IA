@@ -113,3 +113,27 @@ body.admin { background: var(--bg-doux); }
   background: var(--ink); color: var(--bg); font-family: var(--f-ui); font-size: .88rem;
   padding: 11px 18px; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.2); z-index: 20;
 }
+
+/* --- Retours d'atelier et témoignages ------------------------------------ */
+.retours-admin { display: grid; gap: .8rem; }
+.r-item {
+  border: 1px solid var(--ligne); border-radius: 10px;
+  padding: .9rem 1rem; background: var(--surface);
+}
+.r-item.r-temoignage { border-left: 4px solid var(--accent); }
+.r-tete {
+  display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: baseline;
+  font-family: var(--f-ui); font-size: .78rem; color: var(--gris); margin-bottom: .5rem;
+}
+.r-genre { font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: .06em; }
+.r-badge {
+  border: 1px solid var(--ligne); border-radius: 999px; padding: .05em .55em;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+}
+.r-badge.r-publie { border-color: var(--ok); color: var(--ok); }
+.r-texte { margin: 0 0 .6rem; font-size: .95rem; line-height: 1.55; white-space: pre-wrap; }
+.r-champ { margin: 0 0 .45rem; font-size: .9rem; line-height: 1.5; }
+.r-champ strong { display: block; font-family: var(--f-ui); font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gris); font-weight: 700; }
+.r-mail { margin: .5rem 0 0; font-size: .85rem; }
+.r-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.btn-mini.danger:hover { border-color: var(--err); color: var(--err); }

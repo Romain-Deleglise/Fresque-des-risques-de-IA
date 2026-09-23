@@ -51,13 +51,16 @@ test("les adresses des participant·es ne circulent pas", () => {
   assert.ok(!/to: parts\.slice/.test(SRC), "un·e participant·e serait exposé·e");
 });
 
-test("aucune invitation vers un formulaire qui n'existe pas", () => {
-  // Tant que la variable n'est pas renseignée, le bloc entier disparaît.
-  assert.match(SRC, /const FORM_RETOURS = \(process\.env\.FORM_RETOURS_URL \|\| ""\)/);
-  assert.match(SRC, /const FORM_TEMOIGNAGE = \(process\.env\.FORM_TEMOIGNAGE_URL \|\| ""\)/);
+test("les invitations pointent les formulaires du site par défaut", () => {
+  // Les deux formulaires vivent sur le site (/retour/ et /temoignage/) et leurs
+  // réponses arrivent dans l'espace admin. Les variables d'environnement
+  // permettent de basculer vers des formulaires externes sans toucher au code.
+  assert.match(SRC, /FORM_RETOURS_URL \|\| \(LIEN \+ "\/retour\/"\)/);
+  assert.match(SRC, /FORM_TEMOIGNAGE_URL \|\| \(LIEN \+ "\/temoignage\/"\)/);
+  // Le bloc reste conditionnel : une variable vidée à la main ne doit pas
+  // produire une invitation vers rien.
   for (const nom of ["mailParticipants", "mailAnimateurSuivi"]) {
-    const b = bloc(nom);
-    assert.match(b, /if \(FORM_RETOURS\)/, `${nom} doit conditionner le retour`);
+    assert.match(bloc(nom), /if \(FORM_RETOURS\)/, `${nom} doit conditionner le retour`);
   }
   assert.match(bloc("mailParticipants"), /if \(FORM_TEMOIGNAGE\)/);
 });

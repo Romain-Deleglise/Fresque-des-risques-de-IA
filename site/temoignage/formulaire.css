@@ -1,0 +1,40 @@
+/* Formulaires publics : retour d'atelier et témoignage. */
+.wrap.etroit { max-width: 42rem; }
+.form-long { margin-top: 1.5rem; }
+.form-long label {
+  display: block; font-family: var(--f-ui); font-size: .9rem; font-weight: 600;
+  margin: 1.4rem 0 .35rem;
+}
+.form-long .opt { font-weight: 400; color: var(--gris); }
+.form-long input[type="text"], .form-long input[type="email"], .form-long input[type="date"],
+.form-long select, .form-long textarea {
+  width: 100%; font: inherit; font-family: var(--f-ui); font-size: .95rem;
+  padding: .65rem .75rem; min-height: 44px;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.form-long textarea { resize: vertical; min-height: 5rem; }
+.form-long :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+
+.form-long fieldset { border: 1px solid var(--ligne); border-radius: 10px; padding: .9rem 1.1rem 1.1rem; margin: 1.6rem 0 0; }
+.form-long legend { font-family: var(--f-ui); font-size: .82rem; font-weight: 700; padding: 0 .4rem; color: var(--gris); text-transform: uppercase; letter-spacing: .06em; }
+.f-ligne { display: grid; gap: .3rem 1rem; align-items: center; grid-template-columns: minmax(0, 1fr); }
+.f-ligne label { margin: .6rem 0 0; }
+@media (min-width: 520px) { .f-ligne { grid-template-columns: 10rem minmax(0, 1fr); } .f-ligne label { margin: 0; } }
+.f-choix { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: .5rem; }
+.f-choix label { display: inline-flex; align-items: center; gap: .45rem; margin: 0; font-weight: 400; }
+.f-choix input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+.f-accord { display: flex; gap: .7rem; align-items: flex-start; margin: 1.8rem 0 0; font-weight: 400; font-size: .92rem; line-height: 1.5; }
+.f-accord input { width: 20px; height: 20px; flex: 0 0 auto; margin-top: .15rem; accent-color: var(--accent); }
+
+.aide-champ { font-size: .85rem; color: var(--gris); margin: .3rem 0 0; }
+.form-long button { margin-top: 1.8rem; }
+.etat { font-family: var(--f-ui); font-size: .92rem; margin: .9rem 0 0; min-height: 1.2em; }
+.etat.ok { color: var(--ok); }
+.etat.err { color: var(--err); }
+.mention { margin-top: 2.5rem; font-size: .85rem; }
+
+/* Champ piège : hors écran plutôt que display:none, que certains robots
+   détectent. Retiré de la tabulation et des lecteurs d'écran. */
+.piege { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

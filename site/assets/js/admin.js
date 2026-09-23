@@ -52,6 +52,10 @@
       try { sessionStorage.setItem(CLE_STOCK, cle); } catch (e) {}
       montrerBord(true);
       rendre();
+      // Les retours vivent dans leur propre module, en bas de ce fichier : il
+      // a besoin d'emprunter l'appel authentifie plutot que de refaire sa
+      // propre gestion de cle.
+      if (window.__retoursAdmin) window.__retoursAdmin.charger(api);
     });
   }
 
@@ -226,4 +230,121 @@
   var cle0 = "";
   try { cle0 = sessionStorage.getItem(CLE_STOCK) || ""; } catch (e) {}
   if (cle0) { connecter(cle0).catch(function () { try { sessionStorage.removeItem(CLE_STOCK); } catch (e) {} }); }
+})();
+
+/* ============================================================
+   RETOURS D'ATELIER ET TEMOIGNAGES
+
+   Deposes depuis /retour/ et /temoignage/, lus ici. Rien n'est publie
+   automatiquement : un temoignage n'apparait sur le site qu'apres relecture,
+   et un retour d'atelier ne quitte jamais cet ecran.
+   ============================================================ */
+(function () {
+  "use strict";
+  var hote = document.getElementById("liste-retours");
+  if (!hote) return;
+
+  var tous = [];
+  var CHAMPS = [
+    ["marquant", "Ce qui l’a marqué"],
+    ["pasClair", "Pas clair, ou trop rapide"],
+    ["creuser", "Aurait voulu creuser"],
+    ["carte", "Une carte à revoir"],
+    ["technique", "Problèmes techniques"],
+    ["autre", "Autre chose"]
+  ];
+  var DUREE = { trop_courte: "durée trop courte", juste: "durée juste", trop_longue: "durée trop longue" };
+  var FORMAT = { enligne: "en ligne", physique: "en présentiel" };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function quand(ms) {
+    try { return new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }); }
+    catch (e) { return ""; }
+  }
+
+  function carteRetour(r) {
+    var h = '<article class="r-item' + (r.genre === "temoignage" ? " r-temoignage" : "") + '" data-cle="' + esc(r.cle) + '">';
+    h += '<header class="r-tete"><span class="r-genre">'
+      + (r.genre === "temoignage" ? "Témoignage" : "Retour d’atelier") + "</span>";
+    if (r.genre === "atelier") {
+      var ctx = [r.role === "animateur" ? "animateur·ice" : "participant·e",
+                 FORMAT[r.format], r.dateAtelier, DUREE[r.duree]].filter(Boolean);
+      h += '<span class="r-ctx">' + esc(ctx.join(" · ")) + "</span>";
+    } else {
+      h += '<span class="r-ctx">' + esc([r.prenom, r.precision].filter(Boolean).join(" · ")) + "</span>";
+    }
+    h += '<span class="r-date">' + esc(quand(r.date)) + "</span>";
+    if (r.genre === "temoignage" && r.publie) h += '<span class="r-badge r-publie">publié</span>';
+    if (r.genre === "atelier" && r.traite) h += '<span class="r-badge">traité</span>';
+    h += "</header>";
+
+    if (r.genre === "temoignage") {
+      h += '<p class="r-texte">' + esc(r.texte) + "</p>";
+    } else {
+      CHAMPS.forEach(function (c) {
+        if (r[c[0]]) h += '<p class="r-champ"><strong>' + c[1] + "</strong> " + esc(r[c[0]]) + "</p>";
+      });
+    }
+    if (r.mail) h += '<p class="r-mail"><a href="mailto:' + esc(r.mail) + '">' + esc(r.mail) + "</a></p>";
+
+    h += '<div class="r-actions">';
+    if (r.genre === "temoignage") {
+      h += '<button type="button" class="btn-mini" data-op="' + (r.publie ? "masquer" : "publier") + '">'
+        + (r.publie ? "Masquer" : "Publier") + "</button>";
+    } else {
+      h += '<button type="button" class="btn-mini" data-op="traiter">'
+        + (r.traite ? "Rouvrir" : "Marquer traité") + "</button>";
+    }
+    h += '<button type="button" class="btn-mini danger" data-op="effacer">Effacer</button>';
+    h += "</div></article>";
+    return h;
+  }
+
+  function rendre() {
+    var f = (document.getElementById("filtre-retours") || {}).value || "tous";
+    var vus = tous.filter(function (r) {
+      if (f === "atelier" || f === "temoignage") return r.genre === f;
+      if (f === "attente") return r.genre === "temoignage" ? !r.publie : !r.traite;
+      return true;
+    });
+    var compte = document.getElementById("compte-retours");
+    if (compte) compte.textContent = vus.length;
+    hote.innerHTML = vus.length
+      ? vus.map(carteRetour).join("")
+      : '<p class="muted">Aucun retour pour le moment.</p>';
+  }
+
+  var appelApi = null;   // prete par le module principal une fois connecte
+
+  function charger(api) {
+    appelApi = api;
+    return api({ query: "?action=retours" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { tous = (d && d.retours) || []; rendre(); })
+      .catch(function () { /* le tableau de bord reste utilisable sans */ });
+  }
+  window.__retoursAdmin = { charger: charger };
+
+  var filtre = document.getElementById("filtre-retours");
+  if (filtre) filtre.addEventListener("change", rendre);
+
+  hote.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-op]");
+    if (!b) return;
+    var cle = b.closest(".r-item").dataset.cle;
+    var op = b.dataset.op;
+    if (op === "effacer" && !confirm("Effacer définitivement ce retour ?")) return;
+    if (!appelApi) return;
+    b.disabled = true;
+    appelApi({ method: "POST", body: { op: "retour", sousOp: op, cle: cle } })
+      .then(function (r) {
+        if (!r.ok) throw new Error("refus");
+        return charger(appelApi);
+      })
+      .catch(function () { b.disabled = false; });
+  });
 })();

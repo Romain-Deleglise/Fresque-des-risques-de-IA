@@ -10,16 +10,34 @@
    a temps constant.
 
    GET  ?action=tableau            -> { stats, contacts }
+   GET  ?action=retours            -> { retours } (retours d'atelier + temoignages)
    GET  ?action=export             -> CSV des contacts (piece a telecharger)
    POST { op:"desinscrire", mail } -> marque le contact desinscrit
    POST { op:"supprimer",   mail } -> efface le contact
+   POST { op:"retour", sousOp, cle } -> publier / masquer / traiter / effacer
 */
 "use strict";
 const crypto = require("crypto");
 const { getStore, connectLambda } = require("@netlify/blobs");
 const C = require("./lib/contacts.js");
+const R = require("../../serveur/src/retours.js");
 
 function contacts() { return getStore({ name: "fresque-contacts" }); }
+function retours() { return getStore({ name: "fresque-retours" }); }
+
+/* Les retours d'atelier et les temoignages arrivent par /retour/ et
+   /temoignage/. Rien n'est publie automatiquement : l'equipe les lit ici. */
+async function listerRetours() {
+  const s = retours();
+  const liste = await s.list().catch(() => ({ blobs: [] }));
+  const out = [];
+  for (const b of liste.blobs || []) {
+    const v = await s.get(b.key, { type: "json" }).catch(() => null);
+    if (v) out.push(R.pourAdmin(v, b.key));
+  }
+  out.sort((a, b) => (b.date || 0) - (a.date || 0));
+  return out;
+}
 const json = (s, c) => ({ statusCode: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(c) });
 
 function egales(a, b) {
@@ -115,6 +133,7 @@ exports.handler = async (event) => {
   try {
     if (event.httpMethod === "GET") {
       const q = event.queryStringParameters || {};
+      if (q.action === "retours") return json(200, { retours: await listerRetours() });
       const liste = await C.lister(st);
       if (q.action === "export") {
         return {
@@ -132,6 +151,26 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === "POST") {
       let d; try { d = JSON.parse(event.body || "{}"); } catch { d = {}; }
+
+      if (d.op === "retour") {
+        const cle = String(d.cle || "");
+        // La cle vient de notre propre listing ; on la verifie quand meme,
+        // une cle forgee pourrait designer autre chose dans le magasin.
+        if (!/^(atelier|temoignage):[a-z0-9]{1,24}$/.test(cle)) {
+          return json(400, { erreur: "Référence inconnue." });
+        }
+        const rs = retours();
+        if (d.sousOp === "effacer") { await rs.delete(cle); return json(200, { ok: true }); }
+        const v = await rs.get(cle, { type: "json" }).catch(() => null);
+        if (!v) return json(404, { erreur: "Ce retour n’existe plus." });
+        if (d.sousOp === "publier") v.publie = true;
+        else if (d.sousOp === "masquer") v.publie = false;
+        else if (d.sousOp === "traiter") v.traite = !v.traite;
+        else return json(400, { erreur: "Opération inconnue." });
+        await rs.setJSON(cle, v);
+        return json(200, { ok: true });
+      }
+
       const m = C.normaliserMail(d.mail);
       if (!m) return json(400, { erreur: "Adresse manquante." });
       if (d.op === "desinscrire") { const ok = await C.desinscrire(st, m); return json(ok ? 200 : 404, { desinscrit: ok }); }

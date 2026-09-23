@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Votre retour sur l'atelier · La Fresque des risques de l'IA</title>
+  <meta name="description" content="Dites-nous ce que vous avez pensé de l'atelier : ce qui vous a marqué, ce qui n'était pas clair, ce que vous auriez voulu creuser.">
+  <link rel="icon" type="image/png" sizes="64x64" href="../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../assets/css/fonts.css">
+  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="formulaire.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../participer/">Participer</a>
+        <a href="../devenir-animateur/">Animer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete">
+      <div class="wrap">
+        <h1>Votre retour</h1>
+        <p class="page-sous">La fresque est jeune et elle va continuer d'évoluer. Vos remarques
+        servent directement à corriger les cartes et le déroulé.</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="wrap etroit">
+        <form class="form-long" id="form">
+          <p class="muted">Tout est facultatif. Répondez à ce qui vous parle, laissez le reste.</p>
+
+          <fieldset>
+            <legend>Votre atelier</legend>
+            <div class="f-ligne">
+              <label for="role">Vous y étiez comme</label>
+              <select id="role">
+                <option value="participant">participant·e</option>
+                <option value="animateur">animateur·ice</option>
+              </select>
+            </div>
+            <div class="f-ligne">
+              <label for="format">Format</label>
+              <select id="format">
+                <option value="">non précisé</option>
+                <option value="physique">en présentiel</option>
+                <option value="enligne">en ligne</option>
+              </select>
+            </div>
+            <div class="f-ligne">
+              <label for="dateAtelier">Date</label>
+              <input id="dateAtelier" type="date">
+            </div>
+          </fieldset>
+
+          <label for="marquant">Qu'est-ce qui vous a le plus marqué&nbsp;?</label>
+          <textarea id="marquant" rows="3" maxlength="2000"></textarea>
+
+          <label for="pasClair">Qu'est-ce qui n'était pas clair, ou trop rapide&nbsp;?</label>
+          <textarea id="pasClair" rows="3" maxlength="2000"></textarea>
+
+          <label for="creuser">Qu'auriez-vous voulu creuser davantage&nbsp;?</label>
+          <textarea id="creuser" rows="3" maxlength="2000"></textarea>
+
+          <fieldset>
+            <legend>La durée vous a semblé</legend>
+            <div class="f-choix">
+              <label><input type="radio" name="duree" value="trop_courte"> trop courte</label>
+              <label><input type="radio" name="duree" value="juste"> juste</label>
+              <label><input type="radio" name="duree" value="trop_longue"> trop longue</label>
+            </div>
+          </fieldset>
+
+          <label for="carte">Une carte en particulier à revoir&nbsp;? Laquelle, et pourquoi&nbsp;?</label>
+          <textarea id="carte" rows="3" maxlength="2000"></textarea>
+
+          <label for="technique">Des problèmes techniques avec le site ou l'outil en ligne&nbsp;?</label>
+          <textarea id="technique" rows="2" maxlength="2000"
+            placeholder="Si oui, dites-nous quoi et à quel moment."></textarea>
+
+          <label for="autre">Autre chose à nous dire&nbsp;?</label>
+          <textarea id="autre" rows="3" maxlength="2000"></textarea>
+
+          <label for="mail">Votre e-mail <span class="opt">(facultatif, si vous voulez une réponse)</span></label>
+          <input id="mail" type="email" maxlength="120" autocomplete="email">
+
+          <!-- Champ piège : invisible à l'écran, vide pour un humain. -->
+          <div class="piege" aria-hidden="true">
+            <label for="site">Ne remplissez pas ce champ</label>
+            <input id="site" type="text" tabindex="-1" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn btn-1">Envoyer mon retour</button>
+          <p class="etat" id="etat" role="status" aria-live="polite"></p>
+        </form>
+
+        <p class="muted mention">
+          Vos réponses servent uniquement à améliorer la fresque. Elles ne sont ni cédées ni
+          vendues. Pour les consulter, les corriger ou les supprimer, écrivez à
+          <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · CC BY-SA 4.0</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/nav.js" defer></script>
+  <script src="formulaire.js" defer></script>
+</body>
+</html>

@@ -665,11 +665,20 @@ participant·es.
 l'adresse de personne. Mettre un·e participant·e en « à » la donnerait à tous
 les autres.
 
-**Les deux formulaires** (retour, témoignage) sont hébergés hors du site. Leurs
-adresses viennent de `FORM_RETOURS_URL` et `FORM_TEMOIGNAGE_URL` : tant
-qu'elles ne sont pas renseignées, les invitations correspondantes ne
-s'affichent pas. Un e-mail qui propose « laissez un retour » vers une page
-inexistante fait plus de mal que de bien.
+**Les deux formulaires vivent sur le site** : `/retour/` et `/temoignage/`.
+Les réponses sont déposées par la fonction `retour.js` dans le magasin Blobs
+`fresque-retours`, et se lisent dans `/admin/`. Rien n'est publié
+automatiquement : un témoignage n'apparaît qu'après relecture, et un retour
+d'atelier ne quitte jamais l'espace admin.
+
+`FORM_RETOURS_URL` et `FORM_TEMOIGNAGE_URL` permettent de basculer vers des
+formulaires externes (Notion) sans toucher au code ; sans elles, les e-mails
+pointent les pages du site.
+
+**Anti-spam** : un champ piège invisible (hors écran plutôt que `display:none`,
+que certains robots détectent), 20 dépôts par IP et par heure, et des longueurs
+bornées. Un envoi dont le champ piège est rempli reçoit une réponse normale :
+dire au robot qu'il a été repéré lui apprend à passer la fois suivante.
 
 `serveur/tests/suivi-mails.test.mjs` verrouille ces quatre points.
 

@@ -25,8 +25,12 @@ const PAUSEIA = "https://pauseia.fr";
    renseignees les invitations correspondantes ne s'affichent pas. Un mail qui
    propose « laissez un retour » vers une page qui n'existe pas fait plus de
    mal que de bien. */
-const FORM_RETOURS = (process.env.FORM_RETOURS_URL || "").trim();
-const FORM_TEMOIGNAGE = (process.env.FORM_TEMOIGNAGE_URL || "").trim();
+/* Par defaut, les formulaires du site (/retour/ et /temoignage/), dont les
+   reponses arrivent dans l'espace admin. Les variables permettent de basculer
+   vers des formulaires externes le jour ou l'equipe en veut, sans toucher au
+   code. */
+const FORM_RETOURS = (process.env.FORM_RETOURS_URL || (LIEN + "/retour/")).trim();
+const FORM_TEMOIGNAGE = (process.env.FORM_TEMOIGNAGE_URL || (LIEN + "/temoignage/")).trim();
 
 /* Pied commun : qui nous sommes, et ou nous suivre. L'atelier est le premier
    contact de beaucoup de gens avec Pause IA ; ne rien leur proposer ensuite
