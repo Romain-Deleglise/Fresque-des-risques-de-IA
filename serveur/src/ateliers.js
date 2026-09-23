@@ -2,6 +2,7 @@
    Utilise par la fonction Netlify (netlify/functions/ateliers.js) et par les
    tests. CommonJS. Aucune donnee personnelle n'est loggee ici. */
 "use strict";
+var Z = require("./departements.js");
 
 var MAX_ENLIGNE = 8;        // 8 participants max par session en ligne
 var MAX_PHYSIQUE = 16;      // 2 tables x 8, conseil d'animation
@@ -51,6 +52,16 @@ function valider(d) {
     a.lieu = tronque(d.lieu, LEN_LIEU);
     a.adresse = tronque(d.adresse, LEN_ADRESSE);
     if (!a.lieu) return err("lieu_manquant", "Indiquez le lieu de l'atelier.");
+    /* LE DEPARTEMENT, choisi dans une liste fermee. C'est lui, et non le texte
+       du lieu, qui permet de prevenir les gens abonnes aux ateliers pres de
+       chez eux : comparer « Villeurbanne » a « Lyon » ne marcherait pas.
+       Facultatif pour ne pas casser les ateliers deja programmes, mais le
+       formulaire le demande. */
+    var dep = tronque(d.departement, 4).toUpperCase();
+    if (dep) {
+      if (!Z.valide(dep)) return err("departement_invalide", "Choisissez un département dans la liste.");
+      a.departement = dep;
+    }
   }
   // Visioconférence : générée automatiquement (auto), fournie par l'animateur
   // (perso), ou aucune. Rétro-compatible : un lien sans mode = "perso".

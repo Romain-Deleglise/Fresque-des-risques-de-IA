@@ -56,6 +56,7 @@
       // a besoin d'emprunter l'appel authentifie plutot que de refaire sa
       // propre gestion de cle.
       if (window.__retoursAdmin) window.__retoursAdmin.charger(api);
+      if (window.__alertesAdmin) window.__alertesAdmin.charger(api);
     });
   }
 
@@ -347,4 +348,51 @@
       })
       .catch(function () { b.disabled = false; });
   });
+})();
+
+/* --- Alertes « prochains ateliers » : où sont les gens en attente ---------
+   Enregistré comme les retours : le tableau de bord principal appelle
+   window.__alertesAdmin.charger(api) une fois la clé validée. */
+(function () {
+  "use strict";
+  var hote = document.getElementById("resume-alertes");
+  if (!hote) return;
+  var pastille = document.getElementById("compte-alertes");
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function rendre(d) {
+    if (pastille) pastille.textContent = d.total || 0;
+    if (!d.total) {
+      hote.innerHTML = '<p class="muted">Personne n’est encore abonné aux annonces.</p>';
+      return;
+    }
+    var f = d.formats || {};
+    var h = '<ul class="alertes-formats">' +
+      '<li><strong>' + (f.les_deux || 0) + '</strong> en ligne et près de chez eux</li>' +
+      '<li><strong>' + (f.enligne || 0) + '</strong> en ligne uniquement</li>' +
+      '<li><strong>' + (f.physique || 0) + '</strong> en présentiel uniquement</li>' +
+      "</ul>";
+    if (d.zones && d.zones.length) {
+      h += '<table class="alertes-zones"><thead><tr><th>Département</th><th>En attente</th></tr></thead><tbody>';
+      d.zones.forEach(function (z) {
+        h += "<tr><td>" + esc(z.zone) + "</td><td>" + z.n + "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    hote.innerHTML = h;
+  }
+
+  window.__alertesAdmin = {
+    charger: function (api) {
+      return api({ query: "?action=alertes" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d) rendre(d); })
+        .catch(function () { /* le reste du tableau de bord reste utilisable */ });
+    }
+  };
 })();

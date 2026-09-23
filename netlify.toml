@@ -57,6 +57,13 @@
 [functions."suivi"]
   schedule = "0 10 * * *"
 
+# Alertes « prochains ateliers » : UNE fois par semaine, le mardi matin. La
+# fonction n'ecrit qu'aux personnes qui ont au moins un atelier les concernant
+# (leur departement et/ou le distanciel, selon leur choix) et jamais plus d'un
+# message par semaine et par personne. Rien a annoncer = aucun e-mail envoye.
+[functions."alertes-envoi"]
+  schedule = "0 9 * * 2"
+
 # SURVEILLANCE : toutes les 15 min, verifie que le service de sessions repond et
 # que son ecriture conditionnelle est operante, et que le relais temps reel
 # repond dans une version au moins aussi recente que celle attendue par le site.

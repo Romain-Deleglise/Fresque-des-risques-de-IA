@@ -86,6 +86,10 @@
       if (champsPhysique) champsPhysique.hidden = !physique;
       var lieu = form.querySelector('[name="lieu"]');
       if (lieu) lieu.required = physique;
+      // Le département est masqué en ligne : laisser `required` bloquerait
+      // silencieusement l'envoi sur un champ que personne ne voit.
+      var dep = form.querySelector('[name="departement"]');
+      if (dep) { dep.required = physique; if (!physique) dep.value = ""; }
       var maxi = form.querySelector('[name="maxParticipants"]');
       if (maxi) { maxi.max = physique ? 16 : 8; if (+maxi.value > +maxi.max) maxi.value = maxi.max; }
     }

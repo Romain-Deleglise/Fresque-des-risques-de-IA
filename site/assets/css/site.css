@@ -627,3 +627,19 @@ a.btn, a.btn:hover { text-decoration: none; }
 }
 .encart-reserve h3 { font-family: var(--f-titre); font-size: 1.3rem; margin: 0 0 .6rem; }
 .encart-reserve p:last-child { margin-bottom: 0; }
+
+/* --- Abonnement aux alertes « prochains ateliers » --- */
+.form-alertes { display: grid; gap: 18px; margin-top: 22px; }
+.form-alertes .choix-format { border: 1px solid var(--trait, #e6e1d8); border-radius: 12px; padding: 14px 16px; }
+.form-alertes .choix-format legend { padding: 0 6px; font-weight: 600; }
+.form-alertes .radio { display: block; font-weight: 400; margin: 6px 0; cursor: pointer; }
+.form-alertes .ligne-zone { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.form-alertes .ligne-zone select { flex: 1 1 220px; min-width: 0; }
+.puces-zones { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.puce-zone { background: #f3efe8; border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.puce-x { border: 0; background: rgba(0, 0, 0, .07); border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 15px; }
+.puce-x:hover { background: rgba(0, 0, 0, .16); }
+.piege { position: absolute; left: -9999px; }
+
+/* Attribut style= inutilisable : la CSP du site interdit les styles en ligne. */
+.espace-haut { margin-top: 1.2rem; }

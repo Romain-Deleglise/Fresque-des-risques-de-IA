@@ -55,6 +55,15 @@
            /temoignage/. Rien n'est publié automatiquement. -->
       <div class="panneau">
         <div class="table-tete">
+          <h2>Alertes « prochains ateliers » <span id="compte-alertes" class="pastille"></span></h2>
+        </div>
+        <p class="muted">Qui attend l'annonce d'un atelier, et où. Sert à choisir la prochaine ville :
+        les départements sont classés par nombre de personnes en attente.</p>
+        <div id="resume-alertes" aria-live="polite"></div>
+      </div>
+
+      <div class="panneau">
+        <div class="table-tete">
           <h2>Retours et témoignages <span id="compte-retours" class="pastille"></span></h2>
           <div class="table-outils">
             <select id="filtre-retours" aria-label="Filtrer les retours">

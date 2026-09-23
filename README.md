@@ -62,6 +62,46 @@ Toutes les cartes vivent dans la source unique **`site/data/cartes.json`**
 concernée : aucune compilation. Voir la doc, section « Les cartes », pour la
 génération des visuels et du PDF imprimable.
 
+## Alertes « prochains ateliers »
+
+Une personne qui a assisté à un atelier, ou qui n'en a pas trouvé près de chez
+elle, peut demander à être prévenue. La promesse est étroite et tenue par le
+code, pas par la bonne volonté :
+
+- **au plus un e-mail par semaine** et par personne, quel que soit le nombre
+  d'ateliers ;
+- **rien à annoncer = rien d'envoyé.** Pas de « rien cette semaine » ;
+- **tout dans le même message** : les ateliers en ligne et ceux de chaque
+  département choisi.
+
+Qui reçoit quoi, exhaustivement (table de vérité vérifiée par
+`serveur/tests/alertes.test.mjs`) :
+
+| Choix de la personne | Atelier en ligne | Atelier dans un de ses départements | Atelier ailleurs |
+| --- | --- | --- | --- |
+| En ligne **et** près de chez moi | reçoit | reçoit | rien |
+| En ligne uniquement | reçoit | rien | rien |
+| Près de chez moi uniquement | rien | reçoit | rien |
+
+Sont en plus écartés : les ateliers privés, passés, complets, ou à plus de
+60 jours.
+
+**Départements : liste fermée.** Les deux côtés, le formulaire d'abonnement
+(`/participer/#alertes`) et celui de programmation d'un atelier, proposent la
+même liste, générée depuis l'unique source `serveur/src/departements.js` par
+`node scripts/generer-departements.mjs`. La comparaison est donc exacte : il ne
+peut pas y avoir de « Lyon » qui ne rencontre jamais « lyon » ou
+« Villeurbanne ». Un test bloque toute divergence entre le formulaire et le
+serveur.
+
+Désabonnement en un clic depuis le lien en bas de chaque message
+(`/alertes/?d=<jeton>`) : l'adresse est **effacée**, pas désactivée.
+
+Envoi hebdomadaire : fonction planifiée `alertes-envoi` (mardi 9 h UTC, voir
+`netlify.toml`). L'espace d'administration affiche le nombre d'abonnés et le
+classement des départements en attente, ce qui indique où programmer le
+prochain atelier.
+
 ## Déploiement
 
 Hébergé sur **Netlify** : `publish = "site"`, fonctions dans

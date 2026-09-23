@@ -11,6 +11,7 @@
         ligne et plusieurs dans sa ville tiennent dans un seul envoi.
 */
 "use strict";
+var Z = require("./departements.js");
 
 var SEMAINE_MS = 7 * 24 * 60 * 60 * 1000;
 var FORMATS = ["enligne", "physique", "les_deux"];
@@ -45,18 +46,21 @@ function validerAbonnement(corps, now) {
 
   var format = FORMATS.indexOf(tronque(corps.format, 20)) === -1 ? "les_deux" : tronque(corps.format, 20);
 
+  /* ZONES : des CODES d'une liste fermee, jamais du texte libre. Comparer
+     « Lyon » a « Villeurbanne » ou a « Lyon 7e » ne peut pas marcher, et
+     l'abonne ne recevrait rien sans que personne ne comprenne pourquoi. */
   var zones = [];
   if (format !== "enligne") {
     var brutes = Array.isArray(corps.zones) ? corps.zones : String(corps.zones || "").split(",");
     brutes.forEach(function (z) {
-      var n = normaliser(z);
-      if (n && zones.indexOf(n) === -1 && zones.length < MAX_ZONES) zones.push(n);
+      var code = tronque(z, 4).toUpperCase();
+      if (Z.valide(code) && zones.indexOf(code) === -1 && zones.length < MAX_ZONES) zones.push(code);
     });
     /* Sans zone, un abonne au presentiel recevrait les ateliers de toute la
        France. C'est le plus sur chemin vers le desabonnement, donc on refuse
        plutot que d'accepter un abonnement qui ne tiendra pas. */
     if (!zones.length) {
-      return { erreur: "Indiquez au moins une ville ou un département, pour ne recevoir que ce qui est près de chez vous." };
+      return { erreur: "Choisissez au moins un département, pour ne recevoir que ce qui est près de chez vous." };
     }
   }
 
@@ -93,13 +97,22 @@ function annoncable(a, now) {
 function concerne(abonne, a) {
   if (a.mode === "enligne") return abonne.format !== "physique";
   if (abonne.format === "enligne") return false;
-  // Presentiel : on compare la zone de l'abonne au lieu et a l'adresse, dans
-  // les deux sens -- « Lyon » doit rencontrer « MJC des Tilleuls, Lyon 7e »,
-  // et « Rhone » doit rencontrer « Rhone ».
+  var zones = abonne.zones || [];
+  if (!zones.length) return false;
+
+  // Cas normal : les deux cotes portent un code de la meme liste fermee, la
+  // comparaison est exacte et ne peut pas se tromper.
+  if (a.departement) return zones.indexOf(String(a.departement).toUpperCase()) !== -1;
+
+  /* REPLI pour les ateliers programmes avant l'existence du champ : on compare
+     le NOM du departement au lieu et a l'adresse. C'est approximatif, et c'est
+     exactement pourquoi la liste fermee existe -- ce repli disparaitra quand
+     les anciens ateliers seront passes. */
   var ou = normaliser((a.lieu || "") + " " + (a.adresse || ""));
   if (!ou) return false;
-  return (abonne.zones || []).some(function (z) {
-    return z && (ou.indexOf(z) !== -1 || z.indexOf(ou) !== -1);
+  return zones.some(function (code) {
+    var nom = normaliser(Z.nom(code));
+    return nom && ou.indexOf(nom) !== -1;
   });
 }
 
@@ -128,8 +141,11 @@ function grouper(ateliers) {
   var enligne = [], villes = [], index = {};
   (ateliers || []).forEach(function (a) {
     if (a.mode === "enligne") { enligne.push(a); return; }
-    var cle = normaliser(a.lieu) || "ailleurs";
-    if (!index[cle]) { index[cle] = { ville: a.lieu || "", ateliers: [] }; villes.push(index[cle]); }
+    var cle = a.departement ? String(a.departement).toUpperCase() : (normaliser(a.lieu) || "ailleurs");
+    if (!index[cle]) {
+      index[cle] = { ville: a.departement ? Z.libelle(a.departement) : (a.lieu || ""), ateliers: [] };
+      villes.push(index[cle]);
+    }
     index[cle].ateliers.push(a);
   });
   return { enligne: enligne, villes: villes };

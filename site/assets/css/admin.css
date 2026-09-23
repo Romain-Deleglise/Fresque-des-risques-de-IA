@@ -137,3 +137,10 @@ body.admin { background: var(--bg-doux); }
 .r-mail { margin: .5rem 0 0; font-size: .85rem; }
 .r-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
 .btn-mini.danger:hover { border-color: var(--err); color: var(--err); }
+
+/* Alertes « prochains ateliers » */
+.alertes-formats { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 10px 26px; }
+.alertes-formats li { font-size: .95rem; }
+.alertes-zones { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.alertes-zones th, .alertes-zones td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--trait, #e6e1d8); }
+.alertes-zones td:last-child, .alertes-zones th:last-child { text-align: right; width: 6rem; }

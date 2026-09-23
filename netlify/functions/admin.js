@@ -12,6 +12,7 @@
    GET  ?action=tableau            -> { stats, contacts }
    GET  ?action=retours            -> { retours } (retours d'atelier + temoignages)
    GET  ?action=export             -> CSV des contacts (piece a telecharger)
+   GET  ?action=alertes            -> { total, formats, zones } (abonnes aux annonces)
    POST { op:"desinscrire", mail } -> marque le contact desinscrit
    POST { op:"supprimer",   mail } -> efface le contact
    POST { op:"retour", sousOp, cle } -> publier / masquer / traiter / effacer
@@ -19,11 +20,36 @@
 "use strict";
 const crypto = require("crypto");
 const { getStore, connectLambda } = require("@netlify/blobs");
+const Z = require("../../serveur/src/departements.js");
 const C = require("./lib/contacts.js");
 const R = require("../../serveur/src/retours.js");
 
 function contacts() { return getStore({ name: "fresque-contacts" }); }
 function retours() { return getStore({ name: "fresque-retours" }); }
+function alertes() { return getStore({ name: "fresque-alertes" }); }
+
+/* Abonnes aux annonces « prochains ateliers ». On ne rend QUE des comptages :
+   l'interet pour l'equipe est de savoir ou programmer le prochain atelier, pas
+   de disposer d'une liste d'adresses de plus. */
+async function resumeAlertes() {
+  const s = alertes();
+  const liste = await s.list().catch(() => ({ blobs: [] }));
+  const formats = { enligne: 0, physique: 0, les_deux: 0 };
+  const parZone = {};
+  let total = 0;
+  for (const b of liste.blobs || []) {
+    if (b.key.indexOf("abonne:") !== 0) continue; // les cles "jeton:" pointent vers celles-ci
+    const v = await s.get(b.key, { type: "json" }).catch(() => null);
+    if (!v || !v.actif) continue;
+    total++;
+    if (formats[v.format] != null) formats[v.format]++;
+    (v.zones || []).forEach((z) => { parZone[z] = (parZone[z] || 0) + 1; });
+  }
+  const zones = Object.keys(parZone)
+    .map((z) => ({ zone: Z.libelle(z), n: parZone[z] }))
+    .sort((a, b) => b.n - a.n);
+  return { total, formats, zones };
+}
 
 /* Les retours d'atelier et les temoignages arrivent par /retour/ et
    /temoignage/. Rien n'est publie automatiquement : l'equipe les lit ici. */
@@ -134,6 +160,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
       const q = event.queryStringParameters || {};
       if (q.action === "retours") return json(200, { retours: await listerRetours() });
+      if (q.action === "alertes") return json(200, await resumeAlertes());
       const liste = await C.lister(st);
       if (q.action === "export") {
         return {
