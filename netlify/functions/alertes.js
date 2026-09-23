@@ -3,9 +3,9 @@
    Regles pures : serveur/src/alertes.js. L'envoi hebdomadaire vit dans
    alertes-envoi.js. Stockage : Netlify Blobs, magasin "fresque-alertes".
 
-   POST { op:"abonner", mail, format, zones } -> { ok, jeton }
+   POST { op:"abonner", mail, format, communes, rayonKm } -> { ok, jeton }
    GET  ?d=<jeton>                            -> desabonnement en un clic
-   GET  ?etat=<jeton>                         -> { format, zones } pour la page
+   GET  ?etat=<jeton>                         -> { format, communes, rayonKm } pour la page
 
    LE DESABONNEMENT EST UN SIMPLE LIEN. Pas de connexion, pas de formulaire,
    pas de « confirmez-vous ». Rendre la sortie penible ne retient personne :
@@ -65,7 +65,7 @@ exports.handler = async (event) => {
     const ab = await s.get(ref.cle, { type: "json" }).catch(() => null);
     if (!ab) return json(404, { erreur: "Ce lien n’est plus valable." });
 
-    if (q.etat) return json(200, { ok: true, format: ab.format, zones: ab.zones || [], actif: !!ab.actif });
+    if (q.etat) return json(200, { ok: true, format: ab.format, communes: ab.communes || [], rayonKm: ab.rayonKm, actif: !!ab.actif });
 
     /* On efface plutot que de marquer inactif : garder l'adresse de quelqu'un
        qui vient de demander a ne plus rien recevoir serait le contraire de ce

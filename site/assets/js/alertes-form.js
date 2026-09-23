@@ -8,42 +8,60 @@
 
   var msg = document.getElementById("alertes-msg");
   var bloc = document.getElementById("bloc-zones");
-  var choix = document.getElementById("zone-choix");
+  var champ = document.getElementById("commune-champ");
+  var btnAjout = document.getElementById("commune-ajout");
   var liste = document.getElementById("zones-choisies");
-  var MAX = 8;
-  var zones = [];
+  var rayon = document.getElementById("rayon");
+  var MAX = 5;
+  var zones = [];        // { code, nom, rayon }
+  var enAttente = null;  // commune choisie dans la liste, pas encore ajoutée
+  var rayonTouche = false;
+
+  var picker = window.Commune.attacher(champ, "../", function (c) {
+    enAttente = c;
+    btnAjout.disabled = !c || zones.length >= MAX;
+  });
+
+  // Le rayon se pré-remplit sur la première commune : 15 km à Paris, 100 en
+  // Lozère. Dès que la personne y touche, on ne le change plus sous ses yeux.
+  rayon.addEventListener("change", function () { rayonTouche = true; });
 
   function libelle(code) {
-    var o = choix.querySelector('option[value="' + code + '"]');
-    return o ? o.textContent : code;
+    var z = zones.filter(function (x) { return x.code === code; })[0];
+    return z ? z.nom : code;
   }
 
   function rendreZones() {
     liste.textContent = "";
-    zones.forEach(function (code) {
+    zones.forEach(function (z) {
+      var code = z.code;
       var li = document.createElement("li");
       li.className = "puce-zone";
-      li.textContent = libelle(code) + " ";
+      li.textContent = z.nom + " ";
       var b = document.createElement("button");
       b.type = "button";
       b.className = "puce-x";
-      b.setAttribute("aria-label", "Retirer " + libelle(code));
+      b.setAttribute("aria-label", "Retirer " + z.nom);
       b.textContent = "×";
       b.addEventListener("click", function () {
-        zones = zones.filter(function (z) { return z !== code; });
+        zones = zones.filter(function (x) { return x.code !== code; });
         rendreZones();
       });
       li.appendChild(b);
       liste.appendChild(li);
     });
-    document.getElementById("zone-ajout").disabled = zones.length >= MAX;
+    btnAjout.disabled = !enAttente || zones.length >= MAX;
+    if (!rayonTouche && zones.length) rayon.value = String(zones[0].rayon);
   }
 
-  document.getElementById("zone-ajout").addEventListener("click", function () {
-    var v = choix.value;
-    if (!v || zones.indexOf(v) !== -1 || zones.length >= MAX) return;
-    zones.push(v);
-    choix.value = "";
+  btnAjout.addEventListener("click", function () {
+    if (!enAttente || zones.length >= MAX) return;
+    var code = enAttente.code;
+    if (!zones.some(function (z) { return z.code === code; })) {
+      zones.push({ code: code, nom: window.Commune.etiquette(enAttente), rayon: enAttente.rayon });
+    }
+    enAttente = null;
+    picker.vider();
     rendreZones();
   });
 
@@ -62,7 +80,7 @@
     var format = (form.querySelector('input[name="format"]:checked') || {}).value || "les_deux";
     if (format !== "enligne" && !zones.length) {
       msg.className = "msg err";
-      msg.textContent = "Choisissez au moins un département, pour ne recevoir que ce qui est près de chez vous.";
+      msg.textContent = "Choisissez au moins une commune dans la liste, pour ne recevoir que ce qui est près de chez vous.";
       return;
     }
     var btn = form.querySelector('button[type="submit"]');
@@ -76,7 +94,8 @@
         op: "abonner",
         mail: form.querySelector('[name="mail"]').value.trim(),
         format: format,
-        zones: format === "enligne" ? [] : zones,
+        communes: format === "enligne" ? [] : zones.map(function (z) { return z.code; }),
+        rayonKm: rayon.value,
         site: form.querySelector('[name="site"]').value
       })
     }).then(function (r) {

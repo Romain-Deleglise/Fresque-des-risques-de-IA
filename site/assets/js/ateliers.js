@@ -23,7 +23,8 @@
     recapPartage: "Registration link to share",
     confirmDoublon: "You just scheduled a workshop with exactly these details. Schedule a second one?",
     gererIntro: "Open the \u00ab move the workshop \u00bb link from your confirmation e-mail: the workshop is recognised automatically, you only enter your e-mail.",
-    lienInconnu: "This link does not match any workshop (it may have been cancelled)."
+    lienInconnu: "This link does not match any workshop (it may have been cancelled).",
+    communeObligatoire: "Pick a town from the list."
   } : {
     envoi: "Envoi…", erreur: "Une erreur est survenue. Réessayez.", indispo: "Service indisponible. Réessayez plus tard.",
     codeOk: "Atelier programmé.", mailOk: " Tous les détails sont dans l'e-mail de confirmation qui vient de vous être envoyé.", mailNon: " (L'envoi d'e-mail n'est pas encore configuré : gardez le lien ci-dessous.)",
@@ -43,7 +44,8 @@
     recapPartage: "Lien de participation à partager",
     confirmDoublon: "Vous venez de programmer un atelier avec exactement ces informations. En programmer un second ?",
     gererIntro: "Ouvrez le lien \u00ab déplacer l'atelier \u00bb de votre e-mail de confirmation : l'atelier concerné est reconnu tout seul, il ne vous reste que votre e-mail à saisir.",
-    lienInconnu: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé)."
+    lienInconnu: "Ce lien ne correspond à aucun atelier (il a peut-être été annulé).",
+    communeObligatoire: "Choisissez une commune dans la liste."
   };
   var HREF_PROG = en ? "/en/facilitate/#programmer" : "/devenir-animateur/#programmer";
   function videHtml() {
@@ -88,13 +90,30 @@
       if (lieu) lieu.required = physique;
       // Le département est masqué en ligne : laisser `required` bloquerait
       // silencieusement l'envoi sur un champ que personne ne voit.
-      var dep = form.querySelector('[name="departement"]');
-      if (dep) { dep.required = physique; if (!physique) dep.value = ""; }
+      // La commune est masquée en ligne : laisser `required` bloquerait
+      // silencieusement l'envoi sur un champ que personne ne voit.
+      var comTexte = form.querySelector('[name="commune-texte"]');
+      var com = form.querySelector('[name="commune"]');
+      if (comTexte) comTexte.required = physique;
+      if (com && !physique) { com.value = ""; if (comTexte) comTexte.value = ""; }
       var maxi = form.querySelector('[name="maxParticipants"]');
       if (maxi) { maxi.max = physique ? 16 : 8; if (+maxi.value > +maxi.max) maxi.value = maxi.max; }
     }
     form.querySelectorAll('input[name="mode"]').forEach(function (r) { r.addEventListener("change", majMode); });
     majMode();
+
+    /* Commune : saisie assistée, liste fermée. Le champ visible ne sert qu'à
+       chercher ; c'est le champ caché, rempli seulement par une sélection, qui
+       part au serveur. Une saisie approximative ne vaut donc rien. */
+    var champCommune = form.querySelector('[name="commune-texte"]');
+    var codeCommune = form.querySelector('[name="commune"]');
+    if (champCommune && codeCommune && window.Commune) {
+      var base = location.pathname.indexOf("/en/") === 0 ? "../../" : "../";
+      window.Commune.attacher(champCommune, base, function (c) {
+        codeCommune.value = c ? c.code : "";
+        champCommune.setCustomValidity(champCommune.required && !c ? T.communeObligatoire : "");
+      });
+    }
     // Visio : le champ "lien perso" n'apparaît que si l'animateur fournit le sien.
     var visioSel = form.querySelector('[name="visioMode"]');
     var champVisio = form.querySelector(".champ-visio-perso");

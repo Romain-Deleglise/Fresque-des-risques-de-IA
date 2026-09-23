@@ -12,7 +12,7 @@
    GET  ?action=tableau            -> { stats, contacts }
    GET  ?action=retours            -> { retours } (retours d'atelier + temoignages)
    GET  ?action=export             -> CSV des contacts (piece a telecharger)
-   GET  ?action=alertes            -> { total, formats, zones } (abonnes aux annonces)
+    GET  ?action=alertes            -> { total, formats, zones } (abonnes aux annonces)
    POST { op:"desinscrire", mail } -> marque le contact desinscrit
    POST { op:"supprimer",   mail } -> efface le contact
    POST { op:"retour", sousOp, cle } -> publier / masquer / traiter / effacer
@@ -20,7 +20,7 @@
 "use strict";
 const crypto = require("crypto");
 const { getStore, connectLambda } = require("@netlify/blobs");
-const Z = require("../../serveur/src/departements.js");
+const C = require("../../serveur/src/communes.js");
 const C = require("./lib/contacts.js");
 const R = require("../../serveur/src/retours.js");
 
@@ -43,10 +43,10 @@ async function resumeAlertes() {
     if (!v || !v.actif) continue;
     total++;
     if (formats[v.format] != null) formats[v.format]++;
-    (v.zones || []).forEach((z) => { parZone[z] = (parZone[z] || 0) + 1; });
+    (v.communes || []).forEach((z) => { parZone[z] = (parZone[z] || 0) + 1; });
   }
   const zones = Object.keys(parZone)
-    .map((z) => ({ zone: Z.libelle(z), n: parZone[z] }))
+    .map((z) => ({ zone: C.libelle(z), n: parZone[z] }))
     .sort((a, b) => b.n - a.n);
   return { total, formats, zones };
 }

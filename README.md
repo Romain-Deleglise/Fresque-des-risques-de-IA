@@ -77,7 +77,7 @@ code, pas par la bonne volonté :
 Qui reçoit quoi, exhaustivement (table de vérité vérifiée par
 `serveur/tests/alertes.test.mjs`) :
 
-| Choix de la personne | Atelier en ligne | Atelier dans un de ses départements | Atelier ailleurs |
+| Choix de la personne | Atelier en ligne | Atelier dans son rayon | Atelier plus loin |
 | --- | --- | --- | --- |
 | En ligne **et** près de chez moi | reçoit | reçoit | rien |
 | En ligne uniquement | reçoit | rien | rien |
@@ -86,20 +86,36 @@ Qui reçoit quoi, exhaustivement (table de vérité vérifiée par
 Sont en plus écartés : les ateliers privés, passés, complets, ou à plus de
 60 jours.
 
-**Départements : liste fermée.** Les deux côtés, le formulaire d'abonnement
-(`/participer/#alertes`) et celui de programmation d'un atelier, proposent la
-même liste, générée depuis l'unique source `serveur/src/departements.js` par
-`node scripts/generer-departements.mjs`. La comparaison est donc exacte : il ne
-peut pas y avoir de « Lyon » qui ne rencontre jamais « lyon » ou
-« Villeurbanne ». Un test bloque toute divergence entre le formulaire et le
-serveur.
+**Communes : liste fermée, et un rayon.** Les deux côtés — le formulaire
+d'abonnement (`/participer/#alertes`) et celui de programmation d'un atelier —
+font choisir une commune dans les **34 875 communes françaises** (code INSEE,
+source : Code officiel géographique de l'INSEE). Aucune saisie libre n'est
+acceptée : « Lyon », « lyon » et « Lyon 7e » ne se rencontreraient jamais.
+
+La comparaison se fait ensuite sur les **distances**, pas sur les noms : exiger
+la commune exacte ferait rater à quelqu'un de Villeurbanne l'atelier de Lyon, à
+quatre kilomètres.
+
+Le rayon par défaut **s'adapte à la commune** : 50 km autour de Paris, c'est
+Melun ; 50 km en Lozère, c'est deux bourgs. `scripts/generer-communes.mjs`
+calcule pour chaque commune le plus petit rayon parmi 15 / 30 / 50 / 100 km qui
+met ~800 000 personnes à portée. Le seuil est volontairement généreux : au
+démarrage il y aura peu d'ateliers, mieux vaut un peu trop large que rien
+pendant six mois. La personne peut toujours le changer.
+
+Les coordonnées restent **côté serveur** (`serveur/src/communes-coords.txt`) ;
+le navigateur ne charge que `site/data/communes.txt` (nom, code, code postal,
+rayon proposé), et seulement au moment où quelqu'un cherche sa commune.
+
+Régénérer après une fusion de communes : `node scripts/generer-communes.mjs`
+(demande un accès réseau ; les fichiers produits sont versionnés).
 
 Désabonnement en un clic depuis le lien en bas de chaque message
 (`/alertes/?d=<jeton>`) : l'adresse est **effacée**, pas désactivée.
 
 Envoi hebdomadaire : fonction planifiée `alertes-envoi` (mardi 9 h UTC, voir
 `netlify.toml`). L'espace d'administration affiche le nombre d'abonnés et le
-classement des départements en attente, ce qui indique où programmer le
+classement des communes en attente, ce qui indique où programmer le
 prochain atelier.
 
 ## Déploiement

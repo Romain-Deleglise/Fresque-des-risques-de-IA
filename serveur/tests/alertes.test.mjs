@@ -6,55 +6,92 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const A = require("../src/alertes.js");
-const Z = require("../src/departements.js");
+const C = require("../src/communes.js");
 
 const NOW = Date.UTC(2026, 0, 12);
 const JOUR = 24 * 60 * 60 * 1000;
 
 const enLigne = (o = {}) => ({ mode: "enligne", visibilite: "public", quandMs: NOW + 10 * JOUR, participants: [], maxParticipants: 30, ...o });
-const surPlace = (dep, o = {}) => ({ mode: "physique", visibilite: "public", quandMs: NOW + 10 * JOUR, participants: [], maxParticipants: 20, departement: dep, lieu: Z.nom(dep), ...o });
+const surPlace = (com, o = {}) => ({ mode: "physique", visibilite: "public", quandMs: NOW + 10 * JOUR, participants: [], maxParticipants: 20, commune: com, lieu: C.nom(com), ...o });
 
-const abo = (format, zones = []) => A.validerAbonnement({ mail: "a@b.fr", format, zones }, NOW).abonne;
+// Codes INSEE utilisés : Lyon, Villeurbanne (4 km de Lyon), Saint-Étienne
+// (51 km), Paris, Melun (41 km de Paris), Bordeaux.
+const LYON = "69123", VILLEURBANNE = "69266", ST_ETIENNE = "42218";
+const PARIS = "75056", MELUN = "77288", BORDEAUX = "33063";
+
+const abo = (format, communes = [], rayonKm) =>
+  A.validerAbonnement({ mail: "a@b.fr", format, communes, rayonKm }, NOW).abonne;
 
 test("table de verite : format x nature d'atelier", () => {
   const cas = [
-    // [format, zones, atelier, recoit ?]
+    // [format, communes, atelier, recoit ?]
     ["enligne", [], enLigne(), true],
-    ["enligne", [], surPlace("69"), false],
-    ["physique", ["69"], enLigne(), false],
-    ["physique", ["69"], surPlace("69"), true],
-    ["physique", ["69"], surPlace("75"), false],
-    ["les_deux", ["69"], enLigne(), true],
-    ["les_deux", ["69"], surPlace("69"), true],
-    ["les_deux", ["69"], surPlace("75"), false]
+    ["enligne", [], surPlace(LYON), false],
+    ["physique", [LYON], enLigne(), false],
+    ["physique", [LYON], surPlace(LYON), true],
+    ["physique", [LYON], surPlace(PARIS), false],
+    ["les_deux", [LYON], enLigne(), true],
+    ["les_deux", [LYON], surPlace(LYON), true],
+    ["les_deux", [LYON], surPlace(PARIS), false]
   ];
-  for (const [format, zones, atelier, attendu] of cas) {
-    assert.equal(A.concerne(abo(format, zones), atelier), attendu,
-      `${format} ${JSON.stringify(zones)} vs ${atelier.mode} ${atelier.departement || ""}`);
+  for (const [format, communes, atelier, attendu] of cas) {
+    assert.equal(A.concerne(abo(format, communes, 50), atelier), attendu,
+      `${format} ${JSON.stringify(communes)} vs ${atelier.mode} ${atelier.commune || ""}`);
   }
 });
 
-test("plusieurs departements choisis : chacun compte", () => {
-  const ab = abo("les_deux", ["69", "75", "BE"]);
-  assert.equal(A.concerne(ab, surPlace("75")), true);
-  assert.equal(A.concerne(ab, surPlace("BE")), true);
-  assert.equal(A.concerne(ab, surPlace("33")), false);
+test("plusieurs communes choisies : chacune compte", () => {
+  const ab = abo("les_deux", [LYON, PARIS], 30);
+  assert.equal(A.concerne(ab, surPlace(PARIS)), true);
+  assert.equal(A.concerne(ab, surPlace(LYON)), true);
+  assert.equal(A.concerne(ab, surPlace(BORDEAUX)), false);
 });
 
-test("un abonne au presentiel SANS departement est refuse", () => {
-  assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "physique", zones: [] }, NOW).erreur);
-  assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "les_deux", zones: ["zzz"] }, NOW).erreur);
+/* LE POINT QUI JUSTIFIE TOUT LE DISPOSITIF : quelqu'un de Villeurbanne doit
+   recevoir l'atelier de Lyon, à quatre kilomètres. Une comparaison de noms
+   l'aurait raté, et personne n'aurait compris pourquoi. */
+test("le voisinage compte, pas le nom de la commune", () => {
+  const villeurbannais = abo("physique", [VILLEURBANNE], 15);
+  assert.equal(A.concerne(villeurbannais, surPlace(LYON)), true);
+  // Saint-Étienne est à 51 km : hors de son rayon de 15 km.
+  assert.equal(A.concerne(villeurbannais, surPlace(ST_ETIENNE)), false);
+  // Le même, prêt à prendre le train, le reçoit.
+  assert.equal(A.concerne(abo("physique", [VILLEURBANNE], 100), surPlace(ST_ETIENNE)), true);
+});
+
+/* « Si on prend Paris c'est très large » : 50 km autour de Paris, c'est Melun.
+   Le rayon par défaut s'adapte donc à la densité de la commune. */
+test("le rayon par defaut s'adapte a la commune", () => {
+  assert.equal(abo("physique", [PARIS]).rayonKm, 15);
+  assert.equal(C.rayonPropose("48095") >= 50, true, "une commune rurale propose un grand rayon");
+  // Un Parisien par défaut ne reçoit pas Melun ; à 50 km choisis, si.
+  assert.equal(A.concerne(abo("physique", [PARIS]), surPlace(MELUN)), false);
+  assert.equal(A.concerne(abo("physique", [PARIS], 50), surPlace(MELUN)), true);
+  // Un choix explicite l'emporte toujours sur la proposition.
+  assert.equal(abo("physique", [PARIS], 100).rayonKm, 100);
+});
+
+test("un atelier sans commune ne concerne personne : on ne devine pas", () => {
+  const ab = abo("les_deux", [LYON], 100);
+  assert.equal(A.concerne(ab, { mode: "physique", lieu: "Lyon" }), false);
+  assert.equal(A.concerne(ab, { mode: "physique", commune: "99999" }), false);
+});
+
+test("un abonne au presentiel SANS commune valide est refuse", () => {
+  assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "physique", communes: [] }, NOW).erreur);
+  assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "les_deux", communes: ["Lyon"] }, NOW).erreur);
+  assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "les_deux", communes: ["99999"] }, NOW).erreur);
   // En ligne uniquement : pas de departement demande.
   assert.ok(A.validerAbonnement({ mail: "a@b.fr", format: "enligne" }, NOW).abonne);
 });
 
 test("rien a annoncer = aucun mail", () => {
-  assert.equal(A.envoisDeLaSemaine([abo("les_deux", ["69"])], [], NOW).length, 0);
-  assert.equal(A.envoisDeLaSemaine([abo("enligne")], [surPlace("69")], NOW).length, 0);
+  assert.equal(A.envoisDeLaSemaine([abo("les_deux", [LYON])], [], NOW).length, 0);
+  assert.equal(A.envoisDeLaSemaine([abo("enligne")], [surPlace(LYON)], NOW).length, 0);
 });
 
 test("ateliers ecartes : prive, passe, trop loin, complet", () => {
-  const ab = abo("les_deux", ["69"]);
+  const ab = abo("les_deux", [LYON]);
   const ecartes = [
     enLigne({ visibilite: "prive" }),
     enLigne({ quandMs: NOW - JOUR }),
@@ -66,12 +103,12 @@ test("ateliers ecartes : prive, passe, trop loin, complet", () => {
 });
 
 test("un seul mail par semaine, contenant TOUT ce qui concerne la personne", () => {
-  const ab = abo("les_deux", ["69", "75"]);
+  const ab = abo("les_deux", [LYON, PARIS], 30);
   const ateliers = [
-    surPlace("69", { quandMs: NOW + 5 * JOUR, code: "c" }),
+    surPlace(LYON, { quandMs: NOW + 5 * JOUR, code: "c" }),
     enLigne({ quandMs: NOW + 2 * JOUR, code: "a" }),
-    surPlace("75", { quandMs: NOW + 3 * JOUR, code: "b" }),
-    surPlace("33", { code: "hors" })
+    surPlace(PARIS, { quandMs: NOW + 3 * JOUR, code: "b" }),
+    surPlace(BORDEAUX, { code: "hors" })
   ];
   const envois = A.envoisDeLaSemaine([ab], ateliers, NOW);
   assert.equal(envois.length, 1);
@@ -79,7 +116,7 @@ test("un seul mail par semaine, contenant TOUT ce qui concerne la personne", () 
 
   const g = A.grouper(envois[0].ateliers);
   assert.equal(g.enligne.length, 1);
-  assert.deepEqual(g.villes.map((v) => v.ville), [Z.libelle("75"), Z.libelle("69")]);
+  assert.deepEqual(g.villes.map((v) => v.ville), [C.libelle(PARIS), C.libelle(LYON)]);
 
   // Deja servi il y a deux jours : silence, meme s'il y a du neuf.
   const servi = { ...ab, dernierEnvoi: NOW - 2 * JOUR };
@@ -90,29 +127,43 @@ test("un seul mail par semaine, contenant TOUT ce qui concerne la personne", () 
 });
 
 test("desabonne : plus rien, jamais", () => {
-  const ab = { ...abo("les_deux", ["69"]), actif: false };
+  const ab = { ...abo("les_deux", [LYON]), actif: false };
   assert.equal(A.envoisDeLaSemaine([ab], [enLigne()], NOW).length, 0);
 });
 
-test("departements : liste fermee", () => {
-  assert.ok(Z.valide("69") && Z.valide("2A") && Z.valide("BE"));
-  assert.ok(!Z.valide("00") && !Z.valide("Lyon") && !Z.valide(""));
-  assert.equal(Z.libelle("69"), "69 - Rhône");
+test("communes : liste fermee et officielle", () => {
+  assert.ok(C.nombre() > 34000, "toutes les communes de France");
+  assert.ok(C.valide(LYON) && C.valide("2A004") && C.valide("97105"));
+  assert.ok(!C.valide("99999") && !C.valide("Lyon") && !C.valide(""));
+  assert.equal(C.libelle(LYON), "Lyon (69)");
+  assert.equal(C.departement("97105"), "971");
 });
 
-/* Garde-fou : le formulaire des animateurs et la validation serveur lisent la
-   MEME liste. Une divergence rangerait des ateliers dans une zone a laquelle
-   personne ne peut s'abonner -- silencieusement. */
-test("les formulaires proposent exactement les zones acceptees", async () => {
+test("distances : les trois grandes villes ont bien une position", () => {
+  // Paris, Lyon et Marseille sont absentes de la base postale (qui ne connaît
+  // que leurs arrondissements). Sans rattachement, elles n'auraient aucune
+  // position et personne ne recevrait jamais un atelier parisien.
+  for (const c of [PARIS, LYON, "13055"]) assert.ok(C.position(c), c);
+  assert.ok(Math.abs(C.entre(LYON, VILLEURBANNE) - 4) < 3);
+  assert.ok(Math.abs(C.entre(LYON, PARIS) - 392) < 15);
+  assert.equal(C.entre(LYON, "99999"), Infinity);
+});
+
+/* Garde-fou : le formulaire et le serveur lisent le MEME fichier de communes. */
+test("le formulaire charge la liste servie par le site", async () => {
   const fs = await import("node:fs");
-  const codes = Object.keys(Z.ZONES);
+  const data = fs.readFileSync(new URL("../../site/data/communes.txt", import.meta.url), "utf8");
+  const lignes = data.split("\n").filter(Boolean);
+  assert.equal(lignes.length, C.nombre());
+  for (const l of lignes.slice(0, 50)) assert.match(l, /^[0-9AB]{5};[^;]+;[0-9]*;(15|30|50|100)$/);
   for (const f of ["site/devenir-animateur/index.html", "site/en/facilitate/index.html"]) {
     const html = fs.readFileSync(new URL("../../" + f, import.meta.url), "utf8");
-    const bloc = html.match(/<select name="departement"[^>]*>([\s\S]*?)<\/select>/);
-    assert.ok(bloc, "select départment absent de " + f);
-    const vus = [...bloc[1].matchAll(/value="([^"]*)"/g)].map((m) => m[1]).filter(Boolean);
-    assert.deepEqual(vus, codes, f);
-    // Masqué en ligne : il ne doit pas bloquer un atelier distanciel.
-    assert.match(html, /champs-physique[\s\S]*name="departement"/);
+    // Le champ visible ne sert qu'a chercher : c'est le champ cache qui part.
+    assert.match(html, /<input type="hidden" name="commune">/);
+    assert.match(html, /champs-physique[\s\S]*name="commune"/);
+    assert.match(html, /assets\/js\/commune\.js/);
   }
+  const part = fs.readFileSync(new URL("../../site/participer/index.html", import.meta.url), "utf8");
+  assert.match(part, /id="commune-champ"/);
+  assert.match(part, /name="rayonKm"/);
 });

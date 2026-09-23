@@ -2,7 +2,7 @@
    Utilise par la fonction Netlify (netlify/functions/ateliers.js) et par les
    tests. CommonJS. Aucune donnee personnelle n'est loggee ici. */
 "use strict";
-var Z = require("./departements.js");
+var C = require("./communes.js");
 
 var MAX_ENLIGNE = 8;        // 8 participants max par session en ligne
 var MAX_PHYSIQUE = 16;      // 2 tables x 8, conseil d'animation
@@ -52,15 +52,16 @@ function valider(d) {
     a.lieu = tronque(d.lieu, LEN_LIEU);
     a.adresse = tronque(d.adresse, LEN_ADRESSE);
     if (!a.lieu) return err("lieu_manquant", "Indiquez le lieu de l'atelier.");
-    /* LE DEPARTEMENT, choisi dans une liste fermee. C'est lui, et non le texte
-       du lieu, qui permet de prevenir les gens abonnes aux ateliers pres de
-       chez eux : comparer « Villeurbanne » a « Lyon » ne marcherait pas.
-       Facultatif pour ne pas casser les ateliers deja programmes, mais le
-       formulaire le demande. */
-    var dep = tronque(d.departement, 4).toUpperCase();
-    if (dep) {
-      if (!Z.valide(dep)) return err("departement_invalide", "Choisissez un département dans la liste.");
-      a.departement = dep;
+    /* LA COMMUNE, choisie dans une liste fermee (code INSEE). C'est elle, et
+       non le texte du lieu, qui permet de prevenir les gens abonnes aux
+       ateliers pres de chez eux : comparer « Villeurbanne » a « Lyon » ne
+       marcherait pas, alors que comparer leurs positions marche.
+       Facultative pour ne pas casser les ateliers deja programmes, mais le
+       formulaire la demande. */
+    var com = tronque(d.commune, 6).toUpperCase();
+    if (com) {
+      if (!C.valide(com)) return err("commune_invalide", "Choisissez une commune dans la liste.");
+      a.commune = com;
     }
   }
   // Visioconférence : générée automatiquement (auto), fournie par l'animateur

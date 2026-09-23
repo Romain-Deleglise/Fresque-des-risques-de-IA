@@ -643,3 +643,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 /* Attribut style= inutilisable : la CSP du site interdit les styles en ligne. */
 .espace-haut { margin-top: 1.2rem; }
+
+/* Sélecteur de commune : liste de suggestions sous le champ */
+.commune-liste { position: absolute; z-index: 40; list-style: none; margin: 4px 0 0; padding: 4px; width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--trait, #e6e1d8); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .12); max-height: 280px; overflow-y: auto; }
+.commune-item { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 15px; }
+.commune-item:hover, .commune-item.actif { background: #f3efe8; }
+.ligne-zone { position: relative; }
+.ligne-zone input[type="text"] { flex: 1 1 220px; min-width: 0; }
+.champs-physique label { position: relative; }
