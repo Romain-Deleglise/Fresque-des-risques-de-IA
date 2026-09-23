@@ -645,6 +645,36 @@ Deux services tournent en Docker derrière Caddy sur le serveur Pause IA
 
 ---
 
+## 11 bis. Les e-mails de suivi
+
+Trois heures après la fin d'un atelier, `suivi.js` envoie **deux e-mails
+distincts**, pas un :
+
+| Destinataire | Objet | Ce qu'on lui demande |
+|---|---|---|
+| Animateur·ice | « Merci d'avoir animé… » | Son retour d'animation, puis son espace `/animateurs/`, le Discord, et programmer le suivant |
+| Participant·es | « Merci d'avoir participé… » | Son retour, un témoignage, puis devenir animateur·ice à son tour |
+
+Il n'y en avait qu'un, adressé à l'animateur·ice avec les participant·es en
+copie cachée, et son message principal invitait à « animer à son tour » : sans
+objet pour qui venait de le faire, et à côté de ce qu'il fallait demander aux
+participant·es.
+
+**Confidentialité.** Le mail aux participant·es part en **copie cachée seule**.
+`mail.js` met alors notre propre adresse en destinataire : personne ne voit
+l'adresse de personne. Mettre un·e participant·e en « à » la donnerait à tous
+les autres.
+
+**Les deux formulaires** (retour, témoignage) sont hébergés hors du site. Leurs
+adresses viennent de `FORM_RETOURS_URL` et `FORM_TEMOIGNAGE_URL` : tant
+qu'elles ne sont pas renseignées, les invitations correspondantes ne
+s'affichent pas. Un e-mail qui propose « laissez un retour » vers une page
+inexistante fait plus de mal que de bien.
+
+`serveur/tests/suivi-mails.test.mjs` verrouille ces quatre points.
+
+---
+
 ## 12. Cycle de vie d'un atelier
 
 ```
@@ -745,6 +775,8 @@ dans le dépôt) :
 | `MAIL_ALERTE` | mail.js | (optionnel) destinataire de l'alerte (défaut `contact@pauseia.fr`) |
 | `VISIO_BASE` | ateliers.js | (optionnel) domaine des salons visio auto, ex. `https://visio.pauseia.fr` (défaut `meet.jit.si`) |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
+| `FORM_RETOURS_URL` | suivi.js | (optionnel) formulaire de retour post-atelier (Notion). Sans elle, l'invitation n'apparaît pas dans les e-mails |
+| `FORM_TEMOIGNAGE_URL` | suivi.js | (optionnel) formulaire de témoignage. Sans elle, l'invitation n'apparaît pas |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
 | `ADMIN_TOKEN` | admin.js, commentaires.js | Clé secrète de l'espace `/admin/`, et jeton de modération des retours dans `/animateurs/`. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |

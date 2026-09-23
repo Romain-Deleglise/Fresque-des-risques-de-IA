@@ -47,8 +47,13 @@
 [functions."rappel-imminent"]
   schedule = "*/15 * * * *"
 
-# Suivi post-atelier : une fois par jour, remercie animateur + participants
-# (en Cci) apres l'atelier et invite a devenir animateur a son tour.
+# Suivi post-atelier : une fois par jour, envoie DEUX e-mails distincts,
+# un a l'animateur·ice (son retour d'animation, son espace, programmer le
+# suivant) et un aux participant·es en Cci seul (leur retour, un temoignage,
+# devenir animateur·ice). Variables optionnelles :
+#   - FORM_RETOURS_URL     : formulaire de retour post-atelier (Notion).
+#   - FORM_TEMOIGNAGE_URL  : formulaire de temoignage.
+# Sans elles, les invitations correspondantes ne s'affichent pas.
 [functions."suivi"]
   schedule = "0 10 * * *"
 
