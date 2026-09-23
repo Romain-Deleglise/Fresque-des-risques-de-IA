@@ -202,8 +202,9 @@ test("le minuteur couvre les huit temps du guide", () => {
   const js = lire("site/animateurs/minuteur/minuteur.js");
   const durees = [...js.matchAll(/min: (\d+)/g)].map((m) => +m[1]);
   assert.equal(durees.length, 8, "il faut les huit temps du déroulé");
-  // 2 h 20 de contenu pour 2 h 30 annoncées : si l'un bouge, l'autre doit suivre.
-  assert.equal(durees.reduce((a, b) => a + b, 0), 140);
+  // Le déroulé totalise les 2 h 30 annoncées sur le site : si l'un bouge,
+  // l'autre doit suivre.
+  assert.equal(durees.reduce((a, b) => a + b, 0), 150);
 });
 
 test("une réponse du lot 5 n'est pas présentée comme une cause", () => {

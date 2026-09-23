@@ -29,7 +29,7 @@
       quoi: 'Cartes 34 à 38. Relier chaque réponse au risque qu’elle traite.' },
     { nom: 'Transition', min: 10, lot: null,
       quoi: 'Réorganiser, titrer, dessiner. Repérer deux ou trois liens clés.' },
-    { nom: 'Discussion', min: 15, lot: null,
+    { nom: 'Discussion', min: 25, lot: null,
       quoi: 'Débat, puis résumé et un premier pas concret pour chacun·e.' }
   ];
   var LOT_COULEUR = { 1: '#E8811C', 2: '#2f7d4f', 3: '#3b6ea5', 4: '#8a4fb3', 5: '#c1444e' };
