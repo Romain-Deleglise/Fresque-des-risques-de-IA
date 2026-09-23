@@ -319,10 +319,25 @@
         || (cartes[+g.dataset.vers] && cartes[+g.dataset.vers].lot === lotActif);
       g.classList.toggle('vif', lie);
       g.classList.toggle('pale', (cibleN != null && !lie) || (lotActif != null && !dedans));
+      // L'aperçu de survol s'efface : sinon il reste allumé sous la sélection,
+      // et deux mises en avant concurrentes se superposent.
+      if (cibleN != null) g.classList.remove('survol');
     });
     var vide = $('recherche-vide');
     if (vide) vide.hidden = !(q && trouves === 0);
     majLibelles();
+  }
+
+  /* APERCU AU SURVOL. Avant de cliquer, on veut savoir ou mene une carte.
+     Sans cela il faut ouvrir le panneau, lire, fermer, recommencer — pour
+     trente-huit cartes, c'est un parcours interminable. Le survol n'engage
+     rien : il s'efface des qu'on part, et se tait des qu'une carte est
+     choisie, pour ne pas concurrencer la selection. */
+  function survoler(n) {
+    if (cibleN != null) return;
+    Array.prototype.forEach.call(document.querySelectorAll('#liens g'), function (g) {
+      g.classList.toggle('survol', n != null && (+g.dataset.de === n || +g.dataset.vers === n));
+    });
   }
 
   /* ── Panneau de lecture ─────────────────────────────────── */
@@ -387,7 +402,7 @@
     // On ne réajuste PAS le zoom : le recalculer sur un cadre rétréci ferait
     // rapetisser la fresque à chaque clic, et on finirait par ne plus rien
     // lire. Le cadre perd de la largeur, le défilement compense.
-    setTimeout(function () { amenerEnVue(n); }, 30);
+    setTimeout(function () { hauteurCadre(); amenerEnVue(n); }, 30);
   }
 
   /* Le panneau s'ouvre par-dessus la droite du plateau : sans cela, cliquer une
@@ -413,6 +428,7 @@
     $('panneau').hidden = true;
     document.body.classList.remove('panneau-ouvert');
     surligner(null);
+    hauteurCadre();
   }
 
   /* ── Zoom et deplacement ────────────────────────────────── */
@@ -436,9 +452,16 @@
     var dispo = cadre.clientWidth - 8;
     zoom = Math.max(0.12, Math.min(1, dispo / PLAN_W));
     appliquerZoom();
-    // Le cadre epouse la hauteur de la fresque une fois mise a l'echelle,
-    // sans depasser ce que l'ecran peut montrer : autrement il reste une
-    // large bande vide sous la derniere carte.
+    hauteurCadre();
+  }
+
+  /* Le cadre epouse la hauteur de la fresque une fois mise a l'echelle, sans
+     depasser ce que l'ecran peut montrer : autrement il reste une large bande
+     vide sous la derniere carte. Appele aussi quand le panneau retrecit le
+     cadre, car la fresque y tient alors sur plus de hauteur. */
+  function hauteurCadre() {
+    var cadre = $('plateau-cadre');
+    if (!cadre) return;
     var vue = Math.min(window.innerHeight * 0.72, 760);
     cadre.style.height = Math.min(PLAN_H * zoom + 8, vue) + 'px';
   }
@@ -604,6 +627,21 @@
     if (e.target.closest('.panneau')) return;
     if (!$('panneau').hidden && !e.target.closest('.plateau')) fermerPanneau();
   });
+  $('cartes').addEventListener('mouseover', function (e) {
+    var c = e.target.closest('.c-carte');
+    if (c) survoler(+c.dataset.n);
+  });
+  $('cartes').addEventListener('mouseout', function (e) {
+    if (e.target.closest('.c-carte')) survoler(null);
+  });
+  // Au clavier, le focus joue le role du survol : parcourir les cartes a la
+  // tabulation doit montrer la meme chose que les parcourir a la souris.
+  $('cartes').addEventListener('focusin', function (e) {
+    var c = e.target.closest('.c-carte');
+    if (c) survoler(+c.dataset.n);
+  });
+  $('cartes').addEventListener('focusout', function () { survoler(null); });
+
   $('panneau-fermer').addEventListener('click', fermerPanneau);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !$('panneau').hidden) fermerPanneau();

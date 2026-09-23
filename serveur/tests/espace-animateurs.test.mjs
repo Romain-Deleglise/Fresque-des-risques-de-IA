@@ -231,3 +231,16 @@ test("cliquer une carte allume bien sa chaîne", () => {
   // rapetisse à chaque clic.
   assert.ok(!/ajuster\(\)/.test(bloc), "ouvrirPanneau ne doit pas réajuster le zoom");
 });
+
+test("survoler une carte montre où elle mène, sans engager de sélection", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  // Sans aperçu, il faut ouvrir le panneau, lire, fermer, recommencer — pour
+  // trente-huit cartes, c'est un parcours interminable.
+  assert.match(js, /function survoler/);
+  assert.match(js, /mouseover/);
+  // Le clavier doit montrer la même chose que la souris.
+  assert.match(js, /focusin/);
+  // L'aperçu se tait dès qu'une carte est choisie, sinon deux mises en avant
+  // concurrentes se superposent.
+  assert.match(js, /if \(cibleN != null\) g\.classList\.remove\('survol'\)/);
+});
