@@ -167,3 +167,21 @@ test("le formulaire charge la liste servie par le site", async () => {
   assert.match(part, /id="commune-champ"/);
   assert.match(part, /name="rayonKm"/);
 });
+
+/* Un service que personne ne trouve n'existe pas. Les alertes ne sont
+   proposées qu'à deux endroits, et ces deux-là sont faciles à perdre lors
+   d'une réécriture. */
+test("les alertes sont proposees la ou les gens les cherchent", async () => {
+  const fs = await import("node:fs");
+  const lire = (p) => fs.readFileSync(new URL("../../" + p, import.meta.url), "utf8");
+  // 1. Quand la liste des ateliers est vide : la personne est venue en chercher
+  //    un et repart les mains vides.
+  const js = lire("site/assets/js/ateliers.js");
+  assert.match(js, /videAlerte/);
+  assert.match(js, /function videHtml\(\)[\s\S]{0,600}#alertes/);
+  // 2. Dans le mail envoyé aux participant·es après l'atelier.
+  const suivi = lire("netlify/functions/suivi.js");
+  const mp = suivi.slice(suivi.indexOf("function mailParticipants"), suivi.indexOf("/* --- À l'animateur"));
+  assert.match(mp, /participer\/#alertes/);
+  assert.match(mp, /au plus un e-mail par semaine/);
+});

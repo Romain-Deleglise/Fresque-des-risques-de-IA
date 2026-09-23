@@ -664,3 +664,4 @@ a.btn, a.btn:hover { text-decoration: none; }
 .ligne-zone { position: relative; }
 .ligne-zone input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .champs-physique label { position: relative; }
+.vide-alerte { margin-top: 14px; font-size: 14px; }

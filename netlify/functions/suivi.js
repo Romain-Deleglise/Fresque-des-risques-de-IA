@@ -91,6 +91,7 @@ function ligneImage(avecImage, l, c) {
 function mailParticipants(avecImage) {
   const cartes = LIEN + "/#telecharger";
   const animer = LIEN + "/devenir-animateur/";
+  const alertes = LIEN + "/participer/#alertes";
   const l = [], c = [];
 
   l.push("Bonjour,");
@@ -124,6 +125,13 @@ function mailParticipants(avecImage) {
   c.push('<p style="margin:0;text-align:center;">' + bouton(animer, "Devenir animateur·ice") + '</p>');
   c.push('</div>');
   c.push('<p style="margin:12px 0 0;font-size:13px;color:#6b665e;">Vous pouvez aussi <a href="' + h(cartes) + '" style="color:#6b665e;">reprendre les cartes</a> quand vous voulez.</p>');
+
+  /* Les alertes ne sont proposees qu'a deux endroits : ici, et quand la liste
+     des ateliers est vide. Sans ce rappel, un service que personne ne trouve. */
+  l.push("");
+  l.push("Envie de revenir, ou d'y emmener quelqu'un ? Faites-vous prévenir des prochains ateliers : au plus un e-mail par semaine, et rien s'il n'y a rien près de chez vous.");
+  l.push("- Être prévenu·e : " + alertes);
+  c.push('<p style="margin:16px 0 0;font-size:13px;color:#6b665e;">Envie de revenir, ou d\'y emmener quelqu\'un ? <a href="' + h(alertes) + '" style="color:#6b665e;">Faites-vous prévenir des prochains ateliers</a> — au plus un e-mail par semaine, et rien s\'il n\'y a rien près de chez vous.</p>');
 
   ligneImage(avecImage, l, c);
   piedPauseIA(l, c);
