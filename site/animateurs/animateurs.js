@@ -329,7 +329,7 @@
   }
 
   /* APERCU AU SURVOL. Avant de cliquer, on veut savoir ou mene une carte.
-     Sans cela il faut ouvrir le panneau, lire, fermer, recommencer — pour
+     Sans cela il faut ouvrir le panneau, lire, fermer, recommencer ; pour
      trente-huit cartes, c'est un parcours interminable. Le survol n'engage
      rien : il s'efface des qu'on part, et se tait des qu'une carte est
      choisie, pour ne pas concurrencer la selection. */
@@ -374,17 +374,17 @@
     };
     if (entre.length) {
       bloc += '<h4>' + T.mene + '</h4><ul>'
-        + entre.map(function (f) { return lien(f.de, '— ' + f.libelle + ' →', true); }).join('')
+        + entre.map(function (f) { return lien(f.de, f.libelle + ' →', true); }).join('')
         + '</ul>';
     }
     if (sort.length) {
       bloc += '<h4>' + (cSol ? T.repondA : T.entraine) + '</h4><ul>'
-        + sort.map(function (f) { return lien(f.vers, '— ' + f.libelle + ' →', false); }).join('')
+        + sort.map(function (f) { return lien(f.vers, f.libelle + ' →', false); }).join('')
         + '</ul>';
     }
     if (reponses.length) {
       bloc += '<h4 class="h-reponse">' + T.reponses + '</h4><ul class="l-reponse">'
-        + reponses.map(function (f) { return lien(f.de, '— ' + f.libelle + ' →', true); }).join('')
+        + reponses.map(function (f) { return lien(f.de, f.libelle + ' →', true); }).join('')
         + '</ul>';
     }
     $('panneau-liens').innerHTML = bloc;

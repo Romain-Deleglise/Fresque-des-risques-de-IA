@@ -7,7 +7,7 @@
    L'ETAT SURVIT AU RECHARGEMENT. Un telephone qui se met en veille, un onglet
    ferme par megarde au milieu du lot 3 : sans memoire, on perd le fil au pire
    moment. On enregistre donc l'avancement dans localStorage, et on recalcule
-   le temps ecoule d'apres l'horloge plutot que de compter les battements — un
+   le temps ecoule d'apres l'horloge plutot que de compter les battements : un
    onglet en arriere-plan est ralenti par le navigateur, et un compteur naif
    prend du retard sans que personne ne s'en apercoive.
 */

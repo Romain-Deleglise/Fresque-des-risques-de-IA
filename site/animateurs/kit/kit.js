@@ -22,7 +22,7 @@
 
   function quand(v) {
     if (v['k-date'] && v['k-heure']) return v['k-date'] + ' à ' + v['k-heure'];
-    return v['k-date'] || v['k-heure'] || '—';
+    return v['k-date'] || v['k-heure'] || 'à préciser';
   }
   function lien(v) { return v['k-lien'] || 'https://fresquedesrisquesdelia.org/participer/'; }
 
@@ -50,12 +50,12 @@
         'Salut ! J’anime un atelier de La Fresque des risques de l’IA ' + quand(v) + ' (' + ou + '). ' +
         '2 h 30, en petit groupe, sans aucun prérequis : on relie 38 cartes pour comprendre ensemble ' +
         'ce que l’IA met en jeu et ce qu’on peut y répondre. C’est gratuit. ' +
-        'Inscription ici : ' + lien(v) + ' — ça te dit ?',
+        'Inscription ici : ' + lien(v) + '. Ça te dit ?',
 
       't-reseau':
         'On parle beaucoup d’intelligence artificielle. Rarement en prenant le temps de comprendre.\n\n' +
         'J’anime La Fresque des risques de l’IA : 2 h 30, 38 cartes, un petit groupe, et aucun prérequis. ' +
-        'On construit ensemble une vue d’ensemble — des capacités actuelles aux risques, jusqu’aux ' +
+        'On construit ensemble une vue d’ensemble, des capacités actuelles aux risques, jusqu’aux ' +
         'réponses possibles.\n\n' +
         '📅 ' + quand(v) + '\n' +
         '📍 ' + ou + '\n' +
@@ -66,7 +66,7 @@
 
   function majAffiche(v) {
     $('af-date').textContent = quand(v);
-    $('af-lieu').textContent = v['k-lieu'] || '—';
+    $('af-lieu').textContent = v['k-lieu'] || 'à préciser';
     $('af-inscription').textContent = 'Inscription : ' + lien(v).replace(/^https?:\/\//, '');
   }
 
