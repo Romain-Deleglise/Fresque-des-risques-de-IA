@@ -657,3 +657,60 @@ exports.handler = async (event) => {
     return json(500, { error: "Erreur du service d'ateliers.", details: String(e && e.message || e) });
   }
 };
+
+/* Annulation par l'équipe, depuis /admin/. Exportée ici plutôt que recopiée
+   là-bas : les inscrit·es doivent être prévenu·es exactement comme lors d'une
+   annulation par l'animateur·ice, et deux circuits d'e-mails qui divergent,
+   c'est un jour où plus personne n'est prévenu. La seule différence est
+   l'autorisation : l'admin est déjà authentifié par sa clé, il n'a ni le jeton
+   secret ni l'adresse de l'animateur·ice à fournir. */
+exports.annulerParAdmin = async function (code) {
+  const st = store();
+  const k = cle(String(code || "").toUpperCase());
+  const res = await st.getWithMetadata(k, { type: "json" });
+  if (!res || !res.data) return { erreur: "Cet atelier n'existe pas ou plus." };
+  const av = res.data;
+  await st.delete(k);
+  const inscrits = (av.participants || []).map((p) => p.mail).filter(Boolean);
+  const maa = mailAnnulationAnimateur(av, inscrits.length);
+  try { await mail.envoi({ to: av.animateur.mail, subject: "Votre atelier est annulé", text: maa.text, html: maa.html }); } catch (e) {}
+  if (inscrits.length) {
+    const mc = mailAnnulation(av);
+    try { await mail.envoi({ bcc: inscrits, subject: "Atelier annulé : Fresque des risques de l'IA", text: mc.text, html: mc.html }); } catch (e) {}
+  }
+  return { annule: true, prevenus: inscrits.length };
+};
+
+/* Tous les ateliers, pour /admin/ : publics ET privés, à venir ET passés. La
+   liste publique ne montre que ce qui est ouvert au public ; l'équipe, elle, a
+   besoin de voir ce qui existe vraiment. */
+exports.listerPourAdmin = async function () {
+  const st = store();
+  const out = [];
+  const { blobs } = await st.list({ prefix: "atelier:" });
+  for (const b of blobs) {
+    try {
+      const res = await st.getWithMetadata(b.key, { type: "json" });
+      const a = res && res.data;
+      if (!a) continue;
+      out.push({
+        code: a.code,
+        titre: a.titre || "",
+        mode: a.mode,
+        quandMs: A.instantDe(a),
+        lieu: a.mode === "physique" ? (a.lieu || "") : "",
+        commune: a.commune || "",
+        visibilite: a.visibilite,
+        inscrits: (a.participants || []).length,
+        maxParticipants: a.maxParticipants,
+        passe: A.estPasse(a),
+        animateur: {
+          prenom: (a.animateur && a.animateur.prenom) || "",
+          mail: (a.animateur && a.animateur.mail) || ""
+        }
+      });
+    } catch (e) {}
+  }
+  out.sort((x, y) => y.quandMs - x.quandMs);
+  return out;
+};

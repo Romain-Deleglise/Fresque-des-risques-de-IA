@@ -118,6 +118,28 @@ Envoi hebdomadaire : fonction planifiée `alertes-envoi` (mardi 9 h UTC, voir
 classement des communes en attente, ce qui indique où programmer le
 prochain atelier.
 
+## Espace d'administration
+
+`/admin/`, ouvert par `ADMIN_TOKEN`. La clé n'est gardée que le temps de
+l'onglet. On y trouve :
+
+- les **contacts** (suivi, export CSV, désinscription et effacement RGPD) ;
+- les **retours et témoignages** déposés sur `/retour/` et `/temoignage/`.
+  Publier un témoignage l'affiche sur la page d'accueil — un test le vérifie,
+  parce que cette chaîne a déjà été cassée une fois : le bouton marquait le
+  témoignage sans rien changer à la page ;
+- les **alertes** : nombre d'abonnés et classement des communes en attente ;
+- les **ateliers programmés**, publics comme privés, à venir comme passés.
+  L'équipe peut en **annuler** un : l'animateur·ice et les inscrit·es sont
+  prévenu·es par le circuit d'e-mails existant, pas par un second recopié à
+  côté (`netlify/functions/ateliers.js` l'exporte) ;
+- les **animateur·ices à relancer** : ont animé au moins une fois, rien depuis
+  plus de quatre mois, et rien de prévu. Relancer quelqu'un qui anime dans dix
+  jours est le meilleur moyen de passer pour un robot, donc un atelier à venir
+  suffit à l'exclure. Au plus une relance par personne et par semestre : la
+  date est écrite avant l'envoi, pour qu'un plantage entre les deux ne relance
+  jamais deux fois. Règles dans `serveur/src/animateurs.js`, testées.
+
 ## Déploiement
 
 Hébergé sur **Netlify** : `publish = "site"`, fonctions dans

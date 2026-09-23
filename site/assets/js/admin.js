@@ -57,6 +57,7 @@
       // propre gestion de cle.
       if (window.__retoursAdmin) window.__retoursAdmin.charger(api);
       if (window.__alertesAdmin) window.__alertesAdmin.charger(api);
+      if (window.__ateliersAdmin) window.__ateliersAdmin.charger(api);
     });
   }
 
@@ -392,6 +393,124 @@
       return api({ query: "?action=alertes" })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) { if (d) rendre(d); })
+        .catch(function () { /* le reste du tableau de bord reste utilisable */ });
+    }
+  };
+})();
+
+/* --- Ateliers programmés et animateur·ices à relancer ---------------------
+   Deux choses que l'équipe ne pouvait pas faire : voir ce qui est programmé
+   (seul l'animateur·ice avait le lien), et rattraper celles et ceux qui ont
+   animé une fois puis disparu. */
+(function () {
+  "use strict";
+  var hote = document.getElementById("liste-ateliers-admin");
+  if (!hote) return;
+  var hoteInactifs = document.getElementById("liste-inactifs");
+  var filtre = document.getElementById("filtre-ateliers");
+  var etat = { ateliers: [], inactifs: [], filtre: "avenir", api: null };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function quand(ms) {
+    if (!ms) return "";
+    try {
+      return new Date(ms).toLocaleString("fr-FR",
+        { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return ""; }
+  }
+
+  function rendreAteliers() {
+    var liste = etat.ateliers.filter(function (a) {
+      return etat.filtre === "tous" || (etat.filtre === "passes" ? a.passe : !a.passe);
+    });
+    document.getElementById("compte-ateliers").textContent = liste.length;
+    if (!liste.length) {
+      hote.innerHTML = '<p class="muted">Aucun atelier dans cette vue.</p>';
+      return;
+    }
+    var h = '<table class="table-ateliers"><thead><tr><th>Quand</th><th>Où</th><th>Animateur·ice</th>'
+      + "<th>Inscrits</th><th></th></tr></thead><tbody>";
+    liste.forEach(function (a) {
+      var ou = a.mode === "enligne" ? "En ligne" : (esc(a.lieu) || "Présentiel");
+      if (a.visibilite === "prive") ou += ' <span class="etiq">privé</span>';
+      h += "<tr><td>" + esc(quand(a.quandMs)) + "<br><span class='muted mono'>" + esc(a.code) + "</span></td>"
+        + "<td>" + ou + "</td>"
+        + "<td>" + esc(a.animateur.prenom) + "<br><span class='muted'>" + esc(a.animateur.mail) + "</span></td>"
+        + "<td>" + a.inscrits + " / " + a.maxParticipants + "</td>"
+        + "<td>" + (a.passe ? "" : '<button class="btn-mini danger" data-annuler="' + esc(a.code) + '">Annuler</button>') + "</td></tr>";
+    });
+    hote.innerHTML = h + "</tbody></table>";
+  }
+
+  function rendreInactifs() {
+    document.getElementById("compte-inactifs").textContent = etat.inactifs.length;
+    if (!etat.inactifs.length) {
+      hoteInactifs.innerHTML = '<p class="muted">Personne à relancer pour l’instant.</p>';
+      return;
+    }
+    var h = '<table class="table-ateliers"><thead><tr><th>Qui</th><th>Animations</th>'
+      + "<th>Dernière</th><th></th></tr></thead><tbody>";
+    etat.inactifs.forEach(function (p) {
+      h += "<tr><td>" + esc(p.prenom || "—") + "<br><span class='muted'>" + esc(p.mail) + "</span></td>"
+        + "<td>" + p.nbAnimations + "</td>"
+        + "<td>il y a " + p.joursDepuis + " j</td>"
+        + '<td><button class="btn-mini" data-relancer="' + esc(p.mail) + '">Relancer</button></td></tr>';
+    });
+    hoteInactifs.innerHTML = h + "</tbody></table>";
+  }
+
+  if (filtre) {
+    filtre.addEventListener("change", function (e) { etat.filtre = e.target.value; rendreAteliers(); });
+  }
+
+  hote.addEventListener("click", function (e) {
+    var code = e.target.getAttribute && e.target.getAttribute("data-annuler");
+    if (!code || !etat.api) return;
+    // Une annulation prévient tous les inscrits et ne se défait pas.
+    if (!window.confirm("Annuler l’atelier " + code + " ? L’animateur·ice et les inscrit·es seront prévenu·es. C’est irréversible.")) return;
+    e.target.disabled = true;
+    etat.api({ method: "POST", body: { op: "atelier", sousOp: "annuler", code: code } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.erreur) throw new Error(d.erreur);
+        etat.ateliers = etat.ateliers.filter(function (a) { return a.code !== code; });
+        rendreAteliers();
+      })
+      .catch(function (err) { e.target.disabled = false; window.alert(err.message); });
+  });
+
+  hoteInactifs.addEventListener("click", function (e) {
+    var m = e.target.getAttribute && e.target.getAttribute("data-relancer");
+    if (!m || !etat.api) return;
+    e.target.disabled = true;
+    e.target.textContent = "Envoi…";
+    etat.api({ method: "POST", body: { op: "relancer", mail: m } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.erreur) throw new Error(d.erreur);
+        // La relance est enregistrée : la personne sort de la liste pour six mois.
+        etat.inactifs = etat.inactifs.filter(function (p) { return p.mail !== m; });
+        rendreInactifs();
+      })
+      .catch(function (err) { e.target.disabled = false; e.target.textContent = "Relancer"; window.alert(err.message); });
+  });
+
+  window.__ateliersAdmin = {
+    charger: function (api) {
+      etat.api = api;
+      return api({ query: "?action=ateliers" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          etat.ateliers = d.ateliers || [];
+          etat.inactifs = d.inactifs || [];
+          rendreAteliers();
+          rendreInactifs();
+        })
         .catch(function () { /* le reste du tableau de bord reste utilisable */ });
     }
   };

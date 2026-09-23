@@ -179,7 +179,15 @@ test("les alertes sont proposees la ou les gens les cherchent", async () => {
   const js = lire("site/assets/js/ateliers.js");
   assert.match(js, /videAlerte/);
   assert.match(js, /function videHtml\(\)[\s\S]{0,600}#alertes/);
-  // 2. Dans le mail envoyé aux participant·es après l'atelier.
+  // 2. Sous la liste des ateliers, page d'accueil ET page Participer : ce n'est
+  //    pas parce que des ateliers sont déjà prévus que la personne n'est pas
+  //    intéressée par les suivants.
+  for (const p of ["site/index.html", "site/participer/index.html"]) {
+    const html = lire(p);
+    assert.match(html, /rappel-alertes/, p);
+    assert.match(html, /#alertes/, p);
+  }
+  // 3. Dans le mail envoyé aux participant·es après l'atelier.
   const suivi = lire("netlify/functions/suivi.js");
   const mp = suivi.slice(suivi.indexOf("function mailParticipants"), suivi.indexOf("/* --- À l'animateur"));
   assert.match(mp, /participer\/#alertes/);

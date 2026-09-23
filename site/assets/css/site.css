@@ -665,3 +665,9 @@ a.btn, a.btn:hover { text-decoration: none; }
 .ligne-zone input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .champs-physique label { position: relative; }
 .vide-alerte { margin-top: 14px; font-size: 14px; }
+
+/* Rappel des alertes sous les listes d'ateliers. Ce n'est pas parce que des
+   ateliers sont déjà prévus que la personne n'est pas intéressée par les
+   suivants : le rappel est donc visible même quand la liste est pleine. */
+.rappel-alertes { margin: 22px auto 0; max-width: 62ch; text-align: center; font-size: 15px; color: var(--txt-doux, #5a564e); background: #fbf6ee; border: 1px solid #f0e4d2; border-radius: 12px; padding: 14px 18px; }
+.rappel-alertes a { font-weight: 600; }

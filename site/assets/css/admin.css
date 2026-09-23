@@ -144,3 +144,14 @@ body.admin { background: var(--bg-doux); }
 .alertes-zones { width: 100%; border-collapse: collapse; font-size: .95rem; }
 .alertes-zones th, .alertes-zones td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--trait, #e6e1d8); }
 .alertes-zones td:last-child, .alertes-zones th:last-child { text-align: right; width: 6rem; }
+
+/* Ateliers programmés et animateur·ices à relancer */
+.table-ateliers { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.table-ateliers th, .table-ateliers td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--trait, #e6e1d8); vertical-align: top; }
+.table-ateliers th { font-weight: 600; white-space: nowrap; }
+.table-ateliers td:last-child { text-align: right; white-space: nowrap; }
+.table-ateliers .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
+.etiq { display: inline-block; font-size: .75rem; padding: 1px 7px; border-radius: 999px; background: #efe9df; color: #6b665e; vertical-align: middle; }
+@media (max-width: 640px) {
+  .table-ateliers { display: block; overflow-x: auto; }
+}
