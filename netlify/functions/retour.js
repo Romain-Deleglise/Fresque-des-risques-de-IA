@@ -46,6 +46,33 @@ async function debitDepasse(cle) {
 
 exports.handler = async (event) => {
   connectLambda(event);
+
+  /* LECTURE PUBLIQUE : uniquement les temoignages relus et publies, et
+     uniquement ce qui est destine a l'affichage. Les retours d'atelier ne
+     sortent jamais d'ici, et l'adresse e-mail d'un temoin non plus. */
+  if (event.httpMethod === "GET") {
+    const s = store();
+    const liste = await s.list({ prefix: "temoignage:" }).catch(() => ({ blobs: [] }));
+    const out = [];
+    for (const b of liste.blobs || []) {
+      const v = await s.get(b.key, { type: "json" }).catch(() => null);
+      if (v && v.publie) {
+        out.push({ texte: v.texte, qui: v.prenom, precision: v.precision || "", date: v.date });
+      }
+    }
+    out.sort((a, b) => (b.date || 0) - (a.date || 0));
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        // Quelques minutes de cache : la page d'accueil est la plus visitee du
+        // site, et un temoignage publie n'a pas besoin d'apparaitre a la seconde.
+        "Cache-Control": "public, max-age=300"
+      },
+      body: JSON.stringify({ temoignages: out })
+    };
+  }
+
   if (event.httpMethod !== "POST") return json(405, { erreur: "Méthode non autorisée." });
 
   let corps;

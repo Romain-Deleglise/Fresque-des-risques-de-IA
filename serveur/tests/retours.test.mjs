@@ -65,3 +65,27 @@ test("la clé porte le genre, ce qui permet de lister l'un sans l'autre", () => 
   const t = R.validerTemoignage({ texte: "Un atelier vraiment marquant, à conseiller.", prenom: "L", accord: true }, T).temoignage;
   assert.match(R.cle(t, "ab12"), /^temoignage:ab12$/);
 });
+
+/* --- La chaîne « publier → afficher » ------------------------------------ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const lire = (p) => fs.readFileSync(path.join(RACINE, p), "utf8");
+
+test("seuls les témoignages publiés sortent de la fonction", () => {
+  const fn = lire("netlify/functions/retour.js");
+  const get = fn.slice(fn.indexOf('if (event.httpMethod === "GET")'), fn.indexOf('if (event.httpMethod !== "POST")'));
+  assert.match(get, /prefix: "temoignage:"/, "les retours d'atelier ne doivent pas être listés");
+  assert.match(get, /if \(v && v\.publie\)/, "un témoignage non relu ne doit pas sortir");
+  // L'adresse e-mail d'un témoin n'a rien à faire dans une réponse publique.
+  assert.ok(!/v\.mail/.test(get), "l'adresse e-mail ne doit pas être exposée");
+});
+
+test("publier dans l'admin suffit à l'afficher sur le site", () => {
+  const js = lire("site/assets/js/temoignages.js");
+  assert.match(js, /\/\.netlify\/functions\/retour/);
+  // Si la fonction ne répond pas, le fichier statique doit s'afficher seul :
+  // la page d'accueil ne peut pas dépendre d'elle.
+  assert.match(js, /\.catch\(function \(\) \{ return null; \}\)/);
+});

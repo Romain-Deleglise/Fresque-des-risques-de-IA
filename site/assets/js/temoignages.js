@@ -15,10 +15,29 @@
 
   function partir() { if (sec.parentNode) sec.parentNode.removeChild(sec); }
 
-  fetch(base + "data/temoignages.json", { cache: "no-cache" })
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (d) {
-      var liste = (d && d.temoignages || []).filter(function (t) {
+  /* DEUX SOURCES. Le fichier statique porte les temoignages ecrits a la main,
+     et la fonction ceux qui sont arrives par /temoignage/ puis ont ete publies
+     depuis l'espace admin. Publier dans l'admin doit suffire a les faire
+     apparaitre ici, sans redeploiement. Si la fonction ne repond pas, le
+     fichier statique s'affiche seul : la page d'accueil ne depend pas d'elle. */
+  Promise.all([
+    fetch(base + "data/temoignages.json", { cache: "no-cache" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; }),
+    fetch("/.netlify/functions/retour")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+  ])
+    .then(function (res) {
+      var d = res[0];
+      var recus = (res[1] && res[1].temoignages || []).map(function (t) {
+        // Les temoignages deposes sur le site sont en francais ; la page
+        // anglaise n'affiche que ceux du fichier statique marques lang:"en".
+        // Le fichier statique nomme ce champ `contexte` : on s'aligne dessus,
+        // sinon la precision saisie sur le site ne s'afficherait jamais.
+        return { texte: t.texte, qui: t.qui, contexte: t.precision || "", lang: "fr" };
+      });
+      var liste = (d && d.temoignages || []).concat(recus).filter(function (t) {
         return t && t.texte && (!t.lang || t.lang === lang);
       });
       if (liste.length < 2) { partir(); return; }
