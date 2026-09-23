@@ -1,13 +1,12 @@
-# Photos d'atelier
+# Photos d'atelier (variantes web)
 
-Déposez ici une photo d'un atelier réel pour la page d'accueil.
+**Ce dossier est engendré. Ne rien y déposer à la main.**
 
-- Fichier attendu : `atelier.jpg` (ou `.webp`), format paysage, ~1600 px de large.
-- La page l'affiche automatiquement. Si le fichier est absent, la section
-  disparaît proprement (aucune image cassée).
+Les originaux vivent dans `contenus/photos/` et
+`python3 scripts/generer-photos.py` produit ici les variantes WebP utilisées
+par les pages. Chaque fichier porte sa largeur réelle
+(`atelier-table-et-cartes-800.webp` fait bien 800 px de large), pour que les
+`srcset` des pages restent honnêtes.
 
-## Recommandation vie privée
-
-Préférez une photo **sans visage identifiable** (par exemple la table avec les
-cartes disposées, mains et bras seulement). Pour toute photo où des personnes
-sont reconnaissables, recueillez leur accord écrit avant publication.
+Pour ajouter ou remplacer une photo, voir `contenus/photos/README.md`, qui
+décrit le format attendu et les précautions de vie privée.

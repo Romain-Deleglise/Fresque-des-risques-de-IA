@@ -274,7 +274,17 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 /* --- Photo d'atelier ------------------------------------------------------ */
 .section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }
+.titre-photos { font-size: clamp(1.4rem, 2.4vw, 1.8rem); margin-bottom: 1.1rem; }
 .photo-atelier { margin: 0; }
+/* BANDE DE PHOTOS. Quatre photos en portrait sous la photo mise en avant. Une
+   `grid` a quatre colonnes egales plutot qu'un `flex` : les photos n'ont pas
+   toutes exactement le meme rapport, et sans colonnes fixes la plus large
+   ecraserait les autres. Le rapport 3/4 est impose a la vignette, pas a la
+   photo : c'est le recadrage qui s'ajuste, jamais la mise en page. */
+.bande-photos { list-style: none; margin: 1rem 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.bande-photos img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover;
+  border-radius: 12px; box-shadow: 0 6px 18px rgba(27,26,23,.12); display: block; }
 .photo-atelier img { width: 100%; max-height: 30rem; object-fit: cover; border-radius: 14px; box-shadow: 0 10px 30px rgba(27,26,23,.14); }
 .photo-atelier figcaption { margin-top: .8rem; font-family: var(--f-ui); font-size: .88rem; color: var(--gris); }
 
@@ -410,6 +420,9 @@ a.btn, a.btn:hover { text-decoration: none; }
   .entete.js-nav .nav .btn-nav { order: 9; align-self: stretch; text-align: center; justify-content: center; margin-top: .9rem; border-bottom: 0; padding: .8rem; font-size: 1rem; }
   .entete.js-nav .nav .lang { order: 10; align-self: center; margin-top: .8rem; border-bottom: 0; padding: .35rem .9rem; }
   .entete.js-nav .nav .theme-toggle { order: 11; align-self: center; margin-top: .8rem; width: 2.4rem; height: 2.4rem; }
+}
+@media (max-width: 736px) {
+  .bande-photos { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 560px) {
   .actions { flex-direction: column; align-items: stretch; gap: .8rem; }
