@@ -100,6 +100,13 @@
         </div>
         <div class="lots" id="lots" role="group" aria-label="Filter by set"></div>
 
+        <!-- Deux sortes de flèches, deux sens de lecture : sans cette clé, on
+             lit les réponses du lot 5 comme des causes. -->
+        <p class="cle-fleches">
+          <span><span class="cle-trait cle-cause" aria-hidden="true"></span> leads to</span>
+          <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> answers</span>
+        </p>
+
         <p class="muted barre-aide" id="barre-aide">
           Click a card to read its back and light up its links. Drag to move around,
           Ctrl + wheel to zoom.
@@ -170,8 +177,10 @@
       <ul class="retours retours-carte" id="retours-carte"></ul>
       <div class="panneau-commentaire" id="panneau-commentaire" hidden>
         <h4>Feedback on this card?</h4>
+        <label class="visuellement-cache" for="c-texte">Your feedback on this card</label>
         <textarea id="c-texte" rows="3" maxlength="2000"
           placeholder="What was misunderstood, what is missing, a rewording…"></textarea>
+        <label class="visuellement-cache" for="c-nom">Your first name</label>
         <input id="c-nom" type="text" maxlength="40" placeholder="Your first name (optional)">
         <button type="button" class="btn btn-1" id="c-envoi">Send</button>
         <p class="etat" id="c-etat" role="status" aria-live="polite"></p>

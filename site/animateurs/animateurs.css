@@ -50,14 +50,21 @@
    référence : les fixer ici les ferait mentir dès qu'on déplace une carte. */
 .plateau { position: absolute; inset: 0; transform-origin: 0 0; }
 .liens { position: absolute; inset: 0; pointer-events: none; }
-.liens line { stroke: var(--gris-clair); stroke-width: 2; }
+.liens path { stroke: var(--gris-clair); stroke-width: 2; fill: none; }
 .liens .tete { fill: var(--gris-clair); }
+/* Les réponses du lot 5 : discontinu et coloré, parce qu'elles disent
+   « répond à » et non « provoque ». */
+.liens g.reponse path { stroke: #c1444e; stroke-dasharray: 9 6; opacity: .75; }
+.liens g.reponse .tete { fill: #c1444e; opacity: .75; }
+.liens g.reponse.vif path { stroke: #c1444e; opacity: 1; stroke-width: 3.5; }
+.liens g.reponse.vif .tete { fill: #c1444e; opacity: 1; }
+.liens g.reponse text { fill: #c1444e; }
 .liens text { fill: var(--gris); font-family: var(--f-ui); font-size: 13px; }
 .liens .halo { stroke: var(--bg); stroke-width: 6; paint-order: stroke; }
 /* Masqués par défaut : voir majLibelles() dans animateurs.js. */
 .liens text { display: none; }
 .liens.tous-libelles text, .liens g.vif text { display: block; }
-.liens g.vif line { stroke: var(--accent); stroke-width: 3.5; }
+.liens g.vif path { stroke: var(--accent); stroke-width: 3.5; }
 .liens g.vif .tete { fill: var(--accent); }
 .liens g.vif text { fill: var(--accent-txt); font-weight: 600; }
 .liens g.pale { opacity: .14; }
@@ -512,3 +519,27 @@
    dans son propre cadre plutôt que d'élargir toute la page. */
 .as-table { display: block; overflow-x: auto; }
 @media (min-width: 620px) { .as-table { display: table; } }
+
+.mi-titre {
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem); text-align: center;
+  color: var(--gris); font-weight: 400; margin: 0 0 1.5rem;
+}
+
+/* Clé de lecture des flèches. */
+.cle-fleches {
+  display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 0 0 .5rem;
+  font-family: var(--f-ui); font-size: .82rem; color: var(--gris);
+}
+.cle-fleches span { display: inline-flex; align-items: center; gap: .45rem; }
+.cle-trait { width: 2.2rem; height: 0; border-top-width: 2px; border-top-style: solid; }
+.cle-cause { border-top-color: var(--gris-clair); }
+.cle-reponse { border-top-color: #c1444e; border-top-style: dashed; }
+
+/* Le panneau est posé par-dessus la page : le plateau lui cède la place plutôt
+   que de disparaître dessous. Sous 900 px le panneau occupe presque l'écran,
+   rétrécir le plateau n'aurait plus de sens — on le laisse dessous. */
+@media (min-width: 900px) {
+  .panneau-ouvert .plateau-cadre { margin-right: min(420px, 40vw); }
+}
+.panneau-liens .h-reponse { color: #c1444e; }
+.panneau-liens .l-reponse .vers-carte { color: #c1444e; }

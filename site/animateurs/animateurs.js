@@ -53,6 +53,7 @@
     chargement: 'Loading…',
     echecChargement: 'Could not load. Please reload the page.',
     mene: 'What leads to it', entraine: 'What it leads to',
+    repondA: 'What it answers', reponses: 'The answers to it',
     langue: 'en-GB',
     sujets: { carte: 'on a card', jeu: 'the card deck', deroule: 'the run-through',
               reference: 'the reference fresk', autre: 'other' }
@@ -76,6 +77,7 @@
     chargement: 'Chargement…',
     echecChargement: 'Chargement impossible. Rechargez la page.',
     mene: 'Ce qui y mène', entraine: 'Ce que ça entraîne',
+    repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
     langue: 'fr-FR',
     sujets: { carte: 'sur une carte', jeu: 'le jeu de cartes',
               deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' }
@@ -133,18 +135,38 @@
       var a = centre(f.de), b = centre(f.vers);
       if (!a || !b) return;
       var p1 = bord(a, b), p2 = bord(b, a);
-      var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-      var ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+      /* TRAITS COURBES. Soixante-cinq droites qui se croisent donnent un
+         entrelacs ou l'oeil ne peut plus suivre un seul fil. Une courbe legere,
+         toujours du meme cote, separe les traits qui partagent un trajet et
+         rend chaque lien suivable du depart a l'arrivee. La fleche est de
+         longueur constante : la courbure croit avec la distance, sans jamais
+         devenir un detour. */
+      var dx = p2.x - p1.x, dy = p2.y - p1.y;
+      var lg = Math.hypot(dx, dy) || 1;
+      var creux = Math.min(70, lg * 0.09);
+      var cx = (p1.x + p2.x) / 2 - (dy / lg) * creux;
+      var cy = (p1.y + p2.y) / 2 + (dx / lg) * creux;
+
+      // Tangente a l'arrivee d'une quadratique : la direction (p2 - c).
+      var ang = Math.atan2(p2.y - cy, p2.x - cx);
       var t = 13;
       var tx = p2.x - Math.cos(ang) * 4, ty = p2.y - Math.sin(ang) * 4;
+      // Point median de la courbe, la ou se pose le libelle.
+      var mx = (p1.x + 2 * cx + p2.x) / 4, my = (p1.y + 2 * cy + p2.y) / 4;
 
       var g = document.createElementNS(NS, 'g');
       g.dataset.de = f.de;
       g.dataset.vers = f.vers;
+      /* UNE REPONSE N'EST PAS UNE CAUSE. Les fleches du lot 5 disent « repond
+         a », pas « provoque ». Dessinees comme les autres, elles se lisent a
+         l'envers : on croit que la solution cause le risque. Trait discontinu
+         et couleur du lot : deux semantiques, deux traitements. */
+      if (cartes[f.de] && cartes[f.de].lot === 5) g.setAttribute('class', 'reponse');
 
-      var ligne = document.createElementNS(NS, 'line');
-      ligne.setAttribute('x1', p1.x); ligne.setAttribute('y1', p1.y);
-      ligne.setAttribute('x2', tx); ligne.setAttribute('y2', ty);
+      var trait = document.createElementNS(NS, 'path');
+      trait.setAttribute('d', 'M' + p1.x + ',' + p1.y + ' Q' + cx + ',' + cy + ' ' + tx + ',' + ty);
+      trait.setAttribute('fill', 'none');
 
       var tete = document.createElementNS(NS, 'polygon');
       tete.setAttribute('class', 'tete');
@@ -161,7 +183,7 @@
       txt.setAttribute('text-anchor', 'middle');
       txt.textContent = f.libelle;
 
-      g.appendChild(ligne);
+      g.appendChild(trait);
       g.appendChild(tete);
       g.appendChild(txt);
       svg.appendChild(g);
@@ -314,11 +336,17 @@
       return '<p>' + echapper(p) + '</p>';
     }).join('');
 
-    var sort = [], entre = [];
+    /* UNE REPONSE N'ENTRAINE PAS SON RISQUE. Les fleches partant du lot 5
+       disent « repond a » : les ranger sous « ce que ca entraine » inverse le
+       sens de lecture. On separe donc les causes des reponses, des deux
+       cotes du lien. */
+    var estReponse = function (f) { return cartes[f.de] && cartes[f.de].lot === 5; };
+    var sort = [], entre = [], reponses = [];
     ref.tableau.fleches.forEach(function (f) {
       if (f.de === n && cartes[f.vers]) sort.push(f);
-      if (f.vers === n && cartes[f.de]) entre.push(f);
+      if (f.vers === n && cartes[f.de]) (estReponse(f) ? reponses : entre).push(f);
     });
+    var cSol = cartes[n] && cartes[n].lot === 5;
     /* Les cartes liées sont CLIQUABLES : c'est ainsi qu'on suit une chaîne de
        cause à effet, qui est exactement ce qu'on vient préparer. Une liste de
        titres inertes obligerait à les retrouver à l'œil sur le plateau. */
@@ -335,8 +363,13 @@
         + '</ul>';
     }
     if (sort.length) {
-      bloc += '<h4>' + T.entraine + '</h4><ul>'
+      bloc += '<h4>' + (cSol ? T.repondA : T.entraine) + '</h4><ul>'
         + sort.map(function (f) { return lien(f.vers, '— ' + f.libelle + ' →', false); }).join('')
+        + '</ul>';
+    }
+    if (reponses.length) {
+      bloc += '<h4 class="h-reponse">' + T.reponses + '</h4><ul class="l-reponse">'
+        + reponses.map(function (f) { return lien(f.de, '— ' + f.libelle + ' →', true); }).join('')
         + '</ul>';
     }
     $('panneau-liens').innerHTML = bloc;
@@ -347,7 +380,14 @@
     $('c-etat').textContent = '';
     $('panneau').hidden = false;
     surligner(n);
-    amenerEnVue(n);
+    // Le plateau se retire sous le panneau : à l'échelle d'ajustement il n'y a
+    // aucun défilement horizontal possible, donc une carte de la colonne de
+    // droite resterait cachée par le panneau qu'on vient d'ouvrir pour elle.
+    document.body.classList.add('panneau-ouvert');
+    // On ne réajuste PAS le zoom : le recalculer sur un cadre rétréci ferait
+    // rapetisser la fresque à chaque clic, et on finirait par ne plus rien
+    // lire. Le cadre perd de la largeur, le défilement compense.
+    setTimeout(function () { amenerEnVue(n); }, 30);
   }
 
   /* Le panneau s'ouvre par-dessus la droite du plateau : sans cela, cliquer une
@@ -371,6 +411,7 @@
 
   function fermerPanneau() {
     $('panneau').hidden = true;
+    document.body.classList.remove('panneau-ouvert');
     surligner(null);
   }
 

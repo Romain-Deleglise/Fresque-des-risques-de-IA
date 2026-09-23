@@ -205,3 +205,29 @@ test("le minuteur couvre les huit temps du guide", () => {
   // 2 h 20 de contenu pour 2 h 30 annoncées : si l'un bouge, l'autre doit suivre.
   assert.equal(durees.reduce((a, b) => a + b, 0), 140);
 });
+
+test("une réponse du lot 5 n'est pas présentée comme une cause", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  // Les flèches partant du lot 5 disent « répond à ». Les ranger sous « ce que
+  // ça entraîne », ou les dessiner comme les autres, inverse le sens de
+  // lecture : on croit que la solution provoque le risque.
+  assert.match(js, /lot === 5/);
+  assert.match(js, /repondA/);
+  assert.match(js, /setAttribute\('class', 'reponse'\)/);
+  const css = lire("site/animateurs/animateurs.css");
+  assert.match(css, /g\.reponse path \{[^}]*stroke-dasharray/);
+  // Et la clé de lecture doit exister, sinon le trait discontinu ne dit rien.
+  assert.match(lire("site/animateurs/reference/index.html"), /cle-fleches/);
+});
+
+test("cliquer une carte allume bien sa chaîne", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  const bloc = js.slice(js.indexOf("function ouvrirPanneau"), js.indexOf("function fermerPanneau"));
+  // Ce fil a déjà sauté une fois en réécrivant le bloc d'ouverture : sans lui,
+  // la carte choisie n'est pas mise en avant et le plateau reste inerte.
+  assert.match(bloc, /surligner\(n\)/, "ouvrirPanneau doit appeler surligner");
+  assert.match(bloc, /amenerEnVue\(n\)/);
+  // Rouvrir le panneau ne doit pas réajuster le zoom, sinon la fresque
+  // rapetisse à chaque clic.
+  assert.ok(!/ajuster\(\)/.test(bloc), "ouvrirPanneau ne doit pas réajuster le zoom");
+});

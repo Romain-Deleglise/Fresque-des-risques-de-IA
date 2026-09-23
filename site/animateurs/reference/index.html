@@ -102,6 +102,13 @@
              réviser un lot à la fois. -->
         <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
 
+        <!-- Deux sortes de flèches, deux sens de lecture : sans cette clé, on
+             lit les réponses du lot 5 comme des causes. -->
+        <p class="cle-fleches">
+          <span><span class="cle-trait cle-cause" aria-hidden="true"></span> provoque</span>
+          <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> répond à</span>
+        </p>
+
         <p class="muted barre-aide" id="barre-aide">
           Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
           Ctrl + molette pour zoomer.
@@ -172,8 +179,10 @@
       <ul class="retours retours-carte" id="retours-carte"></ul>
       <div class="panneau-commentaire" id="panneau-commentaire" hidden>
         <h4>Un retour sur cette carte&nbsp;?</h4>
+        <label class="visuellement-cache" for="c-texte">Votre retour sur cette carte</label>
         <textarea id="c-texte" rows="3" maxlength="2000"
           placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
+        <label class="visuellement-cache" for="c-nom">Votre prénom</label>
         <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
         <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>
         <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
