@@ -48,6 +48,7 @@ globalThis.fetch = async function (url) {
 };
 
 process.env.MAIL_ALERTE = "alerte@example.org";
+process.env.SURVEILLANCE_REPRISE_DELAI = "0";   // pas d'attente reelle entre les reprises
 const S = require("../../netlify/functions/surveillance.js");
 
 function partirDeZero() { memoire = {}; envoyes = []; }
@@ -102,6 +103,37 @@ test("la meme panne ne realerte pas toutes les quinze minutes", async () => {
   await S.handler();
   await S.handler();
   assert.equal(envoyes.length, 1, "une alerte qui se repete finit filtree : elle ne doit partir qu'une fois");
+});
+
+test("un echec reseau ISOLE ne doit PAS alerter : on reessaie d'abord", async () => {
+  partirDeZero(); toutVaBien();
+  // Le premier appel a chaque service echoue, le suivant repasse : c'est un
+  // blip transitoire, exactement ce qui declenchait de fausses alertes.
+  const compte = {};
+  const stub = globalThis.fetch;
+  globalThis.fetch = async function (url) {
+    const cle = String(url).includes("/sante") ? "relais" : "sessions";
+    compte[cle] = (compte[cle] || 0) + 1;
+    if (compte[cle] === 1) throw new Error("fetch failed");
+    return stub(url);
+  };
+  try { await S.handler(); } finally { globalThis.fetch = stub; }
+  assert.equal(envoyes.length, 0, "un fetch failed isole qui repasse aussitot ne doit pas partir en alerte");
+  assert.equal(memoire["surveillance:etat"].panne, false);
+});
+
+test("un echec reseau PERSISTANT alerte, lui, apres les reprises", async () => {
+  partirDeZero(); toutVaBien();
+  let appels = 0;
+  const stub = globalThis.fetch;
+  globalThis.fetch = async function (url) {
+    if (String(url).includes("/sante")) { appels++; throw new Error("fetch failed"); }
+    return stub(url);
+  };
+  try { await S.handler(); } finally { globalThis.fetch = stub; }
+  assert.equal(envoyes.length, 1, "un vrai down (tous les essais echouent) doit bien alerter");
+  assert.match(envoyes[0].text, /relais est injoignable/i);
+  assert.ok(appels >= 2, "la surveillance doit avoir reessaye avant de conclure, pas alerter au premier echec");
 });
 
 test("une panne DIFFERENTE realerte, elle", async () => {

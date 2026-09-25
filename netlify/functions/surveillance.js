@@ -32,8 +32,18 @@ const RELAIS_MINI = Number(process.env.RELAIS_MINI || 4);
 const DEST = process.env.MAIL_ALERTE || "contact@pauseia.fr";
 const CLE = "surveillance:etat";
 const DELAI = 12000;
+// Un echec RESEAU isole (connexion non etablie, DNS froid, timeout) n'est pas
+// une panne : la fonction planifiee redemarre a froid et rate parfois un
+// premier appel qui repasse aussitot apres. Sans reprise, ce blip partait en
+// alerte "injoignable" alors que le site repondait 200 des la minute suivante.
+// On reessaie donc l'appel avant de conclure. Une reponse HTTP, elle (meme
+// 500, meme 404), est un signal reel du serveur : on la garde sans reprise.
+const REPRISES = Number(process.env.SURVEILLANCE_REPRISES || 2);   // essais en plus
+const REPRISE_DELAI = Number(process.env.SURVEILLANCE_REPRISE_DELAI ?? 800);
 
 function store() { return getStore({ name: "fresque-limites" }); }
+
+function dormir(ms) { return ms > 0 ? new Promise(function (r) { setTimeout(r, ms); }) : Promise.resolve(); }
 
 async function avecDelai(url, opts) {
   const ctrl = new AbortController();
@@ -42,10 +52,21 @@ async function avecDelai(url, opts) {
   finally { clearTimeout(t); }
 }
 
+// N'a de reprise que l'echec reseau : si fetch rend une reponse, on la retourne
+// telle quelle. Ne relance donc que sur exception (abort/timeout inclus).
+async function avecReprise(url, opts) {
+  let derniere;
+  for (let essai = 0; essai <= REPRISES; essai++) {
+    try { return await avecDelai(url, opts); }
+    catch (e) { derniere = e; if (essai < REPRISES) await dormir(REPRISE_DELAI); }
+  }
+  throw derniere;
+}
+
 async function verifierSessions() {
   const url = LIEN + "/.netlify/functions/fresque";
   try {
-    const r = await avecDelai(url, {
+    const r = await avecReprise(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ op: "sante" })
@@ -67,7 +88,7 @@ async function verifierSessions() {
 async function verifierRelais() {
   const url = RELAIS + "/sante";
   try {
-    const r = await avecDelai(url);
+    const r = await avecReprise(url);
     if (r.status === 404) {
       return ["Le relais repond mais n'a pas de point de sante : il tourne donc dans une version "
         + "anterieure a celle du depot. Ses fonctions recentes sont absentes, en silence. "
