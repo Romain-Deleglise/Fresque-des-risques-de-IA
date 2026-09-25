@@ -803,9 +803,17 @@ await dodo(400);
 libEtapes.push(await mesureLib());                                   // dezoom maximal
 t("le libelle d'une fleche reste visible a toutes les distances",
   libEtapes.every((e) => e.visible), JSON.stringify(libEtapes));
-t("et il garde une taille d'ecran constante, au lieu de retrecir avec le tableau",
-  libEtapes.every((e) => e.haut >= 14)
-  && (Math.max.apply(null, libEtapes.map((e) => e.haut)) - Math.min.apply(null, libEtapes.map((e) => e.haut))) <= 6,
+// CHANGEMENT DE COMPORTEMENT (retour d'atelier) : le libelle NE grossit plus au
+// dezoom. Avant, une contre-mise a l'echelle le gardait a taille d'ecran
+// constante, ce qui le faisait exploser en coordonnees monde et recouvrir les
+// cartes voisines quand on prenait du recul. Il suit maintenant l'echelle du
+// tableau, comme une carte ou une note : plus grand de pres, plus petit de loin,
+// et jamais plus grand au dezoom qu'a la distance de travail.
+// libEtapes = [ cadrage d'ensemble, de pres, dezoom maximal ].
+t("il suit l'echelle du tableau au lieu de grossir au dezoom (plus de chevauchement)",
+  libEtapes[1].haut >= libEtapes[0].haut
+  && libEtapes[0].haut >= libEtapes[2].haut
+  && libEtapes[1].haut > libEtapes[2].haut,
   libEtapes.map((e) => e.z + " : " + e.haut + " px").join(", "));
 
 await A.evaluate(() => document.getElementById("z-tout").click());
@@ -889,6 +897,41 @@ if (champ) {
   await A.waitForFunction(() => { const l = document.querySelector(".fleche-lib"); return !!l && l.textContent === "provoque"; }, null, { timeout: 8000 }).catch(() => {});
 }
 t("on peut lui donner un libelle", (await A.evaluate(() => { const l = document.querySelector(".fleche-lib"); return l ? l.textContent : ""; })) === "provoque");
+
+/* RETOURS D'ATELIER : taille reglable et libelle qui ne disparait plus. */
+// Le controle + / - apparait pendant l'edition du libelle.
+t("un controle de taille (+ / -) apparait quand on edite un libelle",
+  await A.evaluate(() => { const c = document.querySelector(".ctrl-taille"); return !!c && c.querySelectorAll("button").length === 2; }));
+// Le « + » grossit reellement le libelle (font-size applique via --tl).
+const libAvant = await A.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".fleche-lib")).fontSize));
+await A.evaluate(() => { const b = document.querySelector(".ctrl-taille button:last-child"); if (b) b.click(); });
+await A.waitForFunction((av) => { const l = document.querySelector(".fleche-lib"); return l && parseFloat(getComputedStyle(l).fontSize) > av + 0.5; }, libAvant, { timeout: 8000 }).catch(() => {});
+const libApres = await A.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".fleche-lib")).fontSize));
+t("le bouton + grossit le libelle", libApres > libAvant + 0.5, libAvant + " -> " + libApres + " px");
+// Validation par Entree, puis on laisse le service (LENT et eventuellement
+// coherent, comme la vraie plateforme) faire plusieurs sondages : le libelle ET
+// sa taille doivent RESTER, sans avoir a les retaper. C'est le bug signale.
+await A.keyboard.press("Enter"); await dodo(2600);
+const persiste = await A.evaluate(() => { const l = document.querySelector(".fleche-lib"); return l ? { t: l.textContent, f: parseFloat(getComputedStyle(l).fontSize) } : null; });
+t("le libelle ne disparait pas apres Entree (magasin eventuellement coherent)",
+  !!persiste && persiste.t === "provoque", JSON.stringify(persiste));
+t("et sa taille tient aussi apres validation", !!persiste && persiste.f > libAvant + 0.5, JSON.stringify(persiste));
+t("un seul libelle, pas de doublon apres validation",
+  (await A.evaluate(() => document.querySelectorAll(".fleche-lib").length)) === 1);
+
+// Reserve : chaque carte propose « Agrandir » (recto/verso, sans la poser).
+{
+  const agr = await A.evaluate(() => {
+    const b = document.querySelector('#pool .pool-carte [data-a="agrandir"]');
+    if (!b) return "aucune-carte"; b.click(); return "clic";
+  });
+  if (agr === "clic") {
+    await A.waitForFunction(() => document.querySelector(".modal.on"), null, { timeout: 5000 }).catch(() => {});
+    t("« Agrandir » ouvre la carte de la reserve en grand", await A.evaluate(() => !!document.querySelector(".modal.on")));
+    await A.keyboard.press("Escape"); await dodo(200);
+    await A.evaluate(() => { const m = document.querySelector(".modal.on .modal-close, .modal.on [data-x]"); if (m) m.click(); const md = document.querySelector(".modal"); if (md) md.classList.remove("on"); });
+  }
+}
 // On sort de l'edition avant de deplacer la carte, sinon le clic de depart du
 // glissement sert d'abord a quitter le champ.
 await A.keyboard.press("Escape"); await dodo(300);
