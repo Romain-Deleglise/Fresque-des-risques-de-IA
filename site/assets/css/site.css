@@ -100,7 +100,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 .btn:hover { text-decoration: none; }
 .btn-1 { background: var(--accent-aplat); color: var(--sur-accent); }
 .btn-1:hover { background: var(--accent-aplat-fort); color: var(--sur-accent); }
-.btn-2 { background: transparent; color: var(--ink); border-color: var(--ligne); }
+.btn-2 { background: var(--surface); color: var(--ink); border-color: var(--ligne); }
 .btn-2:hover { border-color: var(--ink); color: var(--ink); }
 .btn small { display: block; font-weight: 400; font-size: .74rem; color: var(--sur-accent); }
 .btn-2 small { color: var(--gris); }
@@ -141,12 +141,17 @@ a.btn, a.btn:hover { text-decoration: none; }
 :root[data-theme="dark"] .theme-toggle .ic-soleil, .theme-toggle[data-sombre="1"] .ic-soleil { display: none; }
 
 /* --- Hero ----------------------------------------------------------------- */
-.hero { padding: clamp(1.25rem, 3vw, 2.5rem) 0 clamp(2rem, 4vw, 3.5rem); }
-.hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 4rem; align-items: center; }
-.hero h1 { font-size: clamp(2.3rem, 4.2vw, 3.3rem); margin-bottom: .85rem; }
+.hero { padding: clamp(1.75rem, 3.5vw, 3rem) 0 clamp(3rem, 5vw, 4.5rem); }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 5rem; align-items: center; }
+.hero h1 { font-size: clamp(2.3rem, 4.2vw, 3.3rem); margin-bottom: 1.25rem; }
 .hero .lede { font-size: 1.12rem; }
-.hero > .wrap > div > p { margin-top: .85rem; }
-.hero .meta { font-family: var(--f-ui); font-size: .9rem; color: var(--gris); margin: 1.1rem 0 1.35rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+.hero > .wrap > div > p { margin-top: 1.5rem; }
+/* Les boutons ponctuent la colonne : ils ont besoin d'air au-dessus, et
+   davantage encore avant le paragraphe suivant, sinon le texte semble leur
+   appartenir. */
+.hero .actions { margin-top: 1.9rem; }
+.hero .actions + p { margin-top: 2.4rem; }
+.hero .meta { font-family: var(--f-ui); font-size: .9rem; color: var(--gris); margin: 1.5rem 0 1.7rem; display: flex; gap: 1rem; flex-wrap: wrap; }
 .hero .meta span { display: inline-flex; align-items: center; gap: .5rem; }
 .hero .meta .pt { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .hero .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
@@ -161,9 +166,9 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* Remontee : la pile de cartes a une hauteur fixe (30rem) et les cartes
    s'arretent cinq rem plus haut. Sans ce rattrapage, l'appel flottait loin
    sous le visuel, separe de lui par un trou. */
-.hero-appel { margin-top: -3rem; }
-.hero-appel .meta { margin-top: 0; }
-.hero-appel .appel-note { margin-top: .8rem; }
+.hero-appel { margin-top: -1.25rem; }
+.hero-appel .meta { margin-top: 0; margin-bottom: 1.7rem; }
+.hero-appel .appel-note { margin-top: 1.3rem; }
 
 /* Visuel héros : trois cartes en éventail, retournables au clic (fondu) */
 .hero-visuel { display: block; align-self: start; margin-top: 1rem; }
@@ -355,7 +360,7 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 /* --- Responsive ----------------------------------------------------------- */
 @media (max-width: 860px) {
-  .hero .wrap { grid-template-columns: 1fr; gap: 2.5rem; }
+  .hero .wrap { grid-template-columns: 1fr; gap: 3.25rem; }
   /* `display:contents` fait des enfants de la colonne de droite des elements de
      la grille : les cartes peuvent alors passer en tete et l'appel en queue,
      alors qu'ils sont dans le meme bloc sur grand ecran. */
@@ -579,7 +584,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 .ateliers-apercu { margin-top: 2.6rem; }
 .ateliers-apercu:only-child { margin-top: 0; }
-.ateliers-apercu h2, .ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
+/* « Prochains ateliers » ouvre une section de la page d'accueil : il garde la
+   taille d'un h2, sinon il se lit comme une légende. Les h3 internes, eux,
+   restent des sous-titres. */
+.ateliers-apercu h2 { margin-bottom: 1.4rem; }
+.ateliers-apercu h3 { font-size: 1.15rem; margin-bottom: 1rem; }
 .ateliers-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.1rem; }
 .ateliers-vide { grid-column: 1 / -1; }
 .ateliers-vide p { margin: 0 0 .7rem; }
@@ -619,3 +628,46 @@ a.btn, a.btn:hover { text-decoration: none; }
 
 .form-atelier textarea { resize: vertical; min-height: 3.2rem; line-height: 1.5; font-family: var(--f-ui); }
 .atelier-desc { font-size: .9rem; color: var(--ink-doux); margin: .5rem 0 0; white-space: pre-wrap; }
+
+/* Encart réservé aux animateur·ices, en fin de guide. Discret par construction :
+   il n'apparaît ni dans le PDF (.no-print) ni pour les moteurs (robots.txt). */
+.encart-reserve {
+  margin-top: 2.5rem;
+  padding: 1.2rem 1.4rem;
+  border: 1px dashed var(--ligne);
+  border-radius: 10px;
+  background: var(--bg-doux);
+}
+.encart-reserve h3 { font-family: var(--f-titre); font-size: 1.3rem; margin: 0 0 .6rem; }
+.encart-reserve p:last-child { margin-bottom: 0; }
+
+/* --- Abonnement aux alertes « prochains ateliers » --- */
+.form-alertes { display: grid; gap: 18px; margin-top: 22px; }
+.form-alertes .choix-format { border: 1px solid var(--trait, #e6e1d8); border-radius: 12px; padding: 14px 16px; }
+.form-alertes .choix-format legend { padding: 0 6px; font-weight: 600; }
+.form-alertes .radio { display: block; font-weight: 400; margin: 6px 0; cursor: pointer; }
+.form-alertes .ligne-zone { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.form-alertes .ligne-zone select { flex: 1 1 220px; min-width: 0; }
+.puces-zones { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.puce-zone { background: #f3efe8; border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.puce-x { border: 0; background: rgba(0, 0, 0, .07); border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 15px; }
+.puce-x:hover { background: rgba(0, 0, 0, .16); }
+.piege { position: absolute; left: -9999px; }
+
+/* Attribut style= inutilisable : la CSP du site interdit les styles en ligne. */
+.espace-haut { margin-top: 1.2rem; }
+
+/* Sélecteur de commune : liste de suggestions sous le champ */
+.commune-liste { position: absolute; z-index: 40; list-style: none; margin: 4px 0 0; padding: 4px; width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--trait, #e6e1d8); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .12); max-height: 280px; overflow-y: auto; }
+.commune-item { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 15px; }
+.commune-item:hover, .commune-item.actif { background: #f3efe8; }
+.ligne-zone { position: relative; }
+.ligne-zone input[type="text"] { flex: 1 1 220px; min-width: 0; }
+.champs-physique label { position: relative; }
+.vide-alerte { margin-top: 14px; font-size: 14px; }
+
+/* Rappel des alertes sous les listes d'ateliers. Ce n'est pas parce que des
+   ateliers sont déjà prévus que la personne n'est pas intéressée par les
+   suivants : le rappel est donc visible même quand la liste est pleine. */
+.rappel-alertes { margin: 22px auto 0; max-width: 62ch; text-align: center; font-size: 15px; color: var(--txt-doux, #5a564e); background: #fbf6ee; border: 1px solid #f0e4d2; border-radius: 12px; padding: 14px 18px; }
+.rappel-alertes a { font-weight: 600; }

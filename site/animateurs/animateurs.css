@@ -1,0 +1,567 @@
+/* Espace animateur·ices : plateau de la fresque de référence et panneau de
+   lecture. Reprend les jetons de site.css ; rien n'est redéfini en dur. */
+
+.wrap.etroit { max-width: var(--texte); }
+
+.avert {
+  border-left: 4px solid var(--accent);
+  background: var(--accent-doux);
+  padding: .9rem 1.1rem;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 2rem;
+}
+.avert p { margin: 0; }
+
+.reveal { margin: 2rem 0 0; }
+.reveal-note { margin-top: .6rem; }
+
+/* ── Barre d'outils ─────────────────────────────────────────── */
+.barre {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  align-items: center; justify-content: space-between;
+  margin-bottom: .4rem;
+}
+.barre-g { display: flex; align-items: center; gap: .4rem; }
+.btn-outil {
+  font: inherit; font-family: var(--f-ui); font-size: .9rem;
+  min-width: 44px; min-height: 44px; padding: 0 .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.btn-outil:hover { border-color: var(--accent); color: var(--accent-txt); }
+.zoom-val { font-family: var(--f-ui); font-size: .85rem; color: var(--gris); min-width: 4ch; text-align: center; }
+.bascule { display: inline-flex; align-items: center; gap: .5rem; font-family: var(--f-ui); font-size: .9rem; cursor: pointer; }
+.bascule input { width: 18px; height: 18px; accent-color: var(--accent); }
+.barre-aide { margin: 0 0 .8rem; font-size: .88rem; }
+
+/* ── Plateau ────────────────────────────────────────────────── */
+.plateau-cadre {
+  position: relative; overflow: auto;
+  border: 1px solid var(--ligne); border-radius: 12px;
+  background: var(--bg);
+  /* Hauteur bornée par la fenêtre : le plateau reste visible d'un coup d'œil
+     sans chasser le reste de la page. */
+  height: min(72vh, 760px);
+  cursor: grab;
+}
+.plateau-cadre.attrape { cursor: grabbing; }
+.plateau-sizer { position: relative; }
+/* Les dimensions du plan sont posées par le script, d'après le fichier de
+   référence : les fixer ici les ferait mentir dès qu'on déplace une carte. */
+.plateau { position: absolute; inset: 0; transform-origin: 0 0; }
+.liens { position: absolute; inset: 0; pointer-events: none; }
+.liens path { stroke: var(--gris-clair); stroke-width: 2; fill: none; }
+.liens .tete { fill: var(--gris-clair); }
+/* Les réponses du lot 5 : discontinu et coloré, parce qu'elles disent
+   « répond à » et non « provoque ». */
+.liens g.reponse path { stroke: #c1444e; stroke-dasharray: 9 6; opacity: .75; }
+.liens g.reponse .tete { fill: #c1444e; opacity: .75; }
+.liens g.reponse.vif path { stroke: #c1444e; opacity: 1; stroke-width: 3.5; }
+.liens g.reponse.vif .tete { fill: #c1444e; opacity: 1; }
+.liens g.reponse text { fill: #c1444e; }
+.liens text { fill: var(--gris); font-family: var(--f-ui); font-size: 13px; }
+.liens .halo { stroke: var(--bg); stroke-width: 6; paint-order: stroke; }
+/* Masqués par défaut : voir majLibelles() dans animateurs.js. */
+.liens text { display: none; }
+.liens.tous-libelles text, .liens g.vif text { display: block; }
+.liens g.vif path { stroke: var(--accent); stroke-width: 3.5; }
+.liens g.vif .tete { fill: var(--accent); }
+.liens g.vif text { fill: var(--accent-txt); font-weight: 600; }
+.liens g.pale { opacity: .14; }
+.liens g { transition: opacity .18s ease; }
+/* Aperçu au survol : plus léger que la sélection, et sans libellés — il
+   renseigne, il ne se substitue pas au clic. */
+.liens g.survol path { stroke: var(--accent-txt); stroke-width: 3; }
+.liens g.survol .tete { fill: var(--accent-txt); }
+.liens g.reponse.survol path, .liens g.reponse.survol .tete { opacity: 1; }
+
+/* ── Cartes ─────────────────────────────────────────────────
+   Même anatomie que les cartes du tableau de la Fresque en ligne (visuel,
+   numéro, titre, filet de lot) : un animateur qui connaît l'un reconnaît
+   l'autre. Le titre est SUR la carte, sinon la fresque vue de loin n'est
+   qu'une mosaïque d'images qu'il faut cliquer une à une pour lire. */
+.c-carte {
+  position: absolute; width: 160px;
+  display: flex; flex-direction: column; text-align: left;
+  padding: 0; border: 1px solid var(--ligne);
+  border-top: 3px solid var(--lot, var(--accent));
+  border-radius: 10px; background: var(--surface);
+  box-shadow: 0 2px 8px rgb(27 26 23 / 10%);
+  cursor: pointer; overflow: hidden;
+}
+.c-carte .vis { position: relative; width: 100%; aspect-ratio: 1.6 / 1; background: #14110d; }
+.c-carte .vis img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.c-carte .num {
+  position: absolute; top: 5px; left: 5px; width: 21px; height: 21px;
+  border-radius: 5px; background: var(--lot, var(--accent)); color: #fff;
+  display: grid; place-items: center; font-family: var(--f-titre); font-size: .8rem;
+}
+.c-carte .tit {
+  font-family: var(--f-titre); font-weight: 700; font-size: .82rem; line-height: 1.1;
+  color: var(--ink); padding: .4rem .5rem .5rem;
+}
+/* Les états se fondent au lieu de sauter : passer d'une carte à l'autre fait
+   défiler la mise en avant, on suit ce qui change. `prefers-reduced-motion`
+   est déjà neutralisé globalement dans site.css. */
+.c-carte { transition: opacity .18s ease, border-color .15s ease, box-shadow .18s ease; }
+.c-carte:hover, .c-carte:focus-visible { border-color: var(--accent); outline: none; }
+.c-carte.actif { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-doux), 0 2px 8px rgb(27 26 23 / 10%); }
+.c-carte.pale { opacity: .28; }
+.c-carte .pastille {
+  position: absolute; top: 5px; right: 5px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 10px; background: var(--accent); color: var(--sur-accent);
+  font-family: var(--f-ui); font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.etiquette {
+  position: absolute;
+  font-family: var(--f-titre); font-size: 26px; letter-spacing: .02em;
+  color: var(--lot, var(--gris-clair)); text-transform: uppercase; white-space: nowrap;
+}
+
+/* ── Panneau latéral ────────────────────────────────────────── */
+.panneau {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw);
+  background: var(--surface); border-left: 1px solid var(--ligne);
+  box-shadow: -8px 0 28px rgb(0 0 0 / 12%);
+  overflow-y: auto; z-index: 60;
+}
+.panneau-fermer {
+  position: absolute; top: .5rem; right: .5rem;
+  width: 44px; height: 44px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--gris); font-size: 1.1rem; cursor: pointer;
+}
+.panneau-fermer:hover { background: var(--bg-doux); color: var(--ink); }
+.panneau-corps { padding: 1.4rem; }
+.panneau-img { width: 100%; max-width: 240px; border-radius: 8px; margin-bottom: 1rem; }
+.panneau h3 { font-family: var(--f-titre); font-size: 1.5rem; margin: 0 0 .7rem; }
+.panneau-verso p { font-size: .95rem; line-height: 1.6; }
+.panneau-liens { margin-top: 1.2rem; border-top: 1px solid var(--ligne); padding-top: 1rem; }
+.panneau-liens h4 { font-family: var(--f-ui); font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--gris); margin: 0 0 .5rem; }
+.panneau-liens ul { list-style: none; margin: 0 0 1rem; padding: 0; }
+.panneau-liens li { font-size: .9rem; line-height: 1.45; margin-bottom: .45rem; }
+.panneau-liens .fleche { color: var(--accent-txt); font-weight: 600; }
+.panneau-liens .quoi { color: var(--gris); }
+
+.panneau-commentaire { margin-top: 1.2rem; border-top: 1px solid var(--ligne); padding-top: 1rem; }
+.panneau-commentaire h4 { font-family: var(--f-ui); font-size: .95rem; margin: 0 0 .6rem; }
+
+/* ── Formulaires ────────────────────────────────────────────── */
+.form-retour { margin-top: 1.5rem; }
+.form-retour label, .panneau-commentaire label {
+  display: block; font-family: var(--f-ui); font-size: .85rem;
+  font-weight: 600; margin: .9rem 0 .3rem;
+}
+.form-retour .opt { font-weight: 400; color: var(--gris); }
+.form-retour input, .form-retour select, .form-retour textarea,
+.panneau-commentaire input, .panneau-commentaire textarea {
+  width: 100%; font: inherit; font-family: var(--f-ui); font-size: .95rem;
+  padding: .6rem .7rem; margin-bottom: .6rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.form-retour textarea, .panneau-commentaire textarea { resize: vertical; }
+.form-retour :focus-visible, .panneau-commentaire :focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
+.form-retour button { margin-top: .6rem; }
+.etat { font-family: var(--f-ui); font-size: .88rem; margin: .7rem 0 0; min-height: 1.2em; }
+.etat.ok { color: var(--ok); }
+.etat.err { color: var(--err); }
+
+@media (max-width: 640px) {
+  .plateau-cadre { height: 60vh; }
+  .barre { gap: .6rem; }
+}
+
+/* ── Jeton de modération ────────────────────────────────────── */
+.jeton {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  justify-content: flex-end; margin-bottom: .8rem;
+  font-family: var(--f-ui); font-size: .85rem;
+}
+.jeton label { color: var(--gris); }
+.jeton input {
+  font: inherit; padding: .45rem .6rem; width: 11rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.jeton .btn-outil { min-height: 36px; font-size: .82rem; }
+.jeton-etat { color: var(--ok); font-weight: 600; }
+.jeton-etat.err { color: var(--err); }
+
+/* ── Retours affichés ───────────────────────────────────────── */
+.retours { list-style: none; margin: 1rem 0 0; padding: 0; }
+.retours li {
+  border: 1px solid var(--ligne); border-radius: 10px;
+  padding: .8rem 1rem; margin-bottom: .7rem; background: var(--surface);
+}
+.retours .meta {
+  font-family: var(--f-ui); font-size: .78rem; color: var(--gris);
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: .35rem;
+}
+.retours .texte { margin: 0; font-size: .95rem; line-height: 1.55; white-space: pre-wrap; }
+/* Grisé = en attente de relecture. L'opacité seule ne suffirait pas à le dire :
+   la mention l'écrit, pour qui ne perçoit pas la nuance. */
+.retours li.attente { opacity: .55; border-style: dashed; }
+.retours .badge-attente {
+  border: 1px solid var(--ligne); border-radius: 999px; padding: .1rem .5rem;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+}
+.exemple-attente { opacity: .55; }
+.retours .actions { margin-top: .6rem; display: flex; gap: .5rem; }
+.retours .actions button {
+  font-family: var(--f-ui); font-size: .8rem; min-height: 36px; padding: 0 .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.retours .actions .valider:hover { border-color: var(--ok); color: var(--ok); }
+.retours .actions .supprimer:hover { border-color: var(--err); color: var(--err); }
+.retours-vide { color: var(--gris); font-family: var(--f-ui); font-size: .9rem; }
+.retours-titre { font-family: var(--f-titre); font-size: 1.4rem; margin: 2.5rem 0 .3rem; }
+.retours-carte { margin-top: 1rem; }
+.retours-carte li { padding: .6rem .8rem; }
+
+/* ── Outils de la barre ─────────────────────────────────────── */
+.visuellement-cache {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+.recherche input {
+  font: inherit; font-family: var(--f-ui); font-size: .88rem;
+  min-height: 44px; padding: 0 .8rem; width: 13rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.recherche input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── Lots : légende et filtre à la fois ─────────────────────── */
+.lots { display: flex; flex-wrap: wrap; gap: .45rem; margin: .2rem 0 .7rem; }
+.lot-puce {
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
+  min-height: 36px; padding: 0 .75rem;
+  border: 1px solid var(--ligne); border-left: 4px solid var(--lot, var(--gris-clair));
+  border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.lot-puce:hover { border-color: var(--lot, var(--accent)); }
+.lot-puce.actif { background: var(--lot, var(--accent)); color: #fff; border-color: var(--lot, var(--accent)); }
+/* La première puce (« Tous ») n'a pas de couleur de lot : son état actif doit
+   quand même se voir. */
+.lot-puce[data-lot=""].actif { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+/* Résultat de recherche : un anneau, pas un changement de couleur — la couleur
+   appartient déjà au lot. */
+.c-carte.trouve { box-shadow: 0 0 0 3px var(--accent), 0 2px 8px rgb(27 26 23 / 10%); }
+
+/* ── Suivre une chaîne depuis le panneau ────────────────────── */
+.panneau-liens .vers-carte {
+  font: inherit; font-family: var(--f-texte); font-size: .9rem;
+  color: var(--accent-txt); font-weight: 600; text-align: left;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.panneau-liens .vers-carte:hover { color: var(--accent-txt-fort); }
+.panneau-liens .vers-carte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* En plein écran, la section prend toute la place : le cadre doit suivre. */
+#plateau-section:fullscreen { background: var(--bg); padding: 1rem; overflow: auto; }
+#plateau-section:fullscreen .wrap { max-width: none; }
+
+/* ── Sommaire de l'espace ───────────────────────────────────── */
+.avert-large { max-width: none; }
+
+.etape-titre {
+  display: flex; align-items: center; gap: .6rem;
+  margin: 2.2rem 0 .9rem; font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+}
+.etape-titre:first-of-type { margin-top: 1.4rem; }
+.etape-n {
+  flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--accent); color: var(--sur-accent);
+  display: grid; place-items: center;
+  font-family: var(--f-ui); font-size: .95rem; font-weight: 700;
+}
+
+.ressources {
+  display: grid; gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+}
+/* Toute la tuile est cliquable : viser un lien de trois mots au doigt est une
+   petite épreuve, et il n'y a qu'une destination par tuile. */
+.ressource {
+  display: flex; flex-direction: column;
+  padding: .95rem 1.1rem 1rem;
+  border: 1px solid var(--ligne); border-radius: 12px;
+  background: var(--surface); color: inherit; text-decoration: none;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.ressource:hover {
+  border-color: var(--accent); transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgb(27 26 23 / 8%);
+}
+.ressource:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ressource-tag {
+  font-family: var(--f-ui); font-size: .62rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--accent-txt);
+  border: 1px solid var(--ligne); border-radius: 999px; padding: .1em .5em;
+  vertical-align: middle; margin-left: .35em;
+}
+.ressource h3 { font-family: var(--f-titre); font-size: 1.15rem; margin: 0 0 .35rem; }
+/* La flèche vit sur le titre : une ligne « Ouvrir → » sous chaque tuile
+   ajoutait huit lignes au sommaire pour ne rien dire de plus, puisque la
+   tuile entière est cliquable. */
+.ressource h3::after { content: " →"; color: var(--accent-txt); }
+.ressource p { margin: 0; font-size: .9rem; line-height: 1.5; color: var(--ink-doux); }
+
+/* « Ce qui arrive » tenait en une liste à puces et une section à part : une
+   phrase suffit, ce n'est pas une ressource mais une intention. */
+.a-venir-ligne { margin-top: 2rem; font-size: .9rem; }
+
+.avert-ligne {
+  border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .8rem;
+  margin: 0 0 1.5rem; font-size: .93rem; color: var(--ink-doux);
+}
+
+/* ── Antisèche ──────────────────────────────────────────────
+   Conçue pour être imprimée : deux pages A4 recto-verso, lisibles posées sur
+   une table à côté des cartes. À l'écran elle reste lisible telle quelle. */
+.antiseche { padding-top: 1rem; }
+.as-entete { border-bottom: 3px solid var(--accent); padding-bottom: .6rem; margin-bottom: 1.6rem; }
+.as-entete h2 { font-size: 1.6rem; margin: 0 0 .2rem; }
+.as-entete p { margin: 0; }
+
+.as-bloc { margin-bottom: 2.2rem; break-inside: avoid; }
+.as-bloc h3 {
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--accent-txt);
+  margin: 0 0 .8rem; padding-bottom: .35rem; border-bottom: 1px solid var(--ligne);
+}
+
+.as-liste { margin: 0; padding-left: 1.2rem; }
+.as-liste li { margin-bottom: .45rem; font-size: .95rem; line-height: 1.5; }
+
+.as-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.as-table th, .as-table td { text-align: left; vertical-align: top; padding: .5rem .6rem; border-bottom: 1px solid var(--ligne); }
+.as-table thead th {
+  font-family: var(--f-ui); font-size: .72rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--gris); border-bottom-width: 2px;
+}
+.as-table tbody th { font-family: var(--f-titre); font-size: 1rem; white-space: nowrap; }
+/* Le filet coloré rattache chaque ligne à son lot, comme sur les cartes. */
+.as-lot tbody th, .as-table tbody tr.as-lot th { position: relative; padding-left: .9rem; }
+.as-table tbody tr.as-lot th::before {
+  content: ""; position: absolute; left: 0; top: .6rem; bottom: .6rem; width: 4px; border-radius: 2px;
+  background: var(--lot, var(--accent));
+}
+.as-table tr.as-lot[data-lot="1"] th { --lot: #E8811C; }
+.as-table tr.as-lot[data-lot="2"] th { --lot: #2f7d4f; }
+.as-table tr.as-lot[data-lot="3"] th { --lot: #3b6ea5; }
+.as-table tr.as-lot[data-lot="4"] th { --lot: #8a4fb3; }
+.as-table tr.as-lot[data-lot="5"] th { --lot: #c1444e; }
+.as-dit { color: var(--ink-doux); font-style: italic; }
+.as-note { font-size: .88rem; margin-top: .8rem; }
+
+.as-cas { margin: 0; }
+.as-cas dt {
+  font-family: var(--f-titre); font-size: 1.02rem; font-weight: 700;
+  margin-top: .9rem; margin-bottom: .2rem;
+}
+.as-cas dt:first-child { margin-top: 0; }
+.as-cas dd { margin: 0; font-size: .93rem; line-height: 1.55; color: var(--ink-doux); }
+
+/* Même cause que sur l'affiche : ces deux adresses sont des mots très longs. */
+.as-pied { font-size: .78rem; color: var(--gris); border-top: 1px solid var(--ligne); padding-top: .6rem; overflow-wrap: anywhere; }
+
+@media print {
+  .antiseche { padding: 0; }
+  .as-bloc { margin-bottom: 1.1rem; }
+  .as-table { font-size: 9.5pt; }
+  .as-cas dd, .as-liste li { font-size: 9.5pt; }
+  .as-entete h2 { font-size: 15pt; }
+}
+
+/* ── Minuteur de déroulé ────────────────────────────────────
+   Se lit à deux mètres, debout, en animant : le temps restant domine tout. */
+.minuteur-page { padding-top: 1.5rem; }
+.mi-scene { text-align: center; margin-bottom: 2.5rem; }
+.mi-etape-nom {
+  font-family: var(--f-titre); font-size: clamp(1.4rem, 3vw, 2rem);
+  color: var(--lot-courant, var(--accent)); margin: 0 0 .2rem;
+}
+.mi-reste {
+  font-family: var(--f-titre); font-weight: 700;
+  font-size: clamp(4rem, 16vw, 9rem); line-height: 1;
+  margin: 0; font-variant-numeric: tabular-nums;
+}
+/* Deux minutes avant la fin, puis au-delà : le temps change de couleur avant
+   de changer de signe. On ne compte pas sur la seule couleur — le nombre passe
+   au négatif, ce qui reste lisible sans la percevoir. */
+.mi-bientot .mi-reste { color: var(--accent-txt); }
+.mi-depasse .mi-reste { color: var(--err); }
+.mi-quoi { color: var(--ink-doux); margin: .6rem auto 1.2rem; max-width: 34rem; }
+
+.mi-jauge {
+  height: 8px; border-radius: 4px; background: var(--ligne);
+  overflow: hidden; margin: 0 auto 1.5rem; max-width: 44rem;
+}
+.mi-jauge span {
+  display: block; height: 100%; width: 0;
+  background: var(--lot-courant, var(--accent)); transition: width .25s linear;
+}
+.mi-depasse .mi-jauge span { background: var(--err); }
+
+.mi-commandes { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+.mi-aide { margin-top: 1rem; font-size: .88rem; }
+.mi-total { font-family: var(--f-ui); font-size: .95rem; color: var(--gris); margin: .4rem 0 0; }
+
+.mi-liste { list-style: none; margin: 0 auto; padding: 0; max-width: 44rem; counter-reset: mi; }
+.mi-etape { margin-bottom: .45rem; }
+.mi-aller {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  font: inherit; font-family: var(--f-ui); text-align: left;
+  padding: .7rem .9rem; min-height: 48px;
+  border: 1px solid var(--ligne); border-left: 4px solid var(--lot, var(--gris-clair));
+  border-radius: 9px; background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.mi-aller:hover { border-color: var(--lot, var(--accent)); }
+.mi-etape.courante .mi-aller {
+  border-color: var(--lot, var(--accent));
+  box-shadow: 0 0 0 2px var(--accent-doux);
+  font-weight: 700;
+}
+.mi-etape.faite .mi-aller { opacity: .5; }
+.mi-e-duree { color: var(--gris); font-size: .85rem; white-space: nowrap; }
+.mi-pied { max-width: 44rem; margin: 2rem auto 0; font-size: .9rem; }
+
+/* ── Kit d'annonce ──────────────────────────────────────────── */
+.kit-champs {
+  display: grid; gap: .3rem 1rem; align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 42rem;
+}
+/* Deux colonnes seulement quand il y a la place : en dessous, l'étiquette
+   passe au-dessus de son champ plutôt que de le comprimer. */
+@media (min-width: 560px) {
+  .kit-champs { grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); }
+}
+.kit-champs label { font-family: var(--f-ui); font-size: .88rem; font-weight: 600; }
+.kit-champs .opt { font-weight: 400; color: var(--gris); }
+.kit-champs input {
+  font: inherit; font-family: var(--f-ui); font-size: .95rem;
+  min-height: 44px; padding: 0 .7rem; margin-bottom: .5rem;
+  border: 1px solid var(--ligne); border-radius: 8px;
+  background: var(--surface); color: var(--ink); width: 100%;
+}
+.kit-champs input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.kit-tete { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+
+/* L'affiche : proportions A4, lisible à trois mètres sur un panneau. */
+.affiche {
+  /* `width:100%` avant le maximum : sur un écran de 320 px, une largeur de
+     30 rem déborderait la page au lieu de s'y adapter. */
+  aspect-ratio: 1 / 1.414; width: 100%; max-width: 30rem; margin: 1rem auto 0;
+  background: var(--surface); border: 1px solid var(--ligne); border-radius: 4px;
+  padding: 7% 8%; display: flex; flex-direction: column;
+  box-shadow: 0 10px 30px rgb(27 26 23 / 10%);
+}
+.af-sur {
+  font-family: var(--f-ui); font-size: .72rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--accent-txt); margin: 0 0 .8rem;
+}
+/* Pas d'espace insécable dans ce titre : il l'empêchait de se replier, et
+   l'affiche débordait alors de l'écran sur un petit téléphone. */
+.af-titre {
+  font-family: var(--f-titre); font-size: clamp(1.7rem, 6.5cqw, 3rem); line-height: .98;
+  margin: 0 0 .9rem; text-wrap: balance;
+}
+.af-accroche { font-size: .92rem; line-height: 1.5; color: var(--ink-doux); margin: 0 0 auto; }
+.af-infos { margin: 1.4rem 0 1rem; }
+.af-infos > div { display: flex; gap: .8rem; padding: .45rem 0; border-top: 1px solid var(--ligne); }
+.af-infos dt {
+  font-family: var(--f-ui); font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--gris); flex: 0 0 4.5rem; padding-top: .15rem;
+}
+.af-infos dd { margin: 0; font-family: var(--f-titre); font-size: 1.05rem; }
+.af-inscription {
+  /* L'adresse d'inscription est un seul mot très long : sans point de coupure
+     autorisé, elle sort de l'affiche sur un écran étroit. */
+  overflow-wrap: anywhere;
+  background: var(--accent); color: var(--sur-accent);
+  font-family: var(--f-ui); font-weight: 700; font-size: .92rem;
+  padding: .6rem .8rem; border-radius: 8px; margin: 0 0 .8rem; text-align: center;
+}
+.af-pied { font-size: .72rem; color: var(--gris); margin: 0; text-align: center; }
+
+/* `min(…, 100%)` plutôt qu'une largeur minimale sèche : sur un écran étroit,
+   une colonne de 19 rem déborde au lieu de se replier. */
+.kit-textes { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); margin-top: 1rem; }
+.kit-texte { border: 1px solid var(--ligne); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.kit-texte header {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .7rem .9rem; border-bottom: 1px solid var(--ligne); background: var(--bg-doux);
+}
+.kit-texte h3 { font-family: var(--f-titre); font-size: 1.1rem; margin: 0; }
+.kit-texte pre {
+  margin: 0; padding: .9rem; font-family: var(--f-ui); font-size: .84rem; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word; color: var(--ink-doux);
+  max-height: 22rem; overflow: auto;
+}
+
+@media print {
+  /* N'imprimer que l'affiche, en pleine page. */
+  body > *:not(main), main > *:not(.section-doux) { display: none !important; }
+  .affiche {
+    max-width: none; width: 100%; aspect-ratio: auto; min-height: 96vh;
+    border: 0; box-shadow: none; padding: 6%;
+  }
+}
+
+/* Les phrases de relance : citées telles qu'on les dit, donc composées comme
+   des répliques plutôt que comme de la prose. */
+.as-sous {
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 700;
+  color: var(--ink); margin: 1rem 0 .4rem;
+}
+.as-sous:first-of-type { margin-top: 0; }
+.as-phrases { list-style: none; margin: 0 0 .6rem; padding: 0; }
+.as-phrases li {
+  position: relative; padding-left: .9rem; margin-bottom: .32rem;
+  font-size: .92rem; line-height: 1.5; color: var(--ink-doux);
+}
+.as-phrases li::before {
+  content: ""; position: absolute; left: 0; top: .55em;
+  width: 3px; height: 3px; border-radius: 50%; background: var(--accent);
+}
+@media print { .as-phrases li { font-size: 9pt; margin-bottom: .18rem; } }
+
+/* Le tableau du déroulé ne tient pas sur un téléphone : on le laisse défiler
+   dans son propre cadre plutôt que d'élargir toute la page. */
+.as-table { display: block; overflow-x: auto; max-width: 100%; }
+@media (min-width: 620px) { .as-table { display: table; } }
+
+.mi-titre {
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem); text-align: center;
+  color: var(--gris); font-weight: 400; margin: 0 0 1.5rem;
+}
+
+/* Clé de lecture des flèches. */
+.cle-fleches {
+  display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 0 0 .5rem;
+  font-family: var(--f-ui); font-size: .82rem; color: var(--gris);
+}
+.cle-fleches span { display: inline-flex; align-items: center; gap: .45rem; }
+.cle-trait { width: 2.2rem; height: 0; border-top-width: 2px; border-top-style: solid; }
+.cle-cause { border-top-color: var(--gris-clair); }
+.cle-reponse { border-top-color: #c1444e; border-top-style: dashed; }
+
+/* Le panneau est posé par-dessus la page : le plateau lui cède la place plutôt
+   que de disparaître dessous. Sous 900 px le panneau occupe presque l'écran,
+   rétrécir le plateau n'aurait plus de sens — on le laisse dessous. */
+@media (min-width: 900px) {
+  .panneau-ouvert .plateau-cadre { margin-right: min(420px, 40vw); }
+}
+.panneau-liens .h-reponse { color: #c1444e; }
+.panneau-liens .l-reponse .vers-carte { color: #c1444e; }

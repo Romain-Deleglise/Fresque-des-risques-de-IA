@@ -62,6 +62,84 @@ Toutes les cartes vivent dans la source unique **`site/data/cartes.json`**
 concernée : aucune compilation. Voir la doc, section « Les cartes », pour la
 génération des visuels et du PDF imprimable.
 
+## Alertes « prochains ateliers »
+
+Une personne qui a assisté à un atelier, ou qui n'en a pas trouvé près de chez
+elle, peut demander à être prévenue. La promesse est étroite et tenue par le
+code, pas par la bonne volonté :
+
+- **au plus un e-mail par semaine** et par personne, quel que soit le nombre
+  d'ateliers ;
+- **rien à annoncer = rien d'envoyé.** Pas de « rien cette semaine » ;
+- **tout dans le même message** : les ateliers en ligne et ceux de chaque
+  département choisi.
+
+Qui reçoit quoi, exhaustivement (table de vérité vérifiée par
+`serveur/tests/alertes.test.mjs`) :
+
+| Choix de la personne | Atelier en ligne | Atelier dans son rayon | Atelier plus loin |
+| --- | --- | --- | --- |
+| En ligne **et** près de chez moi | reçoit | reçoit | rien |
+| En ligne uniquement | reçoit | rien | rien |
+| Près de chez moi uniquement | rien | reçoit | rien |
+
+Sont en plus écartés : les ateliers privés, passés, complets, ou à plus de
+60 jours.
+
+**Communes : liste fermée, et un rayon.** Les deux côtés — le formulaire
+d'abonnement (`/participer/#alertes`) et celui de programmation d'un atelier —
+font choisir une commune dans les **34 875 communes françaises** (code INSEE,
+source : Code officiel géographique de l'INSEE). Aucune saisie libre n'est
+acceptée : « Lyon », « lyon » et « Lyon 7e » ne se rencontreraient jamais.
+
+La comparaison se fait ensuite sur les **distances**, pas sur les noms : exiger
+la commune exacte ferait rater à quelqu'un de Villeurbanne l'atelier de Lyon, à
+quatre kilomètres.
+
+Le rayon par défaut **s'adapte à la commune** : 50 km autour de Paris, c'est
+Melun ; 50 km en Lozère, c'est deux bourgs. `scripts/generer-communes.mjs`
+calcule pour chaque commune le plus petit rayon parmi 15 / 30 / 50 / 100 km qui
+met ~800 000 personnes à portée. Le seuil est volontairement généreux : au
+démarrage il y aura peu d'ateliers, mieux vaut un peu trop large que rien
+pendant six mois. La personne peut toujours le changer.
+
+Les coordonnées restent **côté serveur** (`serveur/src/communes-coords.txt`) ;
+le navigateur ne charge que `site/data/communes.txt` (nom, code, code postal,
+rayon proposé), et seulement au moment où quelqu'un cherche sa commune.
+
+Régénérer après une fusion de communes : `node scripts/generer-communes.mjs`
+(demande un accès réseau ; les fichiers produits sont versionnés).
+
+Désabonnement en un clic depuis le lien en bas de chaque message
+(`/alertes/?d=<jeton>`) : l'adresse est **effacée**, pas désactivée.
+
+Envoi hebdomadaire : fonction planifiée `alertes-envoi` (mardi 9 h UTC, voir
+`netlify.toml`). L'espace d'administration affiche le nombre d'abonnés et le
+classement des communes en attente, ce qui indique où programmer le
+prochain atelier.
+
+## Espace d'administration
+
+`/admin/`, ouvert par `ADMIN_TOKEN`. La clé n'est gardée que le temps de
+l'onglet. On y trouve :
+
+- les **contacts** (suivi, export CSV, désinscription et effacement RGPD) ;
+- les **retours et témoignages** déposés sur `/retour/` et `/temoignage/`.
+  Publier un témoignage l'affiche sur la page d'accueil — un test le vérifie,
+  parce que cette chaîne a déjà été cassée une fois : le bouton marquait le
+  témoignage sans rien changer à la page ;
+- les **alertes** : nombre d'abonnés et classement des communes en attente ;
+- les **ateliers programmés**, publics comme privés, à venir comme passés.
+  L'équipe peut en **annuler** un : l'animateur·ice et les inscrit·es sont
+  prévenu·es par le circuit d'e-mails existant, pas par un second recopié à
+  côté (`netlify/functions/ateliers.js` l'exporte) ;
+- les **animateur·ices à relancer** : ont animé au moins une fois, rien depuis
+  plus de quatre mois, et rien de prévu. Relancer quelqu'un qui anime dans dix
+  jours est le meilleur moyen de passer pour un robot, donc un atelier à venir
+  suffit à l'exclure. Au plus une relance par personne et par semestre : la
+  date est écrite avant l'envoi, pour qu'un plantage entre les deux ne relance
+  jamais deux fois. Règles dans `serveur/src/animateurs.js`, testées.
+
 ## Déploiement
 
 Hébergé sur **Netlify** : `publish = "site"`, fonctions dans

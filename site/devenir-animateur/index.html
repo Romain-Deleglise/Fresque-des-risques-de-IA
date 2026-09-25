@@ -130,6 +130,9 @@
           <div class="champs-physique grille-champs" hidden>
             <label>Localisation affichée<input name="lieu" maxlength="120" placeholder="Ex. 13e arr. Paris">
               <span class="aide-champ">Publique, volontairement vague (pas l'adresse exacte).</span></label>
+            <label>Commune<input name="commune-texte" id="commune-champ" type="text" maxlength="60" placeholder="Ex. Villeurbanne, ou 69100" autocomplete="off">
+              <input type="hidden" name="commune">
+              <span class="aide-champ">Tapez les premières lettres, puis choisissez dans la liste. Sert à prévenir les personnes abonnées aux alertes près de chez elles.</span></label>
             <label>Adresse exacte<input name="adresse" maxlength="200" placeholder="Rue, ville…">
               <span class="aide-champ">Envoyée uniquement par e-mail aux inscrit·es.</span></label>
           </div>
@@ -226,6 +229,7 @@
     </div>
   </footer>
   <script src="../assets/js/nav.js" defer></script>
+  <script src="../assets/js/commune.js" defer></script>
   <script src="../assets/js/ateliers.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
 </body>

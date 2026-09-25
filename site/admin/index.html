@@ -51,6 +51,55 @@
         </div>
       </div>
 
+      <!-- Retours d'atelier et témoignages, déposés depuis /retour/ et
+           /temoignage/. Rien n'est publié automatiquement. -->
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Ateliers programmés <span id="compte-ateliers" class="pastille"></span></h2>
+          <div class="table-outils">
+            <select id="filtre-ateliers" aria-label="Filtrer les ateliers">
+              <option value="avenir">À venir</option>
+              <option value="passes">Passés</option>
+              <option value="tous">Tous</option>
+            </select>
+          </div>
+        </div>
+        <div id="liste-ateliers-admin" aria-live="polite"></div>
+      </div>
+
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Animateur·ices à relancer <span id="compte-inactifs" class="pastille"></span></h2>
+        </div>
+        <p class="muted">Ont animé au moins une fois, rien depuis plus de quatre mois, et rien de prévu.
+        Une relance par personne et par semestre au maximum.</p>
+        <div id="liste-inactifs" aria-live="polite"></div>
+      </div>
+
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Alertes « prochains ateliers » <span id="compte-alertes" class="pastille"></span></h2>
+        </div>
+        <p class="muted">Qui attend l'annonce d'un atelier, et où. Sert à choisir la prochaine ville :
+        les départements sont classés par nombre de personnes en attente.</p>
+        <div id="resume-alertes" aria-live="polite"></div>
+      </div>
+
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Retours et témoignages <span id="compte-retours" class="pastille"></span></h2>
+          <div class="table-outils">
+            <select id="filtre-retours" aria-label="Filtrer les retours">
+              <option value="tous">Tout</option>
+              <option value="atelier">Retours d'atelier</option>
+              <option value="temoignage">Témoignages</option>
+              <option value="attente">À traiter</option>
+            </select>
+          </div>
+        </div>
+        <div id="liste-retours" class="retours-admin" aria-live="polite"></div>
+      </div>
+
       <div class="panneau">
         <div class="table-tete">
           <h2>Contacts <span id="compte-contacts" class="pastille"></span></h2>

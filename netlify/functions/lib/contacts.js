@@ -98,9 +98,23 @@ async function desinscrire(store, mail) {
   } catch (e) { return false; }
 }
 
+/* Note la date de la derniere relance. C'est elle qui garantit qu'on ne
+   relance pas deux fois la meme personne dans le semestre (voir
+   serveur/src/animateurs.js). */
+async function marquerRelance(store, mail) {
+  const k = cle(mail);
+  try {
+    const res = await store.getWithMetadata(k, { type: "json" });
+    if (!res || !res.data) return false;
+    const c = res.data; c.relanceMs = Date.now();
+    await store.setJSON(k, c, { onlyIfMatch: res.etag });
+    return true;
+  } catch (e) { return false; }
+}
+
 /* Efface definitivement un contact (droit a l'effacement). */
 async function supprimer(store, mail) {
   try { await store.delete(cle(mail)); return true; } catch (e) { return false; }
 }
 
-module.exports = { enregistrer, lister, desinscrire, supprimer, cle, normaliserMail };
+module.exports = { enregistrer, lister, desinscrire, marquerRelance, supprimer, cle, normaliserMail };

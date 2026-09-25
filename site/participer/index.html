@@ -56,7 +56,7 @@
             ateliers programmés ci-dessous, en ligne comme en présentiel, et inscrivez-vous à celui
             qui vous convient : vous recevrez tout par e-mail.
           </p>
-          <p class="muted" style="margin-top:1.2rem">Vous cherchez plutôt à <strong>animer</strong> un atelier&nbsp;?
+          <p class="muted espace-haut">Vous cherchez plutôt à <strong>animer</strong> un atelier&nbsp;?
             <a href="../devenir-animateur/#programmer">Programmez-en un depuis la page Animer</a>.</p>
         </div>
       </div>
@@ -70,10 +70,56 @@
           <p class="muted">Choisissez un atelier public et inscrivez-vous : vous recevrez un e-mail de confirmation avec la date, l'heure (et le lieu exact si présentiel) et, pour un atelier en ligne, le lien qui vous amène directement au tableau partagé.</p>
         </div>
         <div id="liste-ateliers" class="ateliers-liste" data-passes aria-live="polite"></div>
+        <p class="rappel-alertes">Aucune date qui vous convient, ou rien près de chez vous&nbsp;?
+          <a href="#alertes">Faites-vous prévenir des prochains ateliers</a> —
+          au plus un e-mail par semaine, et rien s'il n'y a rien pour vous.</p>
         <p class="muted rgpd-note">En vous inscrivant, votre prénom et votre e-mail sont conservés par Pause IA pour la gestion de l'atelier et un éventuel suivi lié à la fresque. Vous pouvez vous désinscrire ou demander leur effacement à tout moment à <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>. Détails dans les <a href="../mentions-legales/">mentions légales</a>.</p>
       </div>
     </section>
 
+
+
+    <section class="section" id="alertes">
+      <div class="wrap etroit">
+        <h2>Être prévenu·e des prochains ateliers</h2>
+        <p class="muted">Un e-mail par semaine au maximum, uniquement s'il y a un atelier qui vous
+        concerne. Rien à annoncer, rien dans votre boîte. Désabonnement en un clic, en bas de chaque message.</p>
+        <form class="form-alertes" id="form-alertes">
+          <label>Votre e-mail<input name="mail" type="email" maxlength="160" required autocomplete="email" placeholder="vous@exemple.fr"></label>
+
+          <fieldset class="choix-format">
+            <legend>Ce qui vous intéresse</legend>
+            <label class="radio"><input type="radio" name="format" value="les_deux" checked> Les ateliers en ligne <em>et</em> près de chez moi</label>
+            <label class="radio"><input type="radio" name="format" value="enligne"> Uniquement les ateliers en ligne</label>
+            <label class="radio"><input type="radio" name="format" value="physique"> Uniquement les ateliers près de chez moi</label>
+          </fieldset>
+
+          <div class="bloc-zones" id="bloc-zones">
+            <label for="commune-champ">Votre commune <span class="muted">(jusqu'à 5)</span>
+              <span class="aide-champ">Tapez les premières lettres, puis choisissez dans la liste.</span></label>
+            <div class="ligne-zone">
+              <input id="commune-champ" type="text" maxlength="60" placeholder="Ex. Villeurbanne, ou 69100">
+              <button type="button" class="btn btn-2" id="commune-ajout" disabled>Ajouter</button>
+            </div>
+            <ul class="puces-zones" id="zones-choisies" aria-live="polite"></ul>
+            <label for="rayon">Jusqu'à quelle distance êtes-vous prêt·e à vous déplacer&nbsp;?
+              <select id="rayon" name="rayonKm">
+                <option value="15">15 km — ma ville et ses voisines</option>
+                <option value="30">30 km — mon agglomération</option>
+                <option value="50" selected>50 km — mon bassin de vie</option>
+                <option value="100">100 km — je peux prendre le train</option>
+              </select>
+              <span class="aide-champ" id="rayon-aide">Pré-rempli selon votre commune : 15 km suffisent à Paris, il en faut 100 en Lozère.</span></label>
+          </div>
+
+          <p class="piege" aria-hidden="true"><label>Ne rien écrire ici<input name="site" tabindex="-1" autocomplete="off"></label></p>
+          <button class="btn btn-1" type="submit">Me prévenir</button>
+          <p id="alertes-msg" class="msg" role="status" aria-live="polite"></p>
+          <p class="muted rgpd-note">Votre adresse sert uniquement à ces annonces. Effacement immédiat au
+          désabonnement, ou sur demande à <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>.</p>
+        </form>
+      </div>
+    </section>
 
   </main>
 
@@ -119,5 +165,7 @@
   <script src="../assets/js/nav.js" defer></script>
   <script src="../assets/js/ateliers.js" defer></script>
   <script src="../assets/js/mesure.js" defer></script>
+  <script src="../assets/js/commune.js" defer></script>
+  <script src="../assets/js/alertes-form.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laisser un témoignage · La Fresque des risques de l'IA</title>
+  <meta name="description" content="Quelques mots sur ce que l'atelier vous a apporté, que nous pourrons partager pour donner envie à d'autres.">
+  <link rel="icon" type="image/png" sizes="64x64" href="../assets/img/social/favicon.png?v=3">
+  <link rel="stylesheet" href="../assets/css/fonts.css">
+  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="formulaire.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header class="entete">
+    <div class="wrap">
+      <a class="logo" href="../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="../participer/">Participer</a>
+        <a href="../devenir-animateur/">Animer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+    <div class="page-tete">
+      <div class="wrap">
+        <h1>Laisser un témoignage</h1>
+        <p class="page-sous">Quelques mots sur ce que l'atelier vous a apporté. Nous les
+        partagerons pour donner envie à d'autres d'y venir.</p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="wrap etroit">
+        <form class="form-long" id="form">
+          <label for="texte">Votre témoignage</label>
+          <textarea id="texte" rows="6" maxlength="2000" required
+            placeholder="En quelques lignes : qu'est-ce que l'atelier vous a apporté ? À qui le conseilleriez-vous ?"></textarea>
+
+          <label for="prenom">Le prénom ou pseudo à afficher</label>
+          <input id="prenom" type="text" maxlength="60" required autocomplete="given-name">
+
+          <label for="precision">Une précision qui vous situe <span class="opt">(facultatif)</span></label>
+          <input id="precision" type="text" maxlength="120"
+            placeholder="votre métier, votre ville, ou rien du tout">
+          <p class="aide-champ">Ce n'est pas obligatoire, mais un témoignage situé porte beaucoup plus.</p>
+
+          <label for="mail">Votre e-mail <span class="opt">(facultatif, si nous avons une question)</span></label>
+          <input id="mail" type="email" maxlength="120" autocomplete="email">
+
+          <label class="f-accord">
+            <input type="checkbox" id="accord">
+            <span>J'autorise Pause IA à publier ce témoignage, avec le prénom indiqué ci-dessus,
+            sur son site, ses réseaux sociaux et ses supports de communication. Je peux en demander
+            le retrait à tout moment.</span>
+          </label>
+
+          <!-- Champ piège : invisible à l'écran, vide pour un humain. -->
+          <div class="piege" aria-hidden="true">
+            <label for="site">Ne remplissez pas ce champ</label>
+            <input id="site" type="text" tabindex="-1" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn btn-1">Envoyer mon témoignage</button>
+          <p class="etat" id="etat" role="status" aria-live="polite"></p>
+        </form>
+
+        <p class="muted mention">
+          Les informations recueillies servent uniquement à publier votre témoignage et à vous
+          recontacter à ce sujet. Elles ne sont ni cédées ni vendues. Pour les consulter, les
+          corriger ou les supprimer, écrivez à
+          <a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <div class="pied-bas">
+      <div class="wrap">
+        <span>© Pause IA · CC BY-SA 4.0</span>
+        <span><a href="mailto:contact@pauseia.fr">contact@pauseia.fr</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/nav.js" defer></script>
+  <script src="formulaire.js" defer></script>
+</body>
+</html>

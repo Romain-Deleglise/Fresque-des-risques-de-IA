@@ -645,6 +645,45 @@ Deux services tournent en Docker derrière Caddy sur le serveur Pause IA
 
 ---
 
+## 11 bis. Les e-mails de suivi
+
+Trois heures après la fin d'un atelier, `suivi.js` envoie **deux e-mails
+distincts**, pas un :
+
+| Destinataire | Objet | Ce qu'on lui demande |
+|---|---|---|
+| Animateur·ice | « Merci d'avoir animé… » | Son retour d'animation, puis son espace `/animateurs/`, le Discord, et programmer le suivant |
+| Participant·es | « Merci d'avoir participé… » | Son retour, un témoignage, puis devenir animateur·ice à son tour |
+
+Il n'y en avait qu'un, adressé à l'animateur·ice avec les participant·es en
+copie cachée, et son message principal invitait à « animer à son tour » : sans
+objet pour qui venait de le faire, et à côté de ce qu'il fallait demander aux
+participant·es.
+
+**Confidentialité.** Le mail aux participant·es part en **copie cachée seule**.
+`mail.js` met alors notre propre adresse en destinataire : personne ne voit
+l'adresse de personne. Mettre un·e participant·e en « à » la donnerait à tous
+les autres.
+
+**Les deux formulaires vivent sur le site** : `/retour/` et `/temoignage/`.
+Les réponses sont déposées par la fonction `retour.js` dans le magasin Blobs
+`fresque-retours`, et se lisent dans `/admin/`. Rien n'est publié
+automatiquement : un témoignage n'apparaît qu'après relecture, et un retour
+d'atelier ne quitte jamais l'espace admin.
+
+`FORM_RETOURS_URL` et `FORM_TEMOIGNAGE_URL` permettent de basculer vers des
+formulaires externes (Notion) sans toucher au code ; sans elles, les e-mails
+pointent les pages du site.
+
+**Anti-spam** : un champ piège invisible (hors écran plutôt que `display:none`,
+que certains robots détectent), 20 dépôts par IP et par heure, et des longueurs
+bornées. Un envoi dont le champ piège est rempli reçoit une réponse normale :
+dire au robot qu'il a été repéré lui apprend à passer la fois suivante.
+
+`serveur/tests/suivi-mails.test.mjs` verrouille ces quatre points.
+
+---
+
 ## 12. Cycle de vie d'un atelier
 
 ```
@@ -745,8 +784,10 @@ dans le dépôt) :
 | `MAIL_ALERTE` | mail.js | (optionnel) destinataire de l'alerte (défaut `contact@pauseia.fr`) |
 | `VISIO_BASE` | ateliers.js | (optionnel) domaine des salons visio auto, ex. `https://visio.pauseia.fr` (défaut `meet.jit.si`) |
 | `SITE_URL` | ateliers, rappels, suivi | URL publique pour les liens des e-mails |
+| `FORM_RETOURS_URL` | suivi.js | (optionnel) formulaire de retour post-atelier (Notion). Sans elle, l'invitation n'apparaît pas dans les e-mails |
+| `FORM_TEMOIGNAGE_URL` | suivi.js | (optionnel) formulaire de témoignage. Sans elle, l'invitation n'apparaît pas |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
-| `ADMIN_TOKEN` | admin.js | Clé secrète de l'espace `/admin/`. Sans elle, l'espace est désactivé (503) |
+| `ADMIN_TOKEN` | admin.js, commentaires.js | Clé secrète de l'espace `/admin/`, et jeton de modération des retours dans `/animateurs/`. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |
@@ -837,6 +878,89 @@ Améliorations possibles :
 - Intégrer un logo définitif (favicon, Open Graph) une fois la piste choisie.
 - Le `README.md` d'origine décrit un état antérieur (service « à venir ») :
   cette documentation reflète l'état actuel et fait foi.
+
+---
+
+## 22 bis. Espace animateur·ices (`/animateurs/`)
+
+Deux versions : `/animateurs/` (fr) et `/en/facilitators/` (en). Elles partagent
+la même feuille de style et le même script ; les chaînes produites par le script
+sont dans une table `T` choisie sur `<html lang>`. Les cartes elles-mêmes
+n'existent qu'en français, et la page anglaise le dit.
+
+**Page non publique.** Elle n'est ni dans la navigation, ni dans `sitemap.xml`,
+elle se déclare `noindex`, et `robots.txt` l'exclut. Deux chemins seulement y
+mènent, tous deux réservés aux animateur·ices :
+
+1. **le mail « Votre atelier est programmé »**, envoyé à qui programme un
+   atelier (`mailAnimateur` dans `netlify/functions/ateliers.js`), dans un
+   encadré qui dit explicitement de garder le lien pour soi ;
+2. **la toute fin du guide**, dans un encart `no-print` — donc absent du PDF
+   téléchargeable par n'importe qui.
+
+Aucun mail envoyé à un participant ne mentionne l'espace. Ces garde-fous sont
+verrouillés par `serveur/tests/espace-animateurs.test.mjs` : ils tiennent à
+quelques lignes disséminées dans six fichiers, faciles à défaire par mégarde.
+
+La raison : la fresque de référence divulgâche l'atelier à qui la lirait avant
+d'y participer, et chercher les liens soi-même est tout ce que la fresque
+apporte.
+
+### Les pages de l'espace
+
+| Page | Ce qu'elle apporte |
+|---|---|
+| `/animateurs/` | Le sommaire, organisé en trois temps : avant, pendant, après l'atelier |
+| `/animateurs/reference/` | La fresque de référence (plateau interactif) et les retours sur les cartes |
+| `/animateurs/antiseche/` | Une page à imprimer : déroulé, phrases de relance, objections. PDF engendré depuis la page |
+| `/animateurs/minuteur/` | Les huit temps du guide, avec minuteur. L'état survit au rechargement |
+| `/animateurs/kit/` | Affiche personnalisable et trois textes d'annonce prêts à copier |
+
+Version anglaise sous `/en/facilitators/`, même arborescence pour le sommaire
+et la fresque de référence ; l'antisèche, le minuteur et le kit restent en
+français, et la page anglaise le signale.
+
+**AUCUN ATTRIBUT `style=` DANS CET ESPACE.** Le site sert `style-src 'self'`
+sans `'unsafe-inline'` : un `style="left:…"` écrit dans du HTML y est purement
+ignoré. La première version en ligne avait ainsi ses 38 cartes empilées en haut
+à gauche — invisible en local, où le serveur de test n'envoie aucune CSP.
+Toutes les positions passent par le CSSOM, et un test le verrouille.
+
+### La fresque de référence
+
+`site/data/fresque-reference.json` — 38 cartes placées et 65 flèches, chacune
+portant le lien de cause à effet qu'elle exprime. Même modèle de données que le
+tableau de la Fresque en ligne (`{cartes:[{n,x,y}], fleches:[{de,vers,libelle}],
+textes:[]}`), à ceci près que le plan est dimensionné sur le contenu.
+
+Ce n'est **pas un corrigé** et la page le dit : une fresque juste peut être très
+différente. `serveur/tests/fresque-reference.test.mjs` vérifie qu'elle reste
+cohérente avec `cartes.json` (toutes les cartes jouables placées, aucune en
+double, aucune isolée, aucun chevauchement, graphe d'un seul tenant, chaque
+solution du lot 5 pointant au moins un risque).
+
+Les titres et les versos ne sont jamais recopiés : la page lit `cartes.json`,
+qui reste la source unique.
+
+### Les retours sur les cartes
+
+`netlify/functions/commentaires.js`, règles pures dans
+`serveur/src/commentaires.js`, stockage Netlify Blobs (`fresque-commentaires`).
+
+Modération **a posteriori, sur la page** : un retour s'affiche immédiatement,
+grisé et marqué « en attente de relecture ». Saisir `ADMIN_TOKEN` dans le champ
+en haut de la page fait apparaître, sur chaque retour, de quoi le valider ou le
+supprimer. Il n'y a rien à ouvrir dans `/admin/` : une file d'attente que
+personne ne consulte ne modère rien, et les autres animateur·ices profitent du
+signalement dès l'instant où il est fait.
+
+Le jeton n'est jamais conservé (ni cookie, ni `localStorage`) : il vit le temps
+de l'onglet, et il est comparé à durée constante côté fonction. L'adresse
+e-mail laissée par un animateur n'est jamais renvoyée par l'API.
+
+**Contrepartie assumée :** un retour indésirable est visible, grisé, jusqu'à ce
+que quelqu'un le supprime. L'exposition reste bornée — la page n'est pas
+publique — et le débit est limité à 30 dépôts par IP et par heure.
 
 ---
 

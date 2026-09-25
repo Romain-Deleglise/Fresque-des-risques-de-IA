@@ -127,6 +127,9 @@
           <div class="champs-physique grille-champs" hidden>
             <label>Displayed location<input name="lieu" maxlength="120" placeholder="e.g. Paris 13th">
               <span class="aide-champ">Public, deliberately vague (not the exact address).</span></label>
+            <label>Town<input name="commune-texte" id="commune-champ" type="text" maxlength="60" placeholder="e.g. Villeurbanne, or 69100" autocomplete="off">
+              <input type="hidden" name="commune">
+              <span class="aide-champ">Type the first letters, then pick from the list. Used to notify people subscribed to alerts near them.</span></label>
             <label>Exact address<input name="adresse" maxlength="200" placeholder="Street, city…">
               <span class="aide-champ">Sent only by e-mail to registered participants.</span></label>
           </div>
@@ -223,6 +226,7 @@
     </div>
   </footer>
   <script src="../../assets/js/nav.js" defer></script>
+  <script src="../../assets/js/commune.js" defer></script>
   <script src="../../assets/js/ateliers.js" defer></script>
   <script src="../../assets/js/mesure.js" defer></script>
 </body>

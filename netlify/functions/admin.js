@@ -10,16 +10,101 @@
    a temps constant.
 
    GET  ?action=tableau            -> { stats, contacts }
+   GET  ?action=retours            -> { retours } (retours d'atelier + temoignages)
    GET  ?action=export             -> CSV des contacts (piece a telecharger)
+    GET  ?action=alertes            -> { total, formats, zones } (abonnes aux annonces)
+   GET  ?action=ateliers           -> { ateliers, inactifs } (programmation + relances)
+   POST { op:"atelier", sousOp:"annuler", code } -> annule et previent tout le monde
+   POST { op:"relancer", mail }    -> e-mail de relance a un·e animateur·ice
    POST { op:"desinscrire", mail } -> marque le contact desinscrit
    POST { op:"supprimer",   mail } -> efface le contact
+   POST { op:"retour", sousOp, cle } -> publier / masquer / traiter / effacer
 */
 "use strict";
 const crypto = require("crypto");
 const { getStore, connectLambda } = require("@netlify/blobs");
+const Com = require("../../serveur/src/communes.js");
 const C = require("./lib/contacts.js");
+const R = require("../../serveur/src/retours.js");
+const An = require("../../serveur/src/animateurs.js");
+// Le circuit d'annulation vit dans la fonction « ateliers » : on l'appelle
+// plutôt que de le recopier, pour que les inscrit·es soient prévenu·es
+// exactement de la même façon.
+const Ateliers = require("./ateliers.js");
+const mail = require("./lib/mail.js");
 
 function contacts() { return getStore({ name: "fresque-contacts" }); }
+function retours() { return getStore({ name: "fresque-retours" }); }
+function alertes() { return getStore({ name: "fresque-alertes" }); }
+
+/* Abonnes aux annonces « prochains ateliers ». On ne rend QUE des comptages :
+   l'interet pour l'equipe est de savoir ou programmer le prochain atelier, pas
+   de disposer d'une liste d'adresses de plus. */
+async function resumeAlertes() {
+  const s = alertes();
+  const liste = await s.list().catch(() => ({ blobs: [] }));
+  const formats = { enligne: 0, physique: 0, les_deux: 0 };
+  const parZone = {};
+  let total = 0;
+  for (const b of liste.blobs || []) {
+    if (b.key.indexOf("abonne:") !== 0) continue; // les cles "jeton:" pointent vers celles-ci
+    const v = await s.get(b.key, { type: "json" }).catch(() => null);
+    if (!v || !v.actif) continue;
+    total++;
+    if (formats[v.format] != null) formats[v.format]++;
+    (v.communes || []).forEach((z) => { parZone[z] = (parZone[z] || 0) + 1; });
+  }
+  const zones = Object.keys(parZone)
+    .map((z) => ({ zone: Com.libelle(z), n: parZone[z] }))
+    .sort((a, b) => b.n - a.n);
+  return { total, formats, zones };
+}
+
+/* Les retours d'atelier et les temoignages arrivent par /retour/ et
+   /temoignage/. Rien n'est publie automatiquement : l'equipe les lit ici. */
+async function listerRetours() {
+  const s = retours();
+  const liste = await s.list().catch(() => ({ blobs: [] }));
+  const out = [];
+  for (const b of liste.blobs || []) {
+    const v = await s.get(b.key, { type: "json" }).catch(() => null);
+    if (v) out.push(R.pourAdmin(v, b.key));
+  }
+  out.sort((a, b) => (b.date || 0) - (a.date || 0));
+  return out;
+}
+/* Message de relance. Volontairement court et sans reproche : la personne a
+   donné de son temps une fois, elle ne doit rien à personne. On lui dit ce qui
+   a changé depuis et on lui laisse la main -- pas de « on ne vous voit plus ».
+   Un seul lien, celui qui sert : programmer. */
+const LIEN_SITE = (process.env.SITE_URL || "https://fresquedesrisquedelia.netlify.app").replace(/\/+$/, "");
+function relanceAnimateur(mailDest) {
+  const prog = LIEN_SITE + "/devenir-animateur/#programmer";
+  const text = [
+    "Bonjour,",
+    "",
+    "Vous avez animé une Fresque des risques de l'IA il y a quelque temps — merci encore.",
+    "",
+    "La fresque a continué d'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).",
+    "",
+    "Si l'envie vous en dit, programmer le prochain prend deux minutes :",
+    prog,
+    "",
+    "Et si ce n'est pas le moment, ce message n'attend aucune réponse. Nous ne relançons personne plus d'une fois par semestre.",
+    "",
+    "À bientôt,",
+    "L'équipe de la Fresque des risques de l'IA, Pause IA"
+  ].join("\n");
+  const html = [
+    '<p style="margin:0 0 14px;">Bonjour,</p>',
+    '<p style="margin:0 0 14px;">Vous avez animé une Fresque des risques de l\'IA il y a quelque temps — merci encore.</p>',
+    '<p style="margin:0 0 14px;">La fresque a continué d\'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s\'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).</p>',
+    '<p style="margin:0 0 18px;text-align:center;"><a href="' + prog + '" style="display:inline-block;background:#E8811C;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:700;">Programmer un atelier</a></p>',
+    '<p style="margin:0;font-size:13px;color:#6b665e;">Si ce n\'est pas le moment, ce message n\'attend aucune réponse. Nous ne relançons personne plus d\'une fois par semestre.</p>'
+  ].join("");
+  return { text, html: html };
+}
+
 const json = (s, c) => ({ statusCode: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(c) });
 
 function egales(a, b) {
@@ -115,6 +200,13 @@ exports.handler = async (event) => {
   try {
     if (event.httpMethod === "GET") {
       const q = event.queryStringParameters || {};
+      if (q.action === "retours") return json(200, { retours: await listerRetours() });
+      if (q.action === "alertes") return json(200, await resumeAlertes());
+      if (q.action === "ateliers") {
+        const ateliers = await Ateliers.listerPourAdmin();
+        const contacts = await C.lister(st);
+        return json(200, { ateliers, inactifs: An.inactifs(contacts, ateliers, Date.now()) });
+      }
       const liste = await C.lister(st);
       if (q.action === "export") {
         return {
@@ -132,8 +224,47 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === "POST") {
       let d; try { d = JSON.parse(event.body || "{}"); } catch { d = {}; }
+
+      if (d.op === "retour") {
+        const cle = String(d.cle || "");
+        // La cle vient de notre propre listing ; on la verifie quand meme,
+        // une cle forgee pourrait designer autre chose dans le magasin.
+        if (!/^(atelier|temoignage):[a-z0-9]{1,24}$/.test(cle)) {
+          return json(400, { erreur: "Référence inconnue." });
+        }
+        const rs = retours();
+        if (d.sousOp === "effacer") { await rs.delete(cle); return json(200, { ok: true }); }
+        const v = await rs.get(cle, { type: "json" }).catch(() => null);
+        if (!v) return json(404, { erreur: "Ce retour n’existe plus." });
+        if (d.sousOp === "publier") v.publie = true;
+        else if (d.sousOp === "masquer") v.publie = false;
+        else if (d.sousOp === "traiter") v.traite = !v.traite;
+        else return json(400, { erreur: "Opération inconnue." });
+        await rs.setJSON(cle, v);
+        return json(200, { ok: true });
+      }
+
       const m = C.normaliserMail(d.mail);
       if (!m) return json(400, { erreur: "Adresse manquante." });
+      if (d.op === "atelier") {
+        if (d.sousOp !== "annuler") return json(400, { erreur: "Opération inconnue." });
+        const r = await Ateliers.annulerParAdmin(d.code);
+        return json(r.erreur ? 404 : 200, r);
+      }
+
+      if (d.op === "relancer") {
+        const m = String(d.mail || "").trim().toLowerCase();
+        if (!m) return json(400, { erreur: "Adresse manquante." });
+        /* On enregistre la relance AVANT d'envoyer : si l'envoi échoue, la
+           personne ne recevra rien, ce qui est réparable ; si on enregistrait
+           après, un plantage entre les deux la ferait relancer deux fois. */
+        const marque = await C.marquerRelance(st, m);
+        if (!marque) return json(404, { erreur: "Ce contact n'existe pas." });
+        const r = relanceAnimateur(m);
+        const env = await mail.envoi({ to: m, subject: "On reprogramme une fresque ?", text: r.text, html: r.html });
+        return json(200, { relance: true, envoye: !!env.envoye });
+      }
+
       if (d.op === "desinscrire") { const ok = await C.desinscrire(st, m); return json(ok ? 200 : 404, { desinscrit: ok }); }
       if (d.op === "supprimer") { const ok = await C.supprimer(st, m); return json(200, { supprime: ok }); }
       return json(400, { erreur: "Opération inconnue." });
