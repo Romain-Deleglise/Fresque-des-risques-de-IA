@@ -125,3 +125,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Verifier l'espace animateur·ices
         run: node scripts/verifier-espace.mjs
+
+      # Le parcours d'abonnement aux alertes : un participant a signale qu'il
+      # semblait casse, et il l'etait. Le banc rejoue son geste exact.
+      - name: Verifier le parcours des alertes
+        run: node scripts/verifier-alertes.mjs
