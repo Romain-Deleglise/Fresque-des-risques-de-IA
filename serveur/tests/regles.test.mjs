@@ -61,6 +61,18 @@ t("flèche créée entre 2 cartes posées", r.ok && s.tableau.fleches.length ===
 r = R.appliquer(s, j1.jeton, { op: "creerFleche", de: 1, vers: 3 });
 t("flèche vers une carte absente refusée", r.refus);
 
+// Taille d'un libellé de flèche : entier borné, partagé par tous.
+var idFl = s.tableau.fleches[0].id;
+r = R.appliquer(s, j1.jeton, { op: "taillerFleche", id: idFl, taille: 3 });
+t("taille de flèche appliquée", r.ok && s.tableau.fleches[0].taille === 3);
+r = R.appliquer(s, j1.jeton, { op: "taillerFleche", id: idFl, taille: 99 });
+t("taille de flèche bornée en haut", s.tableau.fleches[0].taille === 6);
+r = R.appliquer(s, j1.jeton, { op: "taillerFleche", id: idFl, taille: -99 });
+t("taille de flèche bornée en bas", s.tableau.fleches[0].taille === -2);
+r = R.appliquer(s, j1.jeton, { op: "taillerFleche", id: "inconnue", taille: 1 });
+t("taille sur flèche inconnue refusée", r.refus);
+R.appliquer(s, j1.jeton, { op: "taillerFleche", id: idFl, taille: 0 }); // remise à zéro
+
 // Déplacer une carte (tout le monde)
 r = R.appliquer(s, j1.jeton, { op: "deplacerCarte", n: 1, x: 1000, y: 900 });
 t("carte déplacée", r.ok && s.tableau.cartes.find((x) => x.n === 1).x === 1000);
@@ -74,6 +86,11 @@ t("animateur retire + flèches en cascade", s.tableau.cartes.length === 1 && s.t
 // Notes
 r = R.appliquer(s, j1.jeton, { op: "creerTexte", x: 500, y: 500, contenu: "alimente" });
 t("texte créé", s.tableau.textes.length === 1);
+var idTx = s.tableau.textes[0].id;
+r = R.appliquer(s, j1.jeton, { op: "taillerTexte", id: idTx, taille: 2 });
+t("taille de note appliquée", r.ok && s.tableau.textes[0].taille === 2);
+r = R.appliquer(s, j1.jeton, { op: "taillerTexte", id: idTx, taille: 50 });
+t("taille de note bornée", s.tableau.textes[0].taille === 6);
 
 // Lien vocal (animateur), validation https
 r = R.appliquer(s, jAnim, { op: "definirLienVocal", url: "http://x" });

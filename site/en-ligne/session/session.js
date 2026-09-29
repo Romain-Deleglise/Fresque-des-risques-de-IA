@@ -43,6 +43,7 @@
     coachPrendre: "Take a card from the reserve and place it on the board.",
     prendre: "Place on board", retirerPool: "Remove from the reserve", poolTitre: "Reserve",
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
+    tailleReduire: "Smaller text", tailleGrossir: "Larger text",
     occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
     versPool: "↩ To the reserve", versReserve: "✕ To the card deck",
     tutoSuivant: "Next", tutoTerminer: "Got it", tutoPasser: "Skip", tutoRevoir: "Replay the tutorial",
@@ -111,6 +112,7 @@
     coachPrendre: "Prenez une carte de la réserve et posez-la sur le tableau.",
     prendre: "Poser sur le tableau", retirerPool: "Retirer de la réserve", poolTitre: "Réserve",
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
+    tailleReduire: "Réduire le texte", tailleGrossir: "Grossir le texte",
     occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
     versPool: "↩ Remettre à la réserve", versReserve: "✕ Dans le jeu de cartes",
     tutoSuivant: "Suivant", tutoTerminer: "C'est parti", tutoPasser: "Passer le tuto", tutoRevoir: "Revoir le tutoriel",
@@ -801,6 +803,14 @@
   // Couleur par lot (aide l'animateur a voir ou il en est dans la partie).
   var LOT_COULEUR = { 1: "#E8811C", 2: "#2f7d4f", 3: "#3b6ea5", 4: "#8a4fb3", 5: "#c1444e" };
 
+  // Taille reglable des notes et des libelles de fleche (boutons + / - a
+  // l'edition). `pas` entier borne, partage entre tous ; 0 = defaut. Chaque pas
+  // vaut +16 % de corps, de quoi transformer une note en titre sans exploser.
+  var TAILLE_MIN = -2, TAILLE_MAX = 6;
+  var BASE_NOTE = 15, BASE_LIB = 17;   // pixels a l'echelle 1 (doivent suivre board.css)
+  function borneTaille(v) { v = Math.round(+v || 0); return v < TAILLE_MIN ? TAILLE_MIN : (v > TAILLE_MAX ? TAILLE_MAX : v); }
+  function taillePx(base, pas) { return Math.round(base * Math.pow(1.16, borneTaille(pas))) + "px"; }
+
   // Pool commun : cartes mises a disposition par l'animateur, visibles de tou·tes.
   // Un clic « Poser » place la carte sur la table (tout le monde). L'animateur
   // peut aussi la retirer du pool (x). Chacun peut replier / deplier le pool et
@@ -993,12 +1003,16 @@
       + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
       + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
       + '<div class="pool-actions"><button class="btn primaire" data-a="poser" title="' + esc(S.prendre) + '"' + (verrou ? ' disabled' : '') + '>' + esc(S.poser) + '</button>'
+      + '<button class="btn" data-a="agrandir" title="' + esc(S.agrandirCarte) + '" aria-label="' + esc(S.agrandirCarte) + '">' + esc(S.agrandir) + '</button>'
       + (anim ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
       + '</div>';
     d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
     d.querySelector('[data-a="poser"]').addEventListener("click", function (e) {
       e.stopPropagation(); if (!verrou) agir({ op: "poserCarte", n: n, pos: pointLibre(), rect: rectVisible() });
     });
+    // Agrandir : ouvre la carte en grand (recto/verso, retournable) sans la poser
+    // ni la sortir de la reserve. Disponible pour tout le monde.
+    d.querySelector('[data-a="agrandir"]').addEventListener("click", function (e) { e.stopPropagation(); ouvrirModal(n); });
     var bx = d.querySelector('[data-a="retirer"]');
     if (bx) bx.addEventListener("click", function (e) { e.stopPropagation(); agir({ op: "poolRetirer", n: n }); });
     if (!verrou) d.addEventListener("pointerdown", function (e) { demarrerGlissePool(e, n, d); });
@@ -1272,6 +1286,10 @@
       if (el._drag !== true && el.getAttribute("contenteditable") !== "true") {
         el.style.left = t.x + "px"; el.style.top = t.y + "px"; el.textContent = t.contenu; el._x = t.x; el._y = t.y;
       }
+      // Taille reglable : appliquee meme en cours d'edition (le +/- doit se voir
+      // tout de suite), sans toucher au texte que la personne est en train de saisir.
+      var tn = taillePx(BASE_NOTE, t.taille);
+      if (el._tn !== tn) { el.style.setProperty("--tn", tn); el._tn = tn; }
       el._id = t.id;
     });
     Object.keys(etat.elTextes).forEach(function (id) { if (!vusT[id]) { etat.elTextes[id].remove(); delete etat.elTextes[id]; } });
@@ -1585,10 +1603,14 @@
      Maintenant : chaque fleche garde ses deux chemins et son libelle d'une fois
      sur l'autre ; on ne change que ce qui a change (l'attribut `d`, une classe,
      une pointe). Un seul ecouteur, pose une fois, sert toutes les fleches. */
-  var FLE_DEFS = '<defs><marker id="ah" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#8a857b"/></marker>'
-    + '<marker id="aho" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#E8811C"/></marker>'
-    + '<marker id="ahb" markerWidth="11" markerHeight="9" refX="9" refY="4.5" orient="auto"><path d="M0,0 L11,4.5 L0,9 z" fill="#F0A860"/></marker>'
-    + '<marker id="ahbs" markerWidth="11" markerHeight="9" refX="2" refY="4.5" orient="auto"><path d="M11,0 L0,4.5 L11,9 z" fill="#F0A860"/></marker></defs>';
+  // Pointes de fleche nettement plus petites qu'avant (11x9 -> 7x6, soit ~40 %
+  // de moins). Les marqueurs sont dimensionnes en multiples de l'epaisseur du
+  // trait (markerUnits par defaut = strokeWidth), donc ils suivent le zoom sans
+  // jamais devenir enormes.
+  var FLE_DEFS = '<defs><marker id="ah" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#8a857b"/></marker>'
+    + '<marker id="aho" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#E8811C"/></marker>'
+    + '<marker id="ahb" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#F0A860"/></marker>'
+    + '<marker id="ahbs" markerWidth="7" markerHeight="6" refX="1" refY="3" orient="auto"><path d="M7,0 L0,3 L7,6 z" fill="#F0A860"/></marker></defs>';
   var SVGNS = "http://www.w3.org/2000/svg";
   var _fleNoeuds = {};   // id de fleche -> { hit, trait, lib, d, cls, mk, txt }
   var _flePrete = false;
@@ -1637,6 +1659,8 @@
       if (f.libelle) {
         if (!g.lib) { g.lib = document.createElement("div"); g.lib.className = "fleche-lib"; E.monde.appendChild(g.lib); }
         if (g.txt !== f.libelle) { g.lib.textContent = f.libelle; g.txt = f.libelle; }
+        var tl = taillePx(BASE_LIB, f.taille);
+        if (g.tl !== tl) { g.lib.style.setProperty("--tl", tl); g.tl = tl; }
         g.lib.style.left = cxp + "px"; g.lib.style.top = cyp + "px";
       } else if (g.lib) { g.lib.remove(); g.lib = null; g.txt = null; }
       vus[f.id] = 1;
@@ -1686,7 +1710,7 @@
     // deselect(), et un envoi etale encore en attente lisait alors `null.value`
     // (erreur JS silencieuse dans un minuteur).
     var champ = editLib;
-    function commitLib() { if (champ) agir({ op: "libellerFleche", id: id, libelle: champ.value }); }
+    function commitLib() { if (champ) { confirmerVif(id, champ.value); agir({ op: "libellerFleche", id: id, libelle: champ.value }); } }
     editLib._commit = commitLib;
     editLib._cle = "lib:" + id;
     editLib.addEventListener("input", function () {
@@ -1701,6 +1725,7 @@
     setTimeout(function () { try { editLib.focus(); editLib.select(); } catch (e) {} }, 0);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
     // Le sens de la fleche se choisit a la creation (outils « lien » / « lien ↔ »).
+    ouvrirCtrlTaille("fleche", id);
     positionnerEditeurs();
   }
   function selCarte(n, el) {
@@ -1724,6 +1749,7 @@
     // Valider le libelle en cours, et annuler l'envoi etale qui restait en
     // attente : sans cela il partait apres coup, sur un champ deja retire.
     if (editLib) { if (editLib._cle) frappe.annuler(editLib._cle); if (editLib._commit) { try { editLib._commit(); } catch (e) {} } }
+    fermerCtrlTaille();
     etat.sel = null; [croix, editLib, bidir, barreCarte].forEach(function (x) { if (x) x.remove(); }); croix = editLib = bidir = barreCarte = null; dessinerFleches();
   }
   function positionnerEditeurs() {
@@ -1743,6 +1769,73 @@
         barreCarte.style.top = (haut < 4 ? cy + (c.offsetHeight * etat.zoom) + 6 : haut) + "px";
       }
     }
+    positionnerCtrlTaille();
+  }
+
+  /* ---------- Controle de taille (+ / -) d'une note ou d'un libelle ----------
+     Montre pendant l'edition ; agit via une operation partagee (taillerTexte /
+     taillerFleche), donc tout le monde voit le changement, comme le texte. */
+  var ctrlTaille = null, ctrlCible = null;   // ctrlCible = { type, id }
+  function ouvrirCtrlTaille(type, id) {
+    fermerCtrlTaille();
+    if (!id || String(id).charAt(0) === "~") return;   // pas sur un element encore provisoire
+    ctrlCible = { type: type, id: id };
+    ctrlTaille = document.createElement("div"); ctrlTaille.className = "ctrl-taille";
+    var moins = document.createElement("button"); moins.type = "button"; moins.textContent = "−";
+    moins.title = S.tailleReduire; moins.setAttribute("aria-label", S.tailleReduire);
+    var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
+    plus.title = S.tailleGrossir; plus.setAttribute("aria-label", S.tailleGrossir);
+    // pointerdown (pas seulement click) + preventDefault : sur une note en
+    // contenteditable, un click ferait perdre le focus (blur) et fermerait le
+    // controle avant d'agir. On empeche le blur et on agit tout de suite.
+    function relier(btn, delta) {
+      btn.addEventListener("pointerdown", function (e) { e.preventDefault(); e.stopPropagation(); });
+      btn.addEventListener("click", function (e) { e.stopPropagation(); changerTaille(delta); });
+    }
+    relier(moins, -1); relier(plus, 1);
+    ctrlTaille.appendChild(moins); ctrlTaille.appendChild(plus);
+    E.scene.appendChild(ctrlTaille);
+    majCtrlTaille(); positionnerCtrlTaille();
+  }
+  function fermerCtrlTaille() { if (ctrlTaille) ctrlTaille.remove(); ctrlTaille = null; ctrlCible = null; }
+  function tailleCourante() {
+    if (!ctrlCible || !etat.vue) return 0;
+    var tab = etat.vue.tableau, o;
+    if (ctrlCible.type === "fleche") o = (tab.fleches || []).find(function (f) { return f.id === ctrlCible.id; });
+    else o = (tab.textes || []).find(function (t) { return t.id === ctrlCible.id; });
+    return o ? borneTaille(o.taille) : 0;
+  }
+  function changerTaille(delta) {
+    if (!ctrlCible) return;
+    var t = borneTaille(tailleCourante() + delta);
+    confirmerTaille(ctrlCible.id, t);   // garde la taille tant que le magasin rattrape
+    agir({ op: ctrlCible.type === "fleche" ? "taillerFleche" : "taillerTexte", id: ctrlCible.id, taille: t });
+    majCtrlTaille();
+  }
+  function majCtrlTaille() {
+    if (!ctrlTaille) return;
+    var t = tailleCourante();
+    ctrlTaille.children[0].disabled = t <= TAILLE_MIN;
+    ctrlTaille.children[1].disabled = t >= TAILLE_MAX;
+  }
+  function positionnerCtrlTaille() {
+    if (!ctrlTaille || !ctrlCible || !etat.vue) return;
+    var wx, wy;
+    if (ctrlCible.type === "fleche") {
+      var f = (etat.vue.tableau.fleches || []).find(function (x) { return x.id === ctrlCible.id; });
+      if (!f || !f._mid) { ctrlTaille.style.display = "none"; return; }
+      wx = f._mid.x; wy = f._mid.y;
+    } else {
+      var el = etat.elTextes[ctrlCible.id];
+      if (!el) { ctrlTaille.style.display = "none"; return; }
+      wx = (el._x || 0); wy = (el._y || 0);
+    }
+    ctrlTaille.style.display = "";
+    var px = etat.panX + wx * etat.zoom, py = etat.panY + wy * etat.zoom;
+    // Au-dessus de la bulle (ou de l'etiquette de la fleche).
+    ctrlTaille.style.left = px + "px";
+    ctrlTaille.style.top = (py - 40) + "px";
+    majCtrlTaille();
   }
 
   /* ---------- Notes texte ---------- */
@@ -1762,6 +1855,7 @@
     if (!el._id) { try { el.focus(); } catch (e) {} return; }
     el.setAttribute("contenteditable", "true"); el.focus();
     var sel = window.getSelection(), rng = document.createRange(); rng.selectNodeContents(el); rng.collapse(false); sel.removeAllRanges(); sel.addRange(rng);
+    ouvrirCtrlTaille("texte", el._id);
     el.oninput = function () {
       if (!el._id) return;
       // Frappe en direct chez les autres, enregistrement serveur etale. On ne
@@ -1773,7 +1867,9 @@
       });
     };
     el.onblur = function () { el.removeAttribute("contenteditable"); el.oninput = null;
+      fermerCtrlTaille();
       var v = el.textContent.trim();
+      if (v) confirmerVif(el._id, v);   // garde la note affichee tant que le magasin rattrape
       agir({ op: "modifierTexte", id: el._id, contenu: v });
     };
   }
@@ -1906,6 +2002,14 @@
       case "libellerFleche": {
         var f1 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f1) return null;
         return { op: "libellerFleche", id: d.id, libelle: f1.libelle || "" };
+      }
+      case "taillerFleche": {
+        var f1t = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f1t) return null;
+        return { op: "taillerFleche", id: d.id, taille: f1t.taille || 0 };
+      }
+      case "taillerTexte": {
+        var t2t = textes.filter(function (t) { return t.id === d.id; })[0]; if (!t2t) return null;
+        return { op: "taillerTexte", id: d.id, taille: t2t.taille || 0 };
       }
       case "supprimerFleche": {
         var f2 = fleches.filter(function (f) { return f.id === d.id; })[0]; if (!f2) return null;
@@ -2093,6 +2197,14 @@
         if (!t2.contenu.trim()) tab.textes = tab.textes.filter(function (x) { return x.id !== d.id; });
         break;
       }
+      case "taillerFleche": {
+        var ft = tab.fleches.filter(function (x) { return x.id === d.id; })[0];
+        if (!ft) return false; ft.taille = borneTaille(d.taille); break;
+      }
+      case "taillerTexte": {
+        var tt = tab.textes.filter(function (x) { return x.id === d.id; })[0];
+        if (!tt) return false; tt.taille = borneTaille(d.taille); break;
+      }
       default: return false; // rien de visible a anticiper
     }
     if (!muet) { rendrePool(v); rendreDeck(v); rendreTableau(tab); }
@@ -2119,20 +2231,51 @@
      une ou deux secondes de retard alors que les lettres, elles, arrivaient
      bien en direct. On rejoue donc la frappe recente par-dessus l'etat, comme
      on rejoue nos propres actions non acquittees. */
-  var vivant = {};            // id d'element -> { v: texte, ts }
-  var VIVANT_MS = 6000;       // au-dela, la frappe est forcement enregistree
+  var vivant = {};            // id d'element -> { v, ts, valide }
+  var VIVANT_MS = 6000;       // frappe en cours : au-dela, on laisse le serveur
+  var VALIDE_MS = 20000;      // valeur VALIDEE (Entree/blur) : garde-fou dur
   function noterVif(id, v) { vivant[id] = { v: String(v == null ? "" : v), ts: Date.now() }; }
+  // Valeur VALIDEE (on a appuye sur Entree, ou quitte le champ). Le magasin
+  // Netlify est a coherence EVENTUELLE : juste apres notre ecriture, un sondage
+  // deja parti peut renvoyer l'ancienne valeur (libelle vide) pendant une a deux
+  // secondes, voire plus. L'ancien filet de 6 s finissait par lacher avant que le
+  // magasin ne rattrape, et le libelle disparaissait : il fallait le retaper. On
+  // garde donc la valeur validee TANT QUE le serveur ne l'a pas reprise (au lieu
+  // d'un simple minuteur), avec un garde-fou pour ne jamais rester bloque.
+  function confirmerVif(id, v) { vivant[id] = { v: String(v == null ? "" : v), ts: Date.now(), valide: true }; }
+  // Meme filet, pour la TAILLE des notes et libelles : sans lui, un sondage
+  // parti avant notre ecriture (magasin eventuellement coherent) ramenait la
+  // taille a sa valeur d'avant pendant une a deux secondes.
+  var taillesVives = {};      // id -> { v: pas, ts }
+  function confirmerTaille(id, v) { if (id) taillesVives[id] = { v: borneTaille(v), ts: Date.now() }; }
+  function rejouerTailles(tab) {
+    var now = Date.now(), id, i;
+    for (id in taillesVives) {
+      var e = taillesVives[id], cible = null;
+      var F = tab.fleches || []; for (i = 0; i < F.length; i++) { if (F[i].id === id) { cible = F[i]; break; } }
+      if (!cible) { var T = tab.textes || []; for (i = 0; i < T.length; i++) { if (T[i].id === id) { cible = T[i]; break; } } }
+      if (cible && borneTaille(cible.taille) === e.v) { delete taillesVives[id]; continue; }
+      if (now - e.ts > VALIDE_MS) { delete taillesVives[id]; continue; }
+      if (cible) cible.taille = e.v;
+    }
+  }
   function rejouerFrappe(vue) {
     var tab = vue && vue.tableau; if (!tab) return;
+    rejouerTailles(tab);
     var now = Date.now(), id, i;
     for (id in vivant) {
-      if (now - vivant[id].ts > VIVANT_MS) { delete vivant[id]; continue; }
-      var v = vivant[id].v, pose = false;
+      var e = vivant[id], v = e.v;
+      // Ou en est le serveur pour cet element ?
+      var cible = null, champ = null;
       var T = tab.textes || [];
-      for (i = 0; i < T.length; i++) { if (T[i].id === id) { T[i].contenu = v; pose = true; break; } }
-      if (pose) continue;
-      var F = tab.fleches || [];
-      for (i = 0; i < F.length; i++) { if (F[i].id === id) { F[i].libelle = v; break; } }
+      for (i = 0; i < T.length; i++) { if (T[i].id === id) { cible = T[i]; champ = "contenu"; break; } }
+      if (!cible) { var F = tab.fleches || []; for (i = 0; i < F.length; i++) { if (F[i].id === id) { cible = F[i]; champ = "libelle"; break; } } }
+      // Le serveur a rattrape notre valeur : plus rien a maintenir.
+      if (cible && String(cible[champ] == null ? "" : cible[champ]) === v) { delete vivant[id]; continue; }
+      // Peremption : 6 s pour une frappe en cours, 20 s pour une valeur validee.
+      if (now - e.ts > (e.valide ? VALIDE_MS : VIVANT_MS)) { delete vivant[id]; continue; }
+      // Sinon on maintient notre valeur par-dessus l'etat (re)recu.
+      if (cible) cible[champ] = v;
     }
   }
 

@@ -11,6 +11,7 @@ var RESERV_MS = 6000;      // duree d'une reservation de carte (prise en cours) 
 var NB_CARTES = 38;        // cartes jouables 1..38 (la 0 est l'intro, hors jeu)
 var LIMITE_TEXTES = 200, LIMITE_FLECHES = 300;
 var LEN_PRENOM = 24, LEN_TEXTE = 280, LEN_LIBELLE = 40, LEN_VOCAL = 200;
+var TAILLE_MIN = -2, TAILLE_MAX = 6;   // pas de taille des notes et libelles
 var PLAN_W = 3200, PLAN_H = 2200;
 
 function rnd(n) { return Math.floor(Math.random() * n); }
@@ -318,6 +319,17 @@ function libellerFleche(s, id, libelle) {
   var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
   f.libelle = tronque(libelle, LEN_LIBELLE); bump(s); return { ok: true };
 }
+// Taille d'affichage d'un libelle de fleche ou d'une note : un entier de pas
+// (0 = defaut), borne. Permet aux notes de devenir des titres et aux libellés
+// d'etre plus ou moins mis en avant. Partage entre tous, comme le texte.
+function taillerFleche(s, id, taille) {
+  var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
+  f.taille = borne(Math.round(+taille || 0), TAILLE_MIN, TAILLE_MAX); bump(s); return { ok: true };
+}
+function taillerTexte(s, id, taille) {
+  var t = s.tableau.textes.find(function (t) { return t.id === id; }); if (!t) return { refus: {} };
+  t.taille = borne(Math.round(+taille || 0), TAILLE_MIN, TAILLE_MAX); bump(s); return { ok: true };
+}
 function bidirFleche(s, id) {
   var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
   f.bidir = !f.bidir; bump(s); return { ok: true };
@@ -406,10 +418,12 @@ function appliquerVraiment(s, jeton, info, estAnim, moi, d, op) {
     case "deplacerCarte": return deplacerCarte(s, d.n, d.x, d.y);
     case "creerFleche": return creerFleche(s, d.de, d.vers, d.bidir);
     case "libellerFleche": return libellerFleche(s, d.id, d.libelle);
+    case "taillerFleche": return taillerFleche(s, d.id, d.taille);
     case "bidirFleche": return bidirFleche(s, d.id);
     case "supprimerFleche": return supprimerFleche(s, d.id);
     case "creerTexte": return creerTexte(s, d.x, d.y, d.contenu);
     case "modifierTexte": return modifierTexte(s, d.id, d.contenu);
+    case "taillerTexte": return taillerTexte(s, d.id, d.taille);
     case "deplacerTexte": return deplacerTexte(s, d.id, d.x, d.y);
     case "supprimerTexte": return supprimerTexte(s, d.id);
     default: return { refus: { code: "op_inconnue", message: "Action inconnue." } };

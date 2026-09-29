@@ -225,7 +225,12 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 /* Étiquette de flèche : encadré arrondi gris, texte orange, au-dessus des traits */
 /* Etiquette contre-mise a l'echelle : elle garde une taille d'ecran a peu pres
    constante. A 25 % de zoom, un texte de 13 px en tombait a 3 px. */
-.fleche-lib{position:absolute;transform:translate(-50%,-50%) scale(clamp(.85,var(--iz,1),2.2));z-index:6;font-family:var(--f-ui);font-weight:600;font-size:13px;
+/* Le libelle NE grossit plus au dezoom : il suit l'echelle du tableau comme une
+   carte ou une note (plus de contre-mise a l'echelle --iz, qui le faisait
+   exploser et chevaucher les cartes quand on prenait du recul). Taille par
+   defaut plus grande que celle des notes (--tl vs --tn), et reglable par bulle
+   via les boutons + / - a l'edition. */
+.fleche-lib{position:absolute;transform:translate(-50%,-50%);z-index:6;font-family:var(--f-ui);font-weight:600;font-size:var(--tl,17px);
   color:#8a4200;background:#fff7e6;border:1px solid #e0b378;border-radius:7px;padding:2px 7px;white-space:nowrap;
   pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.28)}
 .fleche-croix{position:absolute;width:22px;height:22px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.8rem;transform:translate(-50%,-50%);z-index:5}
@@ -233,10 +238,20 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 .fleche-bidir[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
 
 /* Notes texte */
-.c-texte{position:absolute;font-family:var(--f-ui);font-size:15px;color:var(--ink);background:var(--note-bg);border:1px solid var(--note-bord);border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}
+.c-texte{position:absolute;font-family:var(--f-ui);font-size:var(--tn,15px);color:var(--ink);background:var(--note-bg);border:1px solid var(--note-bord);border-radius:6px;min-width:60px;padding:6px 9px;cursor:grab;user-select:none;white-space:pre-wrap;max-width:280px;box-shadow:0 3px 10px rgba(27,26,23,.08)}
 .c-texte.sel{outline:2px solid var(--accent)}
 .c-texte[contenteditable="true"]{cursor:text;outline:2px solid var(--accent)}
 .texte-croix{position:absolute;width:20px;height:20px;background:#c1444e;color:#fff;border:0;border-radius:50%;display:grid;place-items:center;font-size:.75rem;transform:translate(-50%,-50%);z-index:5}
+
+/* Controle de taille (+ / -) d'une note ou d'un libelle de fleche, montre le
+   temps de l'edition. Permet de faire grossir une note en titre ou de mettre un
+   libelle plus en avant. Pose en coordonnees ECRAN, au-dessus de tout. */
+.ctrl-taille{position:absolute;z-index:32;display:flex;gap:2px;padding:2px;
+  background:var(--surface);border:1px solid var(--ligne);border-radius:9px;box-shadow:0 4px 12px rgba(27,26,23,.18)}
+.ctrl-taille button{width:1.6rem;height:1.6rem;border:1px solid var(--ligne);background:var(--surface);color:var(--ink);
+  border-radius:6px;font-size:1rem;font-weight:700;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.ctrl-taille button:hover:not(:disabled){border-color:var(--accent);color:var(--accent-txt-fort)}
+.ctrl-taille button:disabled{opacity:.4;cursor:default}
 
 /* --- Pool commun : panneau flottant, 8 emplacements fixes -------------------
    Le pool n'est plus une rangee collee en bas : c'est un panneau que chacun
@@ -265,8 +280,12 @@ body.canvas-noir #fleches .trait.bidir{stroke:#F0A860}
 .pool-taille:hover:not(:disabled){border-color:var(--accent)}
 .pool-taille:disabled{opacity:.4;cursor:default}
 .pool.replie{padding:.4rem .45rem}
+/* `scrollbar-gutter:stable` reserve la place de l'ascenseur DANS le panneau :
+   sur macOS l'ascenseur en surimpression n'apparait qu'au survol et se posait
+   par-dessus les cartes, hors du panneau, obligeant a deplacer la reserve vers
+   la droite pour l'atteindre. La gouttiere reservee le ramene a l'interieur. */
 .pool-grille{display:grid;grid-template-columns:repeat(2,var(--pw,116px));gap:.35rem;
-  max-height:min(62vh,640px);overflow:auto;padding:.05rem}
+  max-height:min(62vh,640px);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-gutter:stable;padding:.05rem}
 .pool-case{border:1px dashed var(--ligne);border-radius:10px;min-height:calc(var(--pw,116px) / 1.6 + 1.1rem)}
 .pool-case.libre{background:repeating-linear-gradient(135deg,transparent,transparent 7px,var(--doux) 7px,var(--doux) 14px)}
 .pool-case:not(.libre){border-style:solid;border-color:transparent}
@@ -568,9 +587,15 @@ body.barres-cachees .topbar{display:none}
    l'arbre d'accessibilite pour les lecteurs d'ecran. */
 /* Filet de couleur du lot : discret de pres, c'est lui qui fait lire les
    familles de cartes quand on prend du recul. */
+/* MASQUE DE PRES. Le filet de couleur du lot ne sert qu'a lire les familles
+   quand on prend du recul ; de pres, ce lisere colore (vert, bleu...) en haut
+   de chaque carte posee est juste une gene visuelle, signalee en atelier. On
+   ne l'affiche donc plus qu'au dezoom (zoom-loin), la ou il rend service, et
+   jamais a la distance de travail. */
 .c-carte::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--lot,transparent);z-index:2;pointer-events:none;
-  transition:height .16s ease}
+  background:var(--lot,transparent);z-index:2;pointer-events:none;opacity:0;
+  transition:opacity .16s ease}
+#monde.zoom-loin .c-carte::before{opacity:1}
 .c-carte .tit,.c-carte .num,.c-carte .agr{transition:opacity .16s ease}
 /* De loin : on retire les trois elements devenus illisibles. Le numero part
    avec les autres. Le garder contre-mis a l'echelle donnait trente-neuf
@@ -637,12 +662,11 @@ body.titres-loin #monde.zoom-loin .c-carte .etiq{opacity:1}
 .scene{--halo:var(--plan);--etiq-ink:var(--ink)}
 body.canvas-noir .scene{--halo:#14110d;--etiq-ink:#f2efe8}
 body.canvas-blanc .scene{--halo:#f7f5f0;--etiq-ink:#1b1a17}
-/* LE LIBELLE D'UNE FLECHE NE DISPARAIT PAS. Je l'avais retire au dezoom en le
-   jugeant illisible ; c'est une annotation ecrite par le groupe, donc du
-   contenu, et la faire disparaitre fait croire qu'elle est perdue. Il suffit de
-   la contre-mettre a l'echelle : elle garde alors une taille d'ecran constante
-   au lieu de retrecir jusqu'a sept pixels. */
-#monde.zoom-loin .fleche-lib{transform:translate(-50%,-50%) scale(clamp(.85,var(--iz,1),4.4))}
+/* LE LIBELLE D'UNE FLECHE NE DISPARAIT PAS, et ne grossit plus non plus au
+   dezoom : il suit l'echelle du tableau, comme une carte ou une note. La
+   contre-mise a l'echelle precedente le faisait exploser en prenant du recul
+   (au maximum x4,4), au point de recouvrir les cartes voisines : c'etait le
+   reproche. Sa taille propre reste reglable par bulle (boutons + / -). */
 
 /* --- Reactions au survol et a la selection ---------------------------------
    Tous les changements d'etat de l'interface etaient instantanes : le bouton
