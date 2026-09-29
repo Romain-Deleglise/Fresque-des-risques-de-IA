@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fresque de référence · Espace animateur·ices</title>
+  <title>Retours · Espace animateur·ices</title>
   <meta name="description" content="Espace réservé aux animateur·ices : fresque de référence et retours sur les cartes.">
   <!-- PAGE NON PUBLIQUE. Elle n'est ni dans la navigation, ni dans le plan du
        site, et robots.txt l'exclut : on la transmet par courriel aux
@@ -22,10 +22,12 @@
   <header class="entete">
     <div class="wrap">
       <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
-      <nav class="nav" aria-label="Navigation principale">
-        <a href="../">Espace animateur·ices</a>
-        <a href="../../guide/">Guide</a>
-        <a href="../../en-ligne/">Fresque en ligne</a>
+      <nav class="nav" aria-label="Espace animateur·ices">
+        <a href="../../animateurs/">Accueil</a>
+        <a href="../../guide/?espace=1">Guide</a>
+        <a href="../../animateurs/outils/">Outils</a>
+        <a href="../../animateurs/retours/" aria-current="page">Retours</a>
+        <a class="btn-nav" href="../../animateurs/retours/#fresque">Fresque de référence</a>
       </nav>
     </div>
   </header>
@@ -42,8 +44,8 @@
           <button type="submit" class="btn-outil">Activer</button>
           <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
         </form>
-        <h1>La fresque de référence</h1>
-        <p class="page-sous">Pour préparer votre atelier, et pour nous signaler ce qui cloche dans les cartes.</p>
+        <h1>Retours</h1>
+        <p class="page-sous">La fresque de référence pour préparer votre atelier, et de quoi nous signaler ce qui cloche.</p>
       </div>
     </div>
 
@@ -68,14 +70,13 @@
           sait l'expliquer, elle tient.
         </p>
 
-        <div class="reveal" id="reveal">
-          <button type="button" class="btn btn-1" id="btn-reveal">Afficher la fresque de référence</button>
-          <p class="muted reveal-note">Assurez-vous que personne ne regarde votre écran par-dessus votre épaule.</p>
-        </div>
+        <p class="muted reveal-note">Assurez-vous que personne ne regarde votre écran par-dessus votre épaule.</p>
+        <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
       </div>
     </section>
 
     <section class="section section-doux" id="plateau-section" hidden>
+      <span id="fresque" class="ancre-fresque" aria-hidden="true"></span>
       <div class="wrap">
         <div class="barre">
           <div class="barre-g">
@@ -181,6 +182,10 @@
         <label class="visuellement-cache" for="c-texte">Votre retour sur cette carte</label>
         <textarea id="c-texte" rows="3" maxlength="2000"
           placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
+        <label for="c-lien">Ça concerne le lien avec la carte <span class="opt">(facultatif)</span></label>
+        <select id="c-lien">
+          <option value="">Aucune carte en particulier</option>
+        </select>
         <label class="visuellement-cache" for="c-nom">Votre prénom</label>
         <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
         <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>

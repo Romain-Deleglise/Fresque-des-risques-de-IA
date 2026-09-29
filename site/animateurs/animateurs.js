@@ -56,7 +56,9 @@
     repondA: 'What it answers', reponses: 'The answers to it',
     langue: 'en-GB',
     sujets: { carte: 'on a card', jeu: 'the card deck', deroule: 'the run-through',
-              reference: 'the reference fresk', autre: 'other' }
+              reference: 'the reference fresk', autre: 'other' },
+    lienAucun: 'No particular card', lienLiees: 'Cards already linked to this one',
+    lienAutres: 'All the other cards', lienAvec: 'link with'
   } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
@@ -80,7 +82,9 @@
     repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
     langue: 'fr-FR',
     sujets: { carte: 'sur une carte', jeu: 'le jeu de cartes',
-              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' }
+              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' },
+    lienAucun: 'Aucune carte en particulier', lienLiees: 'Cartes déjà liées à celle-ci',
+    lienAutres: 'Toutes les autres cartes', lienAvec: 'lien avec'
   };
 
   /* ── Chargement ─────────────────────────────────────────── */
@@ -258,6 +262,43 @@
     });
   }
 
+  /* CA CONCERNE LE LIEN AVEC LA CARTE X. « Cette carte devrait pointer vers
+     l'autre » est le retour le plus frequent, et le plus inexploitable tant
+     qu'on ne sait pas de quelle autre il s'agit. Le champ reste facultatif, et
+     propose d'abord les cartes DEJA LIEES a celle qu'on commente : c'est sur un
+     lien existant que porte neuf fois sur dix la remarque. Les autres cartes
+     suivent, pour signaler un lien qui manque. */
+  function remplirChoixLien(n, sort, entre, reponses) {
+    var sel = $('c-lien');
+    if (!sel) return;
+    var deja = {}, liees = [];
+    [sort, entre, reponses].forEach(function (groupe) {
+      groupe.forEach(function (f) {
+        var autre = f.de === n ? f.vers : f.de;
+        if (autre === n || deja[autre] || !cartes[autre]) return;
+        deja[autre] = true; liees.push(autre);
+      });
+    });
+    var autres = Object.keys(cartes).map(Number).filter(function (m) {
+      return m !== n && !deja[m];
+    }).sort(function (a, b) { return a - b; });
+
+    var option = function (m) {
+      return '<option value="' + m + '">' + echapper(m + ' · ' + cartes[m].titre) + '</option>';
+    };
+    var html = '<option value="">' + echapper(T.lienAucun) + '</option>';
+    if (liees.length) {
+      html += '<optgroup label="' + echapper(T.lienLiees) + '">'
+        + liees.map(option).join('') + '</optgroup>';
+    }
+    if (autres.length) {
+      html += '<optgroup label="' + echapper(T.lienAutres) + '">'
+        + autres.map(option).join('') + '</optgroup>';
+    }
+    sel.innerHTML = html;
+    sel.value = '';
+  }
+
   /* ── Mise en avant d'une carte et de ses liens ───────────── */
   function surligner(n) {
     cibleN = n;
@@ -390,6 +431,7 @@
     $('panneau-liens').innerHTML = bloc;
 
     rendreRetoursCarte(n);
+    remplirChoixLien(n, sort, entre, reponses);
     $('panneau-commentaire').hidden = !modeCom;
     $('c-texte').value = '';
     $('c-etat').textContent = '';
@@ -554,6 +596,9 @@
     var quoi = r.carte != null && cartes[r.carte]
       ? cartes[r.carte].titre
       : (T.sujets[r.sujet] || r.sujet);
+    if (r.lien != null && cartes[r.lien]) {
+      quoi += ' · ' + T.lienAvec + ' ' + r.lien + ' · ' + cartes[r.lien].titre;
+    }
     var html = '<li class="' + (r.valide ? '' : 'attente') + '" data-cle="' + echapper(r.cle) + '">'
       + '<div class="meta">'
       + '<strong>' + echapper(r.nom || T.anonyme) + '</strong>'
@@ -597,14 +642,15 @@
     }).then(chargerRetours);
   }
 
-  /* ── Mise en route ──────────────────────────────────────── */
-  var libelleReveal = $('btn-reveal').textContent;
-  $('btn-reveal').addEventListener('click', function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = T.chargement;
+  /* ── Mise en route ──────────────────────────────────────────
+     LA FRESQUE S'AFFICHE TOUT DE SUITE. Il fallait cliquer « Afficher la
+     fresque de reference » pour la voir : un clic de plus a chaque venue, sur
+     une page deja reservee, deja hors de la navigation publique et deja
+     precedee de son avertissement. Le clic ne protegeait rien, il retardait. */
+  (function demarrer() {
+    var attente = $('chargement');
     charger().then(function () {
-      $('reveal').hidden = true;
+      if (attente) attente.hidden = true;
       $('plateau-section').hidden = false;
       $('retours-section').hidden = false;
       dessinerCartes();
@@ -614,12 +660,14 @@
       glisser($('plateau-cadre'));
       chargerRetours();
     }).catch(function (e) {
-      btn.disabled = false;
-      btn.textContent = libelleReveal;
       console.error('espace animateurs :', e);
-      alert(T.echecChargement);
+      if (attente) {
+        attente.hidden = false;
+        attente.className = 'etat err';
+        attente.textContent = T.echecChargement;
+      }
     });
-  });
+  })();
 
   document.addEventListener('click', function (e) {
     var c = e.target.closest('.c-carte');
@@ -734,8 +782,17 @@
       $('c-etat').textContent = 'Écrivez votre retour avant d’envoyer.';
       return;
     }
-    envoyer({ sujet: 'carte', carte: cibleN, texte: texte, nom: $('c-nom').value.trim() }, $('c-etat'))
-      .then(function () { $('c-texte').value = ''; return chargerRetours(); })
+    var lien = $('c-lien') ? parseInt($('c-lien').value, 10) : NaN;
+    envoyer({
+      sujet: 'carte', carte: cibleN, texte: texte,
+      lien: isFinite(lien) ? lien : null,
+      nom: $('c-nom').value.trim()
+    }, $('c-etat'))
+      .then(function () {
+        $('c-texte').value = '';
+        if ($('c-lien')) $('c-lien').value = '';
+        return chargerRetours();
+      })
       .catch(function () { /* l'état est déjà affiché */ });
   });
 

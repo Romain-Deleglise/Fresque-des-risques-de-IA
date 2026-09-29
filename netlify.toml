@@ -96,6 +96,14 @@
   status = 301
   force = true
 
+# La fresque de reference a rejoint l'onglet « Retours » de l'espace
+# animateur·ices : c'est la meme page, a la fois outil de preparation et surface
+# de commentaire. L'ancienne adresse circule dans des courriels deja envoyes.
+[[redirects]]
+  from = "/animateurs/reference/*"
+  to = "/animateurs/retours/:splat"
+  status = 301
+
 # Ancienne URL de la page « Participer » renommee : redirection permanente.
 [[redirects]]
   from = "/demander-un-atelier/*"

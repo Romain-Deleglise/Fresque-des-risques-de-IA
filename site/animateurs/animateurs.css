@@ -69,7 +69,7 @@
 .liens g.vif text { fill: var(--accent-txt); font-weight: 600; }
 .liens g.pale { opacity: .14; }
 .liens g { transition: opacity .18s ease; }
-/* Aperçu au survol : plus léger que la sélection, et sans libellés — il
+/* Aperçu au survol : plus léger que la sélection, et sans libellés : il
    renseigne, il ne se substitue pas au clic. */
 .liens g.survol path { stroke: var(--accent-txt); stroke-width: 3; }
 .liens g.survol .tete { fill: var(--accent-txt); }
@@ -210,7 +210,8 @@
   border: 1px solid var(--ligne); border-radius: 999px; padding: .1rem .5rem;
   font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
 }
-.exemple-attente { opacity: .55; }
+.exemple-attente { background: var(--doux); border: 1px dashed var(--ligne);
+  border-radius: 5px; padding: 0 .35em; color: var(--ink-doux); }
 .retours .actions { margin-top: .6rem; display: flex; gap: .5rem; }
 .retours .actions button {
   font-family: var(--f-ui); font-size: .8rem; min-height: 36px; padding: 0 .7rem;
@@ -251,7 +252,7 @@
    quand même se voir. */
 .lot-puce[data-lot=""].actif { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 
-/* Résultat de recherche : un anneau, pas un changement de couleur — la couleur
+/* Résultat de recherche : un anneau, pas un changement de couleur : la couleur
    appartient déjà au lot. */
 .c-carte.trouve { box-shadow: 0 0 0 3px var(--accent), 0 2px 8px rgb(27 26 23 / 10%); }
 
@@ -396,7 +397,7 @@
   margin: 0; font-variant-numeric: tabular-nums;
 }
 /* Deux minutes avant la fin, puis au-delà : le temps change de couleur avant
-   de changer de signe. On ne compte pas sur la seule couleur — le nombre passe
+   de changer de signe. On ne compte pas sur la seule couleur, le nombre passe
    au négatif, ce qui reste lisible sans la percevoir. */
 .mi-bientot .mi-reste { color: var(--accent-txt); }
 .mi-depasse .mi-reste { color: var(--err); }
@@ -559,9 +560,23 @@
 
 /* Le panneau est posé par-dessus la page : le plateau lui cède la place plutôt
    que de disparaître dessous. Sous 900 px le panneau occupe presque l'écran,
-   rétrécir le plateau n'aurait plus de sens — on le laisse dessous. */
+   rétrécir le plateau n'aurait plus de sens : on le laisse dessous. */
 @media (min-width: 900px) {
   .panneau-ouvert .plateau-cadre { margin-right: min(420px, 40vw); }
 }
 .panneau-liens .h-reponse { color: #c1444e; }
 .panneau-liens .l-reponse .vers-carte { color: #c1444e; }
+
+/* --- Accueil de l'espace : encart « Annoncer » et listes d'outils ---------- */
+/* L'encart passe en tete parce que c'est la seule action qui a une echeance :
+   une affiche ne sert plus a rien une fois l'atelier passe. */
+.encart-annonce { border: 1px solid var(--ligne); border-left: 4px solid var(--accent);
+  border-radius: 12px; padding: 1.2rem 1.4rem 1.4rem; background: var(--surface); margin-bottom: 2.2rem; }
+.encart-annonce h2 { font-size: 1.15rem; margin-bottom: .5rem; }
+.encart-annonce p { margin: 0 0 .9rem; }
+.encart-annonce p:last-child { margin-bottom: 0; }
+.liste-outils { margin: .6rem 0 1.1rem 1.1rem; }
+.liste-outils li { margin-bottom: .35rem; }
+/* Ancre de la fresque : le bouton orange de la barre y mene directement, sans
+   quoi il deposerait en haut d'une page dont la fresque est le milieu. */
+.ancre-fresque { display: block; position: relative; top: -5rem; }

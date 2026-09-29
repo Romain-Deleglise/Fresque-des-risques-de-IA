@@ -17,6 +17,16 @@ const PAGES = [
   ["Fresque en ligne", "/en-ligne/"],
   ["Mentions légales", "/mentions-legales/"],
   ["Session (lobby)", "/en-ligne/session/"],
+  /* L'ESPACE ANIMATEUR·ICES EST AUDITE LUI AUSSI. Il n'est pas public, mais il
+     est utilise en atelier, parfois projete, et rien ne justifie qu'il soit
+     moins accessible que le reste. */
+  ["Espace animateur·ices", "/animateurs/"],
+  ["Espace : outils", "/animateurs/outils/"],
+  ["Espace : retours", "/animateurs/retours/"],
+  ["Espace : antisèche", "/animateurs/antiseche/"],
+  ["Espace : minuteur", "/animateurs/minuteur/"],
+  ["Espace : kit d'annonce", "/animateurs/kit/"],
+  ["Guide vu depuis l'espace", "/guide/?espace=1"],
   ["EN Home", "/en/"],
   ["EN About", "/en/about/"],
   ["EN Facilitate", "/en/facilitate/"],

@@ -109,3 +109,19 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verifier le tableau en ligne (temps reel, curseurs, zoom, fleches, animations)
         run: node scripts/verifier-tableau.mjs
+
+  espace:
+    # L'espace animateur·ices n'est pas public, donc personne ne le regarde
+    # tomber. Ce banc verifie que la fresque de reference s'affiche seule, que
+    # les onglets de l'espace tiennent d'une page a l'autre, et qu'ils ne
+    # debordent pas sur le guide vu par un visiteur ordinaire.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install --no-save playwright-core playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Verifier l'espace animateur·ices
+        run: node scripts/verifier-espace.mjs
