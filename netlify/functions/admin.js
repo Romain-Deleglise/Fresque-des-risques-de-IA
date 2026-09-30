@@ -83,7 +83,7 @@ function relanceAnimateur(mailDest) {
   const text = [
     "Bonjour,",
     "",
-    "Vous avez animé une Fresque des risques de l'IA il y a quelque temps — merci encore.",
+    "Vous avez animé une Fresque des risques de l'IA il y a quelque temps, merci encore.",
     "",
     "La fresque a continué d'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).",
     "",
@@ -97,7 +97,7 @@ function relanceAnimateur(mailDest) {
   ].join("\n");
   const html = [
     '<p style="margin:0 0 14px;">Bonjour,</p>',
-    '<p style="margin:0 0 14px;">Vous avez animé une Fresque des risques de l\'IA il y a quelque temps — merci encore.</p>',
+    '<p style="margin:0 0 14px;">Vous avez animé une Fresque des risques de l\'IA il y a quelque temps, merci encore.</p>',
     '<p style="margin:0 0 14px;">La fresque a continué d\'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s\'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).</p>',
     '<p style="margin:0 0 18px;text-align:center;"><a href="' + prog + '" style="display:inline-block;background:#E8811C;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:700;">Programmer un atelier</a></p>',
     '<p style="margin:0;font-size:13px;color:#6b665e;">Si ce n\'est pas le moment, ce message n\'attend aucune réponse. Nous ne relançons personne plus d\'une fois par semestre.</p>'

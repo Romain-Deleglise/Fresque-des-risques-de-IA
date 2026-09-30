@@ -136,7 +136,7 @@ const GUIDE_URL = LIEN + "/telechargements/guide-animateur-fresque-des-risques-d
 // Espace animateur·ices : fresque de référence et retours sur les cartes. La
 // page n'est référencée nulle part (noindex, hors sitemap, hors navigation) :
 // ce mail est l'un des deux seuls chemins pour y arriver, avec la fin du
-// guide. C'est voulu — la fresque de référence divulgâcherait l'atelier à un
+// guide. C'est voulu : la fresque de référence divulgâcherait l'atelier à un
 // participant qui la lirait avant d'y venir.
 const ESPACE_URL = LIEN + "/animateurs/";
 // Bouton "Rejoindre la visio" (Google Meet, Discord...) si l'animateur a fourni un lien.

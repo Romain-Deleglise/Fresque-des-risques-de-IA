@@ -455,7 +455,7 @@
     var h = '<table class="table-ateliers"><thead><tr><th>Qui</th><th>Animations</th>'
       + "<th>Dernière</th><th></th></tr></thead><tbody>";
     etat.inactifs.forEach(function (p) {
-      h += "<tr><td>" + esc(p.prenom || "—") + "<br><span class='muted'>" + esc(p.mail) + "</span></td>"
+      h += "<tr><td>" + esc(p.prenom || "(sans prénom)") + "<br><span class='muted'>" + esc(p.mail) + "</span></td>"
         + "<td>" + p.nbAnimations + "</td>"
         + "<td>il y a " + p.joursDepuis + " j</td>"
         + '<td><button class="btn-mini" data-relancer="' + esc(p.mail) + '">Relancer</button></td></tr>';
