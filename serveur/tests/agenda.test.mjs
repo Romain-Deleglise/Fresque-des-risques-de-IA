@@ -24,8 +24,9 @@ test("un atelier déjà terminé ne sort pas non plus", () => {
   const passe = atelier({ date: "2026-09-01" });
   assert.equal(G.publiables([passe], NOW).length, 0);
   // Pendant l'atelier, en revanche, il reste publié : quelqu'un peut encore
-  // le voir dans son agenda le jour même.
-  const pendant = Date.UTC(2026, 8, 24, 15, 30, 0);
+  // le voir dans son agenda le jour même. 17 h 15 à Paris, soit un quart
+  // d'heure après le début.
+  const pendant = Date.UTC(2026, 8, 24, 15, 15, 0);
   assert.equal(G.publiables([atelier()], pendant).length, 1);
 });
 
@@ -64,10 +65,14 @@ test("les ateliers sortent dans l'ordre chronologique", () => {
   assert.deepEqual(l.map((a) => a.code), ["TOT000", "MILIEU", "TARD00"]);
 });
 
-test("l'atelier dure deux heures", () => {
-  const j = G.agendaJson([atelier()], NOW, BASE);
-  assert.equal(j.ateliers[0].fin, "2026-09-24T19:00:00+02:00");
-  assert.match(G.agendaIcal([atelier()], NOW, BASE), /DTEND:20260924T170000Z/);
+/* DEUX HEURES ET DEMIE, pas deux : c'est la duree reelle constatee en atelier.
+   Un agenda sert a reserver du temps, et une demi-heure de trop vaut mieux
+   qu'un rendez-vous suivant au milieu de la restitution. */
+test("l'atelier dure deux heures et demie dans l'agenda", () => {
+  assert.equal(G.DUREE_MS, 150 * 60 * 1000);
+  const j = G.agendaJson([atelier()], NOW, BASE);      // 17 h 00 a Paris
+  assert.equal(j.ateliers[0].fin, "2026-09-24T19:30:00+02:00");
+  assert.match(G.agendaIcal([atelier()], NOW, BASE), /DTEND:20260924T173000Z/);
 });
 
 /* L'identifiant doit être STABLE : sans cela, chaque relecture du calendrier

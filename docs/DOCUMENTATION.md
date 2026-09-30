@@ -995,8 +995,10 @@ le décalage (`2026-10-14T18:30:00+02:00`), et l'iCalendar est en UTC.
 
 Le partage entre origines est ouvert à toutes (`Access-Control-Allow-Origin: *`)
 puisque ces données sont déjà publiques sur le site, et mises en cache cinq
-minutes. La durée annoncée d'un atelier est de deux heures : il n'y a pas de
-champ de durée, et c'est ce qui est annoncé partout ailleurs.
+minutes. La durée d'un atelier dans l'agenda est de **deux heures et demie** :
+c'est la durée réelle constatée, et il n'y a pas de champ de durée par atelier.
+Un agenda sert à réserver du temps, et une demi-heure de trop vaut mieux qu'un
+rendez-vous suivant au milieu de la restitution.
 
 L'identifiant iCalendar d'un événement ne dépend que du code de l'atelier :
 une relecture met l'événement à jour au lieu d'en créer un doublon.

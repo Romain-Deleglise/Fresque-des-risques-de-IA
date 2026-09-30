@@ -12,9 +12,12 @@
 "use strict";
 var A = require("./ateliers.js");
 
-// Duree affichee d'un atelier. Il n'y a pas de champ de duree : la fresque
-// dure deux heures, c'est annonce partout sur le site.
-var DUREE_MS = 2 * 60 * 60 * 1000;
+/* Duree d'un atelier dans l'agenda : DEUX HEURES ET DEMIE. Il n'y a pas de
+   champ de duree par atelier, et c'est la duree reelle constatee. Le site
+   annonce « 2 heures », ce qui est le format vise ; mais un agenda sert a
+   reserver du temps, et reserver une demi-heure de trop vaut mieux que de
+   voir arriver le rendez-vous suivant au milieu de la restitution. */
+var DUREE_MS = 150 * 60 * 1000;
 
 /* Ce qu'on publie : les ateliers PUBLICS a venir. Un atelier prive ne doit
    jamais sortir d'ici, meme par megarde : le filtre est explicite et teste. */
