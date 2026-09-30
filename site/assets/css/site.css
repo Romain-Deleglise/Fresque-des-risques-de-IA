@@ -35,6 +35,12 @@
 
   --lg: 1120px;      /* largeur max page */
   --texte: 42rem;    /* largeur de lecture */
+  /* PAS VERTICAL DES SECTIONS. Une seule valeur commande tout l'espace entre
+     deux sections de la page : chacune la porte en haut et en bas, donc deux
+     sections qui se suivent sont toujours separees de deux pas, quels que
+     soient leur fond et leur contenu. Le jour ou une section fait exception,
+     l'oeil le voit aussitot. */
+  --pas-section: clamp(3.5rem, 7vw, 6rem);
 }
 
 /* --- Mode sombre ----------------------------------------------------------
@@ -141,7 +147,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 :root[data-theme="dark"] .theme-toggle .ic-soleil, .theme-toggle[data-sombre="1"] .ic-soleil { display: none; }
 
 /* --- Hero ----------------------------------------------------------------- */
-.hero { padding: clamp(1.75rem, 3.5vw, 3rem) 0 clamp(3rem, 5vw, 4.5rem); }
+/* L'espace du HAUT separe le hero de l'en-tete : c'est une marge de page, elle
+   lui est propre. Celui du BAS le separe de la premiere section : c'est un
+   ecart de section, il prend donc le pas commun, sans quoi la page commence
+   sur un rythme et continue sur un autre. */
+.hero { padding: clamp(1.75rem, 3.5vw, 3rem) 0 var(--pas-section); }
 .hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 5rem; align-items: center; }
 .hero h1 { font-size: clamp(2.3rem, 4.2vw, 3.3rem); margin-bottom: 1.25rem; }
 .hero .lede { font-size: 1.12rem; }
@@ -212,10 +222,27 @@ a.btn, a.btn:hover { text-decoration: none; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
 .pile .carte[aria-pressed="true"] .back { opacity: 1; }
 
-/* --- Rythme des sections -------------------------------------------------- */
-.section { padding: clamp(3.5rem, 7vw, 6rem) 0; }
+/* --- Rythme des sections --------------------------------------------------
+   Toutes les sections portent le meme pas en haut et en bas. Deux exceptions,
+   voulues, et nommees pour qu'on ne les prenne pas pour des oublis :
+   - `.page-tete + .section` (plus bas dans cette feuille) : le titre de page
+     et sa premiere section forment un seul bloc, on les rapproche expres ;
+   - `.section-suite` : une section qui prolonge celle du dessus (une capture
+     qui illustre le paragraphe juste avant, par exemple) n'est pas une
+     nouvelle section pour l'oeil, elle ne prend donc qu'un demi-pas.
+   Toute autre section qui s'ecarte du pas est un defaut : c'est ainsi que
+   « En atelier » s'etait retrouve colle au bloc precedent. */
+.section { padding: var(--pas-section) 0; }
 .section + .section { border-top: 1px solid var(--ligne); }
 .section-doux { background: var(--bg-doux); }
+/* SECTION QUI EN PROLONGE UNE AUTRE. On declare la paire d'un seul cote, sur
+   celle du bas : `:has()` se charge de retirer l'espace sous celle du haut, de
+   sorte qu'on ne puisse pas oublier la moitie du reglage en modifiant le HTML.
+   Ces deux valeurs etaient jusqu'ici ecrites en `style=` dans la page, ou la
+   politique de securite (`style-src 'self'`) les refusait en production : la
+   mise en page voulue n'existait qu'en local. */
+.section-suite { padding-top: clamp(2rem, 4vw, 3rem); }
+.section:has(+ .section-suite) { padding-bottom: 0; }
 .entete-sec { max-width: var(--texte); margin-bottom: 2.6rem; }
 .entete-sec h2 { margin-bottom: .8rem; }
 
@@ -296,7 +323,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 @media (max-width: 720px) { .capacites li { grid-template-columns: 1fr; gap: .3rem; } }
 
 /* --- Photo d'atelier ------------------------------------------------------ */
-.section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }
+/* Le pas commun des deux cotes. Sans espace au-dessus, le titre « En atelier »
+   venait toucher le bord du bloc precedent, alors que les autres sections en
+   avaient deux pas : c'est le seul endroit de la page d'accueil ou le rythme
+   se rompait. */
+.section-photo { padding: var(--pas-section) 0; }
 .titre-photos { font-size: clamp(1.4rem, 2.4vw, 1.8rem); margin-bottom: 1.1rem; }
 .photo-atelier { margin: 0; }
 /* BANDE DE PHOTOS. Quatre photos en portrait sous la photo mise en avant. Une
@@ -319,6 +350,9 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* Groupe d'actions generique (sections editoriales) : espacement coherent */
 .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .prose .actions { margin-top: 1.6rem; }
+/* Une precision glissee sous les boutons : elle se rattache a eux, donc peu
+   d'espace, et une taille en retrait pour ne pas concurrencer l'appel. */
+.prose .actions + p { margin-top: .9rem; font-size: .92rem; }
 
 /* --- FAQ ------------------------------------------------------------------ */
 .faq { max-width: var(--texte); }

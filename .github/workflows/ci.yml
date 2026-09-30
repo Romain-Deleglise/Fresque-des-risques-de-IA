@@ -130,3 +130,11 @@ jobs:
       # semblait casse, et il l'etait. Le banc rejoue son geste exact.
       - name: Verifier le parcours des alertes
         run: node scripts/verifier-alertes.mjs
+
+      # Le rythme vertical : un lecteur a signale que l'espace avant une
+      # section n'etait pas celui d'avant la suivante. Le banc mesure les
+      # ecarts reels dans le navigateur, sur toutes les pages et deux largeurs,
+      # en servant la meme politique de securite qu'en production (sans quoi il
+      # mesurerait une mise en page que personne ne voit).
+      - name: Verifier le rythme vertical des pages
+        run: node scripts/verifier-rythme.mjs
