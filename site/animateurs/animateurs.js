@@ -432,9 +432,9 @@
 
     rendreRetoursCarte(n);
     remplirChoixLien(n, sort, entre, reponses);
-    $('panneau-commentaire').hidden = !modeCom;
-    $('c-texte').value = '';
-    $('c-etat').textContent = '';
+    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom;
+    if ($('c-texte')) $('c-texte').value = '';
+    if ($('c-etat')) $('c-etat').textContent = '';
     $('panneau').hidden = false;
     surligner(n);
     // Le plateau se retire sous le panneau : à l'échelle d'ajustement il n'y a
@@ -541,6 +541,13 @@
     });
   }
 
+  /* LE MEME MODULE SERT DEUX PAGES. Sur l'onglet Retours, la fresque
+     s'accompagne des commentaires, du formulaire general et de la moderation.
+     Sur l'accueil de l'espace, elle est depliee EN LECTURE SEULE : aucun de ces
+     elements n'existe dans la page. `on` evite d'avoir a dupliquer un balisage
+     de quarante identifiants juste pour montrer un plateau. */
+  function on(id, ev, fn) { var el = $(id); if (el) el.addEventListener(ev, fn); }
+
   /* ── Commentaires ───────────────────────────────────────── */
   var API = '/.netlify/functions/commentaires';
   /* Chemin vers la racine du site : /animateurs/ est a un niveau,
@@ -617,6 +624,7 @@
 
   function rendreRetours() {
     var hote = $('retours');
+    if (!hote) return;
     if (!retours.length) {
       hote.innerHTML = '<li class="retours-vide">' + echapper(T.vide) + '</li>';
       return;
@@ -626,6 +634,7 @@
 
   function rendreRetoursCarte(n) {
     var hote = $('retours-carte');
+    if (!hote) return;
     var liste = retours.filter(function (r) { return r.carte === n; });
     hote.innerHTML = liste.length ? liste.map(ligneRetour).join('') : '';
   }
@@ -652,13 +661,13 @@
     charger().then(function () {
       if (attente) attente.hidden = true;
       $('plateau-section').hidden = false;
-      $('retours-section').hidden = false;
+      if ($('retours-section')) $('retours-section').hidden = false;
       dessinerCartes();
       dessinerLiens();
       construireLots();
       zoomInitial();
       glisser($('plateau-cadre'));
-      chargerRetours();
+      if ($('retours') || $('retours-carte')) chargerRetours();
     }).catch(function (e) {
       console.error('espace animateurs :', e);
       if (attente) {
@@ -707,10 +716,10 @@
   $('zoom-moins').addEventListener('click', function () { zoom = Math.max(0.12, zoom / 1.25); appliquerZoom(); });
   $('zoom-ajuste').addEventListener('click', ajuster);
 
-  $('mode-commentaires').addEventListener('change', function () {
+  on('mode-commentaires', 'change', function () {
     modeCom = this.checked;
     $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
-    $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
+    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
   });
 
   $('lots').addEventListener('click', function (e) {
@@ -747,7 +756,7 @@
     if (b) ouvrirPanneau(+b.dataset.vers);
   });
 
-  $('form-jeton').addEventListener('submit', function (e) {
+  on('form-jeton', 'submit', function (e) {
     e.preventDefault();
     jeton = $('jeton').value.trim();
     var etat = $('jeton-etat');
@@ -775,7 +784,7 @@
     });
   });
 
-  $('c-envoi').addEventListener('click', function () {
+  on('c-envoi', 'click', function () {
     var texte = $('c-texte').value.trim();
     if (texte.length < 3) {
       $('c-etat').className = 'etat err';
@@ -796,7 +805,7 @@
       .catch(function () { /* l'état est déjà affiché */ });
   });
 
-  $('form-general').addEventListener('submit', function (e) {
+  on('form-general', 'submit', function (e) {
     e.preventDefault();
     envoyer({
       sujet: $('g-sujet').value,

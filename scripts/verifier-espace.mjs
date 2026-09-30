@@ -71,6 +71,66 @@ t("la fresque s'affiche sans qu'on clique quoi que ce soit", vue.plateau && vue.
 t("le bouton « Afficher la fresque de référence » a disparu", !vue.bouton);
 t("la section des retours est visible du même coup", vue.retours);
 
+console.log("\n--- L'apercu depliable, sur l'accueil de l'espace ---");
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await pg.waitForFunction(() => document.querySelectorAll("#cartes .c-carte").length > 30,
+  null, { timeout: 20000 }).catch(() => {});
+const lireApercu = () => pg.evaluate(() => ({
+  replie: document.getElementById("apercu").hidden,
+  libelle: document.getElementById("btn-apercu").textContent.replace(/\s+/g, " ").trim(),
+  deplie: document.getElementById("btn-apercu").getAttribute("aria-expanded"),
+  cadre: document.getElementById("plateau-cadre").clientWidth,
+  plein: !!document.fullscreenElement,
+  /* LECTURE SEULE : ni bascule « mode commentaires », ni formulaire, ni
+     moderation. C'est la meme fresque que l'onglet Retours, sans ce qui sert a
+     commenter. */
+  modeCom: !!document.getElementById("mode-commentaires"),
+  formulaire: !!document.getElementById("form-general"),
+  jeton: !!document.getElementById("form-jeton")
+}));
+let a = await lireApercu();
+t("la fresque est repliee a l'arrivee", a.replie && a.deplie === "false", JSON.stringify(a));
+t("et l'accueil ne propose ni commentaires ni moderation",
+  !a.modeCom && !a.formulaire && !a.jeton, JSON.stringify(a));
+
+await pg.click("#btn-apercu");
+await pg.waitForTimeout(900);
+a = await lireApercu();
+const largeurDepliee = a.cadre;
+t("le bouton la deplie sur la meme page", !a.replie && a.deplie === "true", JSON.stringify(a));
+t("et devient « Masquer la fresque de référence »", /^Masquer/.test(a.libelle), a.libelle);
+/* Le plateau se met a l'echelle d'apres la largeur de son cadre, et un bloc
+   `hidden` n'a pas de largeur : sans recadrage apres depliage, la fresque
+   s'ouvrait a une echelle calculee sur zero pixel. */
+t("la fresque est recadree apres le depliage", a.cadre > 300, "cadre " + a.cadre + " px");
+
+await pg.click("#plein-ecran");
+await pg.waitForTimeout(800);
+a = await lireApercu();
+t("« Plein écran » passe par-dessus toute la page, sans changer de page",
+  a.plein && !a.replie, JSON.stringify(a));
+/* La sortie est declenchee ici par programme : en navigateur sans fenetre, la
+   touche Echap ne rend pas la main sur le plein ecran natif. C'est une limite
+   du banc, pas du site : le navigateur gere Echap lui-meme. */
+await pg.evaluate(() => document.exitFullscreen());
+await pg.waitForTimeout(800);
+a = await lireApercu();
+t("en sortir ramene la fresque a sa taille d'avant",
+  !a.plein && Math.abs(a.cadre - largeurDepliee) < 8,
+  "avant " + largeurDepliee + " px, apres " + a.cadre + " px");
+
+await pg.evaluate(() => document.getElementById("apercu-fermer").click());
+await pg.waitForTimeout(400);
+t("« Fermer » replie", (await lireApercu()).replie);
+await pg.evaluate(() => document.getElementById("btn-apercu").click());
+await pg.waitForTimeout(600);
+await pg.keyboard.press("Escape");
+await pg.waitForTimeout(400);
+t("Echap replie aussi", (await lireApercu()).replie);
+
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForSelector("#plateau-section:not([hidden])", { timeout: 20000 }).catch(() => {});
+
 console.log("\n--- Le lien avec une autre carte ---");
 await pg.evaluate(() => document.getElementById("mode-commentaires").click());
 await pg.click("#cartes .c-carte[data-n='14']");

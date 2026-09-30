@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../assets/css/site.css">
   <link rel="stylesheet" href="animateurs.css">
 </head>
-<body>
+<body data-racine="../">
   <a class="skip" href="#contenu">Aller au contenu</a>
 
   <header class="entete">
@@ -68,12 +68,71 @@
           son minutage et conseils pour relancer le groupe.
         </p>
         <p><a class="btn btn-2" href="../guide/?espace=1">Lire le guide</a></p>
+        <p>Vous pouvez voir à quoi ressemble une fresque terminée avec notre fresque de référence.</p>
+        <p>
+          <button type="button" class="btn btn-1" id="btn-apercu" aria-expanded="false" aria-controls="apercu">
+            Afficher la fresque de référence <span class="chevron" aria-hidden="true">▾</span>
+          </button>
+        </p>
+
+        <!-- APERCU DEPLIABLE, EN LECTURE SEULE. C'est le meme module que
+             l'onglet Retours, sans les commentaires : ni bascule « mode
+             commentaires », ni formulaire, ni moderation. Le script
+             animateurs.js accepte que ces elements n'existent pas (voir `on`).
+             Le plein ecran ne change pas de page : le bloc passe par-dessus
+             tout, et Echap ou « Fermer » ramene au meme endroit. -->
+        <div class="apercu" id="apercu" hidden>
+          <div class="apercu-barre">
+            <div class="barre-g">
+              <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
+              <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
+              <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
+              <button type="button" class="btn-outil" id="zoom-ajuste">Ajuster</button>
+              <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
+              <label class="recherche">
+                <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
+                <input type="search" id="recherche" placeholder="Chercher une carte…"
+                       aria-labelledby="recherche-label" autocomplete="off">
+              </label>
+            </div>
+            <button type="button" class="btn-outil apercu-fermer" id="apercu-fermer">Fermer ✕</button>
+          </div>
+          <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
+          <p class="cle-fleches">
+            <span><span class="cle-trait cle-cause" aria-hidden="true"></span> provoque</span>
+            <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> répond à</span>
+          </p>
+          <p class="muted barre-aide" id="barre-aide">
+            Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
+            Ctrl + molette pour zoomer.
+          </p>
+          <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
+          <div id="plateau-section" hidden>
+            <div class="plateau-cadre" id="plateau-cadre">
+              <div class="plateau-sizer" id="plateau-sizer">
+                <div class="plateau" id="plateau">
+                  <svg class="liens" id="liens" aria-hidden="true"></svg>
+                  <div class="cartes" id="cartes"></div>
+                  <div class="etiquettes" id="etiquettes"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+          <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
+          <div class="panneau-corps">
+            <img class="panneau-img" id="panneau-img" src="" alt="">
+            <h3 id="panneau-titre"></h3>
+            <div class="panneau-verso" id="panneau-verso"></div>
+            <div class="panneau-liens" id="panneau-liens"></div>
+          </div>
+        </aside>
 
         <h2 class="etape-titre"><span class="etape-n">2</span> Animer</h2>
-        <p>Trois outils à garder sous la main pendant l'atelier :</p>
+        <p>Outils à garder sous la main pendant l'atelier :</p>
         <ul class="liste-outils">
-          <li><strong>la fresque de référence</strong> : un exemple de fresque terminée, avec une
-            disposition possible des cartes et leurs liens</li>
           <li><strong>le minuteur</strong> : le temps restant sur chaque étape, pour voir tout de
             suite si une partie déborde</li>
           <li><strong>l'antisèche</strong> : le déroulé et les phrases de relance</li>
@@ -113,6 +172,8 @@
       </div>
     </div>
   </footer>
+  <script src="animateurs.js" defer></script>
+  <script src="apercu.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>
 </body>
 </html>

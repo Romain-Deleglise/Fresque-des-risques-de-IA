@@ -580,3 +580,16 @@
 /* Ancre de la fresque : le bouton orange de la barre y mene directement, sans
    quoi il deposerait en haut d'une page dont la fresque est le milieu. */
 .ancre-fresque { display: block; position: relative; top: -5rem; }
+
+/* --- Apercu depliable de la fresque, sur l'accueil de l'espace ------------- */
+.apercu { margin: 1.2rem 0 1.8rem; border: 1px solid var(--ligne); border-radius: 14px;
+  background: var(--surface); padding: .9rem 1rem 1.1rem; }
+.apercu-barre { display: flex; align-items: center; justify-content: space-between;
+  gap: .8rem; flex-wrap: wrap; margin-bottom: .7rem; }
+.apercu .plateau-cadre { height: min(62vh, 34rem); }
+.chevron { display: inline-block; margin-left: .15em; }
+/* Le plein ecran passe par l'API native du navigateur, posee par animateurs.js
+   sur la section du plateau : rien a habiller ici. Le fond doit en revanche
+   etre opaque, sinon la fresque s'affiche sur du noir transparent. */
+#plateau-section:fullscreen { background: var(--bg); padding: 1rem; overflow: auto; }
+#plateau-section:fullscreen .plateau-cadre { height: calc(100vh - 3rem); }

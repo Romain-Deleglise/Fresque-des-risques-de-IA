@@ -165,8 +165,21 @@ test("le sommaire mène à chaque ressource, et chaque ressource revient au somm
     assert.ok(sommaire.includes('href="' + cible + '"'), `le sommaire ne mène pas à ${cible}`);
   }
   const outils = lire("site/animateurs/outils/index.html");
-  for (const cible of ["../retours/#fresque", "../minuteur/", "../antiseche/"]) {
+  for (const cible of ["../minuteur/", "../antiseche/"]) {
     assert.ok(outils.includes('href="' + cible + '"'), `l'onglet Outils ne mène pas à ${cible}`);
+  }
+  /* LA FRESQUE DE REFERENCE NE FIGURE PLUS DANS LES OUTILS : elle se deplie
+     depuis l'accueil de l'espace, en lecture seule, et vit dans l'onglet
+     Retours quand il s'agit de commenter. Une tuile de plus vers la meme page
+     n'ajoutait qu'un detour. */
+  assert.ok(!/class="ressource"[^>]*href="\.\.\/retours\//.test(outils),
+    "l'onglet Outils ne doit plus porter de tuile vers la fresque de référence");
+  assert.match(sommaire, /id="btn-apercu"/, "l'accueil doit porter le bouton de dépliage");
+  assert.match(sommaire, /id="apercu"/, "l'accueil doit porter le bloc de la fresque");
+  /* En lecture seule : rien de ce qui sert a commenter. */
+  for (const interdit of ["mode-commentaires", "form-general", "form-jeton", "retours-section"]) {
+    assert.ok(!sommaire.includes('id="' + interdit + '"'),
+      `l'aperçu de l'accueil ne doit pas porter ${interdit}`);
   }
   /* LES MEMES ONGLETS PARTOUT. Naviguer dans l'espace renvoyait aux onglets du
      site public, d'ou l'on ne revenait qu'avec le bouton « precedent ». Chaque
