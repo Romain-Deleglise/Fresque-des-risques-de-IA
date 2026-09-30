@@ -96,6 +96,20 @@
   status = 301
   force = true
 
+# AGENDA PUBLIC DES ATELIERS. Deux adresses stables, pour que d'autres projets
+# (le calendrier d'evenements des groupes, par exemple) puissent s'y brancher
+# sans connaitre nos fonctions : du JSON pour qui traite les donnees, un
+# calendrier iCalendar pour qui veut simplement s'y abonner.
+[[redirects]]
+  from = "/api/ateliers.json"
+  to = "/.netlify/functions/agenda"
+  status = 200
+
+[[redirects]]
+  from = "/ateliers.ics"
+  to = "/.netlify/functions/agenda?format=ics"
+  status = 200
+
 # La fresque de reference a rejoint l'onglet « Retours » de l'espace
 # animateur·ices : c'est la meme page, a la fois outil de preparation et surface
 # de commentaire. L'ancienne adresse circule dans des courriels deja envoyes.
