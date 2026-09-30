@@ -20,7 +20,6 @@
   if (!btn || !bloc) return;
 
   var fermer = document.getElementById("apercu-fermer");
-  var ajuste = document.getElementById("zoom-ajuste");
   var chevron = btn.querySelector(".chevron");
   var LIBELLE = { ouvrir: "Afficher la fresque de référence", fermer: "Masquer la fresque de référence" };
   var ouvert = false;
@@ -35,16 +34,24 @@
     // Deux images d'attente : le navigateur pose la largeur du cadre, puis la
     // mise en page se stabilise. Ensuite seulement l'echelle a un sens.
     requestAnimationFrame(function () {
-      requestAnimationFrame(function () { if (ajuste) ajuste.click(); });
+      requestAnimationFrame(function () {
+        if (window.FresqueRef && window.FresqueRef.ajuster) window.FresqueRef.ajuster();
+      });
     });
   }
 
-  btn.addEventListener("click", function () {
-    poser(!ouvert);
-    if (ouvert) bloc.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  });
+  /* LE BOUTON NE FAIT PAS DEFILER LA PAGE. Il la faisait descendre jusqu'a la
+     fresque : on perdait de vue le texte qu'on etait en train de lire, et le
+     clic changeait de vue au lieu d'ajouter quelque chose sous les yeux. */
+  btn.addEventListener("click", function () { poser(!ouvert); });
 
-  if (fermer) fermer.addEventListener("click", function () { poser(false); btn.focus(); });
+  /* « Fermer ✕ » quitte le plein ecran s'il est en cours, et replie sinon :
+     c'est le meme geste, revenir a ce qu'on lisait. */
+  if (fermer) fermer.addEventListener("click", function () {
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    poser(false);
+    btn.focus();
+  });
 
   /* Echap replie. En plein ecran, le navigateur intercepte Echap avant nous
      pour en sortir : les deux gestes ne se chevauchent donc pas. */

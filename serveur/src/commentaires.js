@@ -7,7 +7,12 @@
 var MAX_TEXTE = 2000, MAX_NOM = 40, MAX_EMAIL = 120, MAX_SUJET = 20;
 var MIN_TEXTE = 3;
 var CARTE_MIN = 1, CARTE_MAX = 38;   // la carte 0 est l'intro, hors jeu
-var SUJETS = ["carte", "jeu", "deroule", "reference", "autre"];
+/* « atelier » a ete ajoute a la demande des animateur·ices : le formulaire
+   recueillait des retours sur le JEU, alors que le plus utile apres une seance
+   est le deroulement de l'ATELIER lui-meme. Sans cette valeur, le choix serait
+   accepte par la page puis range sous « autre » par le serveur, et la
+   distinction se perdrait en silence. */
+var SUJETS = ["carte", "atelier", "jeu", "deroule", "reference", "autre"];
 
 function tronque(v, n) { return String(v == null ? "" : v).slice(0, n).trim(); }
 

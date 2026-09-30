@@ -82,12 +82,12 @@
              Le plein ecran ne change pas de page : le bloc passe par-dessus
              tout, et Echap ou « Fermer » ramene au meme endroit. -->
         <div class="apercu" id="apercu" hidden>
+          <div class="fresque-zone" id="fresque-zone">
           <div class="apercu-barre">
             <div class="barre-g">
               <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
               <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
               <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
-              <button type="button" class="btn-outil" id="zoom-ajuste">Ajuster</button>
               <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
               <label class="recherche">
                 <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
@@ -95,7 +95,7 @@
                        aria-labelledby="recherche-label" autocomplete="off">
               </label>
             </div>
-            <button type="button" class="btn-outil apercu-fermer" id="apercu-fermer">Fermer ✕</button>
+            <button type="button" class="btn-outil quitter-plein" id="apercu-fermer">Fermer ✕</button>
           </div>
           <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
           <p class="cle-fleches">
@@ -118,17 +118,20 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
-          <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
-          <div class="panneau-corps">
-            <img class="panneau-img" id="panneau-img" src="" alt="">
-            <h3 id="panneau-titre"></h3>
-            <div class="panneau-verso" id="panneau-verso"></div>
-            <div class="panneau-liens" id="panneau-liens"></div>
+            <!-- Le panneau est DANS la zone : hors de l'element passe en plein
+                 ecran, le navigateur ne le dessine pas, et cliquer une carte ne
+                 montrait plus rien. -->
+            <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+              <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
+              <div class="panneau-corps">
+                <img class="panneau-img" id="panneau-img" src="" alt="">
+                <h3 id="panneau-titre"></h3>
+                <div class="panneau-verso" id="panneau-verso"></div>
+                <div class="panneau-liens" id="panneau-liens"></div>
+              </div>
+            </aside>
           </div>
-        </aside>
+        </div>
 
         <h2 class="etape-titre"><span class="etape-n">2</span> Animer</h2>
         <p>Outils à garder sous la main pendant l'atelier :</p>

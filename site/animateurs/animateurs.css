@@ -588,8 +588,37 @@
   gap: .8rem; flex-wrap: wrap; margin-bottom: .7rem; }
 .apercu .plateau-cadre { height: min(62vh, 34rem); }
 .chevron { display: inline-block; margin-left: .15em; }
-/* Le plein ecran passe par l'API native du navigateur, posee par animateurs.js
-   sur la section du plateau : rien a habiller ici. Le fond doit en revanche
-   etre opaque, sinon la fresque s'affiche sur du noir transparent. */
-#plateau-section:fullscreen { background: var(--bg); padding: 1rem; overflow: auto; }
-#plateau-section:fullscreen .plateau-cadre { height: calc(100vh - 3rem); }
+/* --- PLEIN ECRAN ----------------------------------------------------------
+   Le plein ecran porte sur `.fresque-zone`, qui contient la barre d'outils, le
+   plateau ET le panneau de description : hors de l'element passe en plein
+   ecran, le navigateur ne dessine rien, et cliquer une carte ne montrait donc
+   plus son verso.
+   AUCUN ASCENSEUR. La zone occupe exactement la fenetre et ne deborde pas :
+   c'est le plateau qui se deplace, pas la page. Le cadre prend la place
+   restante sous la barre, sa hauteur etant posee par le script. */
+.fresque-zone { position: relative; }
+.fresque-zone:fullscreen {
+  background: var(--bg); padding: .8rem 1rem; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* Le cadre prend la place restante par la GRILLE, pas par un calcul : sur
+   l'accueil, la fresque est enveloppee d'une section de plus, et toute
+   arithmetique a base de hauteurs laissait quelques pixels de debordement,
+   donc un ascenseur. `flex` n'a pas ce probleme, a condition que chaque
+   maillon de la chaine puisse retrecir (`min-height: 0`). */
+.fresque-zone:fullscreen #plateau-section {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 0;
+}
+.fresque-zone:fullscreen #plateau-section > .wrap,
+.fresque-zone:fullscreen #plateau-section > * { flex: 1 1 auto; min-height: 0; }
+.fresque-zone:fullscreen .plateau-cadre { flex: 1 1 auto; min-height: 0; height: auto !important; }
+/* Le panneau se cale DANS la zone plutot que dans la fenetre : en plein ecran,
+   `position: fixed` se rapporte a l'element plein ecran, mais le bord droit de
+   la zone a un rembourrage que le panneau doit couvrir. */
+.fresque-zone:fullscreen .panneau { position: absolute; top: 0; right: 0; bottom: 0; }
+/* Le bouton de sortie n'apparait qu'en plein ecran : ailleurs, il n'y a rien a
+   quitter. Sauf sur l'accueil, ou il replie l'apercu (classe `apercu-fermer`
+   posee par la page). */
+.quitter-plein { display: none; }
+.fresque-zone:fullscreen .quitter-plein { display: inline-flex; }
+#apercu-fermer { display: inline-flex; }

@@ -45,27 +45,26 @@
           <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
         </form>
         <h1>Retours</h1>
-        <p class="page-sous">La fresque de référence pour préparer votre atelier, et de quoi nous signaler ce qui cloche.</p>
+        <p class="page-sous">Nous vous proposons deux moyens de nous faire vos retours&nbsp;:</p>
+        <ul class="page-sous-liste">
+          <li>sur une carte ou un lien précis&nbsp;: commentez directement la fresque de référence,
+            plus bas&nbsp;;</li>
+          <li>sur l'atelier ou le jeu en général&nbsp;: remplissez le formulaire, en bas de page.</li>
+        </ul>
       </div>
     </div>
 
     <section class="section">
       <div class="wrap etroit">
-        <h2>Une disposition possible, pas un corrigé</h2>
+        <h2>La fresque de référence</h2>
         <p>
-          Il n'existe pas une bonne fresque. Celle-ci suit les cinq lots du guide et relie chaque
-          carte à ce qui la provoque&nbsp;; c'est la disposition dont nous nous servons pour nous
-          repérer. <strong>Vous en verrez de très différentes qui tiennent debout</strong>, avec
-          d'autres regroupements et d'autres priorités. Elle sert à anticiper les questions. Évitez
-          de corriger les tables avec.
+          Un exemple de fresque terminée. C'est une disposition possible parmi d'autres&nbsp;: il
+          n'y a pas de fresque parfaite.
         </p>
-        <p class="muted">
-          Chaque flèche porte le lien de cause à effet qu'elle exprime. Le libellé compte plus que
-          la position des cartes. En atelier, demandez ce que la flèche veut dire&nbsp;; si le groupe
-          sait l'expliquer, elle tient.
+        <p>
+          Pour commenter une carte ou ses liens, activez le «&nbsp;Mode commentaires&nbsp;», puis
+          cliquez sur la carte concernée.
         </p>
-
-        <p class="muted reveal-note">Assurez-vous que personne ne regarde votre écran par-dessus votre épaule.</p>
         <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
       </div>
     </section>
@@ -73,12 +72,12 @@
     <section class="section section-doux" id="plateau-section" hidden>
       <span id="fresque" class="ancre-fresque" aria-hidden="true"></span>
       <div class="wrap">
+        <div class="fresque-zone" id="fresque-zone">
         <div class="barre">
           <div class="barre-g">
             <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
             <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
             <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
-            <button type="button" class="btn-outil" id="zoom-ajuste">Ajuster</button>
             <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
             <label class="recherche">
               <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
@@ -91,6 +90,7 @@
               <input type="checkbox" id="mode-commentaires">
               <span>Mode commentaires</span>
             </label>
+            <button type="button" class="btn-outil quitter-plein" id="quitter-plein">Fermer ✕</button>
           </div>
         </div>
         <!-- Les lots servent de légende ET de filtre : préparer un atelier, c'est
@@ -123,20 +123,46 @@
             </div>
           </div>
         </div>
+          <!-- Panneau latéral : verso d'une carte, et commentaires la concernant. -->
+          <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+            <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
+            <div class="panneau-corps">
+              <img class="panneau-img" id="panneau-img" src="" alt="">
+              <h3 id="panneau-titre"></h3>
+              <div class="panneau-verso" id="panneau-verso"></div>
+              <div class="panneau-liens" id="panneau-liens"></div>
+              <ul class="retours retours-carte" id="retours-carte"></ul>
+              <div class="panneau-commentaire" id="panneau-commentaire" hidden>
+                <h4>Un retour sur cette carte&nbsp;?</h4>
+                <label class="visuellement-cache" for="c-texte">Votre retour sur cette carte</label>
+                <textarea id="c-texte" rows="3" maxlength="2000"
+                  placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
+                <label for="c-lien">Ça concerne le lien avec la carte <span class="opt">(facultatif)</span></label>
+                <select id="c-lien">
+                  <option value="">Aucune carte en particulier</option>
+                </select>
+                <label class="visuellement-cache" for="c-nom">Votre prénom</label>
+                <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
+                <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>
+                <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
 
     <section class="section" id="retours-section" hidden>
       <div class="wrap etroit">
-        <h2>Vos retours sur le jeu</h2>
+        <h2>Votre retour sur l'atelier</h2>
         <p>
-          Les cartes évoluent. Si une carte est mal comprise en atelier, si un texte vieillit, s'il
-          manque un lien&nbsp;: dites-le ici. Activez le <strong>mode commentaires</strong> puis cliquez la carte
-          concernée, ou utilisez le formulaire ci-dessous pour un retour général.
+          Comment s'est passé votre atelier&nbsp;? Ce qui vous a plu, ce qui a coincé, ce que vous
+          changeriez&nbsp;: racontez-nous. Vos retours nous aident à l'améliorer. Merci d'avance&nbsp;!
         </p>
         <form id="form-general" class="form-retour">
           <label for="g-sujet">Sujet</label>
           <select id="g-sujet">
+            <option value="atelier">L'atelier en général</option>
             <option value="jeu">Le jeu de cartes en général</option>
             <option value="deroule">Le déroulé et le minutage</option>
             <option value="reference">Cette fresque de référence</option>
@@ -163,31 +189,6 @@
     </section>
   </main>
 
-  <!-- Panneau latéral : verso d'une carte, et commentaires la concernant. -->
-  <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
-    <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
-    <div class="panneau-corps">
-      <img class="panneau-img" id="panneau-img" src="" alt="">
-      <h3 id="panneau-titre"></h3>
-      <div class="panneau-verso" id="panneau-verso"></div>
-      <div class="panneau-liens" id="panneau-liens"></div>
-      <ul class="retours retours-carte" id="retours-carte"></ul>
-      <div class="panneau-commentaire" id="panneau-commentaire" hidden>
-        <h4>Un retour sur cette carte&nbsp;?</h4>
-        <label class="visuellement-cache" for="c-texte">Votre retour sur cette carte</label>
-        <textarea id="c-texte" rows="3" maxlength="2000"
-          placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
-        <label for="c-lien">Ça concerne le lien avec la carte <span class="opt">(facultatif)</span></label>
-        <select id="c-lien">
-          <option value="">Aucune carte en particulier</option>
-        </select>
-        <label class="visuellement-cache" for="c-nom">Votre prénom</label>
-        <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
-        <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>
-        <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
-      </div>
-    </div>
-  </aside>
 
   <footer class="pied">
     <div class="pied-bas">

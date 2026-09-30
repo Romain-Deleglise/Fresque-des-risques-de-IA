@@ -93,9 +93,17 @@ t("la fresque est repliee a l'arrivee", a.replie && a.deplie === "false", JSON.s
 t("et l'accueil ne propose ni commentaires ni moderation",
   !a.modeCom && !a.formulaire && !a.jeton, JSON.stringify(a));
 
-await pg.click("#btn-apercu");
+const avantDefil = await pg.evaluate(() => window.scrollY);
+await pg.evaluate(() => document.getElementById("btn-apercu").click());
 await pg.waitForTimeout(900);
 a = await lireApercu();
+/* LE BOUTON N'EMMENE PAS AILLEURS. Il faisait descendre la page jusqu'a la
+   fresque : on perdait de vue le texte qu'on lisait. Le clic est declenche par
+   programme, sinon c'est le banc qui amene le bouton a l'ecran et la mesure ne
+   veut plus rien dire. */
+t("le dépliage ne fait pas défiler la page",
+  (await pg.evaluate(() => window.scrollY)) === avantDefil,
+  "défilement de " + ((await pg.evaluate(() => window.scrollY)) - avantDefil) + " px");
 const largeurDepliee = a.cadre;
 t("le bouton la deplie sur la meme page", !a.replie && a.deplie === "true", JSON.stringify(a));
 t("et devient « Masquer la fresque de référence »", /^Masquer/.test(a.libelle), a.libelle);
@@ -112,6 +120,33 @@ t("« Plein écran » passe par-dessus toute la page, sans changer de page",
 /* La sortie est declenchee ici par programme : en navigateur sans fenetre, la
    touche Echap ne rend pas la main sur le plein ecran natif. C'est une limite
    du banc, pas du site : le navigateur gere Echap lui-meme. */
+/* LE PANNEAU DOIT RESTER ATTEIGNABLE EN PLEIN ECRAN. Il etait un FRERE du
+   plateau, hors de l'element passe en plein ecran : le navigateur ne le
+   dessinait pas du tout, et cliquer une carte ne montrait plus son verso. */
+await pg.click("#cartes .c-carte[data-n='9']");
+await pg.waitForTimeout(700);
+const enPlein = await pg.evaluate(() => {
+  const z = document.getElementById("fresque-zone");
+  const pan = document.getElementById("panneau");
+  const r = pan.getBoundingClientRect();
+  return {
+    panneau: !pan.hidden && r.width > 50 && r.right <= innerWidth + 2 && r.top >= -2,
+    ascenseur: z.scrollHeight - z.clientHeight,
+    fermer: !!document.getElementById("apercu-fermer"),
+    modeCom: !!document.getElementById("mode-commentaires")
+  };
+});
+t("cliquer une carte montre son verso, même en plein écran", enPlein.panneau, JSON.stringify(enPlein));
+/* AUCUN ASCENSEUR. On se deplace dans le plateau, pas dans la page. */
+t("le plein écran n'a aucun ascenseur", enPlein.ascenseur === 0, "débordement de " + enPlein.ascenseur + " px");
+t("un bouton « Fermer ✕ » est disponible", enPlein.fermer);
+t("et l'accueil reste sans mode commentaires", !enPlein.modeCom);
+
+/* On referme le panneau avant de mesurer : ouvert, il retrecit legitimement le
+   cadre (`.panneau-ouvert .plateau-cadre`), et la comparaison ne porterait plus
+   sur la meme chose. */
+await pg.evaluate(() => document.getElementById("panneau-fermer").click());
+await pg.waitForTimeout(300);
 await pg.evaluate(() => document.exitFullscreen());
 await pg.waitForTimeout(800);
 a = await lireApercu();
@@ -177,6 +212,15 @@ const pub = await lireOnglets("/guide/");
 t("sans ?espace=1, le guide garde la navigation publique",
   pub.liens.indexOf("Retours") === -1 && pub.liens.indexOf("Outils") === -1,
   JSON.stringify(pub.liens));
+
+/* LE BOUTON « AJUSTER » A ETE RETIRE : le recadrage se fait tout seul quand il
+   le faut. Un bouton qu'il faut penser a presser pour que l'affichage soit
+   correct n'est pas une option, c'est un defaut deguise. */
+for (const u of ["/animateurs/", "/animateurs/retours/"]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  t("plus de bouton « Ajuster » sur " + u,
+    !(await pg.evaluate(() => !!document.getElementById("zoom-ajuste"))));
+}
 
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 3).join(" | "));
 

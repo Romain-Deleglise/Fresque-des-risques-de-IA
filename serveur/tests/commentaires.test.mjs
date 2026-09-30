@@ -140,3 +140,12 @@ test("un lien sans carte de départ est effacé, mais le retour passe", () => {
   assert.equal(r.lien, null);
   assert.equal(r.texte, "un retour");
 });
+
+/* « L'ATELIER EN GÉNÉRAL » est un sujet à part entière. Sans lui dans la liste
+   fermée, la page l'aurait proposé, le serveur l'aurait rangé sous « autre »,
+   et la distinction se serait perdue sans que personne le voie. */
+test("le sujet « atelier » est accepté tel quel", () => {
+  const r = C.valider({ sujet: "atelier", texte: "ça s'est bien passé" }, T).retour;
+  assert.equal(r.sujet, "atelier");
+  assert.ok(C.cleValide(C.cle(r, "ab12cd")), "la clé doit rester modérable");
+});
