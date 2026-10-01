@@ -54,8 +54,10 @@
     if (!rayonTouche && zones.length) rayon.value = String(zones[0].rayon);
   }
 
-  btnAjout.addEventListener("click", function () {
-    if (!enAttente || zones.length >= MAX) return;
+  /* AJOUTER LA COMMUNE EN ATTENTE. Rendue independante du bouton, parce que
+     l'envoi doit pouvoir s'en servir : voir le commentaire du `submit`. */
+  function ajouterEnAttente() {
+    if (!enAttente || zones.length >= MAX) return false;
     var code = enAttente.code;
     if (!zones.some(function (z) { return z.code === code; })) {
       zones.push({ code: code, nom: window.Commune.etiquette(enAttente), rayon: enAttente.rayon });
@@ -63,7 +65,10 @@
     enAttente = null;
     picker.vider();
     rendreZones();
-  });
+    return true;
+  }
+
+  btnAjout.addEventListener("click", ajouterEnAttente);
 
   // Le bloc « départements » n'a de sens que si la personne veut du présentiel.
   function majFormat() {
@@ -78,9 +83,26 @@
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var format = (form.querySelector('input[name="format"]:checked') || {}).value || "les_deux";
+
+    /* UNE COMMUNE CHOISIE MAIS PAS « AJOUTEE » EST QUAND MEME PRISE EN COMPTE.
+       C'est le defaut qui a ete signale, et il etait silencieux : on tapait sa
+       ville, on la choisissait dans la liste, elle restait AFFICHEE dans le
+       champ, on envoyait, et elle etait jetee. Avec une seule ville on recevait
+       un message d'erreur qui demandait de choisir une commune alors qu'elle
+       etait sous les yeux ; avec une deuxieme, pire, on recevait « c'est
+       note » et on n'etait jamais prevenu pour cette ville-la.
+       Laisser une commune choisie dans le champ, c'est vouloir cette commune.
+       Le bouton « Ajouter » ne sert donc plus qu'a en enchainer une autre. */
+    if (format !== "enligne") ajouterEnAttente();
+
     if (format !== "enligne" && !zones.length) {
       msg.className = "msg err";
-      msg.textContent = "Choisissez au moins une commune dans la liste, pour ne recevoir que ce qui est près de chez vous.";
+      /* Du texte qui ne designe aucune commune n'est pas la meme erreur que pas
+         de texte du tout : on dit laquelle des deux. */
+      msg.textContent = champ.value.trim()
+        ? "« " + champ.value.trim() + " » n'a pas été choisi dans la liste : tapez les premières lettres, puis cliquez la proposition qui apparaît."
+        : "Choisissez au moins une commune dans la liste, pour ne recevoir que ce qui est près de chez vous.";
+      champ.focus();
       return;
     }
     var btn = form.querySelector('button[type="submit"]');

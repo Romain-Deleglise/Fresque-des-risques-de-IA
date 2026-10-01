@@ -12,16 +12,18 @@
   <link rel="stylesheet" href="../assets/css/site.css">
   <link rel="stylesheet" href="animateurs.css">
 </head>
-<body>
+<body data-racine="../">
   <a class="skip" href="#contenu">Aller au contenu</a>
 
   <header class="entete">
     <div class="wrap">
       <a class="logo" href="../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
-      <nav class="nav" aria-label="Navigation principale">
-        <a href="../guide/">Guide</a>
-        <a href="../en-ligne/">Fresque en ligne</a>
-        <a href="../devenir-animateur/#programmer" class="btn-nav">Programmer un atelier</a>
+      <nav class="nav" aria-label="Espace animateur·ices">
+        <a href="../animateurs/" aria-current="page">Accueil</a>
+        <a href="../guide/?espace=1">Guide</a>
+        <a href="../animateurs/outils/">Outils</a>
+        <a href="../animateurs/retours/">Retours</a>
+        <a class="btn-nav" href="../animateurs/retours/#fresque">Fresque de référence</a>
       </nav>
     </div>
   </header>
@@ -31,7 +33,10 @@
       <div class="wrap">
         <p class="eyebrow">Réservé aux animateur·ices</p>
         <h1>Votre espace</h1>
-        <p class="page-sous">De quoi préparer votre atelier, et le mener.</p>
+        <p class="page-sous">
+          Tout pour vous préparer et animer. C'est aussi ici que vous nous faites vos retours :
+          l'équipe s'en servira pour les prochaines mises à jour des cartes.
+        </p>
       </div>
     </div>
 
@@ -42,56 +47,120 @@
           les liens eux-mêmes.
         </p>
 
-        <!-- TROIS TEMPS, dans l'ordre où l'on en a besoin. Un animateur qui
-             arrive ici a une question précise et un moment précis. Les tuiles
-             restent courtes : c'est un sommaire, pas une page de présentation. -->
-        <h2 class="etape-titre"><span class="etape-n">1</span> Avant</h2>
-        <div class="ressources">
-          <a class="ressource" href="../guide/">
-            <h3>Le guide d'animation</h3>
-            <p>Le déroulé complet, le minutage, les conseils.</p>
-          </a>
-          <a class="ressource" href="reference/">
-            <h3>La fresque de référence</h3>
-            <p>Une disposition possible des 38 cartes, et le lien que porte chaque flèche.</p>
-          </a>
-          <a class="ressource" href="antiseche/">
-            <h3>L'antisèche <span class="ressource-tag">à imprimer</span></h3>
-            <p>Déroulé, phrases de relance, objections. Une page à garder en main.</p>
-          </a>
-          <a class="ressource" href="kit/">
-            <h3>Le kit d'annonce</h3>
-            <p>Affiche et textes d'invitation, à partir de la date et du lieu de votre atelier.</p>
-          </a>
+        <!-- ANNONCER. En tete parce que c'est la seule action qui a une echeance :
+             une affiche ne sert a rien une fois l'atelier passe. -->
+        <div class="encart-annonce">
+          <h2>Annoncer <span class="ressource-tag">en test</span></h2>
+          <p>
+            Si vous avez programmé un atelier public sur notre site, il est déjà visible et ouvert
+            aux inscriptions. Besoin d'une affiche ou d'un texte d'invitation ? Cet outil les
+            prépare à partir de la date et du lieu de votre atelier.
+          </p>
+          <p><a class="btn btn-1" href="kit/">Préparer mon annonce</a></p>
         </div>
 
-        <h2 class="etape-titre"><span class="etape-n">2</span> Pendant</h2>
-        <div class="ressources">
-          <a class="ressource" href="minuteur/">
-            <h3>Le minuteur</h3>
-            <p>Les huit temps du déroulé, et ce qu'il reste sur chacun.</p>
-          </a>
-          <a class="ressource" href="../en-ligne/">
-            <h3>La Fresque en ligne</h3>
-            <p>Le tableau partagé, pour animer à distance.</p>
-          </a>
+        <!-- TROIS TEMPS, dans l'ordre ou l'on en a besoin : se preparer, animer,
+             recueillir. Chaque temps renvoie vers UN onglet, pas vers une liste
+             de liens : c'est la navigation qui porte la structure. -->
+        <h2 class="etape-titre"><span class="etape-n">1</span> Se préparer</h2>
+        <p>
+          Le guide d'animation vous accompagne pas à pas : préparation, déroulé lot par lot avec
+          son minutage et conseils pour relancer le groupe.
+        </p>
+        <p><a class="btn btn-2" href="../guide/?espace=1">Lire le guide</a></p>
+        <p>Vous pouvez voir à quoi ressemble une fresque terminée avec notre fresque de référence.</p>
+        <p>
+          <button type="button" class="btn btn-1" id="btn-apercu" aria-expanded="false" aria-controls="apercu">
+            Afficher la fresque de référence <span class="chevron" aria-hidden="true">▾</span>
+          </button>
+        </p>
+
+        <!-- APERCU DEPLIABLE, EN LECTURE SEULE. C'est le meme module que
+             l'onglet Retours, sans les commentaires : ni bascule « mode
+             commentaires », ni formulaire, ni moderation. Le script
+             animateurs.js accepte que ces elements n'existent pas (voir `on`).
+             Le plein ecran ne change pas de page : le bloc passe par-dessus
+             tout, et Echap ou « Fermer » ramene au meme endroit. -->
+        <div class="apercu" id="apercu" hidden>
+          <div class="fresque-zone" id="fresque-zone">
+          <div class="apercu-barre">
+            <div class="barre-g">
+              <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
+              <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
+              <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
+              <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
+              <label class="recherche">
+                <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
+                <input type="search" id="recherche" placeholder="Chercher une carte…"
+                       aria-labelledby="recherche-label" autocomplete="off">
+              </label>
+            </div>
+            <button type="button" class="btn-outil quitter-plein" id="apercu-fermer">Fermer ✕</button>
+          </div>
+          <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
+          <p class="cle-fleches">
+            <span><span class="cle-trait cle-cause" aria-hidden="true"></span> provoque</span>
+            <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> répond à</span>
+          </p>
+          <p class="muted barre-aide" id="barre-aide">
+            Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
+            Ctrl + molette pour zoomer.
+          </p>
+          <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
+          <div id="plateau-section" hidden>
+            <div class="plateau-cadre" id="plateau-cadre">
+              <div class="plateau-sizer" id="plateau-sizer">
+                <div class="plateau" id="plateau">
+                  <svg class="liens" id="liens" aria-hidden="true"></svg>
+                  <div class="cartes" id="cartes"></div>
+                  <div class="etiquettes" id="etiquettes"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+            <!-- Le panneau est DANS la zone : hors de l'element passe en plein
+                 ecran, le navigateur ne le dessine pas, et cliquer une carte ne
+                 montrait plus rien. -->
+            <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
+              <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
+              <div class="panneau-corps">
+                <img class="panneau-img" id="panneau-img" src="" alt="">
+                <h3 id="panneau-titre"></h3>
+                <div class="panneau-verso" id="panneau-verso"></div>
+                <div class="panneau-liens" id="panneau-liens"></div>
+              </div>
+            </aside>
+          </div>
         </div>
 
-        <h2 class="etape-titre"><span class="etape-n">3</span> Après</h2>
-        <div class="ressources">
-          <a class="ressource" href="reference/#retours-section">
-            <h3>Dire ce qui a coincé</h3>
-            <p>Une carte mal comprise, un lien qui manque. Vos retours servent à corriger les cartes.</p>
-          </a>
-          <a class="ressource" href="https://discord.gg/vyXGd7AeGc" rel="noopener">
-            <h3>Le Discord</h3>
-            <p>Poser une question, raconter comment ça s'est passé.</p>
-          </a>
-        </div>
+        <h2 class="etape-titre"><span class="etape-n">2</span> Animer</h2>
+        <p>Outils à garder sous la main pendant l'atelier :</p>
+        <ul class="liste-outils">
+          <li><strong>le minuteur</strong> : le temps restant sur chaque étape, pour voir tout de
+            suite si une partie déborde</li>
+          <li><strong>l'antisèche</strong> : le déroulé et les phrases de relance</li>
+        </ul>
+        <p><a class="btn btn-2" href="outils/">Découvrir les outils</a></p>
+
+        <h2 class="etape-titre"><span class="etape-n">3</span> Recueillir les retours</h2>
+        <p>
+          Après chaque atelier programmé sur le site, participant·es et animateur·ices reçoivent
+          automatiquement un lien pour nous écrire. Vous pouvez laisser vos retours de deux façons :
+        </p>
+        <ul class="liste-outils">
+          <li>commenter une carte ou un lien directement sur la fresque de référence</li>
+          <li>remplir le formulaire, pour une remarque plus générale</li>
+        </ul>
+        <p>L'équipe s'appuie sur tout ce que vous signalez pour les prochaines mises à jour.</p>
+        <p class="muted">
+          Atelier organisé hors du site&nbsp;? Envoyez vous-même le lien du formulaire de retour aux
+          participant·es&nbsp;: <a href="../retour/">fresquedesrisquesdelia.org/retour/</a>
+        </p>
+        <p><a class="btn btn-2" href="retours/">Donner mon retour</a></p>
 
         <p class="muted a-venir-ligne">
-          À venir : une fiche de retour d'atelier, la possibilité d'assister à un atelier en
-          observateur·ice, et des variantes (format court, classe, stand).
+          À venir : la possibilité d'assister à un atelier en observateur·ice, et des variantes
+          (format court, classe, stand).
           <a href="mailto:contact@pauseia.fr?subject=Espace%20animateur%C2%B7ices%20%3A%20une%20ressource%20qui%20me%20manque">Dites-nous par laquelle commencer.</a>
         </p>
       </div>
@@ -106,6 +175,8 @@
       </div>
     </div>
   </footer>
+  <script src="animateurs.js" defer></script>
+  <script src="apercu.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>
 </body>
 </html>

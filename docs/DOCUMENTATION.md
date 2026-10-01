@@ -892,13 +892,12 @@ n'existent qu'en français, et la page anglaise le dit.
 elle se déclare `noindex`, et `robots.txt` l'exclut. Deux chemins seulement y
 mènent, tous deux réservés aux animateur·ices :
 
-1. **le mail « Votre atelier est programmé »**, envoyé à qui programme un
-   atelier (`mailAnimateur` dans `netlify/functions/ateliers.js`), dans un
-   encadré qui dit explicitement de garder le lien pour soi ;
-2. **la toute fin du guide**, dans un encart `no-print` — donc absent du PDF
-   téléchargeable par n'importe qui.
-
-Aucun mail envoyé à un participant ne mentionne l'espace. Ces garde-fous sont
+**le mail « Votre atelier est programmé »**, envoyé à qui programme un atelier
+(`mailAnimateur` dans `netlify/functions/ateliers.js`), dans un encadré qui dit
+explicitement de garder le lien pour soi. C'est désormais le seul chemin :
+l'encart de fin de guide a été retiré sur demande, et plus **aucune page
+publique** ne renvoie vers l'espace. Aucun mail envoyé à un participant ne
+mentionne l'espace. Ces garde-fous sont
 verrouillés par `serveur/tests/espace-animateurs.test.mjs` : ils tiennent à
 quelques lignes disséminées dans six fichiers, faciles à défaire par mégarde.
 
@@ -908,10 +907,19 @@ apporte.
 
 ### Les pages de l'espace
 
+Les quatre onglets sont les mêmes sur toutes les pages de l'espace : Accueil,
+Guide, Outils, Retours, plus un bouton orange « Fresque de référence » qui mène
+à l'onglet Retours. Le guide est une page **publique** : il ne reprend ces
+onglets que lorsqu'on y arrive avec `?espace=1` (`site/assets/js/espace-nav.js`),
+jamais pour un visiteur ordinaire. Un paramètre d'adresse et non un drapeau en
+mémoire, qui collerait à l'onglet du navigateur et finirait par montrer des
+onglets réservés à quelqu'un revenu lire le guide plus tard.
+
 | Page | Ce qu'elle apporte |
 |---|---|
-| `/animateurs/` | Le sommaire, organisé en trois temps : avant, pendant, après l'atelier |
-| `/animateurs/reference/` | La fresque de référence (plateau interactif) et les retours sur les cartes |
+| `/animateurs/` | L'accueil, en trois temps : se préparer, animer, recueillir les retours. La fresque de référence s'y **déplie en lecture seule** |
+| `/animateurs/outils/` | Le minuteur et l'antisèche |
+| `/animateurs/retours/` | La fresque de référence et les retours sur les cartes (ancienne adresse `/animateurs/reference/`, redirigée) |
 | `/animateurs/antiseche/` | Une page à imprimer : déroulé, phrases de relance, objections. PDF engendré depuis la page |
 | `/animateurs/minuteur/` | Les huit temps du guide, avec minuteur. L'état survit au rechargement |
 | `/animateurs/kit/` | Affiche personnalisable et trois textes d'annonce prêts à copier |
@@ -923,12 +931,12 @@ français, et la page anglaise le signale.
 **AUCUN ATTRIBUT `style=` DANS CET ESPACE.** Le site sert `style-src 'self'`
 sans `'unsafe-inline'` : un `style="left:…"` écrit dans du HTML y est purement
 ignoré. La première version en ligne avait ainsi ses 38 cartes empilées en haut
-à gauche — invisible en local, où le serveur de test n'envoie aucune CSP.
+à gauche, invisible en local où le serveur de test n'envoie aucune CSP.
 Toutes les positions passent par le CSSOM, et un test le verrouille.
 
 ### La fresque de référence
 
-`site/data/fresque-reference.json` — 38 cartes placées et 65 flèches, chacune
+`site/data/fresque-reference.json` : 38 cartes placées et 65 flèches, chacune
 portant le lien de cause à effet qu'elle exprime. Même modèle de données que le
 tableau de la Fresque en ligne (`{cartes:[{n,x,y}], fleches:[{de,vers,libelle}],
 textes:[]}`), à ceci près que le plan est dimensionné sur le contenu.
@@ -959,10 +967,44 @@ de l'onglet, et il est comparé à durée constante côté fonction. L'adresse
 e-mail laissée par un animateur n'est jamais renvoyée par l'API.
 
 **Contrepartie assumée :** un retour indésirable est visible, grisé, jusqu'à ce
-que quelqu'un le supprime. L'exposition reste bornée — la page n'est pas
-publique — et le débit est limité à 30 dépôts par IP et par heure.
+que quelqu'un le supprime. L'exposition reste bornée (la page n'est pas
+publique) et le débit est limité à 30 dépôts par IP et par heure.
 
 ---
+
+## 22 ter. Agenda public des ateliers (API)
+
+Deux adresses stables, en lecture seule et sans authentification, pour qu'un
+autre projet puisse afficher nos ateliers sans connaître nos fonctions :
+
+| Adresse | Format | Usage |
+| --- | --- | --- |
+| `/api/ateliers.json` | JSON | traiter les données (un calendrier d'événements, un site partenaire) |
+| `/ateliers.ics` | iCalendar | s'abonner directement depuis Google Agenda, Outlook, Thunderbird… |
+
+Elles servent les ateliers **publics** dont l'heure de fin n'est pas passée,
+triés par date. Les ateliers privés n'en sortent jamais, et aucune adresse
+e-mail n'y figure : seul le prénom de l'animateur·ice, déjà public sur la page
+Participer. Le filtre est vérifié dans `serveur/tests/agenda.test.mjs`.
+
+**L'heure est recalculée** à partir de la date et de l'heure de Paris
+(`ateliers.instantDe`), jamais lue dans le `quandMs` enregistré : celui-ci peut
+dater d'avant un changement d'heure. Publier une heure fausse dans l'agenda de
+quelqu'un d'autre est pire que ne rien publier. Le champ `debut` du JSON porte
+le décalage (`2026-10-14T18:30:00+02:00`), et l'iCalendar est en UTC.
+
+Le partage entre origines est ouvert à toutes (`Access-Control-Allow-Origin: *`)
+puisque ces données sont déjà publiques sur le site, et mises en cache cinq
+minutes. La durée d'un atelier dans l'agenda est de **deux heures et demie** :
+c'est la durée réelle constatée, et il n'y a pas de champ de durée par atelier.
+Un agenda sert à réserver du temps, et une demi-heure de trop vaut mieux qu'un
+rendez-vous suivant au milieu de la restitution.
+
+L'identifiant iCalendar d'un événement ne dépend que du code de l'atelier :
+une relecture met l'événement à jour au lieu d'en créer un doublon.
+
+Logique pure dans `serveur/src/agenda.js`, branchement dans
+`netlify/functions/agenda.js`, routes dans `netlify.toml`.
 
 ## 23. Glossaire
 

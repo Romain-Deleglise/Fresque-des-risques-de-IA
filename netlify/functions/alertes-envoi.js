@@ -115,9 +115,7 @@ exports.handler = async () => {
   for (const e of envois) {
     try {
       const m = contenu(e.abonne, e.ateliers);
-      const sujet = e.ateliers.length === 1
-        ? "Un atelier de la Fresque des risques de l'IA près de chez vous"
-        : e.ateliers.length + " ateliers de la Fresque des risques de l'IA";
+      const sujet = A.sujet(e.ateliers);
       const r = await mail.envoi({ to: [e.abonne.mail], subject: sujet, text: m.text, html: m.html });
       if (!r.envoye) continue;
       // Le plafond hebdomadaire n'a de sens que si on note l'envoi.

@@ -193,3 +193,14 @@ test("les alertes sont proposees la ou les gens les cherchent", async () => {
   assert.match(mp, /participer\/#alertes/);
   assert.match(mp, /au plus un e-mail par semaine/);
 });
+
+/* L'OBJET DU MESSAGE NE DOIT PAS DEMENTIR SON CONTENU. Il annoncait « près de
+   chez vous » pour un atelier en ligne, y compris a quelqu'un abonne
+   uniquement aux ateliers en ligne. */
+test("l'objet ne promet « près de chez vous » que pour du présentiel", () => {
+  assert.match(A.sujet([{ mode: "enligne" }]), /en ligne$/);
+  assert.match(A.sujet([{ mode: "physique" }]), /près de chez vous$/);
+  // Plusieurs ateliers : on compte, sans rien promettre sur le lieu.
+  assert.equal(A.sujet([{ mode: "enligne" }, { mode: "physique" }]),
+    "2 ateliers de la Fresque des risques de l'IA");
+});

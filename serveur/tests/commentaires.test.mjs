@@ -110,3 +110,42 @@ test("une clé fabriquée par cle() est toujours modérable", () => {
     assert.ok(C.cleValide(C.cle(r, "ab12cd")), `clé invalide pour la carte ${n}`);
   }
 });
+
+/* « CA CONCERNE LE LIEN AVEC LA CARTE X ». Le champ est facultatif et n'a de
+   sens que sur un retour qui vise deja une carte. */
+test("le lien avec une autre carte est retenu quand il est valide", () => {
+  const r = C.valider({ carte: 14, lien: 22, texte: "il manque ce lien" }, T).retour;
+  assert.equal(r.carte, 14);
+  assert.equal(r.lien, 22);
+});
+
+test("le lien est effacé quand il ne désigne pas une carte jouable", () => {
+  for (const mauvais of [0, 39, -3, 4.5, "22", null, undefined, NaN, {}]) {
+    const r = C.valider({ carte: 14, lien: mauvais, texte: "un retour" }, T).retour;
+    assert.equal(r.lien, null, `lien ${JSON.stringify(mauvais)} aurait dû être effacé`);
+  }
+});
+
+/* Une carte liée à elle-même ne dit rien, et un lien sans carte de départ ne
+   désigne aucun lien : dans les deux cas on efface plutôt que refuser, le
+   texte du retour valant mieux qu'un envoi rejeté. */
+test("une carte ne peut pas être liée à elle-même", () => {
+  const r = C.valider({ carte: 14, lien: 14, texte: "un retour" }, T).retour;
+  assert.equal(r.lien, null);
+});
+
+test("un lien sans carte de départ est effacé, mais le retour passe", () => {
+  const r = C.valider({ sujet: "jeu", lien: 22, texte: "un retour" }, T).retour;
+  assert.equal(r.carte, null);
+  assert.equal(r.lien, null);
+  assert.equal(r.texte, "un retour");
+});
+
+/* « L'ATELIER EN GÉNÉRAL » est un sujet à part entière. Sans lui dans la liste
+   fermée, la page l'aurait proposé, le serveur l'aurait rangé sous « autre »,
+   et la distinction se serait perdue sans que personne le voie. */
+test("le sujet « atelier » est accepté tel quel", () => {
+  const r = C.valider({ sujet: "atelier", texte: "ça s'est bien passé" }, T).retour;
+  assert.equal(r.sujet, "atelier");
+  assert.ok(C.cleValide(C.cle(r, "ab12cd")), "la clé doit rester modérable");
+});

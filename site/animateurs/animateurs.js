@@ -55,8 +55,10 @@
     mene: 'What leads to it', entraine: 'What it leads to',
     repondA: 'What it answers', reponses: 'The answers to it',
     langue: 'en-GB',
-    sujets: { carte: 'on a card', jeu: 'the card deck', deroule: 'the run-through',
-              reference: 'the reference fresk', autre: 'other' }
+    sujets: { carte: 'on a card', atelier: 'the workshop', jeu: 'the card deck',
+              deroule: 'the run-through', reference: 'the reference fresk', autre: 'other' },
+    lienAucun: 'No particular card', lienLiees: 'Cards already linked to this one',
+    lienAutres: 'All the other cards', lienAvec: 'link with'
   } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
@@ -79,8 +81,10 @@
     mene: 'Ce qui y mène', entraine: 'Ce que ça entraîne',
     repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
     langue: 'fr-FR',
-    sujets: { carte: 'sur une carte', jeu: 'le jeu de cartes',
-              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' }
+    sujets: { carte: 'sur une carte', atelier: 'l’atelier', jeu: 'le jeu de cartes',
+              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' },
+    lienAucun: 'Aucune carte en particulier', lienLiees: 'Cartes déjà liées à celle-ci',
+    lienAutres: 'Toutes les autres cartes', lienAvec: 'lien avec'
   };
 
   /* ── Chargement ─────────────────────────────────────────── */
@@ -258,6 +262,43 @@
     });
   }
 
+  /* CA CONCERNE LE LIEN AVEC LA CARTE X. « Cette carte devrait pointer vers
+     l'autre » est le retour le plus frequent, et le plus inexploitable tant
+     qu'on ne sait pas de quelle autre il s'agit. Le champ reste facultatif, et
+     propose d'abord les cartes DEJA LIEES a celle qu'on commente : c'est sur un
+     lien existant que porte neuf fois sur dix la remarque. Les autres cartes
+     suivent, pour signaler un lien qui manque. */
+  function remplirChoixLien(n, sort, entre, reponses) {
+    var sel = $('c-lien');
+    if (!sel) return;
+    var deja = {}, liees = [];
+    [sort, entre, reponses].forEach(function (groupe) {
+      groupe.forEach(function (f) {
+        var autre = f.de === n ? f.vers : f.de;
+        if (autre === n || deja[autre] || !cartes[autre]) return;
+        deja[autre] = true; liees.push(autre);
+      });
+    });
+    var autres = Object.keys(cartes).map(Number).filter(function (m) {
+      return m !== n && !deja[m];
+    }).sort(function (a, b) { return a - b; });
+
+    var option = function (m) {
+      return '<option value="' + m + '">' + echapper(m + ' · ' + cartes[m].titre) + '</option>';
+    };
+    var html = '<option value="">' + echapper(T.lienAucun) + '</option>';
+    if (liees.length) {
+      html += '<optgroup label="' + echapper(T.lienLiees) + '">'
+        + liees.map(option).join('') + '</optgroup>';
+    }
+    if (autres.length) {
+      html += '<optgroup label="' + echapper(T.lienAutres) + '">'
+        + autres.map(option).join('') + '</optgroup>';
+    }
+    sel.innerHTML = html;
+    sel.value = '';
+  }
+
   /* ── Mise en avant d'une carte et de ses liens ───────────── */
   function surligner(n) {
     cibleN = n;
@@ -390,9 +431,10 @@
     $('panneau-liens').innerHTML = bloc;
 
     rendreRetoursCarte(n);
-    $('panneau-commentaire').hidden = !modeCom;
-    $('c-texte').value = '';
-    $('c-etat').textContent = '';
+    remplirChoixLien(n, sort, entre, reponses);
+    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom;
+    if ($('c-texte')) $('c-texte').value = '';
+    if ($('c-etat')) $('c-etat').textContent = '';
     $('panneau').hidden = false;
     surligner(n);
     // Le plateau se retire sous le panneau : à l'échelle d'ajustement il n'y a
@@ -462,6 +504,11 @@
   function hauteurCadre() {
     var cadre = $('plateau-cadre');
     if (!cadre) return;
+    /* EN PLEIN ECRAN, la hauteur vient de la MISE EN PAGE (flex), pas d'ici :
+       le cadre remplit ce qui reste sous la barre. Toute arithmetique a base
+       de hauteurs laissait quelques pixels de debordement, donc un ascenseur,
+       et c'est precisement ce qu'on ne veut pas voir en plein ecran. */
+    if (document.fullscreenElement) { cadre.style.height = ''; return; }
     var vue = Math.min(window.innerHeight * 0.72, 760);
     cadre.style.height = Math.min(PLAN_H * zoom + 8, vue) + 'px';
   }
@@ -498,6 +545,13 @@
       cadre.addEventListener(ev, function () { actif = false; cadre.classList.remove('attrape'); });
     });
   }
+
+  /* LE MEME MODULE SERT DEUX PAGES. Sur l'onglet Retours, la fresque
+     s'accompagne des commentaires, du formulaire general et de la moderation.
+     Sur l'accueil de l'espace, elle est depliee EN LECTURE SEULE : aucun de ces
+     elements n'existe dans la page. `on` evite d'avoir a dupliquer un balisage
+     de quarante identifiants juste pour montrer un plateau. */
+  function on(id, ev, fn) { var el = $(id); if (el) el.addEventListener(ev, fn); }
 
   /* ── Commentaires ───────────────────────────────────────── */
   var API = '/.netlify/functions/commentaires';
@@ -554,6 +608,9 @@
     var quoi = r.carte != null && cartes[r.carte]
       ? cartes[r.carte].titre
       : (T.sujets[r.sujet] || r.sujet);
+    if (r.lien != null && cartes[r.lien]) {
+      quoi += ' · ' + T.lienAvec + ' ' + r.lien + ' · ' + cartes[r.lien].titre;
+    }
     var html = '<li class="' + (r.valide ? '' : 'attente') + '" data-cle="' + echapper(r.cle) + '">'
       + '<div class="meta">'
       + '<strong>' + echapper(r.nom || T.anonyme) + '</strong>'
@@ -572,6 +629,7 @@
 
   function rendreRetours() {
     var hote = $('retours');
+    if (!hote) return;
     if (!retours.length) {
       hote.innerHTML = '<li class="retours-vide">' + echapper(T.vide) + '</li>';
       return;
@@ -581,6 +639,7 @@
 
   function rendreRetoursCarte(n) {
     var hote = $('retours-carte');
+    if (!hote) return;
     var liste = retours.filter(function (r) { return r.carte === n; });
     hote.innerHTML = liste.length ? liste.map(ligneRetour).join('') : '';
   }
@@ -597,29 +656,32 @@
     }).then(chargerRetours);
   }
 
-  /* ── Mise en route ──────────────────────────────────────── */
-  var libelleReveal = $('btn-reveal').textContent;
-  $('btn-reveal').addEventListener('click', function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = T.chargement;
+  /* ── Mise en route ──────────────────────────────────────────
+     LA FRESQUE S'AFFICHE TOUT DE SUITE. Il fallait cliquer « Afficher la
+     fresque de reference » pour la voir : un clic de plus a chaque venue, sur
+     une page deja reservee, deja hors de la navigation publique et deja
+     precedee de son avertissement. Le clic ne protegeait rien, il retardait. */
+  (function demarrer() {
+    var attente = $('chargement');
     charger().then(function () {
-      $('reveal').hidden = true;
+      if (attente) attente.hidden = true;
       $('plateau-section').hidden = false;
-      $('retours-section').hidden = false;
+      if ($('retours-section')) $('retours-section').hidden = false;
       dessinerCartes();
       dessinerLiens();
       construireLots();
       zoomInitial();
       glisser($('plateau-cadre'));
-      chargerRetours();
+      if ($('retours') || $('retours-carte')) chargerRetours();
     }).catch(function (e) {
-      btn.disabled = false;
-      btn.textContent = libelleReveal;
       console.error('espace animateurs :', e);
-      alert(T.echecChargement);
+      if (attente) {
+        attente.hidden = false;
+        attente.className = 'etat err';
+        attente.textContent = T.echecChargement;
+      }
     });
-  });
+  })();
 
   document.addEventListener('click', function (e) {
     var c = e.target.closest('.c-carte');
@@ -657,12 +719,16 @@
 
   $('zoom-plus').addEventListener('click', function () { zoom = Math.min(1.6, zoom * 1.25); appliquerZoom(); });
   $('zoom-moins').addEventListener('click', function () { zoom = Math.max(0.12, zoom / 1.25); appliquerZoom(); });
-  $('zoom-ajuste').addEventListener('click', ajuster);
+  /* Le bouton « Ajuster » a ete retire : le recadrage se fait tout seul quand il
+     le faut (chargement, plein ecran, depliage de l'apercu). Il reste expose
+     ici parce que l'accueil de l'espace deplie la fresque dans un bloc masque,
+     qui n'a pas de largeur tant qu'il l'est. */
+  window.FresqueRef = { ajuster: ajuster };
 
-  $('mode-commentaires').addEventListener('change', function () {
+  on('mode-commentaires', 'change', function () {
     modeCom = this.checked;
     $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
-    $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
+    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
   });
 
   $('lots').addEventListener('click', function (e) {
@@ -682,13 +748,24 @@
     minuteurRecherche = setTimeout(appliquerMiseEnAvant, 120);
   });
 
-  $('plein-ecran').addEventListener('click', function () {
-    var cible = $('plateau-section');
+  /* LE PLEIN ECRAN PORTE SUR TOUTE LA ZONE DE LA FRESQUE, pas sur le seul
+     plateau. Le panneau qui montre le verso d'une carte est un FRERE du
+     plateau : hors de l'element passe en plein ecran, le navigateur ne le
+     dessine pas du tout. On cliquait donc une carte et il ne se passait rien.
+     La zone contient desormais la barre d'outils, le plateau et le panneau :
+     tout ce qui sert reste atteignable. */
+  on('plein-ecran', 'click', function () {
+    var cible = $('fresque-zone') || $('plateau-section');
     if (document.fullscreenElement) document.exitFullscreen();
-    else if (cible.requestFullscreen) cible.requestFullscreen();
+    else if (cible && cible.requestFullscreen) cible.requestFullscreen();
+  });
+  /* « Fermer ✕ » quitte le plein ecran. Sur l'accueil de l'espace, le meme
+     bouton porte un autre identifiant et replie l'apercu : voir apercu.js. */
+  on('quitter-plein', 'click', function () {
+    if (document.fullscreenElement) document.exitFullscreen();
   });
   document.addEventListener('fullscreenchange', function () {
-    $('plein-ecran').textContent = document.fullscreenElement ? T.quitterPlein : T.pleinEcran;
+    if ($('plein-ecran')) $('plein-ecran').textContent = document.fullscreenElement ? T.quitterPlein : T.pleinEcran;
     // La hauteur du cadre est calculée d'après la fenêtre : elle vient de
     // changer du tout au tout.
     setTimeout(ajuster, 60);
@@ -699,7 +776,7 @@
     if (b) ouvrirPanneau(+b.dataset.vers);
   });
 
-  $('form-jeton').addEventListener('submit', function (e) {
+  on('form-jeton', 'submit', function (e) {
     e.preventDefault();
     jeton = $('jeton').value.trim();
     var etat = $('jeton-etat');
@@ -727,19 +804,28 @@
     });
   });
 
-  $('c-envoi').addEventListener('click', function () {
+  on('c-envoi', 'click', function () {
     var texte = $('c-texte').value.trim();
     if (texte.length < 3) {
       $('c-etat').className = 'etat err';
       $('c-etat').textContent = 'Écrivez votre retour avant d’envoyer.';
       return;
     }
-    envoyer({ sujet: 'carte', carte: cibleN, texte: texte, nom: $('c-nom').value.trim() }, $('c-etat'))
-      .then(function () { $('c-texte').value = ''; return chargerRetours(); })
+    var lien = $('c-lien') ? parseInt($('c-lien').value, 10) : NaN;
+    envoyer({
+      sujet: 'carte', carte: cibleN, texte: texte,
+      lien: isFinite(lien) ? lien : null,
+      nom: $('c-nom').value.trim()
+    }, $('c-etat'))
+      .then(function () {
+        $('c-texte').value = '';
+        if ($('c-lien')) $('c-lien').value = '';
+        return chargerRetours();
+      })
       .catch(function () { /* l'état est déjà affiché */ });
   });
 
-  $('form-general').addEventListener('submit', function (e) {
+  on('form-general', 'submit', function (e) {
     e.preventDefault();
     envoyer({
       sujet: $('g-sujet').value,

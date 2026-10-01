@@ -153,10 +153,22 @@ function grouper(ateliers) {
   return { enligne: enligne, villes: villes };
 }
 
+/* Objet du message. « PRES DE CHEZ VOUS » NE VAUT PAS POUR UN ATELIER EN
+   LIGNE : l'objet l'annoncait quand meme, y compris a quelqu'un abonne
+   uniquement aux ateliers en ligne, et dementait alors son contenu des la
+   premiere ligne. Ici plutot que dans la fonction d'envoi, pour etre teste. */
+function sujet(ateliers) {
+  var n = (ateliers || []).length;
+  if (n !== 1) return n + " ateliers de la Fresque des risques de l'IA";
+  return ateliers[0] && ateliers[0].mode === "enligne"
+    ? "Un atelier de la Fresque des risques de l'IA en ligne"
+    : "Un atelier de la Fresque des risques de l'IA près de chez vous";
+}
+
 module.exports = {
   SEMAINE_MS: SEMAINE_MS, FORMATS: FORMATS, HORIZON_MS: HORIZON_MS,
   RAYONS: RAYONS, RAYON_DEFAUT: RAYON_DEFAUT, MAX_COMMUNES: MAX_COMMUNES,
   normaliser: normaliser, mailValide: mailValide,
   validerAbonnement: validerAbonnement, annoncable: annoncable, concerne: concerne,
-  envoisDeLaSemaine: envoisDeLaSemaine, grouper: grouper
+  envoisDeLaSemaine: envoisDeLaSemaine, grouper: grouper, sujet: sujet
 };

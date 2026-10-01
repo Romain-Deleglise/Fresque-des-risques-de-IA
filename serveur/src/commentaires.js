@@ -7,9 +7,22 @@
 var MAX_TEXTE = 2000, MAX_NOM = 40, MAX_EMAIL = 120, MAX_SUJET = 20;
 var MIN_TEXTE = 3;
 var CARTE_MIN = 1, CARTE_MAX = 38;   // la carte 0 est l'intro, hors jeu
-var SUJETS = ["carte", "jeu", "deroule", "reference", "autre"];
+/* « atelier » a ete ajoute a la demande des animateur·ices : le formulaire
+   recueillait des retours sur le JEU, alors que le plus utile apres une seance
+   est le deroulement de l'ATELIER lui-meme. Sans cette valeur, le choix serait
+   accepte par la page puis range sous « autre » par le serveur, et la
+   distinction se perdrait en silence. */
+var SUJETS = ["carte", "atelier", "jeu", "deroule", "reference", "autre"];
 
 function tronque(v, n) { return String(v == null ? "" : v).slice(0, n).trim(); }
+
+/* Un numero n'est retenu que s'il designe une carte JOUABLE. Un retour range
+   sous une carte inexistante se retrouverait sous une cle qu'aucune pastille
+   ne peut afficher : autant le traiter comme s'il n'y avait pas de numero. */
+function numeroDeCarte(v) {
+  if (typeof v !== "number" || !isFinite(v) || Math.floor(v) !== v) return null;
+  return (v >= CARTE_MIN && v <= CARTE_MAX) ? v : null;
+}
 
 /* Valide un retour et renvoie soit { erreur }, soit { retour } pret a stocker.
    `now` est injecte pour que les tests soient deterministes. */
@@ -26,14 +39,18 @@ function valider(corps, now) {
   // Un numero de carte n'est retenu que s'il designe une carte jouable. Un
   // retour sur une carte inexistante serait rangé sous une cle qu'aucune
   // pastille ne pourrait afficher : il vaut mieux le traiter comme general.
-  var carte = null;
-  if (typeof corps.carte === "number" && isFinite(corps.carte)
-      && Math.floor(corps.carte) === corps.carte
-      && corps.carte >= CARTE_MIN && corps.carte <= CARTE_MAX) {
-    carte = corps.carte;
-  }
+  var carte = numeroDeCarte(corps.carte);
   if (carte !== null) sujet = "carte";
   else if (sujet === "carte") sujet = "autre";
+
+  /* « CA CONCERNE LE LIEN AVEC LA CARTE X ». Facultatif. Un retour du genre
+     « cette carte devrait pointer vers l'autre » est inexploitable tant qu'on
+     ne sait pas de quelle autre il s'agit. Deux garde-fous : le champ n'a de
+     sens que sur un retour qui vise DEJA une carte, et une carte ne peut pas
+     etre liee a elle-meme. Dans les deux cas on efface plutot que refuser :
+     le texte du retour vaut mieux qu'un envoi rejete. */
+  var lien = numeroDeCarte(corps.lien);
+  if (carte === null || lien === carte) lien = null;
 
   var email = tronque(corps.email, MAX_EMAIL);
   // Une adresse manifestement fausse est effacee plutot que refusee : le
@@ -44,6 +61,7 @@ function valider(corps, now) {
     retour: {
       sujet: sujet,
       carte: carte,
+      lien: lien,
       texte: texte,
       nom: tronque(corps.nom, MAX_NOM),
       email: email,

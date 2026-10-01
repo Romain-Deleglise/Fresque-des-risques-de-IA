@@ -131,7 +131,7 @@ function mailParticipants(avecImage) {
   l.push("");
   l.push("Envie de revenir, ou d'y emmener quelqu'un ? Faites-vous prévenir des prochains ateliers : au plus un e-mail par semaine, et rien s'il n'y a rien près de chez vous.");
   l.push("- Être prévenu·e : " + alertes);
-  c.push('<p style="margin:16px 0 0;font-size:13px;color:#6b665e;">Envie de revenir, ou d\'y emmener quelqu\'un ? <a href="' + h(alertes) + '" style="color:#6b665e;">Faites-vous prévenir des prochains ateliers</a> — au plus un e-mail par semaine, et rien s\'il n\'y a rien près de chez vous.</p>');
+  c.push('<p style="margin:16px 0 0;font-size:13px;color:#6b665e;">Envie de revenir, ou d\'y emmener quelqu\'un ? <a href="' + h(alertes) + '" style="color:#6b665e;">Faites-vous prévenir des prochains ateliers</a> : au plus un e-mail par semaine, et rien s\'il n\'y a rien près de chez vous.</p>');
 
   ligneImage(avecImage, l, c);
   piedPauseIA(l, c);

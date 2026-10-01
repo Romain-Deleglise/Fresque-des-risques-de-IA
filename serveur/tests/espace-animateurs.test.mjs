@@ -19,14 +19,14 @@ const lire = (p) => fs.readFileSync(path.join(RACINE, p), "utf8");
 // Toutes les pages de l'espace : chacune doit porter les mêmes garde-fous.
 const PAGES_ESPACE = [
   "site/animateurs/index.html",
-  "site/animateurs/reference/index.html",
+  "site/animateurs/retours/index.html",
   "site/animateurs/antiseche/index.html",
   "site/animateurs/minuteur/index.html",
   "site/animateurs/kit/index.html",
   "site/en/facilitators/index.html",
   "site/en/facilitators/reference/index.html"
 ];
-const PAGE = lire("site/animateurs/reference/index.html");
+const PAGE = lire("site/animateurs/retours/index.html");
 
 test("les deux versions de la page se declarent noindex", () => {
   for (const p of PAGES_ESPACE) {
@@ -59,26 +59,21 @@ test("aucune page publique n'y renvoie, sauf la fin du guide", () => {
   const renvoient = pages
     .filter((p) => /href="[^"]*(animateurs|facilitators)\//.test(lire(p)))
     .sort();
-  assert.deepEqual(renvoient, ["site/en/guide/index.html", "site/guide/index.html"],
-    "seuls les deux guides doivent renvoyer vers l'espace animateur·ices");
+  assert.deepEqual(renvoient, [],
+    "aucune page publique ne doit renvoyer vers l'espace animateur·ices");
 });
 
-test("le lien du guide reste hors du PDF public et tout en bas de page", () => {
- for (const [chemin, cible] of [["site/guide/index.html", '../animateurs/'],
-                                ["site/en/guide/index.html", '../facilitators/']]) {
-  const guide = lire(chemin);
-  const i = guide.indexOf('href="' + cible + '"');
-  assert.ok(i > 0);
-
-  // `no-print` : le PDF du guide est telechargeable par n'importe qui.
-  const encart = guide.slice(guide.lastIndexOf("<div", i), i);
-  assert.match(encart, /no-print/, "l'encart doit etre exclu de l'impression");
-
-  // Tout en bas : un animateur pressé ne doit pas tomber dessus avant d'avoir
-  // lu le deroulé.
-  assert.ok(i / guide.length > 0.8,
-    "le lien doit rester en fin de guide, pas au milieu du deroulé");
- }
+/* LE GUIDE NE RENVOIE PLUS VERS L'ESPACE. L'encart de fin a ete retire : le
+   guide est un document public, telechargeable en PDF, et il y nommait la
+   fresque de reference. L'espace se transmet par courriel. */
+test("le guide ne nomme ni l'espace ni la fresque de référence", () => {
+  for (const chemin of ["site/guide/index.html", "site/en/guide/index.html"]) {
+    const guide = lire(chemin);
+    assert.ok(!/href="\.\.\/(animateurs|facilitators)\//.test(guide),
+      `${chemin} renvoie encore vers l'espace`);
+    assert.ok(!/fresque de r[ée]f[ée]rence|reference fresk/i.test(guide),
+      `${chemin} nomme encore la fresque de référence`);
+  }
 });
 
 test("la navigation du site ne mentionne pas l'espace", () => {
@@ -142,7 +137,7 @@ test("aucun attribut style= : la CSP du site les ignore", () => {
   // style="left:…" écrit dans du HTML y est purement ignoré par le
   // navigateur. C'est exactement ce qui a mis la première version en ligne à
   // terre : 38 cartes empilées en haut à gauche, étiquettes superposées,
-  // flèches à l'échelle 1 — et invisible en local, où le serveur de test
+  // flèches à l'échelle 1, et invisible en local, où le serveur de test
   // n'envoie aucune CSP. Toutes les positions passent donc par le CSSOM.
   const csp = lire("netlify.toml");
   assert.match(csp, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
@@ -166,14 +161,40 @@ test("les cartes portent leur titre, pas seulement une image", () => {
 
 test("le sommaire mène à chaque ressource, et chaque ressource revient au sommaire", () => {
   const sommaire = lire("site/animateurs/index.html");
-  for (const cible of ["../guide/", "reference/", "antiseche/", "kit/", "minuteur/"]) {
+  for (const cible of ["../guide/?espace=1", "outils/", "retours/", "kit/"]) {
     assert.ok(sommaire.includes('href="' + cible + '"'), `le sommaire ne mène pas à ${cible}`);
   }
-  // Sans retour vers le sommaire, on se retrouve coincé sur une page dont
-  // aucune navigation publique ne parle.
-  for (const p of ["site/animateurs/reference/index.html", "site/animateurs/antiseche/index.html",
+  const outils = lire("site/animateurs/outils/index.html");
+  for (const cible of ["../minuteur/", "../antiseche/"]) {
+    assert.ok(outils.includes('href="' + cible + '"'), `l'onglet Outils ne mène pas à ${cible}`);
+  }
+  /* LA FRESQUE DE REFERENCE NE FIGURE PLUS DANS LES OUTILS : elle se deplie
+     depuis l'accueil de l'espace, en lecture seule, et vit dans l'onglet
+     Retours quand il s'agit de commenter. Une tuile de plus vers la meme page
+     n'ajoutait qu'un detour. */
+  assert.ok(!/class="ressource"[^>]*href="\.\.\/retours\//.test(outils),
+    "l'onglet Outils ne doit plus porter de tuile vers la fresque de référence");
+  assert.match(sommaire, /id="btn-apercu"/, "l'accueil doit porter le bouton de dépliage");
+  assert.match(sommaire, /id="apercu"/, "l'accueil doit porter le bloc de la fresque");
+  /* En lecture seule : rien de ce qui sert a commenter. */
+  for (const interdit of ["mode-commentaires", "form-general", "form-jeton", "retours-section"]) {
+    assert.ok(!sommaire.includes('id="' + interdit + '"'),
+      `l'aperçu de l'accueil ne doit pas porter ${interdit}`);
+  }
+  /* LES MEMES ONGLETS PARTOUT. Naviguer dans l'espace renvoyait aux onglets du
+     site public, d'ou l'on ne revenait qu'avec le bouton « precedent ». Chaque
+     page de l'espace porte donc la meme barre, et le guide la reconstruit quand
+     on y arrive avec ?espace=1. */
+  for (const p of ["site/animateurs/index.html", "site/animateurs/outils/index.html",
+                   "site/animateurs/retours/index.html", "site/animateurs/antiseche/index.html",
                    "site/animateurs/minuteur/index.html", "site/animateurs/kit/index.html"]) {
-    assert.match(lire(p), /href="\.\.\/"/, `${p} ne revient pas au sommaire`);
+    const page = lire(p);
+    assert.match(page, /aria-label="Espace animateur·ices"/, `${p} n'a pas la barre de l'espace`);
+    for (const onglet of ["Accueil", "Guide", "Outils", "Retours"]) {
+      assert.ok(page.includes(">" + onglet + "</a>"), `${p} : onglet ${onglet} manquant`);
+    }
+    assert.match(page, /class="btn-nav" href="[^"]*animateurs\/retours\/#fresque"/,
+      `${p} : le bouton « Fresque de référence » doit mener à l'onglet Retours`);
   }
 });
 
@@ -218,7 +239,7 @@ test("une réponse du lot 5 n'est pas présentée comme une cause", () => {
   const css = lire("site/animateurs/animateurs.css");
   assert.match(css, /g\.reponse path \{[^}]*stroke-dasharray/);
   // Et la clé de lecture doit exister, sinon le trait discontinu ne dit rien.
-  assert.match(lire("site/animateurs/reference/index.html"), /cle-fleches/);
+  assert.match(lire("site/animateurs/retours/index.html"), /cle-fleches/);
 });
 
 test("cliquer une carte allume bien sa chaîne", () => {
@@ -235,7 +256,7 @@ test("cliquer une carte allume bien sa chaîne", () => {
 
 test("survoler une carte montre où elle mène, sans engager de sélection", () => {
   const js = lire("site/animateurs/animateurs.js");
-  // Sans aperçu, il faut ouvrir le panneau, lire, fermer, recommencer — pour
+  // Sans aperçu, il faut ouvrir le panneau, lire, fermer, recommencer, pour
   // trente-huit cartes, c'est un parcours interminable.
   assert.match(js, /function survoler/);
   assert.match(js, /mouseover/);

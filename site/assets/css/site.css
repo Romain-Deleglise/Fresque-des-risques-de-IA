@@ -35,6 +35,12 @@
 
   --lg: 1120px;      /* largeur max page */
   --texte: 42rem;    /* largeur de lecture */
+  /* PAS VERTICAL DES SECTIONS. Une seule valeur commande tout l'espace entre
+     deux sections de la page : chacune la porte en haut et en bas, donc deux
+     sections qui se suivent sont toujours separees de deux pas, quels que
+     soient leur fond et leur contenu. Le jour ou une section fait exception,
+     l'oeil le voit aussitot. */
+  --pas-section: clamp(3.5rem, 7vw, 6rem);
 }
 
 /* --- Mode sombre ----------------------------------------------------------
@@ -141,7 +147,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 :root[data-theme="dark"] .theme-toggle .ic-soleil, .theme-toggle[data-sombre="1"] .ic-soleil { display: none; }
 
 /* --- Hero ----------------------------------------------------------------- */
-.hero { padding: clamp(1.75rem, 3.5vw, 3rem) 0 clamp(3rem, 5vw, 4.5rem); }
+/* L'espace du HAUT separe le hero de l'en-tete : c'est une marge de page, elle
+   lui est propre. Celui du BAS le separe de la premiere section : c'est un
+   ecart de section, il prend donc le pas commun, sans quoi la page commence
+   sur un rythme et continue sur un autre. */
+.hero { padding: clamp(1.75rem, 3.5vw, 3rem) 0 var(--pas-section); }
 .hero .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 5rem; align-items: center; }
 .hero h1 { font-size: clamp(2.3rem, 4.2vw, 3.3rem); margin-bottom: 1.25rem; }
 .hero .lede { font-size: 1.12rem; }
@@ -155,6 +165,29 @@ a.btn, a.btn:hover { text-decoration: none; }
 .hero .meta span { display: inline-flex; align-items: center; gap: .5rem; }
 .hero .meta .pt { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
 .hero .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+
+/* AERER LE HAUT DE PAGE. Rien n'a ete retire : le haut etait charge parce que
+   tout y avait le meme poids. Quatre paragraphes identiques, trois boutons
+   semes dedans, et aucun point ou l'oeil puisse se poser.
+   Trois reglages, aucun contenu en moins :
+   1. une MESURE : au-dela de soixante-dix signes par ligne, l'oeil perd le
+      debut de la suivante. La colonne fait presque la largeur de l'ecran ;
+   2. deux INTITULES, « Participer » et « Animer », qui disent d'un coup d'oeil
+      qu'il y a deux facons d'y venir ;
+   3. de l'ESPACE entre les blocs, plus qu'entre les lignes d'un meme bloc :
+      c'est le blanc qui fait les groupes, pas les traits. */
+.hero .lede, .hero > .wrap > div > p { max-width: 38rem; }
+.voies { margin-top: 2.2rem; display: grid; gap: 2rem; }
+.voie > p { margin: 0 0 1rem; max-width: 38rem; }
+.voie .actions { margin: 0; }
+.voie-titre {
+  font-size: 1.05rem; margin: 0 0 .45rem;
+  font-family: var(--f-ui); font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--accent-txt-fort);
+}
+/* L'appel au telechargement, a droite : les deux mentions y sont denses et
+   longues. On les resserre plutot que de les couper. */
+.hero-appel .appel-note { font-size: .86rem; line-height: 1.6; max-width: 34rem; }
 
 /* APPEL AU TELECHARGEMENT, SOUS LES CARTES. Il vivait sous le texte, a gauche,
    ou il coupait la description de l'atelier en deux : on lisait ce qu'est une
@@ -189,10 +222,27 @@ a.btn, a.btn:hover { text-decoration: none; }
 .pile .carte[aria-pressed="true"] .front { opacity: 0; }
 .pile .carte[aria-pressed="true"] .back { opacity: 1; }
 
-/* --- Rythme des sections -------------------------------------------------- */
-.section { padding: clamp(3.5rem, 7vw, 6rem) 0; }
+/* --- Rythme des sections --------------------------------------------------
+   Toutes les sections portent le meme pas en haut et en bas. Deux exceptions,
+   voulues, et nommees pour qu'on ne les prenne pas pour des oublis :
+   - `.page-tete + .section` (plus bas dans cette feuille) : le titre de page
+     et sa premiere section forment un seul bloc, on les rapproche expres ;
+   - `.section-suite` : une section qui prolonge celle du dessus (une capture
+     qui illustre le paragraphe juste avant, par exemple) n'est pas une
+     nouvelle section pour l'oeil, elle ne prend donc qu'un demi-pas.
+   Toute autre section qui s'ecarte du pas est un defaut : c'est ainsi que
+   « En atelier » s'etait retrouve colle au bloc precedent. */
+.section { padding: var(--pas-section) 0; }
 .section + .section { border-top: 1px solid var(--ligne); }
 .section-doux { background: var(--bg-doux); }
+/* SECTION QUI EN PROLONGE UNE AUTRE. On declare la paire d'un seul cote, sur
+   celle du bas : `:has()` se charge de retirer l'espace sous celle du haut, de
+   sorte qu'on ne puisse pas oublier la moitie du reglage en modifiant le HTML.
+   Ces deux valeurs etaient jusqu'ici ecrites en `style=` dans la page, ou la
+   politique de securite (`style-src 'self'`) les refusait en production : la
+   mise en page voulue n'existait qu'en local. */
+.section-suite { padding-top: clamp(2rem, 4vw, 3rem); }
+.section:has(+ .section-suite) { padding-bottom: 0; }
 .entete-sec { max-width: var(--texte); margin-bottom: 2.6rem; }
 .entete-sec h2 { margin-bottom: .8rem; }
 
@@ -273,7 +323,11 @@ a.btn, a.btn:hover { text-decoration: none; }
 @media (max-width: 720px) { .capacites li { grid-template-columns: 1fr; gap: .3rem; } }
 
 /* --- Photo d'atelier ------------------------------------------------------ */
-.section-photo { padding: 0 0 clamp(3.5rem, 7vw, 6rem); }
+/* Le pas commun des deux cotes. Sans espace au-dessus, le titre « En atelier »
+   venait toucher le bord du bloc precedent, alors que les autres sections en
+   avaient deux pas : c'est le seul endroit de la page d'accueil ou le rythme
+   se rompait. */
+.section-photo { padding: var(--pas-section) 0; }
 .titre-photos { font-size: clamp(1.4rem, 2.4vw, 1.8rem); margin-bottom: 1.1rem; }
 .photo-atelier { margin: 0; }
 /* BANDE DE PHOTOS. Quatre photos en portrait sous la photo mise en avant. Une
@@ -296,6 +350,9 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* Groupe d'actions generique (sections editoriales) : espacement coherent */
 .actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .prose .actions { margin-top: 1.6rem; }
+/* Une precision glissee sous les boutons : elle se rattache a eux, donc peu
+   d'espace, et une taille en retrait pour ne pas concurrencer l'appel. */
+.prose .actions + p { margin-top: .9rem; font-size: .92rem; }
 
 /* --- FAQ ------------------------------------------------------------------ */
 .faq { max-width: var(--texte); }
@@ -642,12 +699,57 @@ a.btn, a.btn:hover { text-decoration: none; }
 .encart-reserve p:last-child { margin-bottom: 0; }
 
 /* --- Abonnement aux alertes « prochains ateliers » --- */
-.form-alertes { display: grid; gap: 18px; margin-top: 22px; }
-.form-alertes .choix-format { border: 1px solid var(--trait, #e6e1d8); border-radius: 12px; padding: 14px 16px; }
-.form-alertes .choix-format legend { padding: 0 6px; font-weight: 600; }
-.form-alertes .radio { display: block; font-weight: 400; margin: 6px 0; cursor: pointer; }
-.form-alertes .ligne-zone { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.form-alertes .ligne-zone select { flex: 1 1 220px; min-width: 0; }
+/* --- S'ABONNER AUX PROCHAINS ATELIERS --------------------------------------
+   Le formulaire n'avait AUCUN style de champ : les libelles se collaient aux
+   saisies sur la meme ligne, les boutons radio etaient ceux du systeme, et la
+   question du rayon, sa liste deroulante et son explication tenaient dans une
+   seule phrase coupee par un menu. On ne savait pas ou finissait une question
+   et ou commencait la suivante.
+   Trois regles ici : un libelle AU-DESSUS de sa saisie, une aide EN DESSOUS,
+   et de l'espace entre les champs. Les commandes reprennent le langage des
+   autres formulaires du site plutot que celui du navigateur. */
+.form-alertes { display: grid; gap: 1.6rem; margin-top: 1.4rem; max-width: 40rem; }
+.champ { display: grid; gap: .35rem; }
+.champ-titre { font-family: var(--f-ui); font-weight: 600; font-size: .95rem; color: var(--ink); }
+.champ-titre .opt { font-weight: 400; color: var(--gris); }
+.form-alertes input[type="email"], .form-alertes input[type="text"], .form-alertes select {
+  font-family: var(--f-ui); font-size: 1rem; padding: .65rem .8rem;
+  border: 1px solid var(--ligne); border-radius: 10px;
+  background: var(--surface); color: var(--ink); width: 100%;
+}
+.form-alertes input:focus-visible, .form-alertes select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
+.form-alertes .aide-champ { font-family: var(--f-ui); font-size: .84rem; color: var(--gris); }
+/* La liste deroulante du navigateur jure avec le reste : on masque sa fleche
+   et on en dessine une, plutot que d'importer une image pour si peu. */
+.select-joli { position: relative; }
+.select-joli select { appearance: none; padding-right: 2.4rem; }
+.select-joli::after {
+  content: "▾"; position: absolute; right: .9rem; top: 50%; transform: translateY(-50%);
+  pointer-events: none; color: var(--gris); font-size: .9rem;
+}
+/* Les trois choix reprennent les cartes du formulaire « programmer un
+   atelier » : meme langage, et l'on voit celui qui est retenu sans chercher
+   la pastille bleue du systeme. */
+.form-alertes .choix-format { border: 0; padding: 0; margin: 0; }
+.form-alertes .choix-format legend { padding: 0; margin-bottom: .5rem; }
+.form-alertes .mode-choix { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+.form-alertes .radio {
+  display: flex; align-items: center; gap: .55rem; cursor: pointer;
+  font-family: var(--f-ui); font-weight: 600; font-size: .92rem; color: var(--ink);
+  border: 1px solid var(--ligne); border-radius: 10px; padding: .75rem .85rem;
+  background: var(--bg-doux); transition: border-color .15s, background .15s, color .15s;
+}
+.form-alertes .radio input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent-txt); margin: 0; flex: 0 0 auto; }
+.form-alertes .radio:hover { border-color: var(--accent-txt); }
+.form-alertes .radio:has(input:checked) { border-color: var(--accent); background: var(--accent-doux); color: var(--accent-txt-fort); }
+.form-alertes .radio:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form-alertes .bloc-zones { display: grid; gap: 1.1rem; }
+.form-alertes .ligne-zone { display: flex; gap: .6rem; flex-wrap: wrap; align-items: stretch; }
+.form-alertes .ligne-zone input[type="text"] { flex: 1 1 16rem; }
+.form-alertes .ligne-zone .btn { flex: 0 0 auto; }
+@media (max-width: 620px) { .form-alertes .mode-choix { grid-template-columns: 1fr; } }
 .puces-zones { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .puce-zone { background: #f3efe8; border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
 .puce-x { border: 0; background: rgba(0, 0, 0, .07); border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 15px; }
