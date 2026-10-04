@@ -317,3 +317,25 @@ test("le champ explication est declare et facultatif", () => {
   assert.match(lire("scripts/valider-cartes.mjs"), /c\.explication !== undefined/);
   assert.match(lire("site/animateurs/animateurs.js"), /panneau-explication/);
 });
+
+/* --- La planche d'impression n'a plus sa propre copie des textes ----------
+   Les titres et versos etaient recopies dans le gabarit, a cote de
+   cartes.json. Les deux copies avaient DEJA diverge : la carte 3 avait deux
+   paragraphes a l'impression et un seul sur le site, pour le meme texte. */
+test("le gabarit d'impression lit cartes.json au lieu de recopier les textes", () => {
+  const g = lire("contenus/Planche d'impression (20pages).html");
+  assert.match(g, /const MISE_EN_PAGE = \[/);
+  assert.match(g, /SOURCE_TEXTES = "\.\.\/site\/data\/cartes\.json"/);
+  assert.ok(!/const CARDS = \[/.test(g), "le tableau de textes ne doit plus exister");
+  // Aucun verso recopie : on verifie sur un texte long, propre a une carte.
+  const ref = JSON.parse(lire("site/data/cartes.json")).cartes;
+  const extrait = ref.find((c) => c.n === 1).verso[0].slice(0, 60);
+  assert.ok(!g.includes(extrait), "un verso est encore ecrit dans le gabarit : " + extrait);
+});
+
+test("une planche incomplete s'arrete au lieu de s'imprimer vide", () => {
+  const g = lire("contenus/Planche d'impression (20pages).html");
+  // Un PDF aux cartes vides passerait inapercu jusqu'a l'imprimeur.
+  assert.match(g, /function echec\(/);
+  assert.match(g, /n'a ni titre ni verso/);
+});

@@ -143,3 +143,9 @@ jobs:
       # desabonnement en un clic. Sur les vraies fonctions, pas sur un bouchon.
       - name: Verifier le parcours complet des alertes
         run: node scripts/verifier-parcours-alertes.cjs
+
+      # La planche d'impression se construit depuis cartes.json : si une carte
+      # perd son titre, son verso ou son image, on le sait ici et non chez
+      # l'imprimeur. `--verifier` ne garde aucun fichier.
+      - name: Verifier que la planche d'impression est generable
+        run: node scripts/generer-planche-pdf.mjs --verifier
