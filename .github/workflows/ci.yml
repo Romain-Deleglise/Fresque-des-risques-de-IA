@@ -147,5 +147,9 @@ jobs:
       # La planche d'impression se construit depuis cartes.json : si une carte
       # perd son titre, son verso ou son image, on le sait ici et non chez
       # l'imprimeur. `--verifier` ne garde aucun fichier.
+      # Pillow reduit les images avant impression : sans lui le PDF passe de
+      # 5,7 Mo a 40 Mo, pour une illustration qui tient dans une carte A6.
+      - name: Installer Pillow (reduction des images de la planche)
+        run: python3 -m pip install --quiet Pillow
       - name: Verifier que la planche d'impression est generable
         run: node scripts/generer-planche-pdf.mjs --verifier

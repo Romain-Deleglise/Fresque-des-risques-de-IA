@@ -48,15 +48,46 @@ const SORTIE = (() => {
    large : 1600 px couvre donc largement le besoin, avec de la marge.
    On ne touche JAMAIS aux fichiers du depot : les reductions vivent dans un
    dossier temporaire, efface a la fin. */
-const MAX_PX = (() => { const i = args.indexOf("--images-max"); return i !== -1 ? Number(args[i + 1]) : 1600; })();
+/* 1630 PIXELS, QUALITE 72. Mesure, pas devine. La boite d'image fait 138 mm de
+   large sur la carte : 1630 px y font exactement 300 points par pouce, la
+   densite attendue en impression. Restait a choisir la qualite JPEG, puisque
+   le PDF doit tenir sous 6 Mo (la page d'accueil annonce « PDF 7 Mo », et
+   personne ne telecharge 40 Mo en salle d'atelier).
+
+   Les images pesent 6,7 des 7,5 Mo d'une sortie en qualite 86 ; tout le reste,
+   polices et aplats compris, ne fait que 0,75 Mo. Recompresser les flux du PDF
+   ne gagne rien : un JPEG est deja compresse. Le seul vrai levier est donc le
+   couple resolution / qualite, et il fallait trancher entre deux reglages qui
+   pesent le meme poids :
+     - 1630 px en qualite 72 (300 dpi, plus d'artefacts JPEG) : 5,8 Mo ;
+     - 1200 px en qualite 85 (221 dpi, agrandi par l'imprimante) : 5,7 Mo.
+   Compares a la meme image sans perte, a la taille ou elle s'imprime, sur cinq
+   illustrations : ecart moyen de 5,20 pour le premier contre 6,33 pour le
+   second, et le premier gagne sur les cinq. La resolution compte davantage que
+   les derniers points de qualite. */
+const MAX_PX = (() => { const i = args.indexOf("--images-max"); return i !== -1 ? Number(args[i + 1]) : 1630; })();
+const QUALITE = (() => { const i = args.indexOf("--qualite"); return i !== -1 ? Number(args[i + 1]) : 72; })();
+/* Le PDF est un telechargement public : au-dela de cette taille on ne publie
+   pas, on le dit. */
+const POIDS_MAX_MO = (() => { const i = args.indexOf("--poids-max"); return i !== -1 ? Number(args[i + 1]) : 6; })();
 const REDUIRE = !args.includes("--sans-reduction") && MAX_PX > 0;
-let CACHE = null;
+let CACHE = null, REDUIRE_OK = true;
 if (REDUIRE) {
   CACHE = fs.mkdtempSync(path.join(os.tmpdir(), "planche-img-"));
-  execFileSync("python3", ["-c", `
+  /* Pillow n'est pas forcement installe (c'etait le cas sur le runner de la
+     CI, ou ce script tombait avec une trace Python au milieu d'un message
+     Node). On le dit clairement et on continue sans reduire : mieux vaut un
+     PDF trop lourd, signale comme tel, qu'une panne illisible. */
+  try { execFileSync("python3", ["-c", "import PIL"], { stdio: "ignore" }); }
+  catch (e) {
+    console.warn("⚠ Pillow (python3-pil) est absent : les images ne seront pas reduites,\n"
+      + "  le PDF sera donc beaucoup plus lourd. Installez-le avec : pip install Pillow");
+    REDUIRE_OK = false;
+  }
+  if (REDUIRE_OK) execFileSync("python3", ["-c", `
 import os, sys
 from PIL import Image, ImageOps
-src, dst, maxpx = sys.argv[1], sys.argv[2], int(sys.argv[3])
+src, dst, maxpx, QUALITE = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
 for f in os.listdir(src):
     if not f.lower().endswith((".png", ".jpg", ".jpeg", ".webp")): continue
     try:
@@ -65,18 +96,26 @@ for f in os.listdir(src):
         continue
     if max(im.size) > maxpx:
         im.thumbnail((maxpx, maxpx), Image.LANCZOS)
-    # On garde la transparence quand il y en a : certaines cartes sont des
-    # schemas sur fond transparent, qu'un aplat blanc abimerait.
-    if im.mode in ("RGBA", "LA", "P") and ("transparency" in im.info or im.mode != "P"):
+    # CE QUI COMPTE, C'EST LA TRANSPARENCE REELLE, pas le format du fichier.
+    # Onze illustrations sont des PHOTOS enregistrees en PNG avec un canal
+    # alpha entierement opaque. Les garder en PNG les faisait entrer dans le
+    # PDF sans compression d'image (Chromium y met du Flate, qui ne sait rien
+    # faire d'une photo) : a elles seules elles pesaient plus que tout le
+    # reste. On ne garde donc le PNG que si un pixel est vraiment translucide.
+    opaque = True
+    if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+        opaque = im.convert("RGBA").getchannel("A").getextrema()[0] == 255
+    if not opaque:
         im.convert("RGBA").save(os.path.join(dst, f + ".png"), "PNG", optimize=True)
     else:
-        im.convert("RGB").save(os.path.join(dst, f + ".jpg"), "JPEG", quality=86, optimize=True, progressive=True)
-`, IMAGES, CACHE, String(MAX_PX)], { stdio: "inherit" });
+        im.convert("RGB").save(os.path.join(dst, f + ".jpg"), "JPEG",
+                               quality=QUALITE, optimize=True, progressive=True)
+`, IMAGES, CACHE, String(MAX_PX), String(QUALITE)], { stdio: "inherit" });
 }
 /* Le fichier reduit porte le nom d'origine SUIVI de sa nouvelle extension :
    on retrouve donc l'un a partir de l'autre sans table de correspondance. */
 function reduite(nom) {
-  if (!CACHE) return null;
+  if (!CACHE || !REDUIRE_OK) return null;
   for (const ext of [".png", ".jpg"]) {
     const f = path.join(CACHE, nom + ext);
     if (fs.existsSync(f)) return f;
@@ -196,6 +235,10 @@ console.log("");
 t("les 39 cartes sont posees, recto et verso", info.cartes === 78, info.cartes + " faces");
 t("aucune image ne manque", manquantes.length === 0, [...new Set(manquantes)].slice(0, 4).join(", "));
 t("aucun titre ni verso vide", info.vides === 0, String(info.vides));
+/* Le poids est un critere de qualite comme un autre : un PDF de 40 Mo ne se
+   telecharge pas sur un telephone en salle d'atelier. */
+t("le PDF tient sous " + POIDS_MAX_MO + " Mo", pdf.length <= POIDS_MAX_MO * 1e6,
+  (pdf.length / 1e6).toFixed(1) + " Mo");
 
 if (!VERIFIER && !ko) {
   fs.mkdirSync(path.dirname(SORTIE), { recursive: true });
