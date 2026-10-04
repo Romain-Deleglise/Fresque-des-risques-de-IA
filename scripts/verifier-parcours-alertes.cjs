@@ -111,7 +111,25 @@ const lire = (r) => { try { return JSON.parse(r.body); } catch (e) { return null
   t("une modification ne redemande pas de confirmation", r && r.ok && r.aConfirmer === false, JSON.stringify(r));
   t("elle est accusee par un e-mail", boite.length === 1 && /modifiées/.test(boite[0].subject || ""), boite.length + " / " + (boite[0] && boite[0].subject));
 
-  console.log("\n--- 8. Le desabonnement en un clic (RFC 8058) ---");
+  console.log("\n--- 8. L'inscription jamais confirmee s'efface ---");
+  boite.length = 0;
+  let r2 = lire(await post({ mail: "oubli@exemple.fr", format: "enligne", communes: [], rayonKm: "50", site: "" }));
+  t("une seconde inscription part en attente", r2 && r2.aConfirmer === true);
+  const cles = () => [...magasins["fresque-alertes"].keys()];
+  const avant = cles().filter((k) => k.startsWith("abonne:")).length;
+  // On recule sa date d'inscription de huit jours, puis on passe l'envoi.
+  for (const k of cles().filter((k) => k.startsWith("abonne:"))) {
+    const v = magasins["fresque-alertes"].get(k);
+    if (v.mail === "oubli@exemple.fr") { v.depuis = Date.now() - 8 * JOUR; magasins["fresque-alertes"].set(k, v); }
+  }
+  await envoi.handler();
+  const apres2 = cles().filter((k) => k.startsWith("abonne:")).length;
+  t("elle est effacee au passage hebdomadaire", apres2 === avant - 1, avant + " -> " + apres2);
+  t("son jeton ne reste pas orphelin",
+    !cles().some((k) => k.startsWith("jeton:") && !magasins["fresque-alertes"].has(magasins["fresque-alertes"].get(k).cle)),
+    cles().filter((k) => k.startsWith("jeton:")).join(", "));
+
+  console.log("\n--- 9. Le desabonnement en un clic (RFC 8058) ---");
   const p = lire(await alertes.handler({ httpMethod: "POST", body: "", queryStringParameters: { d: jeton },
     headers: { "x-nf-client-connection-ip": "203.0.113.9" } }));
   t("un POST sans corps desabonne", p && p.desabonne === true, JSON.stringify(p));

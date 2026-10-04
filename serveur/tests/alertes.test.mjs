@@ -260,3 +260,28 @@ test("dans un groupe, les ateliers sont classes par date", () => {
   const g = A.grouper([b, a]);
   assert.deepEqual(g.villes[0].ateliers.map((x) => x.code), ["A", "B"]);
 });
+
+/* --- L'inscription non confirmee s'efface vraiment -----------------------
+   Le message d'inscription promet qu'elle « s'effacera d'elle-meme ». Tant que
+   rien ne l'efface, on garde l'adresse de quelqu'un qui n'a jamais rien
+   demande : celle d'un tiers inscrit a son insu, ou une adresse mal tapee qui
+   appartient a une autre personne. */
+test("une inscription jamais confirmee est a effacer apres une semaine", () => {
+  const vieille = { actif: false, depuis: NOW - A.DELAI_CONFIRMATION_MS - JOUR };
+  assert.equal(A.aPurger(vieille, NOW), true);
+});
+
+test("une inscription recente non confirmee a encore le temps de l'etre", () => {
+  const fraiche = { actif: false, depuis: NOW - 2 * JOUR };
+  assert.equal(A.aPurger(fraiche, NOW), false);
+});
+
+test("un abonne confirme n'est jamais efface, meme ancien", () => {
+  const ancien = { actif: true, depuis: NOW - 400 * JOUR };
+  assert.equal(A.aPurger(ancien, NOW), false);
+});
+
+test("sans date d'inscription, on n'efface pas au hasard", () => {
+  assert.equal(A.aPurger({ actif: false }, NOW), false);
+  assert.equal(A.aPurger(null, NOW), false);
+});

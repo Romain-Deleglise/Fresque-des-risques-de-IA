@@ -33,6 +33,13 @@ var HORIZON_MS = 60 * 24 * 60 * 60 * 1000;
    atelier passe depuis longtemps n'a plus a occuper de place, et la fiche d'un
    abonne ne doit pas grossir indefiniment. */
 var MEMOIRE_MS = HORIZON_MS + 7 * 24 * 60 * 60 * 1000;
+/* DELAI DE CONFIRMATION. Le message d'inscription dit : « sans confirmation,
+   aucune annonce ne partira, et l'inscription s'effacera d'elle-meme ». Encore
+   faut-il que quelque chose l'efface, sinon on garde l'adresse de quelqu'un qui
+   n'a jamais rien demande -- celle d'un tiers inscrit a son insu, ou une
+   adresse mal tapee qui appartient a une autre personne. Une semaine : au-dela,
+   un lien de confirmation n'est plus cherche dans une boite de reception. */
+var DELAI_CONFIRMATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 function tronque(v, n) { return String(v == null ? "" : v).slice(0, n).trim(); }
 
@@ -147,6 +154,15 @@ function memoireApres(abonne, ateliers, now) {
   return m;
 }
 
+/* A effacer : inscrit depuis plus d'une semaine, et jamais confirme. On se
+   fonde sur `depuis`, pose a l'inscription, et non sur une absence de reponse :
+   une adresse qui n'a jamais ete confirmee n'a jamais eu de consentement. */
+function aPurger(abonne, now) {
+  if (!abonne || abonne.actif) return false;
+  var depuis = Number(abonne.depuis) || 0;
+  return depuis > 0 && (now - depuis) > DELAI_CONFIRMATION_MS;
+}
+
 /* Ce qu'on envoie cette semaine. Rend un tableau { abonne, ateliers }, sans
    aucune entree vide : un abonne sans atelier ne recoit rien du tout. */
 function envoisDeLaSemaine(abonnes, ateliers, now) {
@@ -208,5 +224,6 @@ module.exports = {
   normaliser: normaliser, mailValide: mailValide,
   validerAbonnement: validerAbonnement, annoncable: annoncable, concerne: concerne,
   envoisDeLaSemaine: envoisDeLaSemaine, grouper: grouper, sujet: sujet,
-  dejaAnnonce: dejaAnnonce, memoireApres: memoireApres, MEMOIRE_MS: MEMOIRE_MS
+  dejaAnnonce: dejaAnnonce, memoireApres: memoireApres, MEMOIRE_MS: MEMOIRE_MS,
+  aPurger: aPurger, DELAI_CONFIRMATION_MS: DELAI_CONFIRMATION_MS
 };

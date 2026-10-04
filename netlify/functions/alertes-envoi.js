@@ -132,7 +132,20 @@ exports.handler = async () => {
 
   const parMail = new Map(abonnes.map((x) => [x.abonne.mail, x.cle]));
   const s = storeAlertes();
-  let envoyes = 0;
+  let envoyes = 0, purges = 0;
+
+  /* ON TIENT LA PROMESSE DU MESSAGE D'INSCRIPTION. Il dit que sans
+     confirmation, l'inscription s'effacera d'elle-meme : c'est ici que cela se
+     passe. Sans cela on garderait indefiniment l'adresse de quelqu'un qui n'a
+     jamais rien demande, celle d'un tiers inscrit a son insu, ou une adresse
+     mal tapee qui appartient a une autre personne. On efface aussi le jeton,
+     sinon il resterait une entree qui ne pointe plus sur rien. */
+  for (const x of abonnes) {
+    if (!A.aPurger(x.abonne, now)) continue;
+    await s.delete(x.cle).catch(() => {});
+    if (x.abonne.jeton) await s.delete("jeton:" + x.abonne.jeton).catch(() => {});
+    purges++;
+  }
 
   for (const e of envois) {
     try {
@@ -163,5 +176,5 @@ exports.handler = async () => {
     } catch (err) { /* un envoi qui échoue ne doit pas arrêter les autres */ }
   }
 
-  return { statusCode: 200, body: "alertes envoyées: " + envoyes };
+  return { statusCode: 200, body: "alertes envoyées: " + envoyes + ", inscriptions non confirmées effacées: " + purges };
 };
