@@ -239,7 +239,9 @@ test("une réponse du lot 5 n'est pas présentée comme une cause", () => {
   const css = lire("site/animateurs/animateurs.css");
   assert.match(css, /g\.reponse path \{[^}]*stroke-dasharray/);
   // Et la clé de lecture doit exister, sinon le trait discontinu ne dit rien.
-  assert.match(lire("site/animateurs/retours/index.html"), /cle-fleches/);
+  // Elle est désormais construite par le script : le HTML de l'outil n'existe
+  // plus qu'à un seul endroit, les deux pages ne portent qu'un conteneur vide.
+  assert.match(js, /cle-fleches/);
 });
 
 test("cliquer une carte allume bien sa chaîne", () => {
@@ -265,4 +267,53 @@ test("survoler une carte montre où elle mène, sans engager de sélection", () 
   // L'aperçu se tait dès qu'une carte est choisie, sinon deux mises en avant
   // concurrentes se superposent.
   assert.match(js, /if \(cibleN != null\) g\.classList\.remove\('survol'\)/);
+});
+
+/* --- Le HTML de l'outil n'existe qu'a un seul endroit ---------------------
+   Il etait copie dans les deux pages : toute evolution devait etre ecrite deux
+   fois, et il suffisait d'en oublier une pour que les pages divergent sans que
+   rien ne le signale. Ce test est la pour que la copie ne revienne pas. */
+test("l'outil n'est ecrit que dans animateurs.js", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  assert.match(js, /function construireOutil/);
+  for (const page of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
+    const html = lire(page);
+    assert.match(html, /id="fresque-outil"/, page + " doit porter le conteneur");
+    for (const marqueur of ["plateau-sizer", "panneau-corps", 'id="lots"', 'id="panneau"']) {
+      assert.ok(!html.includes(marqueur),
+        page + " ne doit plus contenir « " + marqueur + " » : l'outil est bati par le script");
+    }
+  }
+});
+
+test("les retours sont commandes par data-commentaires, pas par la page", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  assert.match(js, /data-commentaires/);
+  assert.match(lire("site/animateurs/retours/index.html"), /data-commentaires="oui"/);
+  assert.match(lire("site/animateurs/index.html"), /data-commentaires="non"/);
+});
+
+/* Une seule valeur commande la largeur du panneau ET le retrait du plateau.
+   Ecrites deux fois et differemment, elles laissaient une bande vide entre le
+   bord du tableau et le panneau, qui grandissait avec l'ecran. */
+test("la largeur du panneau et le retrait du plateau sortent de la meme valeur", () => {
+  const css = lire("site/animateurs/animateurs.css");
+  assert.match(css, /--panneau-l:/);
+  assert.match(css, /\.panneau \{[^}]*width: var\(--panneau-l\)/);
+  assert.match(css, /margin-right: var\(--panneau-l\)/);
+  // Hors commentaires : l'ancienne valeur y est citee pour expliquer le defaut.
+  const regles = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.ok(!/min\(420px, 40vw\)/.test(regles),
+    "l'ancienne valeur en double ne doit plus etre appliquee");
+});
+
+/* Le champ `explication` est facultatif : les 38 textes restent a ecrire. */
+test("le champ explication est declare et facultatif", () => {
+  const schema = JSON.parse(lire("site/data/cartes.schema.json"));
+  const props = schema.properties.cartes.items.properties;
+  assert.ok(props.explication, "le schema doit declarer explication");
+  assert.ok(!schema.properties.cartes.items.required.includes("explication"),
+    "explication ne doit pas etre obligatoire");
+  assert.match(lire("scripts/valider-cartes.mjs"), /c\.explication !== undefined/);
+  assert.match(lire("site/animateurs/animateurs.js"), /panneau-explication/);
 });

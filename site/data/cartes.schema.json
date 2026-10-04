@@ -19,6 +19,10 @@
           "lot": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
           "titre": { "type": "string", "minLength": 1 },
           "verso": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "explication": {
+            "description": "Facultatif. Paragraphes d'approfondissement affiches dans l'espace animateur-ices, sous le verso. Le verso tient sur une carte imprimee ; ceci n'est lu qu'a l'ecran et peut donc etre plus long.",
+            "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1
+          },
           "image": {
             "type": ["object", "null"],
             "required": ["vignette", "grand"],

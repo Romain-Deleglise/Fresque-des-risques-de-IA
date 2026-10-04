@@ -222,6 +222,77 @@ for (const u of ["/animateurs/", "/animateurs/retours/"]) {
     !(await pg.evaluate(() => !!document.getElementById("zoom-ajuste"))));
 }
 
+/* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
+   Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
+   etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages
+   divergent sans que rien ne le signale. Il n'existe plus qu'une fois, dans
+   animateurs.js, et chaque page ne porte qu'un conteneur vide. */
+console.log("\n--- Un seul outil, deux pages ---");
+for (const f of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
+  const src = fs.readFileSync(path.join(RACINE, f), "utf8");
+  t(f.replace("site/", "") + " ne contient plus le HTML de l'outil",
+    !/plateau-sizer|panneau-corps|id="lots"/.test(src) && /id="fresque-outil"/.test(src));
+}
+
+console.log("\n--- Le selecteur de vue et la vue Cartes ---");
+for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/", false]]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
+  await pg.waitForTimeout(1200);
+  const d = await pg.evaluate(() => ({
+    selecteur: !!document.getElementById("vue-cartes") && !!document.getElementById("vue-fresque"),
+    parDefaut: document.getElementById("vue-fresque").getAttribute("aria-pressed"),
+    grilleCachee: document.getElementById("grille-cartes").hidden,
+    ongletExpl: !!document.getElementById("onglet-expl"),
+    ongletRetours: !!document.getElementById("onglet-retours"),
+    modeCom: !!document.getElementById("mode-commentaires"),
+    pastillesFresque: document.querySelectorAll(".c-carte .pastille").length,
+    zone: Math.round(document.querySelector(".fresque-zone").getBoundingClientRect().width),
+    fenetre: window.innerWidth,
+    deborde: Math.max(0, document.documentElement.scrollWidth - window.innerWidth)
+  }));
+  t(u + " porte le selecteur de vue", d.selecteur);
+  t(u + " ouvre sur la vue Fresque", d.parDefaut === "true" && d.grilleCachee);
+  t(u + " a l'onglet Explications", d.ongletExpl);
+  t(u + (avecRetours ? " a l'onglet Retours" : " n'a PAS d'onglet Retours"), d.ongletRetours === avecRetours);
+  t(u + (avecRetours ? " a le mode commentaires" : " n'a PAS de mode commentaires"), d.modeCom === avecRetours);
+  /* Le plan porte deja numeros, lots et fleches : un chiffre de plus s'y
+     perdait. Le compte se lit sur la vue Cartes et sur l'onglet Retours. */
+  t(u + " n'a aucune pastille sur les cartes de la fresque", d.pastillesFresque === 0, String(d.pastillesFresque));
+  /* La zone prend toute la largeur de la fenetre, sans defilement lateral. */
+  t(u + " : la fresque occupe toute la largeur", d.zone === d.fenetre, d.zone + " / " + d.fenetre);
+  t(u + " : aucun debordement lateral", d.deborde === 0, String(d.deborde));
+
+  // La vue Cartes : 38 cartes, la carte 0 exclue, le zoom sans objet.
+  await pg.click("#vue-cartes");
+  await pg.waitForTimeout(500);
+  const g = await pg.evaluate(() => ({
+    n: document.querySelectorAll(".g-carte").length,
+    zero: !!document.querySelector('.g-carte[data-n="0"]'),
+    ordre: [...document.querySelectorAll(".g-carte")].map((e) => +e.dataset.n),
+    plateauCache: document.getElementById("plateau-cadre").hidden,
+    zoomCache: document.getElementById("zoom-plus").hidden
+  }));
+  t(u + " : 38 cartes en vue Cartes, sans la carte 0", g.n === 38 && !g.zero, String(g.n));
+  t(u + " : par numero croissant", String(g.ordre) === String([...g.ordre].sort((a2, b2) => a2 - b2)));
+  t(u + " : le plateau et le zoom s'effacent", g.plateauCache && g.zoomCache);
+}
+
+/* LE VIDE ENTRE LE TABLEAU ET LE PANNEAU. La largeur du panneau et le retrait
+   du plateau etaient ecrits deux fois, et differemment : au-dela de 1050 px de
+   fenetre, une bande vide s'ouvrait entre les deux et grandissait avec l'ecran. */
+console.log("\n--- Le panneau touche le tableau ---");
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1200);
+await pg.click('.c-carte[data-n="3"]');
+await pg.waitForTimeout(400);
+const vide = await pg.evaluate(() => {
+  const p = document.getElementById("panneau").getBoundingClientRect();
+  const c = document.getElementById("plateau-cadre").getBoundingClientRect();
+  return Math.round(p.left - c.right);
+});
+t("aucun vide entre le bord du tableau et le panneau", vide === 0, vide + " px");
+
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 3).join(" | "));
 
 console.log("\n" + (ko ? "❌" : "✅") + " Espace animateur·ices : " + ok + " verifications reussies, " + ko + " echouees.\n");
