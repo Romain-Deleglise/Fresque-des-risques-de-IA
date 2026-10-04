@@ -8,7 +8,12 @@
      2. aucun message s'il n'y a rien qui la concerne -- pas de « rien cette
         semaine », qui est precisement ce qui fait se desabonner ;
      3. tous les ateliers qui la concernent dans le MEME message : plusieurs en
-        ligne et plusieurs dans sa ville tiennent dans un seul envoi.
+        ligne et plusieurs dans sa ville tiennent dans un seul envoi ;
+     4. un atelier n'est annonce QU'UNE FOIS a la meme personne. Sans cette
+        regle, le plafond hebdomadaire ne protege de rien : un seul atelier
+        programme deux mois a l'avance repartait a chaque tour, et l'abonne
+        recevait huit fois le meme message (mesure : huit mardis, huit envois).
+        On garde donc, par abonne, ce qui lui a deja ete annonce.
 */
 "use strict";
 var C = require("./communes.js");
@@ -24,6 +29,10 @@ var RAYON_DEFAUT = 50;
 // Au-dela, annoncer un atelier n'a plus de sens : personne ne s'inscrit six
 // mois a l'avance, et la liste deviendrait illisible.
 var HORIZON_MS = 60 * 24 * 60 * 60 * 1000;
+/* Memoire des annonces deja faites. On la purge au-dela de l'horizon : un
+   atelier passe depuis longtemps n'a plus a occuper de place, et la fiche d'un
+   abonne ne doit pas grossir indefiniment. */
+var MEMOIRE_MS = HORIZON_MS + 7 * 24 * 60 * 60 * 1000;
 
 function tronque(v, n) { return String(v == null ? "" : v).slice(0, n).trim(); }
 
@@ -118,6 +127,26 @@ function concerne(abonne, a) {
   return miennes.some(function (code) { return C.entre(code, a.commune) <= rayon; });
 }
 
+/* DEJA ANNONCE ? La memoire est un objet { CODE: quandMs annonce }. On garde
+   l'instant de l'atelier au moment de l'annonce, et pas un simple « oui » :
+   un atelier REPROGRAMME est une information neuve, qui doit repartir. */
+function dejaAnnonce(abonne, a) {
+  var m = (abonne && abonne.annonces) || {};
+  var vu = m[String(a.code || "")];
+  if (vu == null) return false;
+  return Number(vu) === Number(a.quandMs);
+}
+
+/* La memoire apres un envoi, purgee de ce qui est trop vieux pour servir. */
+function memoireApres(abonne, ateliers, now) {
+  var m = {}, ancien = (abonne && abonne.annonces) || {};
+  Object.keys(ancien).forEach(function (code) {
+    if (now - Number(ancien[code]) < MEMOIRE_MS) m[code] = Number(ancien[code]);
+  });
+  (ateliers || []).forEach(function (a) { if (a && a.code) m[String(a.code)] = Number(a.quandMs); });
+  return m;
+}
+
 /* Ce qu'on envoie cette semaine. Rend un tableau { abonne, ateliers }, sans
    aucune entree vide : un abonne sans atelier ne recoit rien du tout. */
 function envoisDeLaSemaine(abonnes, ateliers, now) {
@@ -128,7 +157,7 @@ function envoisDeLaSemaine(abonnes, ateliers, now) {
     // Le plafond d'un message par semaine est absolu : il ne depend ni du
     // nombre d'ateliers ni de l'enthousiasme du moment.
     if (now - (ab.dernierEnvoi || 0) < SEMAINE_MS) return;
-    var pour = ouverts.filter(function (a) { return concerne(ab, a); });
+    var pour = ouverts.filter(function (a) { return concerne(ab, a) && !dejaAnnonce(ab, a); });
     if (!pour.length) return;
     // Par date : la personne lit d'abord ce qui arrive le plus tot.
     pour.sort(function (x, y) { return Number(x.quandMs) - Number(y.quandMs); });
@@ -150,6 +179,14 @@ function grouper(ateliers) {
     }
     index[cle].ateliers.push(a);
   });
+  /* LA CHRONOLOGIE PRIME SUR LE GROUPEMENT. Grouper par ville sans retrier
+     mettait l'atelier de lundi prochain sous celui du mois suivant, parce que
+     sa ville venait plus loin dans la liste. Chaque groupe est donc classe par
+     date, et les groupes entre eux par leur atelier le plus proche. */
+  var tot = function (l) { return Math.min.apply(null, l.map(function (a) { return Number(a.quandMs); })); };
+  enligne.sort(function (x, y) { return Number(x.quandMs) - Number(y.quandMs); });
+  villes.forEach(function (v) { v.ateliers.sort(function (x, y) { return Number(x.quandMs) - Number(y.quandMs); }); });
+  villes.sort(function (x, y) { return tot(x.ateliers) - tot(y.ateliers); });
   return { enligne: enligne, villes: villes };
 }
 
@@ -170,5 +207,6 @@ module.exports = {
   RAYONS: RAYONS, RAYON_DEFAUT: RAYON_DEFAUT, MAX_COMMUNES: MAX_COMMUNES,
   normaliser: normaliser, mailValide: mailValide,
   validerAbonnement: validerAbonnement, annoncable: annoncable, concerne: concerne,
-  envoisDeLaSemaine: envoisDeLaSemaine, grouper: grouper, sujet: sujet
+  envoisDeLaSemaine: envoisDeLaSemaine, grouper: grouper, sujet: sujet,
+  dejaAnnonce: dejaAnnonce, memoireApres: memoireApres, MEMOIRE_MS: MEMOIRE_MS
 };

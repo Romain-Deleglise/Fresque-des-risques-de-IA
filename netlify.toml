@@ -73,7 +73,11 @@
 # (leur departement et/ou le distanciel, selon leur choix) et jamais plus d'un
 # message par semaine et par personne. Rien a annoncer = aucun e-mail envoye.
 [functions."alertes-envoi"]
-  schedule = "0 9 * * 2"
+  # Mardi matin. Netlify planifie en UTC et n'accepte pas de fuseau : 7h UTC
+  # donne 8h a Paris en hiver et 9h en ete. On vise le creneau ou le message
+  # est lu le matin dans les deux cas, plutot que 9h UTC, qui derivait jusqu'a
+  # 11h a Paris en ete, en plein milieu de matinee.
+  schedule = "0 7 * * 2"
 
 # SURVEILLANCE : toutes les 15 min, verifie que le service de sessions repond et
 # que son ecriture conditionnelle est operante, et que le relais temps reel

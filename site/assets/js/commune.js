@@ -152,5 +152,20 @@
     return { valeur: function () { return choisie; }, vider: function () { input.value = ""; choisie = null; fermer(); } };
   }
 
-  window.Commune = { attacher: attacher, etiquette: etiquette, charger: charger };
+  /* Des codes INSEE vers des noms lisibles. Sert au formulaire quand il
+     repose les preferences enregistrees : le serveur ne renvoie que des codes,
+     et « 69123 » ne dit rien a personne. On relit la meme table que la
+     recherche, deja chargee la plupart du temps. */
+  function nommer(codes, base) {
+    return charger(base).then(function () {
+      var out = {};
+      (codes || []).forEach(function (code) {
+        var c = LISTE.filter(function (x) { return x.code === code; })[0];
+        if (c) out[code] = etiquette(c);
+      });
+      return out;
+    });
+  }
+
+  window.Commune = { attacher: attacher, etiquette: etiquette, charger: charger, nommer: nommer };
 })();

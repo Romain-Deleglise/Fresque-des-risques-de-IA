@@ -689,6 +689,10 @@ a.btn, a.btn:hover { text-decoration: none; }
 .ateliers-vide { grid-column: 1 / -1; }
 .ateliers-vide p { margin: 0 0 .7rem; }
 .atelier-carte { border: 1px solid var(--ligne); border-radius: 14px; padding: 1.2rem 1.3rem; background: var(--surface); display: flex; flex-direction: column; gap: .35rem; }
+/* L'ATELIER DESIGNE PAR UN E-MAIL D'ANNONCE. Le lien amene jusqu'ici ; encore
+   faut-il voir lequel des ateliers de la liste on est venu chercher. Un
+   contour, pas un fond : la carte garde sa lisibilite et son contraste. */
+.atelier-carte.atelier-vise { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-doux); }
 .atelier-tete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .2rem; }
 .atelier-mode { font-family: var(--f-ui); font-weight: 600; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-txt-fort); background: var(--accent-doux); border-radius: 999px; padding: .2em .7em; }
 .atelier-places { font-family: var(--f-ui); font-size: .82rem; color: var(--gris); }

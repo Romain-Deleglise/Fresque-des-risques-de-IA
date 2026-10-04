@@ -131,6 +131,13 @@ async function envoi(m) {
   if (m.cc && [].concat(m.cc).filter(Boolean).length) corps.cc = [].concat(m.cc).filter(Boolean);
   if (m.bcc && [].concat(m.bcc).filter(Boolean).length) corps.bcc = [].concat(m.bcc).filter(Boolean);
   if (c.replyTo) corps.reply_to = c.replyTo;
+  /* EN-TETES BRUTS. Sert au desabonnement en un clic (RFC 8058) des envois
+     recurrents : sans `List-Unsubscribe`, Gmail et Yahoo n'affichent pas leur
+     bouton « Se desabonner », et la seule sortie visible depuis la boite de
+     reception devient « Signaler comme spam ». C'est exactement ce que le
+     service cherche a eviter : un signalement abime la reputation du domaine
+     pour tous les autres envois, y compris les confirmations d'inscription. */
+  if (m.headers && Object.keys(m.headers).length) corps.headers = m.headers;
   try {
     var r = await fetch("https://api.resend.com/emails", {
       method: "POST",

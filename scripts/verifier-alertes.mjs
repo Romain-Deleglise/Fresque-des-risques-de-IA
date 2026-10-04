@@ -60,7 +60,10 @@ await pg.route("**/.netlify/functions/alertes**", async (route) => {
   if (r.method() === "POST") {
     envoye = JSON.parse(r.postData() || "{}");
     await route.fulfill({ status: 200, contentType: "application/json",
-      body: JSON.stringify({ ok: true, jeton: "jeton-de-banc-0123456", miseAJour: false }) });
+      /* La vraie fonction repond desormais `aConfirmer` sur une inscription
+         neuve : tant que le lien recu par e-mail n'est pas ouvert, rien ne
+         part. Le banc doit donc voir la meme chose que le visiteur. */
+      body: JSON.stringify({ ok: true, miseAJour: false, aConfirmer: true, mailEnvoye: true }) });
   } else if (new URL(r.url()).searchParams.get("d")) {
     desabonne = true;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, desabonne: true }) });
@@ -139,6 +142,13 @@ t("le bloc des communes disparait",
 m = await envoyer();
 t("l'abonnement part sans commune", !!envoye && envoye.format === "enligne"
   && (envoye.communes || []).length === 0, JSON.stringify(envoye));
+
+/* Ce que la page dit apres l'envoi. « C'est note » laissait croire que tout
+   etait fini, alors qu'il reste le clic de confirmation : c'est precisement
+   l'attente sans fin qu'un participant avait prise pour une panne. */
+t("la page dit qu'il reste a confirmer par e-mail",
+  /confirmation|Presque fini/i.test(await pg.evaluate(() => document.getElementById("alertes-msg").textContent || "")),
+  await pg.evaluate(() => document.getElementById("alertes-msg").textContent || ""));
 
 console.log("\n--- Le desabonnement ---");
 await pg.goto(B + "/alertes/?d=jeton-de-banc-0123456", { waitUntil: "networkidle" });

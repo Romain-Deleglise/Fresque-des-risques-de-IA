@@ -138,3 +138,8 @@ jobs:
       # mesurerait une mise en page que personne ne voit).
       - name: Verifier le rythme vertical des pages
         run: node scripts/verifier-rythme.mjs
+
+      # L'apres-inscription des alertes : confirmation, annonce, non-repetition,
+      # desabonnement en un clic. Sur les vraies fonctions, pas sur un bouchon.
+      - name: Verifier le parcours complet des alertes
+        run: node scripts/verifier-parcours-alertes.cjs
