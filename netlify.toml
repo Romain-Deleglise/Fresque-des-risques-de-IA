@@ -14,6 +14,17 @@
 #   - AUDIENCE_KEY (optionnel) : si défini, protège la lecture de /stats/ par cette clé.
 [functions]
   node_bundler = "esbuild"
+  # LES DONNEES DES COMMUNES VOYAGENT AVEC LE CODE. esbuild n'embarque que ce
+  # qui est `require`, jamais un fichier ouvert par `fs.readFileSync` : sans
+  # cette declaration les deux tables partaient en developpement et nulle part
+  # ailleurs. Huit fonctions sur seize en dependent, d'ou une declaration
+  # globale plutot qu'une liste a tenir a jour, qu'on oublierait.
+  # Ce que leur absence donnait, mesure : « Enregistrement impossible » sur le
+  # premier abonnement « pres de chez moi », puis, le conteneur restant chaud,
+  # « Choisissez au moins une commune dans la liste » alors qu'une commune
+  # etait bien choisie. La saisie, elle, marchait : le navigateur lit
+  # communes.txt comme fichier statique du site, servi par le CDN.
+  included_files = ["site/data/communes.txt", "serveur/src/communes-coords.txt"]
 
 # Programmation d'ateliers + inscriptions (fonction ateliers) et envoi d'e-mails
 # transactionnels (Resend). Variables d'environnement a definir dans Netlify :
