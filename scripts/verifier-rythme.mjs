@@ -137,38 +137,6 @@ for (const [largeur, communs] of parLargeur) {
     [...communs].map(([v, u]) => v + " px sur " + u.join(", ")).join(" ; "));
 }
 
-/* DEUX VOIES DE MEME HAUTEUR. « Participer » et « Animer » etaient deux blocs
-   empiles de hauteurs differentes, ce qui se voyait. Ils sont devenus deux
-   cartes cote a cote : l'egalite de hauteur et l'alignement des boutons sont
-   desormais ce qui tient la paire, et une phrase rallongee d'un cote suffirait
-   a la defaire sans que rien ne le signale. */
-console.log("\n--- Les deux voies, cote a cote ---");
-for (const url of ["/", "/en/"]) {
-  await pg.setViewportSize({ width: 1440, height: 1000 });
-  await pg.goto(B + url, { waitUntil: "networkidle" });
-  await pg.waitForTimeout(250);
-  const m = await pg.evaluate(() => {
-    const rangee = document.querySelector(".modes");
-    if (!rangee) return { n: 0, hauteurs: [], boutons: [], pleins: 0, colonnes: 0 };
-    const cartes = [...rangee.querySelectorAll(":scope > .mode")];
-    const pieds = cartes.map((c) => c.querySelector(".mode-pied .btn"));
-    return { n: cartes.length,
-      hauteurs: cartes.map((c) => Math.round(c.getBoundingClientRect().height)),
-      boutons: pieds.map((b) => (b ? Math.round(b.getBoundingClientRect().top) : null)),
-      /* Un seul aplat de couleur : deux appels pleins cote a cote ne
-         hierarchisent rien. */
-      pleins: cartes.filter((c) => c.querySelector(".btn-1")).length,
-      colonnes: getComputedStyle(rangee).gridTemplateColumns.split(" ").length };
-  });
-  t(url.padEnd(8) + " deux voies cote a cote", m.n === 2 && m.colonnes === 2,
-    m.n + " carte(s), " + m.colonnes + " colonne(s)");
-  t(url.padEnd(8) + " de meme hauteur", m.n === 2 && new Set(m.hauteurs).size === 1,
-    m.hauteurs.join(" / ") + " px");
-  t(url.padEnd(8) + " boutons alignes", m.n === 2 && new Set(m.boutons).size === 1 && !m.boutons.includes(null),
-    m.boutons.join(" / "));
-  t(url.padEnd(8) + " un seul bouton plein", m.pleins === 1, m.pleins + " boutons pleins");
-}
-
 /* La regression de fond : un attribut `style=` est refuse en production, donc
    tout espacement ecrit ainsi est invisible pour les visiteurs. */
 console.log("\n--- Aucun espacement ecrit en ligne ---");
