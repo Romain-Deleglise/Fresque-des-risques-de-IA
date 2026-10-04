@@ -18,22 +18,63 @@ var path = require("path");
 
 var NOMS = null, POS = null;
 
+/* OU SONT LES FICHIERS. Deux dispositions, et le code doit tenir les deux :
+   dans le depot, ce module est a serveur/src/ et les tables sont au-dessus ;
+   une fois deploye, esbuild a replie tout le code en un seul fichier et
+   `included_files` (voir netlify.toml) a recopie les tables en gardant leur
+   chemin depuis la racine du depot, a cote de ce fichier plie. `__dirname` ne
+   designe donc plus la meme chose des deux cotes. Plutot que de deviner, on
+   essaie les emplacements possibles et on prend le premier qui existe. */
+function trouver(candidats) {
+  for (var i = 0; i < candidats.length; i++) {
+    try { if (fs.existsSync(candidats[i])) return candidats[i]; } catch (e) { /* on continue */ }
+  }
+  var e2 = new Error("Table des communes introuvable. Cherchee a : " + candidats.join(", ")
+    + ". Si ce message apparait en production, c'est que `included_files` ne couvre plus ces"
+    + " fichiers dans netlify.toml.");
+  e2.code = "COMMUNES_ABSENTES";
+  throw e2;
+}
+
+/* CHARGEMENT TOUT OU RIEN. La version precedente posait `NOMS = {}` AVANT de
+   lire les fichiers : des que la lecture echouait, le `if (NOMS) return` du
+   dessus voyait une table non nulle et la croyait chargee. Le module restait
+   alors empoisonne avec une table VIDE pour toute la duree du conteneur, et
+   `valide()` repondait « non » a toutes les communes de France. Cote visiteur
+   cela donnait « Choisissez au moins une commune dans la liste » alors qu'une
+   commune etait bien choisie : un defaut qui accuse l'utilisateur d'une panne
+   du serveur. On construit donc a cote, et on ne publie qu'une fois les deux
+   tables completes ; un echec laisse NOMS a null, donc reessaye au coup
+   suivant au lieu de mentir indefiniment. */
 function charger() {
   if (NOMS) return;
-  NOMS = Object.create(null);
-  POS = Object.create(null);
-  var l = fs.readFileSync(path.join(__dirname, "..", "..", "site", "data", "communes.txt"), "utf8");
-  l.split("\n").forEach(function (ligne) {
+  var noms = Object.create(null);
+  var pos = Object.create(null);
+
+  var fNoms = trouver([
+    path.join(__dirname, "..", "..", "site", "data", "communes.txt"),
+    path.join(process.cwd(), "site", "data", "communes.txt"),
+    path.join(__dirname, "site", "data", "communes.txt")
+  ]);
+  fs.readFileSync(fNoms, "utf8").split("\n").forEach(function (ligne) {
     if (!ligne) return;
     var p = ligne.split(";");
-    NOMS[p[0]] = { nom: p[1], cp: p[2] || "", rayon: Number(p[3]) || 50 };
+    noms[p[0]] = { nom: p[1], cp: p[2] || "", rayon: Number(p[3]) || 50 };
   });
-  var g = fs.readFileSync(path.join(__dirname, "communes-coords.txt"), "utf8");
-  g.split("\n").forEach(function (ligne) {
+
+  var fPos = trouver([
+    path.join(__dirname, "communes-coords.txt"),
+    path.join(process.cwd(), "serveur", "src", "communes-coords.txt"),
+    path.join(__dirname, "serveur", "src", "communes-coords.txt")
+  ]);
+  fs.readFileSync(fPos, "utf8").split("\n").forEach(function (ligne) {
     if (!ligne) return;
     var p = ligne.split(";");
-    POS[p[0]] = [Number(p[1]), Number(p[2])];
+    pos[p[0]] = [Number(p[1]), Number(p[2])];
   });
+
+  NOMS = noms;
+  POS = pos;
 }
 
 function normaliserCode(v) {

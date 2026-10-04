@@ -84,7 +84,21 @@ exports.handler = async (event) => {
   // Champ piege, comme sur les formulaires de retour.
   if (String(corps.site || "").trim()) return json(200, { ok: true });
 
-  const v = A.validerAbonnement(corps, Date.now());
+  /* UNE PANNE DU SERVEUR NE DOIT PAS SE DEGUISER EN FAUTE DU VISITEUR. La
+     validation touche la table des communes, qui est lue sur le disque : si
+     elle manque, l'exception remontait telle quelle et Netlify renvoyait un
+     500 au corps technique, que la page traduisait par « Enregistrement
+     impossible. ». On distingue donc ce cas, on le journalise pour qu'il soit
+     visible cote exploitation, et on le dit franchement. */
+  let v;
+  try { v = A.validerAbonnement(corps, Date.now()); }
+  catch (e) {
+    if (e && e.code === "COMMUNES_ABSENTES") {
+      console.error("[alertes] table des communes absente du paquet : " + e.message);
+      return json(503, { erreur: "Le service est momentanément indisponible, le temps que nous le remettions en route. Réessayez dans un moment, ou écrivez-nous à contact@pauseia.fr." });
+    }
+    throw e;
+  }
   if (v.erreur) return json(400, { erreur: v.erreur });
 
   if (await debitDepasse(ip(event))) {
