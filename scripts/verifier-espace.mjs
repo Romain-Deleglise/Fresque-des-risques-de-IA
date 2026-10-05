@@ -248,6 +248,13 @@ for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/",
     modeCom: !!document.getElementById("mode-commentaires"),
     pastillesFresque: document.querySelectorAll(".c-carte .pastille").length,
     zone: Math.round(document.querySelector(".fresque-zone").getBoundingClientRect().width),
+    /* On mesure le premier CONTROLE de la barre, pas la boite de la barre :
+       c'est lui qui paraissait sortir du cadre en touchant le bord. */
+    gouttiere: (() => {
+      const z = document.querySelector(".fresque-zone").getBoundingClientRect();
+      const c = document.querySelector(".barre-g > *, .apercu-barre .barre-g > *");
+      return c ? Math.round(c.getBoundingClientRect().left - z.left) : 0;
+    })(),
     fenetre: window.innerWidth,
     deborde: Math.max(0, document.documentElement.scrollWidth - window.innerWidth)
   }));
@@ -255,6 +262,48 @@ for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/",
   t(u + " ouvre sur la vue Fresque", d.parDefaut === "true" && d.grilleCachee);
   t(u + " a l'onglet Explications", d.ongletExpl);
   t(u + (avecRetours ? " a l'onglet Retours" : " n'a PAS d'onglet Retours"), d.ongletRetours === avecRetours);
+  /* LES ONGLETS N'ONT DE SENS QU'EN MODE COMMENTAIRES. Sans lui le panneau n'a
+     qu'un contenu : deux onglets dont un seul sert annoncent une fausse
+     promesse. Ils disparaissent alors, la croix de fermeture reste. */
+  /* A cet endroit la vue Fresque est encore active : on ouvre une carte du
+     plateau. Le panneau doit etre ferme avant, sinon il intercepte le clic. */
+  const ouvrirCarte = async () => {
+    /* Clic par le DOM : le panneau est en position fixe et recouvre une partie
+       du plateau, donc un clic geometrique vise parfois le panneau lui-meme.
+       Ce n'est pas ce qu'on teste ici. */
+    await pg.evaluate(() => {
+      const p = document.getElementById("panneau");
+      if (p && !p.hidden) document.getElementById("panneau-fermer").click();
+      document.querySelector('.c-carte[data-n="3"]').click();
+    });
+    await pg.waitForTimeout(350);
+  };
+  await ouvrirCarte();
+  const sansCom = await pg.evaluate(() => {
+    const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
+    return { expl: vu("onglet-expl"), ret: vu("onglet-retours"), croix: vu("panneau-fermer"), volet: vu("volet-expl") };
+  });
+  t(u + " : aucun onglet hors mode commentaires", !sansCom.expl && !sansCom.ret, JSON.stringify(sansCom));
+  t(u + " : la croix et les explications restent", sansCom.croix && sansCom.volet, JSON.stringify(sansCom));
+  if (avecRetours) {
+    await pg.evaluate(() => {
+      document.getElementById("panneau-fermer").click();
+      const c = document.getElementById("mode-commentaires");
+      c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await pg.waitForTimeout(150);
+    await ouvrirCarte();
+    const avecCom = await pg.evaluate(() => {
+      const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
+      return { expl: vu("onglet-expl"), ret: vu("onglet-retours") };
+    });
+    t(u + " : les onglets apparaissent en mode commentaires", avecCom.expl && avecCom.ret, JSON.stringify(avecCom));
+    await pg.evaluate(() => {
+      const c = document.getElementById("mode-commentaires");
+      c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+  await pg.evaluate(() => { const p = document.getElementById("panneau"); if (p && !p.hidden) document.getElementById("panneau-fermer").click(); });
   t(u + (avecRetours ? " a le mode commentaires" : " n'a PAS de mode commentaires"), d.modeCom === avecRetours);
   /* Le plan porte deja numeros, lots et fleches : un chiffre de plus s'y
      perdait. Le compte se lit sur la vue Cartes et sur l'onglet Retours. */
@@ -262,6 +311,19 @@ for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/",
   /* La zone prend toute la largeur de la fenetre, sans defilement lateral. */
   t(u + " : la fresque occupe toute la largeur", d.zone === d.fenetre, d.zone + " / " + d.fenetre);
   t(u + " : aucun debordement lateral", d.deborde === 0, String(d.deborde));
+  /* ET SON CONTENU NE TOUCHE PAS LES BORDS. Sans gouttiere, le zoom et les
+     filtres se collaient au bord de l'ecran et paraissaient sortir du cadre. */
+  t(u + " : la barre d'outils garde une gouttiere", d.gouttiere >= 12, d.gouttiere + " px");
+  /* `50vw` compte la barre de defilement, `50%` ne la compte pas : sans la
+     mesurer, la zone depassait d'une demi-barre de chaque cote. */
+  const bar = await pg.evaluate(() => {
+    const avant = document.querySelector(".fresque-zone").getBoundingClientRect().width;
+    document.documentElement.style.setProperty("--barre-defilement", "16px");
+    const apres = document.querySelector(".fresque-zone").getBoundingClientRect().width;
+    document.documentElement.style.removeProperty("--barre-defilement");
+    return Math.round(avant - apres);
+  });
+  t(u + " : la largeur de la barre de defilement est prise en compte", bar === 16, bar + " px de retrait pour 16");
 
   // La vue Cartes : 38 cartes, la carte 0 exclue, le zoom sans objet.
   await pg.click("#vue-cartes");

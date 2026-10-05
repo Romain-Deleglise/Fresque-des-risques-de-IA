@@ -72,7 +72,7 @@
     placeholderLien: 'The direction is reversed, the label is unclear…',
     votrePrenom: 'Your first name', envoyer: 'Send',
     aideGrille: 'Click a card to read it. Filter by batch or search above.',
-    lienAvecCarte: 'Link with card'
+    lienAvecCarte: 'Link with card', numeroCarte: 'Card'
   } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
@@ -111,7 +111,7 @@
     placeholderLien: 'Le sens est inversé, le libellé est ambigu…',
     votrePrenom: 'Votre prénom', envoyer: 'Envoyer',
     aideGrille: 'Cliquez une carte pour la lire. Filtrez par lot ou cherchez ci-dessus.',
-    lienAvecCarte: 'Lien avec la carte'
+    lienAvecCarte: 'Lien avec la carte', numeroCarte: 'Carte'
   };
 
   /* ── L'OUTIL, CONSTRUIT UNE SEULE FOIS ────────────────────
@@ -142,14 +142,16 @@
     h.push('<label class="recherche"><span class="visuellement-cache" id="recherche-label">'
       + T.chercherCarte + '</span><input type="search" id="recherche" placeholder="' + T.chercherCarte
       + '…" aria-labelledby="recherche-label" autocomplete="off"></label>');
-    /* SELECTEUR DE VUE. Deux boutons plutot qu'une liste deroulante : il n'y a
-       que deux positions, et on doit voir laquelle est active sans l'ouvrir. */
+    h.push('</div>');
+    h.push('<div class="barre-d">');
+    /* SELECTEUR DE VUE, A DROITE. Deux boutons plutot qu'une liste deroulante :
+       il n'y a que deux positions, et on doit voir laquelle est active sans
+       l'ouvrir. A droite parce qu'il commande ce qu'on regarde, alors que la
+       gauche rassemble ce qui agit sur l'affichage en cours (zoom, recherche). */
     h.push('<div class="vues" role="group" aria-label="' + T.choixVue + '">');
     h.push('<button type="button" class="btn-vue" id="vue-cartes" aria-pressed="false">' + T.vueCartes + '</button>');
     h.push('<button type="button" class="btn-vue est-active" id="vue-fresque" aria-pressed="true">' + T.vueFresque + '</button>');
     h.push('</div>');
-    h.push('</div>');
-    h.push('<div class="barre-d">');
     if (avecRetours) {
       h.push('<label class="bascule"><input type="checkbox" id="mode-commentaires"><span>'
         + T.modeCommentaires + '</span></label>');
@@ -181,7 +183,7 @@
     /* Le panneau est DANS la zone : hors de l'element passe en plein ecran, le
        navigateur ne le dessine pas, et cliquer une carte ne montrait plus rien. */
     h.push('<aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">');
-    h.push('<div class="panneau-onglets" role="tablist">');
+    h.push('<div class="panneau-onglets" id="panneau-onglets" role="tablist">');
     h.push('<button type="button" class="onglet est-actif" id="onglet-expl" role="tab" aria-selected="true" aria-controls="volet-expl">'
       + T.ongletExpl + '</button>');
     if (avecRetours) {
@@ -560,6 +562,7 @@
 
     // On revient toujours sur « Explications » : c'est ce qu'on vient lire.
     choisirOnglet('expl');
+    majOnglets();
     majOngletNb(n);
 
     /* UNE REPONSE N'ENTRAINE PAS SON RISQUE. Les fleches partant du lot 5
@@ -940,6 +943,21 @@
     if (!surCartes) ajuster();
   }
 
+  /* LES ONGLETS N'APPARAISSENT QUE S'IL Y A DEUX CHOSES A LIRE. Sans le mode
+     commentaires -- toujours sur l'accueil, et par defaut sur la page Retours --
+     le panneau n'a qu'un contenu : le verso, les explications et les liens. Deux
+     onglets dont l'un est seul a servir n'annoncent qu'une fausse promesse. On
+     les retire alors, et la croix de fermeture reste a sa place. */
+  function majOnglets() {
+    var avecOnglets = avecRetours && modeCom;
+    var barre = $('panneau-onglets');
+    if (barre) barre.classList.toggle('sans-onglets', !avecOnglets);
+    ['onglet-expl', 'onglet-retours'].forEach(function (id) {
+      if ($(id)) $(id).hidden = !avecOnglets;
+    });
+    if (!avecOnglets) choisirOnglet('expl');
+  }
+
   /* ── PANNEAU : DEUX ONGLETS ─────────────────────────────────
      Le panneau melait le verso, les liens, les retours et leur formulaire en
      une seule colonne qu'il fallait parcourir en entier. Deux onglets : ce
@@ -969,6 +987,19 @@
     var hote = $('fresque-outil');
     if (!hote) return;
     avecRetours = construireOutil(hote);
+
+    /* LA LARGEUR DE LA BARRE DE DEFILEMENT, MESUREE. La zone sort de sa colonne
+       pour prendre toute la fenetre, ce qui se calcule en `vw` -- or `vw`
+       compte la barre de defilement et `%` ne la compte pas. Sans cette
+       mesure, la zone depassait d'une demi-barre de chaque cote et la barre
+       d'outils etait rognee a gauche. Zero quand la barre se superpose au
+       contenu, ce qui est le cas sur telephone. */
+    var majBarre = function () {
+      var l = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty('--barre-defilement', (l > 0 ? l : 0) + 'px');
+    };
+    majBarre();
+    window.addEventListener('resize', majBarre);
 
     var attente = $('chargement');
     charger().then(function () {
@@ -1046,6 +1077,7 @@
 
   on('mode-commentaires', 'change', function () {
     modeCom = this.checked;
+    majOnglets();
     $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
     if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
   });

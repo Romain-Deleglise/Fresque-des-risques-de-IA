@@ -607,15 +607,36 @@
 .fresque-zone { position: relative; }
 /* PLEINE LARGEUR DE FENETRE, hors de la colonne de lecture. Une fresque de
    38 cartes etouffait dans les 1120 px de `.wrap`, alors que le plein ecran,
-   lui, lui donnait tout. Les deux pages s'alignent donc sur le plein ecran.
-   `overflow-x: clip` et non `hidden` sur le parent : 50vw compte la barre de
-   defilement, donc la zone deborde d'une poignee de pixels qu'il faut couper,
-   et `clip` le fait SANS creer de conteneur de defilement, qui casserait le
-   positionnement colle de l'en-tete. */
-.fresque-zone { margin-inline: calc(50% - 50vw); }
-.apercu, .section:has(#fresque-outil) { overflow-x: clip; }
-/* En plein ecran la zone EST la fenetre : la deborder n'aurait pas de sens. */
-.fresque-zone:fullscreen { margin-inline: 0; }
+   lui, lui donnait tout.
+
+   ON ELARGIT LE CONTENEUR, ON NE FAIT PLUS SORTIR LA ZONE. La premiere version
+   tirait la zone hors de sa colonne avec `margin-inline: calc(50% - 50vw)`.
+   Or `50vw` compte la barre de defilement : chez qui en a une visible, la zone
+   depassait de quelques pixels de chaque cote et la barre d'outils se trouvait
+   rognee a gauche. En elargissant le conteneur, il n'y a plus de calcul en
+   `vw`, donc plus de decalage possible.
+
+   ET UNE GOUTTIERE. La zone prend toute la largeur, mais son CONTENU ne doit
+   pas toucher les bords de l'ecran : sans cette marge, le zoom et les filtres
+   se collaient au bord, et paraissaient sortir du cadre. */
+/* `50vw` compte la barre de defilement, pas `50%`. L'ecart valait donc une
+   demi-barre de chaque cote, et la barre d'outils se trouvait rognee a gauche
+   chez qui a une barre visible. On la MESURE (animateurs.js la pose dans
+   --barre-defilement) au lieu de l'ignorer. Elargir le conteneur serait plus
+   simple, mais emporterait le texte de la page hors de sa colonne de lecture. */
+.fresque-zone { margin-inline: calc(50% - 50vw + (var(--barre-defilement, 0px) / 2)); }
+/* LA GOUTTIERE VA SUR L'EN-TETE, PAS SUR LA ZONE. Posee sur la zone, elle
+   eloignait aussi le PLATEAU de son bord droit, et rouvrait les 26 px de vide
+   entre le tableau et le panneau qu'on venait de fermer. Le plateau et la
+   grille gardent donc toute la largeur ; seuls les elements qui se lisent
+   comme du texte prennent une marge. */
+.fresque-zone > .barre,
+.fresque-zone > .apercu-barre,
+.fresque-zone > .lots,
+.fresque-zone > .cle-fleches,
+.fresque-zone > .barre-aide,
+.fresque-zone > .etat { padding-inline: clamp(1rem, 2vw, 1.75rem); }
+.grille-cartes { padding-inline: clamp(1rem, 2vw, 1.75rem); }
 .fresque-zone:fullscreen {
   background: var(--bg); padding: .8rem 1rem; overflow: hidden;
   display: flex; flex-direction: column;
@@ -738,3 +759,9 @@
 /* « Qu'est-ce qui pose problème dans ce lien ? », rattaché à sa flèche. */
 .retours .texte-lien { margin-top: .4rem; font-size: .92rem; color: var(--ink-doux, var(--gris)); }
 .retours .quoi-lien { font-family: var(--f-ui); font-weight: 600; color: var(--accent-txt); }
+
+/* Panneau sans onglets : il ne reste que la croix. La barre perd alors son
+   fond et sa bordure, qui n'encadraient que les onglets, et se réduit à ce
+   qu'il faut pour poser la croix en haut à droite. */
+.panneau-onglets.sans-onglets { background: none; border-bottom: 0; padding: 0; }
+.panneau-onglets.sans-onglets .panneau-fermer { position: absolute; top: .5rem; right: .5rem; }
