@@ -24,7 +24,10 @@
   # « Choisissez au moins une commune dans la liste » alors qu'une commune
   # etait bien choisie. La saisie, elle, marchait : le navigateur lit
   # communes.txt comme fichier statique du site, servi par le CDN.
-  included_files = ["site/data/communes.txt", "serveur/src/communes-coords.txt"]
+  # cartes.json rejoint la liste : la fonction des brouillons doit lire le texte
+  # d'origine pour n'enregistrer que ce qui change vraiment, et pour rendre un
+  # fichier complet au moment de publier.
+  included_files = ["site/data/communes.txt", "serveur/src/communes-coords.txt", "site/data/cartes.json"]
 
 # Programmation d'ateliers + inscriptions (fonction ateliers) et envoi d'e-mails
 # transactionnels (Resend). Variables d'environnement a definir dans Netlify :

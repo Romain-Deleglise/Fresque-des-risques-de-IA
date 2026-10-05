@@ -153,3 +153,13 @@ jobs:
         run: python3 -m pip install --quiet Pillow
       - name: Verifier que la planche d'impression est generable
         run: node scripts/generer-planche-pdf.mjs --verifier
+
+      # Les brouillons de cartes : un texte non relu ne doit pas fuiter, et
+      # publier ne doit rien perdre du fichier d'origine.
+      - name: Verifier les brouillons de cartes
+        run: node scripts/verifier-brouillons.cjs
+
+      # Le bloc d'edition ecrit dans un texte publie : il ne doit pas apparaitre
+      # sans jeton, ni pre-remplir le texte d'origine quand un brouillon attend.
+      - name: Verifier l'edition des cartes depuis le panneau
+        run: node scripts/verifier-edition.mjs

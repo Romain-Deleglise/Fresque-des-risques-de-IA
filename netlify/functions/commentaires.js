@@ -91,7 +91,7 @@ exports.handler = async (event) => {
   catch { return json(400, { erreur: "Requête illisible." }); }
 
   // ── Modération ───────────────────────────────────────────────
-  if (corps.action === "valider" || corps.action === "supprimer") {
+  if (corps.action === "valider" || corps.action === "supprimer" || corps.action === "traiter") {
     if (!memeJeton(corps.jeton, process.env.ADMIN_TOKEN || "")) {
       return json(403, { erreur: "Jeton incorrect." });
     }
@@ -104,9 +104,12 @@ exports.handler = async (event) => {
     }
     const v = await s.get(corps.cle, { type: "json" }).catch(() => null);
     if (!v) return json(404, { erreur: "Ce retour n’existe plus." });
-    v.valide = true;
+    /* « Pris en compte » bascule, pour pouvoir se dedire : on se trompe aussi
+       en marquant traite un retour qu'on n'a pas fini de traiter. */
+    if (corps.action === "traiter") v.traite = !v.traite;
+    else v.valide = true;
     await s.setJSON(corps.cle, v);
-    return json(200, { ok: true });
+    return json(200, { ok: true, traite: !!v.traite });
   }
 
   // ── Dépôt d'un retour ────────────────────────────────────────

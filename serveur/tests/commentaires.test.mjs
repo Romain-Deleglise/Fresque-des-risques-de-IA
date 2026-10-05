@@ -185,3 +185,13 @@ test("le lien et son texte sont visibles par ceux qui lisent les retours", () =>
   assert.equal(pub.lienTexte, "la cause est inversee");
   assert.equal(pub.email, undefined, "l'adresse ne doit jamais sortir");
 });
+
+/* « PRIS EN COMPTE ». La correction est faite, mais le retour reste lisible :
+   le supprimer effacerait la trace de ce qui l'a motivee, et quelqu'un
+   signalerait la meme chose six mois plus tard. */
+test("un retour expose s'il a ete pris en compte", () => {
+  const v = C.valider({ sujet: "carte", carte: 3, texte: "un retour assez long pour passer" }, T);
+  assert.equal(C.public(v.retour, "k").traite, false, "faux par defaut");
+  v.retour.traite = true;
+  assert.equal(C.public(v.retour, "k").traite, true);
+});

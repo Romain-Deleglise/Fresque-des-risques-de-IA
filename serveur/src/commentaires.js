@@ -97,7 +97,11 @@ function public_(retour, cle_) {
     texte: retour.texte,
     nom: retour.nom,
     date: retour.date,
-    valide: !!retour.valide
+    valide: !!retour.valide,
+    /* « PRIS EN COMPTE » : la correction est faite, le retour reste lisible.
+       Le supprimer effacerait la trace de ce qui a conduit a la correction, et
+       un autre animateur signalerait la meme chose six mois plus tard. */
+    traite: !!retour.traite
   };
 }
 

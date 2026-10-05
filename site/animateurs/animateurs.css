@@ -765,3 +765,32 @@
    qu'il faut pour poser la croix en haut à droite. */
 .panneau-onglets.sans-onglets { background: none; border-bottom: 0; padding: 0; }
 .panneau-onglets.sans-onglets .panneau-fermer { position: absolute; top: .5rem; right: .5rem; }
+
+/* ── CORRIGER UNE CARTE DEPUIS LE PANNEAU ────────────────────
+   Visible seulement avec le jeton de modération. Encadré, parce qu'on y écrit
+   dans un texte publié : ça ne doit pas se confondre avec sa lecture. */
+.panneau-edition { margin-top: 1.4rem; border-top: 1px solid var(--ligne); padding-top: 1.1rem; }
+.panneau-edition h4 { font-family: var(--f-ui); font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--gris); margin: 0 0 .8rem; }
+.panneau-edition label { display: block; font-family: var(--f-ui); font-size: .85rem;
+  font-weight: 600; margin: .8rem 0 .3rem; }
+.panneau-edition input, .panneau-edition textarea {
+  width: 100%; font: inherit; font-size: .92rem; padding: .55rem .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px; background: var(--bg-doux); color: var(--ink);
+}
+.panneau-edition textarea { resize: vertical; line-height: 1.5; }
+.panneau-edition input:focus-visible, .panneau-edition textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; }
+.aide-edition { font-size: .82rem; margin: .5rem 0 .9rem; }
+.edition-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+/* Une carte qui porte un brouillon se signale : sinon on republie sans savoir
+   qu'une correction attend déjà. */
+.panneau-edition.a-un-brouillon { border-left: 3px solid var(--accent); padding-left: .9rem; }
+#publier-modifs { background: var(--accent-aplat); color: var(--sur-accent); border-color: transparent; font-weight: 700; }
+
+/* Un retour « pris en compte » : la correction est faite, mais le retour reste
+   lisible. Le supprimer effacerait la trace de ce qui l'a motivée, et quelqu'un
+   signalerait la même chose six mois plus tard. */
+.retours li.traite { border-left: 3px solid var(--ok, #2e7d32); }
+.retours li.traite .texte { color: var(--gris); }
+.retours .actions .traiter.est-traite { background: var(--accent-doux); color: var(--accent-txt-fort); border-color: var(--accent); }

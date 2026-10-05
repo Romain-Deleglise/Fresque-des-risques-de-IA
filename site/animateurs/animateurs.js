@@ -72,7 +72,14 @@
     placeholderLien: 'The direction is reversed, the label is unclear…',
     votrePrenom: 'Your first name', envoyer: 'Send',
     aideGrille: 'Click a card to read it. Filter by batch or search above.',
-    lienAvecCarte: 'Link with card', numeroCarte: 'Card'
+    lienAvecCarte: 'Link with card', numeroCarte: 'Card',
+    corriger: 'Correct this card', champTitre: 'Title', champVerso: 'Back of the card',
+    champExplication: 'Explanations', aideParagraphes: 'One blank line between two paragraphs.',
+    enregistrerModifs: 'Save changes', annulerModifs: 'Undo my changes',
+    publierModifs: 'Publish changes', enregistre: 'Saved as a draft, not published yet.',
+    brouillonOublie: 'Draft discarded.', riendApublier: 'No changes to publish.',
+    telecharge: 'cartes.json downloaded. Put it in the repository: CI will check it, then someone merges it.',
+    prisEnCompte: 'Handled', retourTraite: 'handled'
   } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
@@ -111,7 +118,14 @@
     placeholderLien: 'Le sens est inversé, le libellé est ambigu…',
     votrePrenom: 'Votre prénom', envoyer: 'Envoyer',
     aideGrille: 'Cliquez une carte pour la lire. Filtrez par lot ou cherchez ci-dessus.',
-    lienAvecCarte: 'Lien avec la carte', numeroCarte: 'Carte'
+    lienAvecCarte: 'Lien avec la carte', numeroCarte: 'Carte',
+    corriger: 'Corriger cette carte', champTitre: 'Titre', champVerso: 'Verso de la carte',
+    champExplication: 'Explications', aideParagraphes: 'Une ligne vide entre deux paragraphes.',
+    enregistrerModifs: 'Enregistrer les modifications', annulerModifs: 'Annuler mes modifications',
+    publierModifs: 'Publier les modifications', enregistre: 'Enregistré en brouillon, pas encore publié.',
+    brouillonOublie: 'Brouillon abandonné.', riendApublier: 'Aucune modification à publier.',
+    telecharge: 'cartes.json téléchargé. Déposez-le dans le dépôt : la CI le valide, puis quelqu\'un fusionne.',
+    prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte'
   };
 
   /* ── L'OUTIL, CONSTRUIT UNE SEULE FOIS ────────────────────
@@ -155,6 +169,7 @@
     if (avecRetours) {
       h.push('<label class="bascule"><input type="checkbox" id="mode-commentaires"><span>'
         + T.modeCommentaires + '</span></label>');
+      h.push('<button type="button" class="btn-outil" id="publier-modifs" hidden></button>');
       h.push('<button type="button" class="btn-outil quitter-plein" id="quitter-plein">' + T.fermer + '</button>');
     } else if (fermerId) {
       h.push('<button type="button" class="btn-outil quitter-plein" id="' + fermerId + '">' + T.fermer + '</button>');
@@ -200,6 +215,26 @@
     // Bloc « Explications » : masque tant que la carte n'en a pas.
     h.push('<div class="panneau-explication" id="panneau-explication" hidden></div>');
     h.push('<div class="panneau-liens" id="panneau-liens"></div>');
+    /* CORRIGER LA CARTE LA OU ON LIT CE QU'ON LUI REPROCHE. Le bloc n'existe
+       que sur la page Retours, et ne se montre qu'une fois le jeton de
+       moderation saisi : on corrige un texte publie, pas une note personnelle. */
+    if (avecRetours) {
+      h.push('<div class="panneau-edition" id="panneau-edition" hidden>');
+      h.push('<h4>' + T.corriger + '</h4>');
+      h.push('<label for="e-titre">' + T.champTitre + '</label>');
+      h.push('<input id="e-titre" type="text" maxlength="120">');
+      h.push('<label for="e-verso">' + T.champVerso + '</label>');
+      h.push('<textarea id="e-verso" rows="5"></textarea>');
+      h.push('<label for="e-expl">' + T.champExplication + ' <span class="opt">(' + T.facultatif + ')</span></label>');
+      h.push('<textarea id="e-expl" rows="4"></textarea>');
+      h.push('<p class="aide-edition muted">' + T.aideParagraphes + '</p>');
+      h.push('<div class="edition-actions">');
+      h.push('<button type="button" class="btn btn-1" id="e-enregistrer">' + T.enregistrerModifs + '</button>');
+      h.push('<button type="button" class="btn btn-2" id="e-annuler">' + T.annulerModifs + '</button>');
+      h.push('</div>');
+      h.push('<p class="etat" id="e-etat" role="status" aria-live="polite"></p>');
+      h.push('</div>');
+    }
     h.push('</div>');
     if (avecRetours) {
       h.push('<div class="volet" id="volet-retours" role="tabpanel" aria-labelledby="onglet-retours" hidden>');
@@ -564,6 +599,7 @@
     choisirOnglet('expl');
     majOnglets();
     majOngletNb(n);
+    remplirEdition(n);
 
     /* UNE REPONSE N'ENTRAINE PAS SON RISQUE. Les fleches partant du lot 5
        disent « repond a » : les ranger sous « ce que ca entraine » inverse le
@@ -803,7 +839,8 @@
     if (r.lien != null && cartes[r.lien]) {
       quoi += ' · ' + T.lienAvec + ' ' + r.lien + ' · ' + cartes[r.lien].titre;
     }
-    var html = '<li class="' + (r.valide ? '' : 'attente') + '" data-cle="' + echapper(r.cle) + '">'
+    var html = '<li class="' + (r.valide ? '' : 'attente') + (r.traite ? ' traite' : '')
+      + '" data-cle="' + echapper(r.cle) + '">'
       + '<div class="meta">'
       + '<strong>' + echapper(r.nom || T.anonyme) + '</strong>'
       + '<span>·</span><span>' + echapper(quoi) + '</span>'
@@ -821,6 +858,8 @@
     if (jeton) {
       html += '<div class="actions">'
         + (r.valide ? '' : '<button type="button" class="valider">' + T.valider + '</button>')
+        + '<button type="button" class="traiter' + (r.traite ? ' est-traite' : '') + '">'
+        + T.prisEnCompte + '</button>'
         + '<button type="button" class="supprimer">' + T.supprimer + '</button></div>';
     }
     return html + '</li>';
@@ -853,6 +892,77 @@
         if (!r.ok || !d.ok) throw new Error(d.erreur || T.echecAction);
       });
     }).then(chargerRetours);
+  }
+
+  /* ── BROUILLONS DE CARTES ───────────────────────────────────
+     On lit les retours sur une carte, on corrige, on passe a la suivante.
+     Publier a chaque correction ferait autant de versions de cartes.json qu'il
+     y a de virgules deplacees, et chacune devrait etre relue. On accumule donc,
+     on relit ensemble, on publie une fois.
+
+     RIEN N'EST ECRIT DANS LE DEPOT D'ICI. « Publier » telecharge le fichier
+     complet ; il se depose a la main, la CI le valide, quelqu'un relit. Donner
+     a une fonction publique un droit d'ecriture sur le depot, garde par le seul
+     jeton de moderation, serait une surface d'attaque pour un gain faible. */
+  var API_BROUILLONS = '/.netlify/functions/brouillons';
+  var brouillons = {};   // n -> brouillon enregistre
+
+  function majBoutonPublier() {
+    var b = $('publier-modifs');
+    if (!b) return;
+    var n = Object.keys(brouillons).length;
+    b.hidden = !jeton || !n;
+    b.textContent = T.publierModifs + ' (' + n + ')';
+  }
+
+  function chargerBrouillons() {
+    if (!jeton || !$('panneau-edition')) return Promise.resolve();
+    return fetch(API_BROUILLONS + '?jeton=' + encodeURIComponent(jeton))
+      .then(function (r2) { return r2.ok ? r2.json() : null; })
+      .then(function (d) {
+        brouillons = {};
+        if (d && d.ok) (d.brouillons || []).forEach(function (b) { brouillons[b.n] = b; });
+        majBoutonPublier();
+        if (cibleN != null) remplirEdition(cibleN);
+      })
+      .catch(function () { /* l'edition reste possible, sans l'etat deja connu */ });
+  }
+
+  /* Les champs montrent le texte EFFECTIF : le brouillon s'il existe, sinon la
+     carte publiee. Montrer l'original alors qu'un brouillon attend ferait
+     reecrire la meme correction, ou l'annuler sans le vouloir. */
+  function remplirEdition(n) {
+    var bloc = $('panneau-edition');
+    if (!bloc) return;
+    bloc.hidden = !jeton;
+    if (!jeton) return;
+    var c = cartes[n] || {}, b = brouillons[n] || {};
+    $('e-titre').value = b.titre !== undefined ? b.titre : (c.titre || '');
+    $('e-verso').value = (b.verso !== undefined ? b.verso : (c.verso || [])).join('\n\n');
+    $('e-expl').value = (b.explication !== undefined ? b.explication : (c.explication || [])).join('\n\n');
+    $('e-annuler').hidden = !brouillons[n];
+    $('e-etat').textContent = brouillons[n] ? T.enregistre : '';
+    $('e-etat').className = 'etat';
+    bloc.classList.toggle('a-un-brouillon', !!brouillons[n]);
+  }
+
+  function envoyerBrouillon(charge) {
+    var etat = $('e-etat');
+    etat.className = 'etat';
+    etat.textContent = T.envoi;
+    return fetch(API_BROUILLONS, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ jeton: jeton }, charge))
+    }).then(function (r2) {
+      return r2.json().then(function (d) {
+        if (!r2.ok || !d.ok) throw new Error(d && d.erreur ? d.erreur : T.echecAction);
+        return d;
+      });
+    }).catch(function (e) {
+      etat.className = 'etat err';
+      etat.textContent = e.message || T.echecAction;
+      throw e;
+    });
   }
 
   /* ── VUE CARTES ─────────────────────────────────────────────
@@ -1130,6 +1240,9 @@
   on('form-jeton', 'submit', function (e) {
     e.preventDefault();
     jeton = $('jeton').value.trim();
+    chargerBrouillons();
+    if (cibleN != null) remplirEdition(cibleN);
+    majBoutonPublier();
     var etat = $('jeton-etat');
     etat.className = 'jeton-etat';
     etat.textContent = jeton ? T.moderation : '';
@@ -1144,7 +1257,8 @@
     var b = e.target.closest('.retours .actions button');
     if (!b) return;
     var li = b.closest('li');
-    var action = b.classList.contains('valider') ? 'valider' : 'supprimer';
+    var action = b.classList.contains('valider') ? 'valider'
+      : b.classList.contains('traiter') ? 'traiter' : 'supprimer';
     if (action === 'supprimer' && !confirm(T.confirmer)) return;
     b.disabled = true;
     moderer(li.dataset.cle, action).catch(function (err) {
@@ -1161,6 +1275,51 @@
     var bloc = $('c-lien-bloc');
     if (bloc) bloc.hidden = !$('c-lien').value;
   });
+
+  on('e-enregistrer', 'click', function () {
+    if (cibleN == null) return;
+    envoyerBrouillon({ action: 'enregistrer', n: cibleN,
+      titre: $('e-titre').value, verso: $('e-verso').value, explication: $('e-expl').value })
+      .then(function () { return chargerBrouillons(); })
+      .then(function () {
+        $('e-etat').className = 'etat ok';
+        $('e-etat').textContent = brouillons[cibleN] ? T.enregistre : T.brouillonOublie;
+      })
+      .catch(function () { /* l'etat est deja affiche */ });
+  });
+
+  on('e-annuler', 'click', function () {
+    if (cibleN == null) return;
+    envoyerBrouillon({ action: 'oublier', n: cibleN })
+      .then(function () { return chargerBrouillons(); })
+      .then(function () {
+        $('e-etat').className = 'etat ok';
+        $('e-etat').textContent = T.brouillonOublie;
+      })
+      .catch(function () {});
+  });
+
+  /* PUBLIER TELECHARGE, IL N'ECRIT PAS. Voir le commentaire du bloc des
+     brouillons : le fichier se depose a la main, la CI le valide. */
+  on('publier-modifs', 'click', function () {
+    envoyerBrouillon({ action: 'publier' }).then(function (d) {
+      var txt = JSON.stringify(d.fichier, null, 2) + '\n';
+      var url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url; a.download = 'cartes.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      var etat = $('e-etat');
+      if (etat) { etat.className = 'etat ok'; etat.textContent = T.telecharge; }
+      alerterPublication(d.resume);
+    }).catch(function () {});
+  });
+
+  /* Ce qu'on vient de telecharger, carte par carte : on relit AVANT de deposer. */
+  function alerterPublication(resume) {
+    var l = (resume || []).map(function (x) { return 'carte ' + x.n + ' (' + x.champs.join(', ') + ') : ' + x.titre; });
+    window.alert(T.telecharge + '\n\n' + l.join('\n'));
+  }
 
   on('vue-cartes', 'click', function () { basculerVue('cartes'); });
   on('vue-fresque', 'click', function () { basculerVue('fresque'); });
