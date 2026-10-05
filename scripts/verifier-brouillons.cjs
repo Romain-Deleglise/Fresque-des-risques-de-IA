@@ -12,6 +12,7 @@
 
    Usage : node scripts/verifier-brouillons.cjs */
 const path = require("node:path");
+const fsNode = require("node:fs");
 const RACINE = path.resolve(__dirname, "..");
 const m = new Map();
 const faux = () => ({
@@ -58,6 +59,36 @@ const J = "jeton-de-banc-123456";
   const c4 = p.fichier.cartes.find((c) => c.n === 4);
   t("une carte sans brouillon est intacte", c4.titre === "Automatisation du travail", c4.titre);
   t("le resume dit quoi relire", p.resume.length === 1 && p.resume[0].champs.join() === "titre,verso", JSON.stringify(p.resume));
+
+  console.log("\n--- La fresque de reference ---");
+  const fs2 = require("fs");
+  const ref = JSON.parse(fs2.readFileSync(path.join(RACINE, "site/data/fresque-reference.json"), "utf8"));
+  const bouge = JSON.parse(JSON.stringify(ref.tableau));
+  bouge.cartes[0].x += 40;
+  r = lire(await post({ action: "fresque-enregistrer", tableau: bouge, jeton: J }));
+  t("un deplacement de carte est enregistre", r.ok && r.resume.cartesDeplacees === 1, JSON.stringify(r));
+
+  const horsPlan = JSON.parse(JSON.stringify(ref.tableau));
+  horsPlan.cartes[0].x = ref.plan.largeur;
+  r = lire(await post({ action: "fresque-enregistrer", tableau: horsPlan, jeton: J }));
+  t("une carte hors du plan est refusee", /sort du plan/.test(r.erreur || ""), JSON.stringify(r));
+
+  const lienFantome = JSON.parse(JSON.stringify(ref.tableau));
+  lienFantome.cartes = lienFantome.cartes.filter((c) => c.n !== lienFantome.fleches[0].vers);
+  r = lire(await post({ action: "fresque-enregistrer", tableau: lienFantome, jeton: J }));
+  t("un lien vers une carte retiree est refuse", /absente/.test(r.erreur || ""), JSON.stringify(r));
+
+  const pub = lire(await post({ action: "fresque-publier", jeton: J }));
+  t("publier rend le fichier complet",
+    pub.ok && pub.fichier.tableau.cartes.length === ref.tableau.cartes.length, JSON.stringify(pub.erreur || ""));
+  t("le plan et la version survivent",
+    pub.fichier.version === ref.version && pub.fichier.plan.largeur === ref.plan.largeur);
+  t("le deplacement enregistre est bien celui publie",
+    pub.fichier.tableau.cartes[0].x === ref.tableau.cartes[0].x + 40,
+    String(pub.fichier.tableau.cartes[0].x));
+  await post({ action: "fresque-oublier", jeton: J });
+  t("sans brouillon de fresque, publier est refuse",
+    !!lire(await post({ action: "fresque-publier", jeton: J })).erreur);
 
   console.log("\n--- Oublier ---");
   await post({ action: "oublier", n: 3, jeton: J });

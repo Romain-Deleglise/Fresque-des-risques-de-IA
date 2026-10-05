@@ -163,3 +163,9 @@ jobs:
       # sans jeton, ni pre-remplir le texte d'origine quand un brouillon attend.
       - name: Verifier l'edition des cartes depuis le panneau
         run: node scripts/verifier-edition.mjs
+
+      # Le mode edition de la fresque deplace des cartes et trace des liens dans
+      # un plan destine a etre publie. Rien de tout cela ne se verifie sans
+      # navigateur : ce sont des gestes, une mise a l'echelle et une couche SVG.
+      - name: Verifier l'edition de la fresque de reference
+        run: node scripts/verifier-fresque-edition.mjs

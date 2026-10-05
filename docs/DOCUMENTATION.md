@@ -970,6 +970,50 @@ e-mail laissée par un animateur n'est jamais renvoyée par l'API.
 que quelqu'un le supprime. L'exposition reste bornée (la page n'est pas
 publique) et le débit est limité à 30 dépôts par IP et par heure.
 
+### Corriger depuis l'outil : les brouillons
+
+`netlify/functions/brouillons.js`, règles pures dans `serveur/src/brouillons.js`
+(les cartes) et `serveur/src/fresque-brouillon.js` (le plan de la fresque),
+stockage Netlify Blobs (`fresque-brouillons`). Tout y est gardé par
+`ADMIN_TOKEN`, **y compris la lecture** : un texte non relu n'a pas à circuler.
+
+Deux choses s'y corrigent, au même endroit que ce qu'on leur reproche :
+
+| Quoi | Où | Ce qu'on peut faire |
+| --- | --- | --- |
+| Le texte d'une carte | panneau de la carte, page Retours | titre, verso, explications |
+| Le plan de la fresque | bascule « Mode édition », page Retours | déplacer les cartes, ajouter, renommer ou supprimer un lien |
+
+**Publier télécharge, il n'écrit pas.** « Publier » rend le fichier complet
+(`cartes.json` ou `fresque-reference.json`) ; il se dépose à la main dans le
+dépôt, la CI le valide, quelqu'un relit et fusionne. Donner à une fonction
+publique un droit d'écriture sur le dépôt, gardé par le seul jeton de
+modération, serait une surface d'attaque pour un gain faible.
+
+Les brouillons **s'accumulent** : une carte relue donne dix virgules déplacées,
+et chacune devrait être relue séparément. On corrige au fil de l'eau, on relit
+ensemble, on publie une fois. Côté fresque il n'y a qu'un brouillon, et non un
+par carte : on déplace des cartes les unes par rapport aux autres, l'état n'a de
+sens qu'entier.
+
+**Le brouillon de la fresque ne s'applique pas à la lecture.** Il ne remplace la
+fresque publiée qu'une fois entré en mode édition : sinon la page Retours
+montrerait un plan que personne d'autre ne voit, et les retours porteraient sur
+lui.
+
+Le mode édition se conduit à la souris (glisser une carte, tirer sa poignée vers
+une autre pour les relier, cliquer un lien pour le désigner) **et au clavier**
+(les flèches déplacent la carte au focus de dix pixels, d'un seul avec Maj ; la
+barre d'édition porte les mêmes actions en listes déroulantes). Pas d'alignement
+automatique : la carte va où on la pose. `serveur/src/fresque-brouillon.js`
+refuse en amont ce qui ne se verrait qu'à l'œil trop tard : une carte posée deux
+fois, une carte à cheval sur le bord du plan, une flèche qui part d'une carte
+absente, un lien d'une carte vers elle-même.
+
+Vérifié par `serveur/tests/brouillons.test.mjs`,
+`serveur/tests/fresque-brouillon.test.mjs`, `scripts/verifier-brouillons.cjs`,
+`scripts/verifier-edition.mjs` et `scripts/verifier-fresque-edition.mjs`.
+
 ---
 
 ## 22 ter. Agenda public des ateliers (API)

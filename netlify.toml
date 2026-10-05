@@ -27,7 +27,7 @@
   # cartes.json rejoint la liste : la fonction des brouillons doit lire le texte
   # d'origine pour n'enregistrer que ce qui change vraiment, et pour rendre un
   # fichier complet au moment de publier.
-  included_files = ["site/data/communes.txt", "serveur/src/communes-coords.txt", "site/data/cartes.json"]
+  included_files = ["site/data/communes.txt", "serveur/src/communes-coords.txt", "site/data/cartes.json", "site/data/fresque-reference.json"]
 
 # Programmation d'ateliers + inscriptions (fonction ateliers) et envoi d'e-mails
 # transactionnels (Resend). Variables d'environnement a definir dans Netlify :

@@ -24,6 +24,9 @@
   var cartes = {};      // n -> carte de cartes.json
   var ref = null;       // fresque de reference
   var zoom = 1, cibleN = null, modeCom = false;
+  /* Mode edition de la fresque de reference : declare ici parce que le rendu
+     des cartes et des liens en depend, et qu'il s'ecrit plus bas. */
+  var editionFresque = false, lienChoisi = null;
   var retours = [];   // tous les retours, tels que la fonction les renvoie
   var jeton = '';     // jeton de moderation, garde en memoire seulement
 
@@ -79,7 +82,27 @@
     publierModifs: 'Publish changes', enregistre: 'Saved as a draft, not published yet.',
     brouillonOublie: 'Draft discarded.', riendApublier: 'No changes to publish.',
     telecharge: 'cartes.json downloaded. Put it in the repository: CI will check it, then someone merges it.',
-    prisEnCompte: 'Handled', retourTraite: 'handled'
+    prisEnCompte: 'Handled', retourTraite: 'handled',
+    modeEdition: 'Edit mode',
+    aideEdition: 'Drag a card to move it. Pull its handle onto another card to link them. Click a link to edit it. Arrow keys move the focused card.',
+    poigneeLien: 'Draw a link from this card',
+    annulerDernier: 'Undo', enregistrerFresque: 'Save the draft',
+    oublierFresque: 'Discard the draft', publierFresque: 'Publish the fresk',
+    fresqueEnregistree: 'Draft saved, not published yet.',
+    fresqueOubliee: 'Draft discarded. The published fresk is back.',
+    fresqueTelechargee: 'fresque-reference.json downloaded. Put it in the repository: CI will check it, then someone merges it.',
+    brouillonEnCours: 'A draft is in progress, not published yet.',
+    nonEnregistre: 'Unsaved changes.',
+    quitterEdition: 'Leave edit mode? Changes that have not been saved will be lost.',
+    choixLien: 'A link to edit', libelleLien: 'Label', renommerLien: 'Rename',
+    supprimerLien: 'Delete this link', nouveauLien: 'New link',
+    depuis: 'From', versCarte: 'To', ajouterLien: 'Add the link',
+    lienAjoute: 'Link added. Give it a label below.',
+    lienRenomme: 'Label updated.', lienSupprime: 'Link deleted.',
+    lienExiste: 'That link already exists.',
+    memeCarte: 'A card cannot link to itself.',
+    aucunLien: 'No link selected.',
+    deplacees: 'cards moved', liensPlus: 'links added', liensMoins: 'links removed'
   } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
@@ -125,7 +148,27 @@
     publierModifs: 'Publier les modifications', enregistre: 'Enregistré en brouillon, pas encore publié.',
     brouillonOublie: 'Brouillon abandonné.', riendApublier: 'Aucune modification à publier.',
     telecharge: 'cartes.json téléchargé. Déposez-le dans le dépôt : la CI le valide, puis quelqu\'un fusionne.',
-    prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte'
+    prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte',
+    modeEdition: 'Mode édition',
+    aideEdition: 'Glissez une carte pour la déplacer. Tirez sa poignée vers une autre carte pour les relier. Cliquez un lien pour le modifier. Les flèches du clavier déplacent la carte au focus.',
+    poigneeLien: 'Tracer un lien depuis cette carte',
+    annulerDernier: 'Annuler', enregistrerFresque: 'Enregistrer le brouillon',
+    oublierFresque: 'Abandonner le brouillon', publierFresque: 'Publier la fresque',
+    fresqueEnregistree: 'Brouillon enregistré, pas encore publié.',
+    fresqueOubliee: 'Brouillon abandonné. La fresque publiée est de retour.',
+    fresqueTelechargee: 'fresque-reference.json téléchargé. Déposez-le dans le dépôt : la CI le valide, puis quelqu\'un fusionne.',
+    brouillonEnCours: 'Un brouillon est en cours, pas encore publié.',
+    nonEnregistre: 'Modifications non enregistrées.',
+    quitterEdition: 'Quitter le mode édition ? Les modifications non enregistrées seront perdues.',
+    choixLien: 'Un lien à modifier', libelleLien: 'Libellé', renommerLien: 'Renommer',
+    supprimerLien: 'Supprimer ce lien', nouveauLien: 'Nouveau lien',
+    depuis: 'Depuis', versCarte: 'Vers', ajouterLien: 'Ajouter le lien',
+    lienAjoute: 'Lien ajouté. Donnez-lui un libellé ci-dessous.',
+    lienRenomme: 'Libellé mis à jour.', lienSupprime: 'Lien supprimé.',
+    lienExiste: 'Ce lien existe déjà.',
+    memeCarte: 'Une carte ne peut pas se relier à elle-même.',
+    aucunLien: 'Aucun lien sélectionné.',
+    deplacees: 'cartes déplacées', liensPlus: 'liens ajoutés', liensMoins: 'liens retirés'
   };
 
   /* ── L'OUTIL, CONSTRUIT UNE SEULE FOIS ────────────────────
@@ -169,6 +212,12 @@
     if (avecRetours) {
       h.push('<label class="bascule"><input type="checkbox" id="mode-commentaires"><span>'
         + T.modeCommentaires + '</span></label>');
+      /* LE MODE EDITION N'APPARAIT QU'AVEC LE JETON. Deplacer les cartes de la
+         fresque de reference n'est pas une lecture : c'est la preparation d'une
+         publication. L'offrir a qui passe serait promettre une action que la
+         fonction refusera. majEdition() le revele a la saisie du jeton. */
+      h.push('<label class="bascule" id="bascule-edition" hidden><input type="checkbox" id="mode-edition"><span>'
+        + T.modeEdition + '</span></label>');
       h.push('<button type="button" class="btn-outil" id="publier-modifs" hidden></button>');
       h.push('<button type="button" class="btn-outil quitter-plein" id="quitter-plein">' + T.fermer + '</button>');
     } else if (fermerId) {
@@ -181,6 +230,38 @@
       + T.provoque + '</span><span><span class="cle-trait cle-reponse" aria-hidden="true"></span> '
       + T.repond + '</span></p>');
     h.push('<p class="muted barre-aide" id="barre-aide">' + T.aideLecture + '</p>');
+
+    /* ── LA BARRE D'EDITION ─────────────────────────────────
+       Le geste (glisser une carte, tirer un lien) est le chemin rapide ; cette
+       barre est le chemin precis, et le seul praticable au clavier. Les deux
+       ecrivent par les memes fonctions : il n'y a pas une verite a la souris et
+       une autre ailleurs. Rien ici n'est un surgissement place a la main : la
+       CSP du site refuse les positions en attribut, et un panneau flottant mal
+       place vaut moins qu'une barre qui reste ou on l'a laissee. */
+    if (avecRetours) {
+      h.push('<div class="barre-edition" id="barre-edition" hidden>');
+      h.push('<div class="edition-rang">');
+      h.push('<strong class="edition-titre">' + T.nouveauLien + '</strong>');
+      h.push('<label for="f-de">' + T.depuis + '</label><select id="f-de"></select>');
+      h.push('<label for="f-vers">' + T.versCarte + '</label><select id="f-vers"></select>');
+      h.push('<button type="button" class="btn-outil" id="f-ajouter">' + T.ajouterLien + '</button>');
+      h.push('</div>');
+      h.push('<div class="edition-rang">');
+      h.push('<label for="f-choix">' + T.choixLien + '</label><select id="f-choix"></select>');
+      h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
+      h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
+      h.push('<button type="button" class="btn-outil" id="f-renommer">' + T.renommerLien + '</button>');
+      h.push('<button type="button" class="btn-outil btn-danger" id="f-supprimer">' + T.supprimerLien + '</button>');
+      h.push('</div>');
+      h.push('<div class="edition-rang">');
+      h.push('<button type="button" class="btn-outil" id="f-annuler" disabled>' + T.annulerDernier + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
+      h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
+      h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
+      h.push('</div>');
+      h.push('</div>');
+    }
     h.push('<p class="etat" id="chargement" role="status" aria-live="polite">' + T.chargement + '</p>');
 
     h.push('<div id="plateau-hote" hidden>');
@@ -339,6 +420,7 @@
       var g = document.createElementNS(NS, 'g');
       g.dataset.de = f.de;
       g.dataset.vers = f.vers;
+      g.dataset.id = f.id;
       /* UNE REPONSE N'EST PAS UNE CAUSE. Les fleches du lot 5 disent « repond
          a », pas « provoque ». Dessinees comme les autres, elles se lisent a
          l'envers : on croit que la solution cause le risque. Trait discontinu
@@ -364,9 +446,22 @@
       txt.setAttribute('text-anchor', 'middle');
       txt.textContent = f.libelle;
 
+      /* UN TRAIT DE DEUX PIXELS NE SE CLIQUE PAS. En mode edition, on designe
+         un lien pour le renommer ou le supprimer : on double donc la courbe
+         d'un trait large et transparent, seul a recevoir le pointeur (voir
+         `.en-edition .touche` dans la feuille de style). Hors edition il ne
+         capte rien, et le survol des cartes continue de passer au travers. */
+      var touche = document.createElementNS(NS, 'path');
+      touche.setAttribute('class', 'touche');
+      touche.setAttribute('d', trait.getAttribute('d'));
+      touche.setAttribute('fill', 'none');
+
+      g.appendChild(touche);
       g.appendChild(trait);
       g.appendChild(tete);
       g.appendChild(txt);
+      if (editionFresque && f.id === lienChoisi) g.setAttribute('class',
+        (g.getAttribute('class') || '') + ' choisi');
       svg.appendChild(g);
     });
   }
@@ -414,6 +509,18 @@
          deja numeros, lots et fleches ; un chiffre de plus s'y perdait. */
       el.appendChild(vis);
       el.appendChild(tit);
+      /* DEUX GESTES SUR LE MEME OBJET, DEUX PRISES DISTINCTES. Glisser le corps
+         de la carte la deplace ; tirer cette poignee trace un lien. Sans elle,
+         il faudrait un sous-mode a basculer avant chaque geste, et on se
+         tromperait une fois sur deux. */
+      if (editionFresque) {
+        el.classList.add('deplacable');
+        var poignee = document.createElement('span');
+        poignee.className = 'poignee-lien';
+        poignee.setAttribute('aria-hidden', 'true');
+        poignee.title = T.poigneeLien;
+        el.appendChild(poignee);
+      }
       hote.appendChild(el);
     });
 
@@ -563,7 +670,10 @@
      rien : il s'efface des qu'on part, et se tait des qu'une carte est
      choisie, pour ne pas concurrencer la selection. */
   function survoler(n) {
-    if (cibleN != null) return;
+    /* PAS DE SURVOL EN EDITION. Les liens sont redessines a chaque pixel
+       parcouru : la mise en avant s'allumerait et s'eteindrait sous le geste,
+       et on la prendrait pour un bug. */
+    if (cibleN != null || editionFresque) return;
     Array.prototype.forEach.call(document.querySelectorAll('#liens g'), function (g) {
       g.classList.toggle('survol', n != null && (+g.dataset.de === n || +g.dataset.vers === n));
     });
@@ -694,6 +804,13 @@
 
   function appliquerZoom() {
     $('plateau').style.transform = 'scale(' + zoom + ')';
+    /* LA POIGNEE RESTE ATTRAPABLE A TOUTE ECHELLE. Le plateau s'ouvre a 35 % :
+       une poignee de 21 pixels de plan n'en fait plus que 7 a l'ecran, soit
+       moins que le pouce le plus fin. On la grossit a mesure qu'on dezoome,
+       sans jamais depasser le quart de la carte, ou elle masquerait la
+       vignette qu'elle sert a designer. */
+    $('plateau').style.setProperty('--poignee',
+      Math.round(21 * Math.min(2.2, Math.max(1, 0.75 / zoom))) + 'px');
     $('plateau-sizer').style.width = (PLAN_W * zoom) + 'px';
     $('plateau-sizer').style.height = (PLAN_H * zoom) + 'px';
     $('zoom-val').textContent = Math.round(zoom * 100) + ' %';
@@ -740,6 +857,11 @@
     var actif = false, x0 = 0, y0 = 0, sx = 0, sy = 0;
     cadre.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.c-carte')) return;
+      /* EN EDITION, DESIGNER UN LIEN N'EST PAS DEPLACER LA VUE. Sans ce
+         garde-fou, `setPointerCapture` sur le cadre reroute le relacher vers
+         lui : le `click` se produit alors sur le cadre et non sur le trait, et
+         le lien ne se selectionnait jamais. */
+      if (editionFresque && e.target.closest && e.target.closest('g[data-id]')) return;
       actif = true; x0 = e.clientX; y0 = e.clientY;
       sx = cadre.scrollLeft; sy = cadre.scrollTop;
       cadre.classList.add('attrape');
@@ -922,7 +1044,13 @@
       .then(function (d) {
         brouillons = {};
         if (d && d.ok) (d.brouillons || []).forEach(function (b) { brouillons[b.n] = b; });
+        /* LE BROUILLON DE LA FRESQUE NE S'APPLIQUE PAS A LA LECTURE. On le
+           garde de cote : il ne remplace la fresque publiee qu'une fois entre
+           en mode edition. Sinon la page Retours montrerait un plan que
+           personne d'autre ne voit, et les retours porteraient sur lui. */
+        brouillonFresque = (d && d.ok && d.fresque) ? d.fresque : null;
         majBoutonPublier();
+        majEdition();
         if (cibleN != null) remplirEdition(cibleN);
       })
       .catch(function () { /* l'edition reste possible, sans l'etat deja connu */ });
@@ -963,6 +1091,346 @@
       etat.textContent = e.message || T.echecAction;
       throw e;
     });
+  }
+
+
+  /* ── MODE EDITION DE LA FRESQUE DE REFERENCE ────────────────
+     La fresque de reference se construisait en editant
+     site/data/fresque-reference.json a la main : trente-huit cartes a placer
+     coordonnee par coordonnee, soixante-cinq fleches a decrire, et le resultat
+     ne se voyait qu'une fois le fichier depose. On deplace donc les cartes la
+     ou on les regarde, et on relit avant de publier.
+
+     DEUX ETATS BIEN SEPARES. Le brouillon vit cote serveur (un seul, la fresque
+     n'a de sens qu'entiere) et ne se voit qu'avec le jeton ; la fresque publiee
+     reste celle que tout le monde lit, y compris sur cette page tant qu'on
+     n'est pas entre en edition. Rien de ce qu'on bouge ici n'est visible
+     ailleurs avant que le fichier ne soit depose dans le depot.
+
+     COMME POUR LES CARTES : PUBLIER TELECHARGE, IL N'ECRIT PAS. Voir le
+     commentaire du bloc des brouillons. */
+  var brouillonFresque = null;   // le tableau enregistre cote serveur, s'il existe
+  var histoire = [];             // les etats precedents, pour « Annuler »
+  var modifie = false;           // quelque chose a bouge depuis le dernier enregistrement
+  var MAX_HISTOIRE = 40;
+
+  function clonerTableau(t) { return JSON.parse(JSON.stringify(t || ref.tableau)); }
+
+  /* ON MEMORISE AVANT DE TOUCHER, pas apres : « Annuler » doit rendre l'etat
+     d'avant le geste. Appele au PREMIER mouvement d'un glisser, et non au
+     clic : sans cela, trente clics sans deplacement rempliraient la pile et
+     « Annuler » ne ferait plus rien de visible. */
+  function memoriser() {
+    histoire.push(clonerTableau());
+    if (histoire.length > MAX_HISTOIRE) histoire.shift();
+    modifie = true;
+    majEdition();
+  }
+
+  function etatEdition(texte, erreur) {
+    var e = $('f-etat');
+    if (!e) return;
+    e.className = 'etat' + (erreur ? ' err' : (texte ? ' ok' : ''));
+    e.textContent = texte || '';
+  }
+
+  function borne(v, max) { return Math.max(0, Math.min(max, Math.round(v))); }
+
+  function fleche(id) {
+    return ref.tableau.fleches.find(function (f) { return f.id === id; }) || null;
+  }
+
+  function majEdition() {
+    var barre = $('barre-edition');
+    if (barre) barre.hidden = !editionFresque;
+    if ($('bascule-edition')) $('bascule-edition').hidden = !jeton;
+    if ($('f-annuler')) $('f-annuler').disabled = !histoire.length;
+    if ($('f-oublier')) $('f-oublier').hidden = !brouillonFresque;
+    var l = fleche(lienChoisi);
+    ['f-libelle', 'f-renommer', 'f-supprimer'].forEach(function (id) {
+      if ($(id)) $(id).disabled = !l;
+    });
+  }
+
+  /* Les listes deroulantes se refont apres chaque changement : un lien supprime
+     ne doit pas rester proposable, et une carte retiree du plan ne doit pas
+     pouvoir recevoir une fleche que le serveur refuserait. */
+  function majSelectsCartes() {
+    if (!$('f-de')) return;
+    var opts = ref.tableau.cartes.slice().sort(function (a, b) { return a.n - b.n; })
+      .map(function (p) {
+        var c = cartes[p.n] || {};
+        return '<option value="' + p.n + '">' + p.n + ' · ' + echapper(c.titre || '') + '</option>';
+      }).join('');
+    ['f-de', 'f-vers'].forEach(function (id) {
+      var sel = $(id), avant = sel.value;
+      sel.innerHTML = opts;
+      if (avant) sel.value = avant;
+    });
+  }
+
+  function majChoixLien() {
+    var sel = $('f-choix');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">' + T.lienAucun + '</option>'
+      + ref.tableau.fleches.map(function (f) {
+        return '<option value="' + echapper(f.id) + '">' + f.de + ' → ' + f.vers
+          + (f.libelle ? ' : ' + echapper(f.libelle) : '') + '</option>';
+      }).join('');
+    sel.value = lienChoisi || '';
+    var l = fleche(lienChoisi);
+    if ($('f-libelle')) $('f-libelle').value = l ? l.libelle : '';
+    majEdition();
+  }
+
+  /* Designer un lien, a la souris sur le plateau comme au clavier dans la
+     liste : un seul chemin, pour que les deux montrent toujours la meme chose. */
+  function choisirLien(id, focus) {
+    lienChoisi = fleche(id) ? id : null;
+    majChoixLien();
+    dessinerLiens();
+    if (focus && lienChoisi && $('f-libelle')) $('f-libelle').focus();
+  }
+
+  function idLibre() {
+    var pris = {}, i = 1;
+    ref.tableau.fleches.forEach(function (f) { pris[f.id] = true; });
+    while (pris['f' + i]) i++;
+    return 'f' + i;
+  }
+
+  function ajouterLien(de, vers) {
+    if (de === vers) { etatEdition(T.memeCarte, true); return; }
+    var deja = ref.tableau.fleches.some(function (f) { return f.de === de && f.vers === vers; });
+    if (deja) {
+      /* ON NE CREE PAS UN DOUBLON, ON OUVRE CELUI QUI EXISTE : le serveur
+         accepterait deux fleches identiques, et on ne verrait qu'un trait. */
+      var v = ref.tableau.fleches.filter(function (f) { return f.de === de && f.vers === vers; })[0];
+      choisirLien(v.id, true);
+      etatEdition(T.lienExiste, true);
+      return;
+    }
+    memoriser();
+    var id = idLibre();
+    ref.tableau.fleches.push({ id: id, de: de, vers: vers, bidir: false, libelle: '' });
+    lienChoisi = id;
+    majSelectsCartes();
+    majChoixLien();
+    dessinerLiens();
+    if ($('f-libelle')) $('f-libelle').focus();
+    etatEdition(T.lienAjoute, false);
+  }
+
+  function annulerDernier() {
+    if (!histoire.length) return;
+    ref.tableau = histoire.pop();
+    if (!fleche(lienChoisi)) lienChoisi = null;
+    majSelectsCartes();
+    majChoixLien();
+    dessinerCartes();
+    dessinerLiens();
+    appliquerMiseEnAvant();
+    etatEdition(histoire.length ? T.nonEnregistre : '', false);
+    majEdition();
+  }
+
+  /* ── LE GLISSER-DEPOSER ─────────────────────────────────────
+     Une seule paire d'ecouteurs, posee sur le conteneur des cartes : celles-ci
+     sont refaites a chaque rendu, et les leur attacher une a une les perdrait a
+     chaque redessin. PAS D'ALIGNEMENT AUTOMATIQUE : la carte va ou on la pose.
+     Un magnetisme sur grille redresserait des ecarts voulus, et il n'y a pas de
+     grille a laquelle se rapporter. */
+  var liensDiffere = null;
+  function planifierLiens() {
+    if (liensDiffere) return;
+    liensDiffere = requestAnimationFrame(function () {
+      liensDiffere = null;
+      dessinerLiens();
+      /* Les liens reconstruits ont perdu les classes du filtre par lot et de la
+         selection : sans ce rappel, un lot actif se rallumerait en entier des
+         qu'on deplace une carte. */
+      appliquerMiseEnAvant();
+    });
+  }
+
+  function versPlan(cx, cy) {
+    var r = $('plateau').getBoundingClientRect();
+    return { x: (cx - r.left) / zoom, y: (cy - r.top) / zoom };
+  }
+
+  function carteSous(cx, cy) {
+    var el = document.elementFromPoint(cx, cy);
+    var c = el && el.closest ? el.closest('.c-carte') : null;
+    return c ? +c.dataset.n : null;
+  }
+
+  function tracer(p, cx, cy) {
+    var svg = $('liens');
+    var NS = 'http://www.w3.org/2000/svg';
+    var t = svg.querySelector('.trace');
+    if (!t) {
+      t = document.createElementNS(NS, 'line');
+      t.setAttribute('class', 'trace');
+      svg.appendChild(t);
+    }
+    var fin = versPlan(cx, cy);
+    t.setAttribute('x1', p.x + CARTE_W / 2);
+    t.setAttribute('y1', p.y + CARTE_H / 2);
+    t.setAttribute('x2', fin.x);
+    t.setAttribute('y2', fin.y);
+  }
+  function effacerTrace() {
+    var t = $('liens').querySelector('.trace');
+    if (t) t.remove();
+  }
+
+  function glisserCartes(hote) {
+    var el = null, p = null, px0 = 0, py0 = 0, x0 = 0, y0 = 0;
+    var versLien = false, bouge = false, memorise = false;
+
+    hote.addEventListener('pointerdown', function (e) {
+      if (!editionFresque || e.button) return;
+      var c = e.target.closest('.c-carte');
+      if (!c) return;
+      p = ref.tableau.cartes.find(function (q) { return q.n === +c.dataset.n; });
+      if (!p) return;
+      el = c;
+      versLien = !!(e.target.closest && e.target.closest('.poignee-lien'));
+      bouge = false; memorise = false;
+      x0 = e.clientX; y0 = e.clientY; px0 = p.x; py0 = p.y;
+      /* On preempte le geste : sans cela le navigateur commence une selection
+         de texte ou un glisser d'image, et la carte reste collee au pointeur. */
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* sans capture, ca marche encore */ }
+    });
+
+    hote.addEventListener('pointermove', function (e) {
+      if (!el || !p) return;
+      var dx = e.clientX - x0, dy = e.clientY - y0;
+      if (!bouge && Math.abs(dx) + Math.abs(dy) < 4) return;
+      bouge = true;
+      if (versLien) { tracer(p, e.clientX, e.clientY); return; }
+      // UN SEUL ETAT MEMORISE POUR TOUT LE GLISSER : une entree par pixel
+      // parcouru remplirait la pile et « Annuler » ne reculerait plus que d'un
+      // cheveu.
+      if (!memorise) { memorise = true; memoriser(); }
+      p.x = borne(px0 + dx / zoom, PLAN_W - CARTE_W);
+      p.y = borne(py0 + dy / zoom, PLAN_H - CARTE_H);
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+      planifierLiens();
+    });
+
+    ['pointerup', 'pointercancel'].forEach(function (ev) {
+      hote.addEventListener(ev, function (e) {
+        if (!el || !p) return;
+        if (versLien) {
+          effacerTrace();
+          if (bouge) {
+            var n = carteSous(e.clientX, e.clientY);
+            if (n != null) ajouterLien(p.n, n);
+          }
+        } else if (bouge) {
+          dessinerLiens();
+          etatEdition(T.nonEnregistre, false);
+        }
+        el = null; p = null; versLien = false; bouge = false; memorise = false;
+      });
+    });
+  }
+
+  /* AU CLAVIER AUSSI. Un outil qui ne s'utilise qu'a la souris exclut une
+     partie de l'equipe, et le glisser-deposer n'a pas d'equivalent au clavier.
+     Les fleches deplacent la carte qui a le focus, de dix pixels, d'un seul
+     avec Maj : c'est aussi le seul moyen d'un placement exact. */
+  function deplacerAuClavier(e) {
+    if (!editionFresque) return;
+    var c = e.target.closest ? e.target.closest('.c-carte') : null;
+    if (!c) return;
+    var d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!d) return;
+    var p = ref.tableau.cartes.find(function (q) { return q.n === +c.dataset.n; });
+    if (!p) return;
+    e.preventDefault();
+    var pas = e.shiftKey ? 1 : 10;
+    memoriser();
+    p.x = borne(p.x + d[0] * pas, PLAN_W - CARTE_W);
+    p.y = borne(p.y + d[1] * pas, PLAN_H - CARTE_H);
+    c.style.left = p.x + 'px';
+    c.style.top = p.y + 'px';
+    planifierLiens();
+    etatEdition(T.nonEnregistre, false);
+  }
+
+  /* ENTRER EN EDITION REPREND LE BROUILLON s'il y en a un : on continue ce
+     qu'on avait commence, on ne recommence pas sur la version publiee. En
+     sortir laisse a l'ecran ce qu'on vient de faire, avec son avertissement :
+     effacer sans le dire ce qu'on n'a pas enregistre serait pire. */
+  function basculerEdition(actif) {
+    if (!actif && modifie && !window.confirm(T.quitterEdition)) {
+      if ($('mode-edition')) $('mode-edition').checked = true;
+      return;
+    }
+    editionFresque = !!actif && !!jeton;
+    if ($('mode-edition')) $('mode-edition').checked = editionFresque;
+    if (editionFresque) {
+      basculerVue('fresque');
+      fermerPanneau();
+      /* Les deux modes se disputent le clic sur une carte : commenter ouvre le
+         panneau, editer la deplace. On n'en laisse qu'un actif. */
+      if ($('mode-commentaires')) {
+        $('mode-commentaires').checked = false;
+        $('mode-commentaires').disabled = true;
+      }
+      modeCom = false;
+      majOnglets();
+      if (brouillonFresque) {
+        ref.tableau = clonerTableau(brouillonFresque);
+        modifie = false;
+      }
+    } else if ($('mode-commentaires')) {
+      $('mode-commentaires').disabled = false;
+    }
+    histoire = [];
+    lienChoisi = null;
+    // On ne quitte pas la vue Fresque en editant : il n'y a rien a deplacer
+    // dans une grille triee par numero.
+    ['vue-cartes', 'vue-fresque'].forEach(function (id) {
+      if ($(id)) $(id).disabled = editionFresque;
+    });
+    if ($('plateau')) $('plateau').classList.toggle('en-edition', editionFresque);
+    if ($('barre-aide')) $('barre-aide').textContent = editionFresque
+      ? T.aideEdition : (modeCom ? T.aideCommentaire : T.aideLecture);
+    majSelectsCartes();
+    majChoixLien();
+    dessinerCartes();
+    dessinerLiens();
+    appliquerMiseEnAvant();
+    etatEdition(editionFresque && brouillonFresque ? T.brouillonEnCours : '', false);
+    majEdition();
+  }
+
+  function envoyerFresque(charge) {
+    etatEdition(T.envoi, false);
+    return fetch(API_BROUILLONS, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ jeton: jeton }, charge))
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok || !d.ok) throw new Error(d && d.erreur ? d.erreur : T.echecAction);
+        return d;
+      });
+    }).catch(function (e) {
+      etatEdition(e.message || T.echecAction, true);
+      throw e;
+    });
+  }
+
+  function resumeFresque(r) {
+    if (!r) return '';
+    return [r.cartesDeplacees + ' ' + T.deplacees,
+            r.liensAjoutes + ' ' + T.liensPlus,
+            r.liensRetires + ' ' + T.liensMoins].join(', ');
   }
 
   /* ── VUE CARTES ─────────────────────────────────────────────
@@ -1126,6 +1594,9 @@
       construireLots();
       zoomInitial();
       glisser($('plateau-cadre'));
+      glisserCartes($('cartes'));
+      majSelectsCartes();
+      majChoixLien();
       if ($('retours') || $('retours-carte')) chargerRetours();
     }).catch(function (e) {
       console.error('espace animateurs :', e);
@@ -1142,10 +1613,16 @@
      sans la premiere ligne, leur propre gestionnaire ouvrait le panneau et
      celui-ci le refermait aussitot, dans le meme clic. */
   document.addEventListener('click', function (e) {
+    /* EN EDITION, CLIQUER UNE CARTE LA DEPLACE : ouvrir son verso par-dessus
+       masquerait la moitie du plan a chaque geste. Le glisser emet d'ailleurs
+       un `click` en fin de course, qui rouvrait le panneau qu'on venait de
+       fermer. */
+    if (editionFresque && e.target.closest('.c-carte')) return;
     var g = e.target.closest('.g-carte');
     if (g) { ouvrirPanneau(+g.dataset.n); return; }
     var c = e.target.closest('.c-carte');
     if (c) { ouvrirPanneau(+c.dataset.n); return; }
+    if (e.target.closest('.barre-edition')) return;
     if (e.target.closest('.panneau') || e.target.closest('.vues')) return;
     if (!$('panneau').hidden && !e.target.closest('.plateau')) fermerPanneau();
   });
@@ -1246,6 +1723,8 @@
     var etat = $('jeton-etat');
     etat.className = 'jeton-etat';
     etat.textContent = jeton ? T.moderation : '';
+    if (!jeton && editionFresque) basculerEdition(false);
+    majEdition();
     // Le jeton n'est pas verifie ici : la fonction le refusera a la premiere
     // action. L'afficher comme « activé » sans l'avoir eprouve serait mentir,
     // mais le verifier a vide couterait un appel pour rien.
@@ -1320,6 +1799,87 @@
     var l = (resume || []).map(function (x) { return 'carte ' + x.n + ' (' + x.champs.join(', ') + ') : ' + x.titre; });
     window.alert(T.telecharge + '\n\n' + l.join('\n'));
   }
+
+  on('mode-edition', 'change', function () { basculerEdition(this.checked); });
+  $('cartes').addEventListener('keydown', deplacerAuClavier);
+
+  /* Designer un lien en le cliquant sur le plateau. Hors edition, la couche des
+     liens ne recoit pas le pointeur du tout (voir `.liens` et `.touche`). */
+  $('liens').addEventListener('pointerdown', function (e) {
+    if (!editionFresque) return;
+    var g = e.target.closest ? e.target.closest('g[data-id]') : null;
+    if (g) choisirLien(g.dataset.id, true);
+  });
+
+  on('f-choix', 'change', function () { choisirLien(this.value, false); });
+  on('f-ajouter', 'click', function () {
+    ajouterLien(+$('f-de').value, +$('f-vers').value);
+  });
+  on('f-renommer', 'click', function () {
+    var l = fleche(lienChoisi);
+    if (!l) { etatEdition(T.aucunLien, true); return; }
+    memoriser();
+    l.libelle = $('f-libelle').value.slice(0, 60).trim();
+    majChoixLien();
+    dessinerLiens();
+    etatEdition(T.lienRenomme, false);
+  });
+  on('f-supprimer', 'click', function () {
+    var l = fleche(lienChoisi);
+    if (!l) { etatEdition(T.aucunLien, true); return; }
+    memoriser();
+    ref.tableau.fleches = ref.tableau.fleches.filter(function (f) { return f.id !== l.id; });
+    lienChoisi = null;
+    majChoixLien();
+    dessinerLiens();
+    etatEdition(T.lienSupprime, false);
+  });
+  on('f-annuler', 'click', annulerDernier);
+
+  on('f-enregistrer', 'click', function () {
+    envoyerFresque({ action: 'fresque-enregistrer', tableau: ref.tableau }).then(function (d) {
+      brouillonFresque = clonerTableau();
+      modifie = false;
+      majEdition();
+      etatEdition(T.fresqueEnregistree + ' ' + resumeFresque(d.resume), false);
+    }).catch(function () { /* l'etat est deja affiche */ });
+  });
+
+  on('f-oublier', 'click', function () {
+    envoyerFresque({ action: 'fresque-oublier' }).then(function () {
+      brouillonFresque = null;
+      modifie = false;
+      /* On recharge la fresque publiee : garder a l'ecran un plan qu'on vient
+         d'abandonner ferait croire qu'il reste quelque part. */
+      return charger().then(function () {
+        histoire = [];
+        lienChoisi = null;
+        majSelectsCartes();
+        majChoixLien();
+        dessinerCartes();
+        dessinerLiens();
+        appliquerZoom();
+        appliquerMiseEnAvant();
+        majEdition();
+        etatEdition(T.fresqueOubliee, false);
+      });
+    }).catch(function () {});
+  });
+
+  /* PUBLIER TELECHARGE, IL N'ECRIT PAS : meme regle que pour les cartes. Le
+     fichier se depose a la main dans le depot, la CI le valide, quelqu'un relit. */
+  on('f-publier', 'click', function () {
+    envoyerFresque({ action: 'fresque-publier' }).then(function (d) {
+      var txt = JSON.stringify(d.fichier, null, 2) + '\n';
+      var url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url; a.download = 'fresque-reference.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      etatEdition(T.fresqueTelechargee, false);
+      window.alert(T.fresqueTelechargee + '\n\n' + resumeFresque(d.resume));
+    }).catch(function () {});
+  });
 
   on('vue-cartes', 'click', function () { basculerVue('cartes'); });
   on('vue-fresque', 'click', function () { basculerVue('fresque'); });

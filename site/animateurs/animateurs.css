@@ -794,3 +794,70 @@
 .retours li.traite { border-left: 3px solid var(--ok, #2e7d32); }
 .retours li.traite .texte { color: var(--gris); }
 .retours .actions .traiter.est-traite { background: var(--accent-doux); color: var(--accent-txt-fort); border-color: var(--accent); }
+
+/* ── MODE ÉDITION DE LA FRESQUE DE RÉFÉRENCE ─────────────────
+   Réservé à la modération : la bascule n'apparaît qu'avec le jeton. Tout ce
+   bloc ne vit que sous `.en-edition`, pour qu'un visiteur qui lit la fresque
+   n'hérite d'aucun de ces comportements. */
+.barre-edition {
+  display: flex; flex-direction: column; gap: .7rem;
+  padding: .9rem clamp(1rem, 2vw, 1.75rem);
+  border-top: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne);
+  background: var(--bg-doux);
+}
+.edition-rang { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+  font-family: var(--f-ui); font-size: .85rem; }
+.edition-rang label { font-weight: 600; color: var(--gris); }
+.edition-titre { font-family: var(--f-ui); font-size: .78rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--gris); }
+.edition-rang select, .edition-rang input {
+  font: inherit; padding: .4rem .55rem; border: 1px solid var(--ligne);
+  border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 16rem;
+}
+.edition-rang select:focus-visible, .edition-rang input:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; }
+.edition-rang .etat { margin: 0; }
+.btn-outil.btn-fort { background: var(--accent-aplat); color: var(--sur-accent);
+  border-color: transparent; font-weight: 700; }
+.btn-outil.btn-danger { color: #c1444e; }
+.btn-outil:disabled { opacity: .45; cursor: not-allowed; }
+
+/* UNE CARTE QU'ON PEUT PRENDRE LE DIT. Sans ce curseur, on clique pour lire et
+   la carte part sous le pointeur. */
+.c-carte.deplacable { cursor: grab; }
+.c-carte.deplacable:active { cursor: grabbing; }
+/* La sélection de texte ruinait le geste : au deuxième aller-retour, la moitié
+   de la fresque passait en surbrillance bleue. */
+.plateau.en-edition { user-select: none; -webkit-user-select: none; }
+.plateau.en-edition img { -webkit-user-drag: none; }
+
+/* LA POIGNÉE DE LIEN, sur le bord droit de la carte. Deux gestes distincts sur
+   le même objet demandent deux prises distinctes : le corps déplace, la poignée
+   relie. Elle reste discrète au repos et se révèle au survol de la carte. */
+/* DANS la carte, et non sur son bord : `.c-carte` masque ce qui dépasse (pour
+   que la vignette épouse ses coins arrondis), et une poignée posée à l'extérieur
+   y disparaissait entièrement. En haut à droite, le numéro étant en haut à
+   gauche. */
+.poignee-lien {
+  position: absolute; top: 6px; right: 6px;
+  width: var(--poignee, 21px); height: var(--poignee, 21px);
+  border-radius: 999px;
+  background: var(--accent-aplat); border: 2px solid var(--surface);
+  opacity: .45; transition: opacity .15s, transform .15s;
+  cursor: crosshair; touch-action: none;
+}
+.c-carte:hover .poignee-lien, .c-carte:focus-visible .poignee-lien { opacity: 1; }
+.poignee-lien:hover { transform: scale(1.2); }
+
+/* UN TRAIT DE DEUX PIXELS NE SE CLIQUE PAS. Le doublon transparent, large de
+   seize pixels, reçoit le pointeur à sa place. Hors édition il n'en reçoit
+   aucun : le survol des cartes doit traverser la couche des liens. */
+.liens .touche { stroke: transparent; stroke-width: 16; fill: none; pointer-events: none; }
+.plateau.en-edition .liens .touche { pointer-events: stroke; cursor: pointer; }
+.liens g.choisi path { stroke: var(--accent-txt); stroke-width: 4; }
+.liens g.choisi .touche { stroke: transparent; }
+.liens g.choisi .tete { fill: var(--accent-txt); }
+.liens g.choisi text { display: block; fill: var(--accent-txt); font-weight: 700; }
+/* Le trait qu'on tire d'une carte vers une autre, le temps du geste. */
+.liens .trace { stroke: var(--accent-aplat); stroke-width: 3; stroke-dasharray: 8 6;
+  pointer-events: none; }

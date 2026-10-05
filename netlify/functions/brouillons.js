@@ -7,6 +7,8 @@
    POST { action:"enregistrer", n, titre?, verso?, explication?, jeton }
    POST { action:"oublier", n, jeton }
    POST { action:"publier", jeton }       -> { fichier } : cartes.json complet
+   POST { action:"fresque-enregistrer", tableau, jeton }
+   POST { action:"fresque-publier", jeton } -> { fichier } : fresque-reference.json
 
    PAS DE PUBLICATION AUTOMATIQUE. « Publier » rend le fichier, il ne l'ecrit
    nulle part : la fonction n'a pas de droit d'ecriture sur le depot, et lui en
@@ -21,6 +23,7 @@
 "use strict";
 const { getStore, connectLambda } = require("@netlify/blobs");
 const B = require("../../serveur/src/brouillons.js");
+const FB = require("../../serveur/src/fresque-brouillon.js");
 const fs = require("fs");
 const path = require("path");
 
@@ -43,19 +46,22 @@ function memeJeton(fourni, attendu) {
 
 /* La source des cartes, lue sur le disque comme la table des communes. Elle
    voyage avec la fonction grace a `included_files` (voir netlify.toml). */
-function lireCartes() {
+function lireSource(nom) {
   const candidats = [
-    path.join(__dirname, "..", "..", "site", "data", "cartes.json"),
-    path.join(process.cwd(), "site", "data", "cartes.json")
+    path.join(__dirname, "..", "..", "site", "data", nom),
+    path.join(process.cwd(), "site", "data", nom)
   ];
   for (const f of candidats) {
     try { if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { /* suivant */ }
   }
-  const e = new Error("cartes.json introuvable. Cherche a : " + candidats.join(", ")
+  const e = new Error(nom + " introuvable. Cherche a : " + candidats.join(", ")
     + ". Si ce message apparait en production, c'est que `included_files` ne le couvre plus.");
-  e.code = "CARTES_ABSENTES";
+  e.code = "SOURCE_ABSENTE";
   throw e;
 }
+const lireCartes = () => lireSource("cartes.json");
+const lireFresque = () => lireSource("fresque-reference.json");
+const CLE_FRESQUE = "fresque";
 
 const cle = (n) => "brouillon:" + n;
 
@@ -95,7 +101,9 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === "GET") {
     const brouillons = await lireBrouillons(s);
-    return json(200, { ok: true, brouillons: brouillons, resume: B.resume(brouillons, source.cartes) });
+    const fresque = await s.get(CLE_FRESQUE, { type: "json" }).catch(() => null);
+    return json(200, { ok: true, brouillons: brouillons, resume: B.resume(brouillons, source.cartes),
+      fresque: fresque ? fresque.tableau : null });
   }
   if (event.httpMethod !== "POST") return json(405, { erreur: "Méthode non autorisée." });
   if (!corps) return json(400, { erreur: "Requête illisible." });
@@ -105,6 +113,38 @@ exports.handler = async (event) => {
     if (n === null) return json(400, { erreur: "Carte inconnue." });
     await s.delete(cle(n)).catch(() => {});
     return json(200, { ok: true });
+  }
+
+  /* LA FRESQUE DE REFERENCE. Un seul brouillon, et non un par carte : on
+     deplace des cartes les unes par rapport aux autres, l'etat n'a de sens
+     qu'entier. */
+  if (corps.action === "fresque-enregistrer") {
+    let publiee;
+    try { publiee = lireFresque(); }
+    catch (e) { console.error("[brouillons] " + e.message); return json(503, { erreur: "Le service est momentanément indisponible." }); }
+    const v = FB.valider(corps.tableau, publiee.plan);
+    if (v.erreur) return json(400, { erreur: v.erreur });
+    await s.setJSON(CLE_FRESQUE, { quand: Date.now(), tableau: v.tableau });
+    return json(200, { ok: true, resume: FB.resume(publiee.tableau, v.tableau) });
+  }
+
+  if (corps.action === "fresque-oublier") {
+    await s.delete(CLE_FRESQUE).catch(() => {});
+    return json(200, { ok: true });
+  }
+
+  if (corps.action === "fresque-publier") {
+    let publiee;
+    try { publiee = lireFresque(); }
+    catch (e) { console.error("[brouillons] " + e.message); return json(503, { erreur: "Le service est momentanément indisponible." }); }
+    const b = await s.get(CLE_FRESQUE, { type: "json" }).catch(() => null);
+    if (!b || !b.tableau) return json(400, { erreur: "Aucune modification à publier." });
+    /* ON REVALIDE AVANT DE PUBLIER. Le brouillon a pu etre enregistre par une
+       version plus ancienne du code, ou la fresque publiee avoir change depuis. */
+    const v = FB.valider(b.tableau, publiee.plan);
+    if (v.erreur) return json(400, { erreur: v.erreur });
+    return json(200, { ok: true, fichier: FB.appliquer(publiee, v.tableau),
+      resume: FB.resume(publiee.tableau, v.tableau) });
   }
 
   if (corps.action === "publier") {
