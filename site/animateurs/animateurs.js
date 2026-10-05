@@ -82,6 +82,10 @@
     publierModifs: 'Publish changes', enregistre: 'Saved as a draft, not published yet.',
     brouillonOublie: 'Draft discarded.', riendApublier: 'No changes to publish.',
     telecharge: 'cartes.json downloaded. Put it in the repository: CI will check it, then someone merges it.',
+    publieEnLigne: 'Published. The corrections are live on the site right away.',
+    deposer: 'Download cartes.json for the repository',
+    aDeposer: 'correction(s) live but not yet in the repository',
+    pourquoiDeposer: 'The repository also builds the printed deck: fold the corrections back into it from time to time. This list empties itself once a deployment catches up.',
     prisEnCompte: 'Handled', retourTraite: 'handled',
     modeEdition: 'Edit mode',
     aideEdition: 'Drag a card to move it. Pull its handle onto another card to link them. Click a link to edit it. Arrow keys move the focused card.',
@@ -148,6 +152,10 @@
     publierModifs: 'Publier les modifications', enregistre: 'Enregistré en brouillon, pas encore publié.',
     brouillonOublie: 'Brouillon abandonné.', riendApublier: 'Aucune modification à publier.',
     telecharge: 'cartes.json téléchargé. Déposez-le dans le dépôt : la CI le valide, puis quelqu\'un fusionne.',
+    publieEnLigne: 'Publié. Les corrections sont en ligne tout de suite.',
+    deposer: 'Télécharger cartes.json pour le dépôt',
+    aDeposer: 'correction(s) en ligne, pas encore dans le dépôt',
+    pourquoiDeposer: 'Le dépôt fabrique aussi le jeu imprimé : repliez-y les corrections de temps en temps. Cette liste se vide toute seule au déploiement qui la rattrape.',
     prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte',
     modeEdition: 'Mode édition',
     aideEdition: 'Glissez une carte pour la déplacer. Tirez sa poignée vers une autre carte pour les relier. Cliquez un lien pour le modifier. Les flèches du clavier déplacent la carte au focus.',
@@ -219,6 +227,13 @@
       h.push('<label class="bascule" id="bascule-edition" hidden><input type="checkbox" id="mode-edition"><span>'
         + T.modeEdition + '</span></label>');
       h.push('<button type="button" class="btn-outil" id="publier-modifs" hidden></button>');
+      /* DEUX ACTIONS DISTINCTES, ET C'EST VOULU. « Publier » met en ligne tout
+         de suite ; « Telecharger » replie les corrections dans le depot, qui
+         fabrique le jeu imprime. On publie souvent, on replie de temps en
+         temps : les confondre obligeait a passer par le depot pour corriger une
+         virgule, et c'est ce qui rendait la correction d'une explication
+         inabordable sans savoir coder. */
+      h.push('<button type="button" class="btn-outil" id="deposer-modifs" hidden></button>');
       h.push('<button type="button" class="btn-outil quitter-plein" id="quitter-plein">' + T.fermer + '</button>');
     } else if (fermerId) {
       h.push('<button type="button" class="btn-outil quitter-plein" id="' + fermerId + '">' + T.fermer + '</button>');
@@ -348,7 +363,10 @@
   /* ── Chargement ─────────────────────────────────────────── */
   function charger() {
     return Promise.all([
-      fetch(RACINE + 'data/cartes.json').then(function (r) { return r.json(); }),
+      /* LE CALQUE DES CORRECTIONS PUBLIEES, par-dessus le fichier : c'est ici
+         qu'on corrige, c'est donc ici d'abord qu'on doit voir le resultat. */
+      fetch(RACINE + 'data/cartes.json').then(function (r) { return r.json(); })
+        .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquer(d) : d; }),
       fetch(RACINE + 'data/fresque-reference.json').then(function (r) { return r.json(); })
     ]).then(function (res) {
       res[0].cartes.forEach(function (c) { cartes[c.n] = c; });
@@ -366,6 +384,15 @@
       $('plateau').style.width = PLAN_W + 'px';
       $('plateau').style.height = PLAN_H + 'px';
     });
+  }
+
+  /* RECHARGER LES SEULS TEXTES. charger() relit aussi la fresque de reference :
+     l'appeler apres une publication effacerait, sans prevenir, le plan qu'on
+     est peut-etre en train de deplacer en mode edition. */
+  function rechargerTextes() {
+    return fetch(RACINE + 'data/cartes.json').then(function (r) { return r.json(); })
+      .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquer(d) : d; })
+      .then(function (d) { d.cartes.forEach(function (c) { cartes[c.n] = c; }); });
   }
 
   /* ── Rendu du plateau ───────────────────────────────────── */
@@ -1029,12 +1056,21 @@
   var API_BROUILLONS = '/.netlify/functions/brouillons';
   var brouillons = {};   // n -> brouillon enregistre
 
+  var publies = [];   // les corrections DEJA en ligne, pas encore dans le depot
+
   function majBoutonPublier() {
     var b = $('publier-modifs');
-    if (!b) return;
-    var n = Object.keys(brouillons).length;
-    b.hidden = !jeton || !n;
-    b.textContent = T.publierModifs + ' (' + n + ')';
+    if (b) {
+      var n = Object.keys(brouillons).length;
+      b.hidden = !jeton || !n;
+      b.textContent = T.publierModifs + ' (' + n + ')';
+    }
+    var d = $('deposer-modifs');
+    if (d) {
+      d.hidden = !jeton || !publies.length;
+      d.textContent = T.deposer + ' (' + publies.length + ')';
+      d.title = T.pourquoiDeposer;
+    }
   }
 
   function chargerBrouillons() {
@@ -1049,6 +1085,7 @@
            en mode edition. Sinon la page Retours montrerait un plan que
            personne d'autre ne voit, et les retours porteraient sur lui. */
         brouillonFresque = (d && d.ok && d.fresque) ? d.fresque : null;
+        publies = (d && d.ok && d.publie) ? d.publie : [];
         majBoutonPublier();
         majEdition();
         if (cibleN != null) remplirEdition(cibleN);
@@ -1623,7 +1660,12 @@
     var c = e.target.closest('.c-carte');
     if (c) { ouvrirPanneau(+c.dataset.n); return; }
     if (e.target.closest('.barre-edition')) return;
-    if (e.target.closest('.panneau') || e.target.closest('.vues')) return;
+    /* LA BARRE D'OUTILS NE REFERME PAS LA CARTE OUVERTE. Zoomer, chercher,
+       publier : aucune de ces actions ne quitte la carte qu'on est en train de
+       lire, et les voir la refermer donnait l'impression d'avoir rate son
+       clic. Changer de vue la referme, lui, mais explicitement (basculerVue). */
+    if (e.target.closest('.panneau') || e.target.closest('.vues')
+        || e.target.closest('.barre')) return;
     if (!$('panneau').hidden && !e.target.closest('.plateau')) fermerPanneau();
   });
   $('cartes').addEventListener('mouseover', function (e) {
@@ -1778,10 +1820,40 @@
       .catch(function () {});
   });
 
-  /* PUBLIER TELECHARGE, IL N'ECRIT PAS. Voir le commentaire du bloc des
-     brouillons : le fichier se depose a la main, la CI le valide. */
+  /* PUBLIER MET EN LIGNE, TOUT DE SUITE. Les corrections vont dans un calque
+     que le site applique par-dessus cartes.json : plus de telechargement, plus
+     de depot, plus d'attente. Le depot garde son role, mais plus tard et pour
+     une autre raison : c'est lui qui fabrique le jeu imprime (bouton
+     « Telecharger », ci-dessous). */
   on('publier-modifs', 'click', function () {
+    // La carte ouverte au moment du clic : c'est elle qu'on veut revoir corrigee.
+    var ouverte = cibleN;
     envoyerBrouillon({ action: 'publier' }).then(function (d) {
+      publies = d.publie || [];
+      /* ON RELIT CE QU'ON VIENT DE PUBLIER. Sans oublier le calque deja lu,
+         l'outil reafficherait l'ancien texte et on croirait que publier n'a
+         rien fait. */
+      if (window.CalqueCartes) window.CalqueCartes.oublier();
+      return rechargerTextes().then(function () {
+        dessinerCartes();
+        dessinerGrille();
+        appliquerMiseEnAvant();
+        return chargerBrouillons();
+      }).then(function () {
+        if (ouverte != null) ouvrirPanneau(ouverte);
+        var etat = $('e-etat');
+        if (etat) { etat.className = 'etat ok'; etat.textContent = T.publieEnLigne; }
+      });
+    }).catch(function () { /* l'etat est deja affiche */ });
+  });
+
+  /* REPLIER LES CORRECTIONS DANS LE DEPOT. Separe de la publication : le
+     fichier se depose a la main, la CI le valide, quelqu'un relit. On le fait
+     parce que cartes.json fabrique aussi la planche imprimee, et qu'un site
+     corrige devant un jeu de cartes qui ne l'est pas finirait par se voir en
+     atelier. Une fois le depot a jour, le calque se vide tout seul. */
+  on('deposer-modifs', 'click', function () {
+    envoyerBrouillon({ action: 'telecharger' }).then(function (d) {
       var txt = JSON.stringify(d.fichier, null, 2) + '\n';
       var url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
       var a = document.createElement('a');

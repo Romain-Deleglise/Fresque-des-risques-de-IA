@@ -787,7 +787,7 @@ dans le dépôt) :
 | `FORM_RETOURS_URL` | suivi.js | (optionnel) formulaire de retour post-atelier (Notion). Sans elle, l'invitation n'apparaît pas dans les e-mails |
 | `FORM_TEMOIGNAGE_URL` | suivi.js | (optionnel) formulaire de témoignage. Sans elle, l'invitation n'apparaît pas |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
-| `ADMIN_TOKEN` | admin.js, commentaires.js | Clé secrète de l'espace `/admin/`, et jeton de modération des retours dans `/animateurs/`. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible |
+| `ADMIN_TOKEN` | admin.js, commentaires.js, brouillons.js | Clé secrète de l'espace `/admin/`, jeton de modération des retours dans `/animateurs/`, et clé des corrections de cartes et du mode édition de la fresque. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible. `cartes-publiees.js` n'en a pas besoin : il ne fait que lire ce qui est déjà affiché |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |
@@ -981,14 +981,41 @@ Deux choses s'y corrigent, au même endroit que ce qu'on leur reproche :
 
 | Quoi | Où | Ce qu'on peut faire |
 | --- | --- | --- |
-| Le texte d'une carte | panneau de la carte, page Retours | titre, verso, explications |
+| Le texte d'une carte | panneau de la carte, page Retours | titre, verso, explications (en ligne tout de suite) |
 | Le plan de la fresque | bascule « Mode édition », page Retours | déplacer les cartes, ajouter, renommer ou supprimer un lien |
 
-**Publier télécharge, il n'écrit pas.** « Publier » rend le fichier complet
-(`cartes.json` ou `fresque-reference.json`) ; il se dépose à la main dans le
-dépôt, la CI le valide, quelqu'un relit et fusionne. Donner à une fonction
-publique un droit d'écriture sur le dépôt, gardé par le seul jeton de
-modération, serait une surface d'attaque pour un gain faible.
+**Publier met en ligne, tout de suite.** Pour les textes de cartes, « Publier »
+range les corrections dans un **calque** (Netlify Blobs, clé `publie`) que
+`netlify/functions/cartes-publiees.js` rend publiquement et que
+`site/assets/js/calque-cartes.js` applique par-dessus `data/cartes.json`. Elles
+sont visibles à la seconde, sur toutes les pages, sans dépôt ni CI ni fusion.
+Corriger une explication ne demande plus d'écrire une ligne de code.
+
+Donner à la fonction un droit d'écriture sur le dépôt aurait réglé la lenteur en
+ouvrant une surface d'attaque hors de proportion : un jeton de modération volé
+serait devenu un droit de pousser du code. Le calque est la troisième voie.
+
+**Le fichier statique reste servi en premier.** Les pages lisent
+`data/cartes.json` (CDN), puis le calque. Intercaler la fonction devant le
+fichier serait plus simple à écrire et bien plus fragile : une fonction en panne
+emporterait les cartes avec elle, au milieu d'un atelier. Ici, si le calque
+tombe, on affiche le texte publié : une correction en retard, jamais une page
+vide. Aucune fonction de `calque-cartes.js` ne rejette.
+
+**Le dépôt reçoit quand même les corrections**, mais plus tard et pour une autre
+raison : c'est lui qui fabrique le jeu imprimé. Le bouton « Télécharger
+cartes.json pour le dépôt » apparaît tant que le calque n'est pas vide. Une fois
+le dépôt à jour, **le calque se vide tout seul** : à chaque lecture, un champ
+égal à la source disparaît, et une carte sans champ disparaît avec lui
+(`B.residu`). Personne n'a de ménage à faire.
+
+Le calque corrige le **texte**, jamais les images : les vraies cartes portent
+leur titre imprimé dessus et se refabriquent depuis le dépôt
+(`scripts/generer-planche-pdf.mjs`).
+
+**La fresque de référence, elle, passe toujours par le dépôt.** « Publier »
+y rend `fresque-reference.json` ; il se dépose à la main, la CI le valide.
+Un plan est relu dans son ensemble, pas carte par carte.
 
 Les brouillons **s'accumulent** : une carte relue donne dix virgules déplacées,
 et chacune devrait être relue séparément. On corrige au fil de l'eau, on relit

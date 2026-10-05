@@ -62,6 +62,14 @@ function lireSource(nom) {
 const lireCartes = () => lireSource("cartes.json");
 const lireFresque = () => lireSource("fresque-reference.json");
 const CLE_FRESQUE = "fresque";
+const CLE_PUBLIE = "publie";
+
+/* LE CALQUE PUBLIE, lu par le site et nettoye a chaque lecture. Un champ egal a
+   la source n'y a plus rien a faire : voir B.residu(). */
+async function lirePublie(s, source) {
+  const v = await s.get(CLE_PUBLIE, { type: "json" }).catch(() => null);
+  return B.residu((v && v.cartes) || [], source.cartes);
+}
 
 const cle = (n) => "brouillon:" + n;
 
@@ -102,8 +110,10 @@ exports.handler = async (event) => {
   if (event.httpMethod === "GET") {
     const brouillons = await lireBrouillons(s);
     const fresque = await s.get(CLE_FRESQUE, { type: "json" }).catch(() => null);
+    const publie = await lirePublie(s, source);
     return json(200, { ok: true, brouillons: brouillons, resume: B.resume(brouillons, source.cartes),
-      fresque: fresque ? fresque.tableau : null });
+      fresque: fresque ? fresque.tableau : null,
+      publie: B.resume(publie, source.cartes) });
   }
   if (event.httpMethod !== "POST") return json(405, { erreur: "Méthode non autorisée." });
   if (!corps) return json(400, { erreur: "Requête illisible." });
@@ -147,11 +157,61 @@ exports.handler = async (event) => {
       resume: FB.resume(publiee.tableau, v.tableau) });
   }
 
+  /* PUBLIER MET EN LIGNE, TOUT DE SUITE. Les corrections vont dans un calque
+     que le site lit par-dessus cartes.json : elles sont visibles a la seconde,
+     sans depot, sans CI, sans attendre que quelqu'un fusionne. Corriger une
+     explication ne demande plus d'ecrire une ligne de code.
+
+     CE QUI PASSE QUAND MEME PAR LE DEPOT. Le fichier cartes.json fabrique aussi
+     la planche imprimee : un titre ou un verso corrige en ligne doit finir par
+     y retourner, sinon le jeu de cartes et le site divergent en silence. D'ou
+     l'action « telecharger », proposee tant que le calque n'est pas vide, et le
+     nettoyage automatique le jour ou le depot rattrape (B.residu). */
   if (corps.action === "publier") {
     const brouillons = await lireBrouillons(s);
     if (!brouillons.length) return json(400, { erreur: "Aucune modification à publier." });
-    return json(200, { ok: true, fichier: B.appliquer(source, brouillons),
-      resume: B.resume(brouillons, source.cartes) });
+
+    const avant = await lirePublie(s, source);
+    const parN = {};
+    avant.forEach((b) => { parN[b.n] = b; });
+    /* Le brouillon ECRASE le calque champ par champ, il ne le remplace pas :
+       une carte dont on ne corrige aujourd'hui que le titre doit garder
+       l'explication publiee la semaine derniere. */
+    brouillons.forEach((b) => {
+      const sortie = Object.assign({}, parN[b.n] || { n: b.n }, b);
+      parN[b.n] = sortie;
+    });
+    const apres = B.residu(Object.keys(parN).map((k) => parN[k]), source.cartes);
+    await s.setJSON(CLE_PUBLIE, { quand: Date.now(), cartes: apres });
+
+    // Les brouillons ont trouve leur place : les garder ferait publier deux fois.
+    for (const b of brouillons) await s.delete(cle(b.n)).catch(() => {});
+
+    return json(200, { ok: true, enLigne: true,
+      resume: B.resume(brouillons, source.cartes),
+      publie: B.resume(apres, source.cartes) });
+  }
+
+  /* LE FICHIER COMPLET, POUR LE DEPOT. Separe de la publication : on met en
+     ligne souvent, on replie dans le depot de temps en temps. */
+  if (corps.action === "telecharger") {
+    const publie = await lirePublie(s, source);
+    const brouillons = await lireBrouillons(s);
+    const tout = publie.concat(brouillons);
+    if (!tout.length) return json(400, { erreur: "Aucune modification à déposer." });
+    return json(200, { ok: true, fichier: B.appliquer(source, tout),
+      resume: B.resume(tout, source.cartes) });
+  }
+
+  /* RETIRER UNE CORRECTION DEJA EN LIGNE. Sans cela, une publication malheureuse
+     ne se defait qu'en republiant le texte d'origine a la main. */
+  if (corps.action === "depublier") {
+    const n = B.numeroDeCarte(corps.n);
+    if (n === null) return json(400, { erreur: "Carte inconnue." });
+    const publie = await lirePublie(s, source);
+    const reste = publie.filter((b) => b.n !== n);
+    await s.setJSON(CLE_PUBLIE, { quand: Date.now(), cartes: reste });
+    return json(200, { ok: true, publie: B.resume(reste, source.cartes) });
   }
 
   if (corps.action === "enregistrer") {

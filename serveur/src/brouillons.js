@@ -112,6 +112,40 @@ function appliquer(fichier, brouillons) {
   return Object.assign({}, fichier, { cartes: cartes });
 }
 
+/* CE QUI DIFFERE ENCORE DU FICHIER SOURCE, dans un calque deja publie.
+
+   Publier ne passe plus par le depot : les corrections sont rangees dans un
+   calque que le site lit par-dessus cartes.json, et elles sont en ligne tout de
+   suite. Mais le depot finit par les recevoir (il le faut : c'est lui qui
+   fabrique le jeu imprime). Le jour ou il les porte, le calque dit exactement
+   la meme chose que la source : il ne doit plus rien ajouter.
+
+   On ne demande a personne de faire ce menage. A chaque lecture, un champ egal
+   a la source disparait, et une carte qui n'a plus de champ disparait avec lui.
+   Le calque se vide donc tout seul au deploiement qui le rattrape. */
+function residu(publies, cartes) {
+  var parN = {};
+  (cartes || []).forEach(function (c) { parN[c.n] = c; });
+  var out = [];
+  (publies || []).forEach(function (b) {
+    if (!b || b.n == null) return;
+    var source = parN[b.n];
+    if (!source) return;          // la carte n'existe plus : le calque non plus
+    var garde = { n: b.n, quand: b.quand, par: b.par };
+    var reste = false;
+    CHAMPS.forEach(function (champ) {
+      if (b[champ] === undefined) return;
+      var a = b[champ], o = source[champ];
+      var pareil = Array.isArray(a)
+        ? a.join("\n") === (o || []).join("\n")
+        : String(a) === String(o == null ? "" : o);
+      if (!pareil) { garde[champ] = a; reste = true; }
+    });
+    if (reste) out.push(garde);
+  });
+  return out;
+}
+
 /* Ce qui a change, carte par carte, pour la relecture avant publication. */
 function resume(brouillons, cartes) {
   var parN = {};
@@ -131,5 +165,6 @@ function resume(brouillons, cartes) {
 module.exports = {
   CHAMPS: CHAMPS, MAX_TITRE: MAX_TITRE, MAX_PARA: MAX_PARA, MAX_PARAS: MAX_PARAS,
   numeroDeCarte: numeroDeCarte, paragraphes: paragraphes,
-  valider: valider, fusionner: fusionner, appliquer: appliquer, resume: resume
+  valider: valider, fusionner: fusionner, appliquer: appliquer, resume: resume,
+  residu: residu
 };

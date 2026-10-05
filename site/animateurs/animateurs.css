@@ -589,9 +589,18 @@
    quoi il deposerait en haut d'une page dont la fresque est le milieu. */
 .ancre-fresque { display: block; position: relative; top: -5rem; }
 
-/* --- Apercu depliable de la fresque, sur l'accueil de l'espace ------------- */
-.apercu { margin: 1.2rem 0 1.8rem; border: 1px solid var(--ligne); border-radius: 14px;
-  background: var(--surface); padding: .9rem 1rem 1.1rem; }
+/* --- Apercu depliable de la fresque, sur l'accueil de l'espace -------------
+   PAS D'ENCADRE AUTOUR DE L'OUTIL. Ce bloc etait une carte (bord, coins
+   arrondis, fond `--surface`, rembourrage) du temps ou l'apercu tenait dans la
+   colonne de lecture. L'outil prend desormais toute la largeur de la fenetre :
+   il SORT de cette carte, dont le fond ne peignait plus que la largeur de la
+   colonne. On voyait donc une bande d'une autre teinte de chaque cote, tres
+   visible en theme sombre (`--surface` #201d16 contre `--bg` #17150f).
+
+   Le conteneur ne garde que ses marges. L'outil s'affiche alors sur le fond de
+   la page, exactement comme sur la page Retours : un seul outil, un seul
+   rendu. */
+.apercu { margin: 1.2rem 0 1.8rem; }
 .apercu-barre { display: flex; align-items: center; justify-content: space-between;
   gap: .8rem; flex-wrap: wrap; margin-bottom: .7rem; }
 .apercu .plateau-cadre { height: min(62vh, 34rem); }

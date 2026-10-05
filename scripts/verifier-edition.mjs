@@ -46,20 +46,39 @@ const erreursJS = [];
 pg.on("pageerror", (e) => erreursJS.push(e.message));
 
 let brouillons = [];
+let publie = [];              // le calque des corrections deja en ligne
+const resume = (l) => l.map((b) => ({ n: b.n, titre: b.titre || "", champs: Object.keys(b).filter((k) => k !== "n") }));
 await pg.route("**/.netlify/functions/commentaires**", (r) => r.fulfill({ status: 200,
   contentType: "application/json", body: JSON.stringify({ ok: true, compte: {}, retours: [] }) }));
+/* LE CALQUE PUBLIC, celui que TOUTES les pages lisent par-dessus cartes.json. */
+await pg.route("**/.netlify/functions/cartes-publiees**", (r) => r.fulfill({ status: 200,
+  contentType: "application/json", body: JSON.stringify({ ok: true, cartes: publie }) }));
 await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   const req = r.request();
   const rep = (c) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(c) });
-  if (req.method() === "GET") return rep({ ok: true, brouillons, resume: [] });
+  if (req.method() === "GET") return rep({ ok: true, brouillons, resume: [], publie: resume(publie) });
   const c = JSON.parse(req.postData() || "{}");
   if (c.action === "enregistrer") {
-    brouillons = brouillons.filter((b) => b.n !== c.n).concat([{ n: c.n, titre: c.titre }]);
+    /* Le bouchon imite le vrai service : il ne garde QUE les champs proposes, et
+       decoupe les textes en paragraphes comme serveur/src/brouillons.js. Un
+       bouchon qui rendrait une chaine la ou le service rend un tableau ferait
+       passer un banc sur un comportement que la production n'a pas. */
+    const paras = (v) => String(v || "").split(/\n{2,}|\r?\n/).map((x) => x.trim()).filter(Boolean);
+    const b = Object.assign({}, brouillons.find((x) => x.n === c.n) || { n: c.n });
+    if (c.titre !== undefined) b.titre = c.titre;
+    if (c.verso !== undefined) b.verso = paras(c.verso);
+    if (c.explication !== undefined) b.explication = paras(c.explication);
+    brouillons = brouillons.filter((x) => x.n !== c.n).concat([b]);
     return rep({ ok: true, nombre: brouillons.length });
   }
   if (c.action === "oublier") {
     brouillons = brouillons.filter((b) => b.n !== c.n);
     return rep({ ok: true });
+  }
+  if (c.action === "publier") {
+    publie = publie.filter((b) => !brouillons.some((x) => x.n === b.n)).concat(brouillons);
+    brouillons = [];
+    return rep({ ok: true, enLigne: true, resume: [], publie: resume(publie) });
   }
   return rep({ ok: true, fichier: { cartes: [] }, resume: [] });
 });
@@ -120,9 +139,102 @@ const ann = await pg.evaluate(() => ({
 t("annuler retire le brouillon", /abandonn/i.test(ann.etat), ann.etat);
 t("et cache la publication quand il n'en reste aucun", !ann.publierVisible);
 
+/* PUBLIER MET EN LIGNE, IL NE TELECHARGE PLUS. C'etait le reproche : corriger
+   une explication obligeait a telecharger cartes.json, le deposer dans le
+   depot, attendre la CI et une relecture. Pour une virgule. */
+console.log("\n--- Publier applique tout de suite ---");
+await pg.evaluate(() => {
+  document.getElementById("e-titre").value = "Amélioration des capacités (en ligne)";
+  document.getElementById("e-enregistrer").click();
+});
+await pg.waitForTimeout(600);
+const tele = pg.waitForEvent("download", { timeout: 2500 }).catch(() => null);
+await pg.evaluate(() => { window.alert = () => {}; document.getElementById("publier-modifs").click(); });
+await pg.waitForTimeout(1200);
+t("publier ne telecharge plus rien", (await tele) === null);
+const vivant = await pg.evaluate(() => ({
+  etat: document.getElementById("e-etat").textContent,
+  surLaFresque: (document.querySelector('.c-carte[data-n="3"] .tit') || {}).textContent,
+  dansLaGrille: (document.querySelector('.g-carte[data-n="3"] .g-tit') || {}).textContent,
+  publier: !document.getElementById("publier-modifs").hidden,
+  deposer: document.getElementById("deposer-modifs")
+    ? !document.getElementById("deposer-modifs").hidden : false,
+  texteDeposer: document.getElementById("deposer-modifs")
+    ? document.getElementById("deposer-modifs").textContent : ""
+}));
+t("l'etat dit que c'est en ligne", /en ligne/i.test(vivant.etat), vivant.etat);
+/* LE TEXTE CHANGE SOUS LES YEUX. Sans vider le cache du calque deja lu,
+   l'outil reafficherait l'ancien titre et on croirait que publier n'a rien
+   fait : c'est exactement ce qui se passait avant. */
+t("le titre corrige apparait sur la fresque", /en ligne/.test(vivant.surLaFresque || ""), vivant.surLaFresque);
+t("et dans la vue Cartes", /en ligne/.test(vivant.dansLaGrille || ""), vivant.dansLaGrille);
+t("le bouton de publication disparait : il n'y a plus de brouillon", !vivant.publier);
+t("un bouton propose de replier la correction dans le depot",
+  vivant.deposer && /1/.test(vivant.texteDeposer), vivant.texteDeposer);
+
+/* LE CALQUE N'EST PAS QUE POUR L'OUTIL. Un titre corrige doit se lire partout,
+   sinon le site se contredit d'une page a l'autre. Et une correction qui
+   n'arrive pas se diagnostique mal : un chemin de script faux ne produit
+   aucune erreur, juste l'ancien texte. */
+/* LE CAS QUI A MOTIVE TOUT CECI : ajouter une explication a une carte qui n'en
+   a pas. Le bloc « Explications » du panneau est masque tant que la carte n'en
+   porte aucune : publier doit non seulement changer le texte, mais faire
+   apparaitre un bloc qui n'existait pas. */
+console.log("\n--- Ajouter une explication a une carte qui n'en avait pas ---");
+const sansExpl = await pg.evaluate(() => {
+  const el = document.getElementById("panneau-explication");
+  return !!el && el.hidden;
+});
+await ouvrirCarte();
+await pg.waitForTimeout(400);
+await pg.evaluate(() => {
+  document.getElementById("e-expl").value = "Une explication ajoutée depuis l'outil.";
+  document.getElementById("e-enregistrer").click();
+});
+await pg.waitForTimeout(600);
+await pg.evaluate(() => { window.alert = () => {}; document.getElementById("publier-modifs").click(); });
+await pg.waitForTimeout(1300);
+const expl = await pg.evaluate(() => {
+  const el = document.getElementById("panneau-explication");
+  return { cache: !el || el.hidden, texte: el ? el.textContent : "",
+    panneauOuvert: !document.getElementById("panneau").hidden };
+});
+t("la carte reste ouverte : publier ne doit pas la refermer", expl.panneauOuvert);
+t("le bloc Explications etait bien masque au depart", sansExpl);
+t("l'explication publiee apparait dans le panneau, sans rechargement",
+  !expl.cache && /ajoutée depuis l'outil/.test(expl.texte), expl.texte.slice(0, 60));
+
+console.log("\n--- Le calque atteint tout le site ---");
+/* La galerie de l'accueil ne montre que six cartes choisies (voir GALERIE dans
+   assets/js/cartes.js) : on corrige l'une d'elles, sinon on verifierait qu'un
+   texte absent de la page n'y apparait pas. */
+publie = publie.concat([{ n: 6, titre: "Boîte noire (en ligne)" }]);
+await pg.goto(B + "/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1000);
+/* Le titre y est porte par le nom accessible du bouton : la galerie montre les
+   VRAIES cartes, images sur lesquelles le titre est deja imprime. Le calque
+   corrige le texte, pas les images, qui se refabriquent depuis le depot. */
+t("l'accueil public lit le calque",
+  await pg.evaluate(() => [].slice.call(document.querySelectorAll(".gc"))
+    .some((b) => (b.getAttribute("aria-label") || "").indexOf("Boîte noire (en ligne)") !== -1)));
+
+/* CHAQUE PAGE QUI LIT LES CARTES CHARGE LE CALQUE, et par un chemin qui existe.
+   Un `src` faux ne leve rien : la page affiche simplement l'ancien texte, et on
+   cherche longtemps pourquoi la correction « n'a pas marche ». */
+console.log("\n--- Le calque est charge, par un chemin qui existe ---");
+for (const f2 of ["site/index.html", "site/en/index.html", "site/en-ligne/session/index.html",
+                  "site/animateurs/index.html", "site/animateurs/retours/index.html",
+                  "site/en/facilitators/reference/index.html"]) {
+  const src = fs.readFileSync(path.join(RACINE, f2), "utf8");
+  const m2 = src.match(/<script src="([^"]*calque-cartes\.js)"/);
+  const vise = m2 ? path.resolve(path.dirname(path.join(RACINE, f2)), m2[1]) : null;
+  t(f2.replace("site/", "") + " charge le calque", !!m2 && fs.existsSync(vise),
+    m2 ? m2[1] : "aucun script");
+}
+
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 2).join(" | "));
 
-console.log("\n" + (ko ? "❌" : "✅") + " Edition des cartes : " + (9 - ko) + " verifications reussies, " + ko + " echouees.\n");
+console.log("\n" + (ko ? "❌" : "✅") + " Edition des cartes : " + (25 - ko) + " verifications reussies, " + ko + " echouees.\n");
 await nav.close();
 site.close();
 process.exit(ko ? 1 : 0);

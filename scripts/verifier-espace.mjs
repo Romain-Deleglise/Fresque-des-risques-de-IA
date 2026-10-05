@@ -222,6 +222,37 @@ for (const u of ["/animateurs/", "/animateurs/retours/"]) {
     !(await pg.evaluate(() => !!document.getElementById("zoom-ajuste"))));
 }
 
+/* ── AUCUNE BANDE D'UNE AUTRE TEINTE AUTOUR DE L'OUTIL ───────
+   L'outil prend toute la largeur de la fenetre : il SORT de la colonne de
+   lecture. Tout ancetre qui peint un fond s'arrete, lui, a la largeur de sa
+   propre boite, et on voit alors une bande d'une autre couleur de chaque cote.
+   C'est ce qui arrivait sur l'accueil, ou l'apercu etait un encadre a fond
+   `--surface` : tres visible en theme sombre (#201d16 contre #17150f). */
+console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");
+for (const u of ["/animateurs/", "/animateurs/retours/"]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
+  await pg.waitForTimeout(900);
+  const fautifs = await pg.evaluate(() => {
+    const z = document.getElementById("fresque-zone");
+    if (!z) return ["zone absente"];
+    const l = z.getBoundingClientRect().width, out = [];
+    let p = z.parentElement;
+    while (p && p !== document.documentElement) {
+      const c = getComputedStyle(p).backgroundColor;
+      const opaque = c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c);
+      if (opaque && p.getBoundingClientRect().width < l - 1) {
+        out.push((p.id ? "#" + p.id : p.tagName) + " " + c
+          + " large de " + Math.round(p.getBoundingClientRect().width) + " pour une zone de " + Math.round(l));
+      }
+      p = p.parentElement;
+    }
+    return out;
+  });
+  t("aucun ancetre ne peint un fond plus etroit que l'outil sur " + u,
+    fautifs.length === 0, fautifs.join(" | "));
+}
+
 /* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
    Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
    etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages

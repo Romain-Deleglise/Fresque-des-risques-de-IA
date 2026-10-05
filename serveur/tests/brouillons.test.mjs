@@ -123,3 +123,34 @@ test("corriger en deux fois n'efface pas la premiere correction", () => {
 test("ne rien proposer du tout est refuse", () => {
   assert.match(B.valider({ n: 3 }, carte(), NOW).erreur, /propos/);
 });
+
+/* LE CALQUE SE VIDE QUAND LE DEPOT RATTRAPE. Publier ne passe plus par le
+   depot : les corrections vivent dans un calque que le site applique par-dessus
+   cartes.json. Mais le depot finit par les recevoir, puisque c'est lui qui
+   fabrique le jeu imprime. Ce jour-la, le calque dit la meme chose que la
+   source et ne doit plus rien ajouter : sans ce menage il resterait servi pour
+   toujours, et s'opposerait un jour a une correction plus recente faite
+   directement dans le fichier. */
+test("un champ redevenu identique a la source quitte le calque", () => {
+  const cartes = [carte()];
+  assert.deepEqual(B.residu([{ n: 3, titre: carte().titre }], cartes), []);
+});
+
+test("un champ qui differe encore reste dans le calque", () => {
+  const cartes = [carte()];
+  const r = B.residu([{ n: 3, titre: "Corrigé" }], cartes);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].titre, "Corrigé");
+});
+
+test("le menage se fait champ par champ, pas carte par carte", () => {
+  const cartes = [carte()];
+  const r = B.residu([{ n: 3, titre: carte().titre, explication: ["Nouvelle."] }], cartes);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].titre, undefined, "le titre rattrape par la source est parti");
+  assert.deepEqual(r[0].explication, ["Nouvelle."]);
+});
+
+test("une carte qui n'existe plus quitte le calque", () => {
+  assert.deepEqual(B.residu([{ n: 99, titre: "Fantôme" }], [carte()]), []);
+});

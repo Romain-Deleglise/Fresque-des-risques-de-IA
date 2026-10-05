@@ -445,7 +445,13 @@
     });
   }
   function chargerCartes() {
-    return fetch(BASE + "data/cartes.json").then(function (r) { return r.json(); }).then(function (data) {
+    /* LE CALQUE DES CORRECTIONS PUBLIEES, par-dessus le fichier. Un verso
+       corrige depuis l'espace animateur·ices arrive dans l'atelier en cours
+       sans attendre un deploiement. Il n'empeche jamais le chargement : sans
+       reseau, c'est le texte publie qui s'affiche. */
+    return fetch(BASE + "data/cartes.json").then(function (r) { return r.json(); })
+      .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquer(d) : d; })
+      .then(function (data) {
       data.cartes.forEach(function (c) { etat.cartes[c.n] = c; });
       var c0 = etat.cartes[0]; if (c0) E["carte0-txt"].textContent = (c0.verso || []).join("  ");
     });

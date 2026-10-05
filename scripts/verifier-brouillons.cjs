@@ -24,6 +24,9 @@ const cb = require.resolve("@netlify/blobs", { paths: [RACINE] });
 require.cache[cb] = { id: cb, filename: cb, loaded: true, exports: { getStore: faux, connectLambda: () => {} } };
 process.env.ADMIN_TOKEN = "jeton-de-banc-123456";
 const fn = require(path.join(RACINE, "netlify/functions/brouillons.js"));
+// Le service public qui rend le calque : meme magasin bouchonne.
+const calque = require(path.join(RACINE, "netlify/functions/cartes-publiees.js"));
+const SOURCE = JSON.parse(fsNode.readFileSync(path.join(RACINE, "site/data/cartes.json"), "utf8"));
 
 const post = (c) => fn.handler({ httpMethod: "POST", body: JSON.stringify(c), queryStringParameters: {} });
 const get = (q) => fn.handler({ httpMethod: "GET", queryStringParameters: q });
@@ -50,15 +53,71 @@ const J = "jeton-de-banc-123456";
   t("corriger le verso ENSUITE garde le titre deja corrige",
     r.ok && r.brouillon.titre && r.brouillon.verso.length === 2, JSON.stringify(r.brouillon));
 
-  console.log("\n--- Publier ---");
+  /* PUBLIER MET EN LIGNE, IL NE TELECHARGE PLUS. Corriger une explication
+     passait par : telecharger, deposer dans le depot, attendre la CI, attendre
+     une relecture, attendre le deploiement. Pour une virgule. Les corrections
+     vont desormais dans un calque que le site applique par-dessus cartes.json,
+     et le depot ne sert plus qu'a nourrir le jeu imprime. */
+  console.log("\n--- Publier met en ligne ---");
   const p = lire(await post({ action: "publier", jeton: J }));
-  const c3 = p.fichier.cartes.find((c) => c.n === 3);
-  t("le fichier rendu est complet", p.fichier.cartes.length === 39, String(p.fichier.cartes && p.fichier.cartes.length));
+  t("publier met en ligne et ne rend plus de fichier", p.ok && p.enLigne && !p.fichier, JSON.stringify(p).slice(0, 120));
+  t("le calque porte la correction",
+    p.publie.length === 1 && p.publie[0].n === 3 && p.publie[0].champs.join() === "titre,verso",
+    JSON.stringify(p.publie));
+  t("les brouillons sont consommes : on ne publie pas deux fois",
+    lire(await get({ jeton: J })).brouillons.length === 0);
+
+  console.log("\n--- Le calque, lisible par tout le site ---");
+  const rep1 = await calque.handler({ httpMethod: "GET", queryStringParameters: {} });
+  const d1 = lire(rep1);
+  t("il se lit SANS jeton : c'est deja ce qui s'affiche sur le site", rep1.statusCode === 200);
+  t("il porte la carte corrigee", d1.cartes.length === 1 && /corrigé/.test(d1.cartes[0].titre), JSON.stringify(d1.cartes));
+  t("il est mis en cache une minute", /max-age=60/.test(rep1.headers["cache-control"]), rep1.headers["cache-control"]);
+  t("une ecriture y est refusee",
+    (await calque.handler({ httpMethod: "POST", queryStringParameters: {} })).statusCode === 405);
+
+  /* LE CALQUE SE VIDE QUAND LE DEPOT RATTRAPE. Sans ce menage, une correction
+     deposee dans le depot resterait ensuite servie deux fois, et un jour
+     s'opposerait a une correction plus recente faite dans le fichier. */
+  console.log("\n--- Le calque se vide tout seul ---");
+  const vrai3 = SOURCE.cartes.find((c) => c.n === 3);
+  await faux().setJSON("publie", { quand: 1, cartes: [{ n: 3, titre: vrai3.titre }] });
+  t("un champ redevenu identique a la source disparait",
+    lire(await calque.handler({ httpMethod: "GET", queryStringParameters: {} })).cartes.length === 0);
+  await faux().setJSON("publie", { quand: 1, cartes: [{ n: 99, titre: "fantôme" }] });
+  t("une carte qui n'existe plus disparait aussi",
+    lire(await calque.handler({ httpMethod: "GET", queryStringParameters: {} })).cartes.length === 0);
+
+  /* UNE PUBLICATION N'EFFACE PAS LES PRECEDENTES, champ par champ : une carte
+     dont on ne corrige aujourd'hui que le titre doit garder l'explication
+     publiee la semaine derniere. */
+  console.log("\n--- Les publications s'ajoutent ---");
+  await faux().setJSON("publie", { quand: 1, cartes: [{ n: 3, explication: ["Posée la semaine dernière."] }] });
+  await post({ action: "enregistrer", n: 3, titre: "Amélioration des capacités (corrigé)", jeton: J });
+  const p2 = lire(await post({ action: "publier", jeton: J }));
+  t("le titre d'aujourd'hui s'ajoute a l'explication d'avant",
+    p2.publie.length === 1 && p2.publie[0].champs.join() === "titre,explication", JSON.stringify(p2.publie));
+
+  console.log("\n--- Retirer une correction deja en ligne ---");
+  const dep = lire(await post({ action: "depublier", n: 3, jeton: J }));
+  t("la carte quitte le calque", dep.ok && dep.publie.length === 0, JSON.stringify(dep));
+
+  /* LE DEPOT RECOIT QUAND MEME LES CORRECTIONS. C'est lui qui fabrique le jeu
+     imprime : un site corrige devant un jeu de cartes qui ne l'est pas finirait
+     par se voir en atelier. */
+  console.log("\n--- Telecharger pour le depot ---");
+  await post({ action: "enregistrer", n: 3, titre: "Amélioration des capacités (corrigé)", jeton: J });
+  await post({ action: "enregistrer", n: 3, verso: "Un.\n\nDeux.", jeton: J });
+  const dl = lire(await post({ action: "telecharger", jeton: J }));
+  const c3 = dl.fichier.cartes.find((c) => c.n === 3);
+  t("le fichier rendu est complet", dl.fichier.cartes.length === 39, String(dl.fichier.cartes && dl.fichier.cartes.length));
   t("la carte corrigee porte les deux changements", /corrigé/.test(c3.titre) && c3.verso.length === 2);
   t("son image et son lot survivent", !!c3.image && c3.lot === 1, JSON.stringify({ img: !!c3.image, lot: c3.lot }));
-  const c4 = p.fichier.cartes.find((c) => c.n === 4);
+  const c4 = dl.fichier.cartes.find((c) => c.n === 4);
   t("une carte sans brouillon est intacte", c4.titre === "Automatisation du travail", c4.titre);
-  t("le resume dit quoi relire", p.resume.length === 1 && p.resume[0].champs.join() === "titre,verso", JSON.stringify(p.resume));
+  t("le resume dit quoi relire", dl.resume.length === 1 && dl.resume[0].champs.join() === "titre,verso", JSON.stringify(dl.resume));
+  t("telecharger ne consomme pas les brouillons : on relit avant de deposer",
+    lire(await get({ jeton: J })).brouillons.length === 1);
 
   console.log("\n--- La fresque de reference ---");
   const fs2 = require("fs");
@@ -94,6 +153,9 @@ const J = "jeton-de-banc-123456";
   await post({ action: "oublier", n: 3, jeton: J });
   t("le brouillon oublie disparait", lire(await get({ jeton: J })).brouillons.length === 0);
   t("publier sans rien a publier est refuse", !!lire(await post({ action: "publier", jeton: J })).erreur);
+  await faux().setJSON("publie", { quand: 1, cartes: [] });
+  t("telecharger sans rien a deposer est refuse",
+    !!lire(await post({ action: "telecharger", jeton: J })).erreur);
 
   console.log("\n" + (ko ? "❌" : "✅") + " Brouillons : " + ok + " verifications, " + ko + " echouees.\n");
   process.exit(ko ? 1 : 0);
