@@ -85,7 +85,10 @@
     publieEnLigne: 'Published. The corrections are live on the site right away.',
     deposer: 'Download cartes.json for the repository',
     aDeposer: 'correction(s) live but not yet in the repository',
-    pourquoiDeposer: 'The repository also builds the printed deck: fold the corrections back into it from time to time. This list empties itself once a deployment catches up.',
+    pourquoiDeposer: 'The repository also builds the printed deck: fold these corrections back into it. This list empties itself once a deployment catches up.',
+    fresquePubliee: 'Published. The fresk is live for everyone right away.',
+    deposerFresque: 'Download for the repository',
+    pourquoiDeposerFresque: 'Nothing printed depends on this plan: the download only keeps the repository as the project memory. No hurry.',
     prisEnCompte: 'Handled', retourTraite: 'handled',
     modeEdition: 'Edit mode',
     aideEdition: 'Drag a card to move it. Pull its handle onto another card to link them. Click a link to edit it. Arrow keys move the focused card.',
@@ -155,7 +158,10 @@
     publieEnLigne: 'Publié. Les corrections sont en ligne tout de suite.',
     deposer: 'Télécharger cartes.json pour le dépôt',
     aDeposer: 'correction(s) en ligne, pas encore dans le dépôt',
-    pourquoiDeposer: 'Le dépôt fabrique aussi le jeu imprimé : repliez-y les corrections de temps en temps. Cette liste se vide toute seule au déploiement qui la rattrape.',
+    pourquoiDeposer: 'Le dépôt fabrique aussi le jeu imprimé : repliez-y ces corrections. Cette liste se vide toute seule au déploiement qui la rattrape.',
+    fresquePubliee: 'Publié. La fresque est en ligne pour tout le monde.',
+    deposerFresque: 'Télécharger pour le dépôt',
+    pourquoiDeposerFresque: 'Rien d\'imprimé ne dépend de ce plan : le téléchargement ne sert qu\'à garder le dépôt comme mémoire du projet. Rien ne presse.',
     prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte',
     modeEdition: 'Mode édition',
     aideEdition: 'Glissez une carte pour la déplacer. Tirez sa poignée vers une autre carte pour les relier. Cliquez un lien pour le modifier. Les flèches du clavier déplacent la carte au focus.',
@@ -273,6 +279,11 @@
       h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
       h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
       h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
+      /* RANGE ICI, ET PAS DANS LA BARRE PRINCIPALE. Rien d'imprime ne depend de
+         ce plan : le depot n'est qu'une memoire, il n'y a pas d'urgence a lui
+         reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
+         yeux de qui ne modifie pas la fresque. */
+      h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
       h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
       h.push('</div>');
       h.push('</div>');
@@ -367,7 +378,10 @@
          qu'on corrige, c'est donc ici d'abord qu'on doit voir le resultat. */
       fetch(RACINE + 'data/cartes.json').then(function (r) { return r.json(); })
         .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquer(d) : d; }),
+      /* Le plan publie en ligne depuis l'outil, par-dessus le fichier. Sans
+         calque, ou sans reseau, c'est le plan du depot qui s'affiche. */
       fetch(RACINE + 'data/fresque-reference.json').then(function (r) { return r.json(); })
+        .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquerFresque(d) : d; })
     ]).then(function (res) {
       res[0].cartes.forEach(function (c) { cartes[c.n] = c; });
       ref = res[1];
@@ -1065,10 +1079,18 @@
       b.hidden = !jeton || !n;
       b.textContent = T.publierModifs + ' (' + n + ')';
     }
+    /* LE DEPOT N'EST CONCERNE QUE PAR CE QUI EST IMPRIME. Une explication ne
+       figure sur aucune carte du jeu : la publier en ligne suffit, et reclamer
+       un depot pour elle n'est qu'un faux devoir. Seuls un titre ou un verso
+       corriges rendent la planche imprimee fausse, donc seuls eux font
+       apparaitre ce bouton. */
     var d = $('deposer-modifs');
     if (d) {
-      d.hidden = !jeton || !publies.length;
-      d.textContent = T.deposer + ' (' + publies.length + ')';
+      var imprimes = publies.filter(function (p) {
+        return (p.champs || []).some(function (c) { return c === 'titre' || c === 'verso'; });
+      });
+      d.hidden = !jeton || !imprimes.length;
+      d.textContent = T.deposer + ' (' + imprimes.length + ')';
       d.title = T.pourquoiDeposer;
     }
   }
@@ -1086,6 +1108,7 @@
            personne d'autre ne voit, et les retours porteraient sur lui. */
         brouillonFresque = (d && d.ok && d.fresque) ? d.fresque : null;
         publies = (d && d.ok && d.publie) ? d.publie : [];
+        fresquePubliee = (d && d.ok && d.fresquePubliee) ? d.fresquePubliee : null;
         majBoutonPublier();
         majEdition();
         if (cibleN != null) remplirEdition(cibleN);
@@ -1147,6 +1170,7 @@
      COMME POUR LES CARTES : PUBLIER TELECHARGE, IL N'ECRIT PAS. Voir le
      commentaire du bloc des brouillons. */
   var brouillonFresque = null;   // le tableau enregistre cote serveur, s'il existe
+  var fresquePubliee = null;     // le plan DEJA en ligne, pas encore dans le depot
   var histoire = [];             // les etats precedents, pour « Annuler »
   var modifie = false;           // quelque chose a bouge depuis le dernier enregistrement
   var MAX_HISTOIRE = 40;
@@ -1183,6 +1207,10 @@
     if ($('bascule-edition')) $('bascule-edition').hidden = !jeton;
     if ($('f-annuler')) $('f-annuler').disabled = !histoire.length;
     if ($('f-oublier')) $('f-oublier').hidden = !brouillonFresque;
+    if ($('f-deposer')) {
+      $('f-deposer').hidden = !fresquePubliee && !brouillonFresque;
+      $('f-deposer').title = T.pourquoiDeposerFresque;
+    }
     var l = fleche(lienChoisi);
     ['f-libelle', 'f-renommer', 'f-supprimer'].forEach(function (id) {
       if ($(id)) $(id).disabled = !l;
@@ -1421,8 +1449,11 @@
       }
       modeCom = false;
       majOnglets();
-      if (brouillonFresque) {
-        ref.tableau = clonerTableau(brouillonFresque);
+      /* ON REPREND CE QUI EXISTE DEJA, dans cet ordre : le brouillon en cours,
+         sinon le plan deja en ligne. Repartir du fichier du depot ferait
+         defaire, sans prevenir, une publication faite la veille. */
+      if (brouillonFresque || fresquePubliee) {
+        ref.tableau = clonerTableau(brouillonFresque || fresquePubliee);
         modifie = false;
       }
     } else if ($('mode-commentaires')) {
@@ -1938,10 +1969,28 @@
     }).catch(function () {});
   });
 
-  /* PUBLIER TELECHARGE, IL N'ECRIT PAS : meme regle que pour les cartes. Le
-     fichier se depose a la main dans le depot, la CI le valide, quelqu'un relit. */
+  /* PUBLIER LE PLAN LE MET EN LIGNE, comme les textes. Le plan de la fresque de
+     reference ne touche ni les cartes ni la planche imprimee : c'est une mise
+     en page, lue par le seul outil. Rien ne justifiait de la faire passer par
+     un telechargement, un depot et une relecture. */
   on('f-publier', 'click', function () {
     envoyerFresque({ action: 'fresque-publier' }).then(function (d) {
+      brouillonFresque = null;
+      fresquePubliee = clonerTableau();
+      modifie = false;
+      histoire = [];
+      /* Le calque lu au chargement ne vaut plus : « Abandonner » doit revenir
+         sur ce qu'on vient de publier, pas sur l'etat d'il y a dix minutes. */
+      if (window.CalqueCartes) window.CalqueCartes.oublier();
+      majEdition();
+      etatEdition(T.fresquePubliee + ' ' + resumeFresque(d.resume), false);
+    }).catch(function () { /* l'etat est deja affiche */ });
+  });
+
+  /* LE FICHIER, POUR LE DEPOT. Sans urgence : il ne sert qu'a garder le depot
+     comme memoire du projet. */
+  on('f-deposer', 'click', function () {
+    envoyerFresque({ action: 'fresque-telecharger' }).then(function (d) {
       var txt = JSON.stringify(d.fichier, null, 2) + '\n';
       var url = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
       var a = document.createElement('a');
@@ -1949,7 +1998,6 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
       etatEdition(T.fresqueTelechargee, false);
-      window.alert(T.fresqueTelechargee + '\n\n' + resumeFresque(d.resume));
     }).catch(function () {});
   });
 

@@ -63,6 +63,15 @@ const lireCartes = () => lireSource("cartes.json");
 const lireFresque = () => lireSource("fresque-reference.json");
 const CLE_FRESQUE = "fresque";
 const CLE_PUBLIE = "publie";
+const CLE_PUBLIE_FRESQUE = "publie-fresque";
+
+/* LE PLAN PUBLIE EN LIGNE, nettoye a chaque lecture comme celui des cartes :
+   le jour ou le depot le porte, il n'a plus rien a ajouter. */
+async function lirePublieFresque(s, fichier) {
+  const v = await s.get(CLE_PUBLIE_FRESQUE, { type: "json" }).catch(() => null);
+  if (!v || !v.tableau) return null;
+  return FB.identique(v.tableau, fichier.tableau) ? null : v.tableau;
+}
 
 /* LE CALQUE PUBLIE, lu par le site et nettoye a chaque lecture. Un champ egal a
    la source n'y a plus rien a faire : voir B.residu(). */
@@ -111,8 +120,11 @@ exports.handler = async (event) => {
     const brouillons = await lireBrouillons(s);
     const fresque = await s.get(CLE_FRESQUE, { type: "json" }).catch(() => null);
     const publie = await lirePublie(s, source);
+    let fresquePubliee = null;
+    try { fresquePubliee = await lirePublieFresque(s, lireFresque()); } catch (e) { /* sans fichier, pas de calque */ }
     return json(200, { ok: true, brouillons: brouillons, resume: B.resume(brouillons, source.cartes),
       fresque: fresque ? fresque.tableau : null,
+      fresquePubliee: fresquePubliee,
       publie: B.resume(publie, source.cartes) });
   }
   if (event.httpMethod !== "POST") return json(405, { erreur: "Méthode non autorisée." });
@@ -143,6 +155,10 @@ exports.handler = async (event) => {
     return json(200, { ok: true });
   }
 
+  /* PUBLIER LE PLAN LE MET EN LIGNE, LUI AUSSI. Le plan de la fresque de
+     reference ne touche ni les cartes ni la planche imprimee : c'est une mise
+     en page, lue par le seul outil. Il n'y a donc aucune raison de la faire
+     passer par un telechargement, un depot et une relecture. */
   if (corps.action === "fresque-publier") {
     let publiee;
     try { publiee = lireFresque(); }
@@ -152,6 +168,25 @@ exports.handler = async (event) => {
     /* ON REVALIDE AVANT DE PUBLIER. Le brouillon a pu etre enregistre par une
        version plus ancienne du code, ou la fresque publiee avoir change depuis. */
     const v = FB.valider(b.tableau, publiee.plan);
+    if (v.erreur) return json(400, { erreur: v.erreur });
+    await s.setJSON(CLE_PUBLIE_FRESQUE, { quand: Date.now(), tableau: v.tableau });
+    await s.delete(CLE_FRESQUE).catch(() => {});
+    return json(200, { ok: true, enLigne: true,
+      resume: FB.resume(publiee.tableau, v.tableau) });
+  }
+
+  /* LE FICHIER DU PLAN, POUR LE DEPOT. Separe de la publication, et sans
+     urgence : rien d'imprime n'en depend. On le replie pour que le depot reste
+     la memoire du projet, et le calque se vide alors tout seul. */
+  if (corps.action === "fresque-telecharger") {
+    let publiee;
+    try { publiee = lireFresque(); }
+    catch (e) { console.error("[brouillons] " + e.message); return json(503, { erreur: "Le service est momentanément indisponible." }); }
+    const b = await s.get(CLE_FRESQUE, { type: "json" }).catch(() => null);
+    const enLigne = await lirePublieFresque(s, publiee);
+    const tableau = (b && b.tableau) || enLigne;
+    if (!tableau) return json(400, { erreur: "Aucune modification à déposer." });
+    const v = FB.valider(tableau, publiee.plan);
     if (v.erreur) return json(400, { erreur: v.erreur });
     return json(200, { ok: true, fichier: FB.appliquer(publiee, v.tableau),
       resume: FB.resume(publiee.tableau, v.tableau) });

@@ -982,7 +982,7 @@ Deux choses s'y corrigent, au même endroit que ce qu'on leur reproche :
 | Quoi | Où | Ce qu'on peut faire |
 | --- | --- | --- |
 | Le texte d'une carte | panneau de la carte, page Retours | titre, verso, explications (en ligne tout de suite) |
-| Le plan de la fresque | bascule « Mode édition », page Retours | déplacer les cartes, ajouter, renommer ou supprimer un lien |
+| Le plan de la fresque | bascule « Mode édition », page Retours | déplacer les cartes, ajouter, renommer ou supprimer un lien (en ligne tout de suite) |
 
 **Publier met en ligne, tout de suite.** Pour les textes de cartes, « Publier »
 range les corrections dans un **calque** (Netlify Blobs, clé `publie`) que
@@ -1002,20 +1002,34 @@ emporterait les cartes avec elle, au milieu d'un atelier. Ici, si le calque
 tombe, on affiche le texte publié : une correction en retard, jamais une page
 vide. Aucune fonction de `calque-cartes.js` ne rejette.
 
-**Le dépôt reçoit quand même les corrections**, mais plus tard et pour une autre
-raison : c'est lui qui fabrique le jeu imprimé. Le bouton « Télécharger
-cartes.json pour le dépôt » apparaît tant que le calque n'est pas vide. Une fois
-le dépôt à jour, **le calque se vide tout seul** : à chaque lecture, un champ
-égal à la source disparaît, et une carte sans champ disparaît avec lui
+**Le dépôt n'est réclamé que pour ce qui est imprimé.** Un titre ou un verso
+figurent sur la carte du jeu : les corriger en ligne rend la planche imprimée
+fausse, et le bouton « Télécharger cartes.json pour le dépôt (N) » apparaît pour
+qu'on l'y replie. Une **explication** ne figure sur aucune carte : elle vit très
+bien dans le calque, et réclamer un dépôt pour elle ne serait qu'un faux devoir.
+Le compte du bouton ne porte donc que les cartes dont un champ imprimé a changé.
+
+Une fois le dépôt à jour, **le calque se vide tout seul** : à chaque lecture, un
+champ égal à la source disparaît, et une carte sans champ disparaît avec lui
 (`B.residu`). Personne n'a de ménage à faire.
 
 Le calque corrige le **texte**, jamais les images : les vraies cartes portent
 leur titre imprimé dessus et se refabriquent depuis le dépôt
 (`scripts/generer-planche-pdf.mjs`).
 
-**La fresque de référence, elle, passe toujours par le dépôt.** « Publier »
-y rend `fresque-reference.json` ; il se dépose à la main, la CI le valide.
-Un plan est relu dans son ensemble, pas carte par carte.
+**Le plan de la fresque suit la même règle**, et pour la même raison inversée :
+rien d'imprimé n'en dépend, c'est une mise en page lue par le seul outil.
+« Publier la fresque » le met en ligne dans le calque `publie-fresque`, servi par
+le même appel que les textes et appliqué par `CalqueCartes.appliquerFresque`.
+Un bouton « Télécharger pour le dépôt » reste dans la barre d'édition, sans
+urgence : il ne sert qu'à garder le dépôt comme mémoire du projet, et ce calque
+se vide lui aussi tout seul quand le dépôt le rattrape (`FB.identique`, qui
+compare après normalisation pour qu'un ordre de clés ne fasse pas croire à une
+différence).
+
+Entrer en mode édition reprend, dans cet ordre : le brouillon en cours, sinon le
+plan déjà en ligne. Repartir du fichier du dépôt déferait sans prévenir une
+publication de la veille.
 
 Les brouillons **s'accumulent** : une carte relue donne dix virgules déplacées,
 et chacune devrait être relue séparément. On corrige au fil de l'eau, on relit

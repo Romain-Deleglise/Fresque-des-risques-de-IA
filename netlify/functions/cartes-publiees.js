@@ -25,10 +25,12 @@
 "use strict";
 const { getStore, connectLambda } = require("@netlify/blobs");
 const B = require("../../serveur/src/brouillons.js");
+const FB = require("../../serveur/src/fresque-brouillon.js");
 const fs = require("fs");
 const path = require("path");
 
 const CLE_PUBLIE = "publie";
+const CLE_PUBLIE_FRESQUE = "publie-fresque";
 
 function json(code, corps, cache) {
   return {
@@ -45,10 +47,10 @@ function json(code, corps, cache) {
   };
 }
 
-function lireCartes() {
+function lireSource(nom) {
   const candidats = [
-    path.join(__dirname, "..", "..", "site", "data", "cartes.json"),
-    path.join(process.cwd(), "site", "data", "cartes.json")
+    path.join(__dirname, "..", "..", "site", "data", nom),
+    path.join(process.cwd(), "site", "data", nom)
   ];
   for (const f of candidats) {
     try { if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { /* suivant */ }
@@ -60,21 +62,30 @@ exports.handler = async (event) => {
   try { connectLambda(event); } catch (e) { /* hors Lambda */ }
   if (event.httpMethod !== "GET") return json(405, { erreur: "Méthode non autorisée." }, "no-store");
 
-  const source = lireCartes();
+  const source = lireSource("cartes.json");
   /* Sans la source, impossible de dire ce qui differe d'elle. On rend un calque
      vide plutot qu'une erreur : les pages afficheront le texte publie. */
   if (!source) {
     console.error("[cartes-publiees] cartes.json introuvable (included_files ?)");
-    return json(200, { ok: true, cartes: [] });
+    return json(200, { ok: true, cartes: [], fresque: null });
   }
+  const fichierFresque = lireSource("fresque-reference.json");
 
   try {
     const s = getStore({ name: "fresque-brouillons" });
     const v = await s.get(CLE_PUBLIE, { type: "json" });
+    /* LE PLAN DE LA FRESQUE VOYAGE AVEC LES TEXTES. Une seule requete pour les
+       deux : l'outil les demande toujours ensemble, et les separer doublerait
+       l'attente avant le premier dessin. */
+    let fresque = null;
+    if (fichierFresque) {
+      const w = await s.get(CLE_PUBLIE_FRESQUE, { type: "json" }).catch(() => null);
+      if (w && w.tableau && !FB.identique(w.tableau, fichierFresque.tableau)) fresque = w.tableau;
+    }
     return json(200, { ok: true, quand: (v && v.quand) || 0,
-      cartes: B.residu((v && v.cartes) || [], source.cartes) });
+      cartes: B.residu((v && v.cartes) || [], source.cartes), fresque: fresque });
   } catch (e) {
     console.error("[cartes-publiees] " + e.message);
-    return json(200, { ok: true, cartes: [] });
+    return json(200, { ok: true, cartes: [], fresque: null });
   }
 };

@@ -56,13 +56,18 @@ pg.on("pageerror", (e) => erreursJS.push(e.message));
 
 /* Le service bouchonne. Il garde le brouillon comme le vrai : un seul, entier. */
 let brouillonFresque = null;
+let fresquePubliee = null;      // le plan DEJA en ligne
 const recus = [];
 await pg.route("**/.netlify/functions/commentaires**", (r) => r.fulfill({ status: 200,
   contentType: "application/json", body: JSON.stringify({ ok: true, compte: {}, retours: [] }) }));
+/* Le calque public : c'est par lui que le plan publie revient a l'outil. */
+await pg.route("**/.netlify/functions/cartes-publiees**", (r) => r.fulfill({ status: 200,
+  contentType: "application/json", body: JSON.stringify({ ok: true, cartes: [], fresque: fresquePubliee }) }));
 await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   const req = r.request();
   const rep = (c) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(c) });
-  if (req.method() === "GET") return rep({ ok: true, brouillons: [], resume: [], fresque: brouillonFresque });
+  if (req.method() === "GET") return rep({ ok: true, brouillons: [], resume: [], publie: [],
+    fresque: brouillonFresque, fresquePubliee: fresquePubliee });
   const c = JSON.parse(req.postData() || "{}");
   recus.push(c.action);
   if (c.action === "fresque-enregistrer") {
@@ -73,8 +78,17 @@ await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   if (c.action === "fresque-publier") {
     if (!brouillonFresque) return r.fulfill({ status: 400, contentType: "application/json",
       body: JSON.stringify({ erreur: "Aucune modification à publier." }) });
-    return rep({ ok: true, fichier: { version: 1, tableau: brouillonFresque },
+    fresquePubliee = brouillonFresque;
+    brouillonFresque = null;
+    return rep({ ok: true, enLigne: true,
       resume: { cartesDeplacees: 1, cartesAjoutees: 0, liensAjoutes: 1, liensRetires: 0 } });
+  }
+  if (c.action === "fresque-telecharger") {
+    const t2 = brouillonFresque || fresquePubliee;
+    if (!t2) return r.fulfill({ status: 400, contentType: "application/json",
+      body: JSON.stringify({ erreur: "Aucune modification à déposer." }) });
+    return rep({ ok: true, fichier: { version: 1, tableau: t2 },
+      resume: { cartesDeplacees: 1, cartesAjoutees: 0, liensAjoutes: 0, liensRetires: 0 } });
   }
   return rep({ ok: true, fichier: { cartes: [] }, resume: [] });
 });
@@ -382,19 +396,38 @@ await pg.waitForTimeout(400);
 t("rentrer reprend le brouillon", (await pos(12)).x === 0, String((await pos(12)).x));
 t("et le signale", /brouillon/i.test(await pg.textContent("#f-etat")));
 
-console.log("\n--- Publier télécharge le fichier ---");
-const tele = pg.waitForEvent("download", { timeout: 6000 }).catch(() => null);
+/* PUBLIER LE PLAN LE MET EN LIGNE, IL NE TELECHARGE PLUS. Rien d'imprime n'en
+   depend : c'est une mise en page, lue par le seul outil. */
+console.log("\n--- Publier met le plan en ligne ---");
+const tele = pg.waitForEvent("download", { timeout: 2500 }).catch(() => null);
 await pg.evaluate(() => { window.alert = () => {}; document.getElementById("f-publier").click(); });
-const dl = await tele;
+await pg.waitForTimeout(900);
+t("publier ne télécharge plus rien", (await tele) === null);
+t("le service a bien reçu la publication", recus.includes("fresque-publier"));
+t("le plan est en ligne pour tout le monde",
+  !!fresquePubliee && fresquePubliee.cartes.find((c) => c.n === 12).x === 0);
+t("l'état dit que c'est en ligne", /en ligne/i.test(await pg.textContent("#f-etat")),
+  await pg.textContent("#f-etat"));
+t("le dépôt reste proposé, à part et sans urgence", await vu("f-deposer"));
+
+console.log("\n--- Le fichier reste disponible pour le dépôt ---");
+const tele2 = pg.waitForEvent("download", { timeout: 6000 }).catch(() => null);
+await pg.evaluate(() => { window.alert = () => {}; document.getElementById("f-deposer").click(); });
+const dl = await tele2;
 t("un fresque-reference.json est proposé", !!dl && dl.suggestedFilename() === "fresque-reference.json",
   dl ? dl.suggestedFilename() : "aucun téléchargement");
 
-console.log("\n--- Abandonner le brouillon ---");
-await pg.evaluate(() => document.getElementById("f-oublier").click());
-await pg.waitForTimeout(700);
-t("le service l'oublie", recus.includes("fresque-oublier") && brouillonFresque === null);
-t("la fresque publiée revient à l'écran", (await pos(12)).x === avantCl.x,
-  (await pos(12)).x + " vs " + avantCl.x);
+/* SORTIR PUIS RENTRER DOIT REPRENDRE LE PLAN PUBLIE, et non repartir du fichier
+   du dépôt : on déferait sans prévenir une publication de la veille. */
+console.log("\n--- Le plan publié est repris ---");
+await pg.evaluate(() => { window.confirm = () => true;
+  const c = document.getElementById("mode-edition"); c.checked = false;
+  c.dispatchEvent(new Event("change", { bubbles: true })); });
+await pg.waitForTimeout(300);
+await pg.evaluate(() => { const c = document.getElementById("mode-edition"); c.checked = true;
+  c.dispatchEvent(new Event("change", { bubbles: true })); });
+await pg.waitForTimeout(500);
+t("rentrer en édition reprend le plan publié", (await pos(12)).x === 0, String((await pos(12)).x));
 
 console.log("\n--- L'accueil n'a rien de tout cela ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });

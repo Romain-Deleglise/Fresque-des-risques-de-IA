@@ -80,6 +80,24 @@ function appliquer(fichier, tableau) {
   return Object.assign({}, fichier, { tableau: tableau });
 }
 
+/* DEUX TABLEAUX DISENT-ILS LA MEME CHOSE ? Sert au menage du calque : le jour
+   ou le depot porte le plan publie en ligne, le calque n'a plus rien a ajouter
+   et doit disparaitre tout seul, comme celui des cartes (brouillons.residu).
+   On compare apres normalisation, pour qu'un ordre de cles different ou une
+   coordonnee ecrite 100 contre 100.0 ne fasse pas croire a une difference. */
+function normaliser(t) {
+  t = t || {};
+  return JSON.stringify({
+    cartes: (t.cartes || []).map(function (c) { return [c.n, c.x, c.y]; })
+      .sort(function (a, b) { return a[0] - b[0]; }),
+    fleches: (t.fleches || []).map(function (f) { return [f.id, f.de, f.vers, !!f.bidir, f.libelle || ""]; })
+      .sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }),
+    textes: (t.textes || []).map(function (x) { return [x.id, x.x, x.y, x.contenu]; })
+      .sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })
+  });
+}
+function identique(a, b) { return normaliser(a) === normaliser(b); }
+
 /* Ce qui a bouge par rapport au fichier publie, pour relire avant de deposer. */
 function resume(avant, apres) {
   var a = {}, deplacees = 0;
@@ -100,5 +118,6 @@ function resume(avant, apres) {
 
 module.exports = {
   MAX_LIBELLE: MAX_LIBELLE, CARTE_MIN: CARTE_MIN, CARTE_MAX: CARTE_MAX,
-  dansLePlan: dansLePlan, valider: valider, appliquer: appliquer, resume: resume
+  dansLePlan: dansLePlan, valider: valider, appliquer: appliquer, resume: resume,
+  identique: identique
 };

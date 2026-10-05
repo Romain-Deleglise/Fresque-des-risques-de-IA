@@ -67,5 +67,16 @@
      afficherait l'ancien texte, en laissant croire que publier n'a rien fait. */
   function oublier() { promesse = null; }
 
-  window.CalqueCartes = { appliquer: appliquer, oublier: oublier };
+  /* LE PLAN DE LA FRESQUE DE REFERENCE, servi par le meme appel. Il arrive par
+     la meme route et suit la meme regle : sans lui, c'est le plan publie qui
+     s'affiche. */
+  function appliquerFresque(fichier) {
+    if (!fichier || !fichier.tableau) return Promise.resolve(fichier);
+    return charger().then(function (d) {
+      if (d && d.ok && d.fresque && d.fresque.cartes) fichier.tableau = d.fresque;
+      return fichier;
+    }).catch(function () { return fichier; });
+  }
+
+  window.CalqueCartes = { appliquer: appliquer, appliquerFresque: appliquerFresque, oublier: oublier };
 })();

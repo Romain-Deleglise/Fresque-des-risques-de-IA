@@ -204,6 +204,28 @@ t("le bloc Explications etait bien masque au depart", sansExpl);
 t("l'explication publiee apparait dans le panneau, sans rechargement",
   !expl.cache && /ajoutée depuis l'outil/.test(expl.texte), expl.texte.slice(0, 60));
 
+/* LE DEPOT N'EST CONCERNE QUE PAR CE QUI EST IMPRIME. Une explication ne figure
+   sur aucune carte du jeu : reclamer un depot pour elle n'est qu'un faux devoir,
+   et c'est ce qu'on reprochait au premier jet. Seuls un titre ou un verso
+   corriges rendent la planche imprimee fausse. */
+console.log("\n--- Le depot n'est reclame que pour ce qui est imprime ---");
+publie = [{ n: 3, explication: ["Seulement une explication."] }];
+await pg.evaluate(() => {
+  document.getElementById("jeton").value = "jeton-de-banc-123456";
+  document.getElementById("form-jeton").requestSubmit();
+});
+await pg.waitForTimeout(600);
+t("une explication seule ne reclame pas le depot", !(await vu("deposer-modifs")));
+publie = [{ n: 3, titre: "Un titre corrigé" }];
+await pg.evaluate(() => document.getElementById("form-jeton").requestSubmit());
+await pg.waitForTimeout(600);
+t("un titre corrige, lui, le reclame : il est imprime sur la carte", await vu("deposer-modifs"));
+publie = [{ n: 3, titre: "Un titre corrigé", explication: ["Et une explication."] }];
+await pg.evaluate(() => document.getElementById("form-jeton").requestSubmit());
+await pg.waitForTimeout(600);
+t("et le compte ne porte que les cartes imprimees concernees",
+  /\(1\)/.test(await pg.textContent("#deposer-modifs")), await pg.textContent("#deposer-modifs"));
+
 console.log("\n--- Le calque atteint tout le site ---");
 /* La galerie de l'accueil ne montre que six cartes choisies (voir GALERIE dans
    assets/js/cartes.js) : on corrige l'une d'elles, sinon on verifierait qu'un
@@ -234,7 +256,7 @@ for (const f2 of ["site/index.html", "site/en/index.html", "site/en-ligne/sessio
 
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 2).join(" | "));
 
-console.log("\n" + (ko ? "❌" : "✅") + " Edition des cartes : " + (25 - ko) + " verifications reussies, " + ko + " echouees.\n");
+console.log("\n" + (ko ? "❌" : "✅") + " Edition des cartes : " + (28 - ko) + " verifications reussies, " + ko + " echouees.\n");
 await nav.close();
 site.close();
 process.exit(ko ? 1 : 0);

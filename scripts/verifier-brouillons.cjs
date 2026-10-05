@@ -137,17 +137,44 @@ const J = "jeton-de-banc-123456";
   r = lire(await post({ action: "fresque-enregistrer", tableau: lienFantome, jeton: J }));
   t("un lien vers une carte retiree est refuse", /absente/.test(r.erreur || ""), JSON.stringify(r));
 
+  /* PUBLIER LE PLAN LE MET EN LIGNE, LUI AUSSI. Il ne touche ni les cartes ni la
+     planche imprimee : c'est une mise en page, lue par le seul outil. Rien ne
+     justifiait de la faire passer par un telechargement et une relecture. */
+  await post({ action: "fresque-enregistrer", tableau: bouge, jeton: J });
   const pub = lire(await post({ action: "fresque-publier", jeton: J }));
-  t("publier rend le fichier complet",
-    pub.ok && pub.fichier.tableau.cartes.length === ref.tableau.cartes.length, JSON.stringify(pub.erreur || ""));
+  t("publier met le plan en ligne et ne rend plus de fichier",
+    pub.ok && pub.enLigne && !pub.fichier, JSON.stringify(pub).slice(0, 110));
+  t("le brouillon est consomme",
+    lire(await get({ jeton: J })).fresque === null);
+  t("le plan en ligne porte le deplacement",
+    lire(await get({ jeton: J })).fresquePubliee.cartes[0].x === ref.tableau.cartes[0].x + 40);
+  t("le site le sert a qui le demande",
+    lire(await calque.handler({ httpMethod: "GET", queryStringParameters: {} }))
+      .fresque.cartes[0].x === ref.tableau.cartes[0].x + 40);
+
+  /* LE FICHIER RESTE DISPONIBLE POUR LE DEPOT, sans urgence : il ne sert qu'a
+     garder le depot comme memoire du projet. */
+  const dlf = lire(await post({ action: "fresque-telecharger", jeton: J }));
+  t("telecharger rend le fichier complet",
+    dlf.ok && dlf.fichier.tableau.cartes.length === ref.tableau.cartes.length, JSON.stringify(dlf.erreur || ""));
   t("le plan et la version survivent",
-    pub.fichier.version === ref.version && pub.fichier.plan.largeur === ref.plan.largeur);
-  t("le deplacement enregistre est bien celui publie",
-    pub.fichier.tableau.cartes[0].x === ref.tableau.cartes[0].x + 40,
-    String(pub.fichier.tableau.cartes[0].x));
+    dlf.fichier.version === ref.version && dlf.fichier.plan.largeur === ref.plan.largeur);
+  t("le deplacement publie est bien celui du fichier",
+    dlf.fichier.tableau.cartes[0].x === ref.tableau.cartes[0].x + 40,
+    String(dlf.fichier.tableau.cartes[0].x));
+
+  /* LE CALQUE DU PLAN SE VIDE AUSSI TOUT SEUL, le jour ou le depot le porte. */
+  await faux().setJSON("publie-fresque", { quand: 1, tableau: ref.tableau });
+  t("un plan redevenu identique au depot quitte le calque",
+    lire(await calque.handler({ httpMethod: "GET", queryStringParameters: {} })).fresque === null);
+  t("et l'outil ne le propose plus au depot",
+    lire(await get({ jeton: J })).fresquePubliee === null);
+
   await post({ action: "fresque-oublier", jeton: J });
   t("sans brouillon de fresque, publier est refuse",
     !!lire(await post({ action: "fresque-publier", jeton: J })).erreur);
+  t("et sans rien en ligne, telecharger aussi",
+    !!lire(await post({ action: "fresque-telecharger", jeton: J })).erreur);
 
   console.log("\n--- Oublier ---");
   await post({ action: "oublier", n: 3, jeton: J });
