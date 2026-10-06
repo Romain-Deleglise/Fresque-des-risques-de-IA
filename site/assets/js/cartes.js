@@ -27,8 +27,13 @@
   // Base des chemins d'images : sur les pages EN (window.CARTES_JSON = "../data/cartes.json"),
   // les chemins du JSON sont relatifs a la racine du site, il faut donc prefixer "../".
   var BASE = (window.CARTES_JSON || "data/cartes.json").replace(/data\/cartes\.json$/, "");
+  /* LE CALQUE DES CORRECTIONS PUBLIEES s'applique par-dessus le fichier : un
+     titre corrige depuis l'espace animateur·ices se lit ici aussi, sans
+     attendre un deploiement. Sans calque-cartes.js dans la page, ou sans
+     reseau, c'est le texte publie qui s'affiche. */
   fetch(window.CARTES_JSON || "data/cartes.json")
     .then(function (r) { return r.json(); })
+    .then(function (d) { return window.CalqueCartes ? window.CalqueCartes.appliquer(d) : d; })
     .then(function (data) {
       var parN = {};
       data.cartes.forEach(function (c) { parN[c.n] = c; });

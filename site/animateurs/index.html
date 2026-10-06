@@ -81,56 +81,13 @@
              animateurs.js accepte que ces elements n'existent pas (voir `on`).
              Le plein ecran ne change pas de page : le bloc passe par-dessus
              tout, et Echap ou « Fermer » ramene au meme endroit. -->
+        <!-- L'OUTIL N'EST PLUS ECRIT ICI. Son HTML etait copie a l'identique sur
+             cette page et sur la page Retours : toute evolution devait etre
+             faite deux fois. Il est desormais construit par animateurs.js, qui
+             lit `data-commentaires` pour savoir s'il faut les retours (non ici :
+             on vient voir la fresque, pas la commenter). -->
         <div class="apercu" id="apercu" hidden>
-          <div class="fresque-zone" id="fresque-zone">
-          <div class="apercu-barre">
-            <div class="barre-g">
-              <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
-              <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
-              <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
-              <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
-              <label class="recherche">
-                <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
-                <input type="search" id="recherche" placeholder="Chercher une carte…"
-                       aria-labelledby="recherche-label" autocomplete="off">
-              </label>
-            </div>
-            <button type="button" class="btn-outil quitter-plein" id="apercu-fermer">Fermer ✕</button>
-          </div>
-          <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
-          <p class="cle-fleches">
-            <span><span class="cle-trait cle-cause" aria-hidden="true"></span> provoque</span>
-            <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> répond à</span>
-          </p>
-          <p class="muted barre-aide" id="barre-aide">
-            Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
-            Ctrl + molette pour zoomer.
-          </p>
-          <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
-          <div id="plateau-section" hidden>
-            <div class="plateau-cadre" id="plateau-cadre">
-              <div class="plateau-sizer" id="plateau-sizer">
-                <div class="plateau" id="plateau">
-                  <svg class="liens" id="liens" aria-hidden="true"></svg>
-                  <div class="cartes" id="cartes"></div>
-                  <div class="etiquettes" id="etiquettes"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-            <!-- Le panneau est DANS la zone : hors de l'element passe en plein
-                 ecran, le navigateur ne le dessine pas, et cliquer une carte ne
-                 montrait plus rien. -->
-            <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
-              <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
-              <div class="panneau-corps">
-                <img class="panneau-img" id="panneau-img" src="" alt="">
-                <h3 id="panneau-titre"></h3>
-                <div class="panneau-verso" id="panneau-verso"></div>
-                <div class="panneau-liens" id="panneau-liens"></div>
-              </div>
-            </aside>
-          </div>
+          <div id="fresque-outil" data-commentaires="non" data-fermer="apercu-fermer"></div>
         </div>
 
         <h2 class="etape-titre"><span class="etape-n">2</span> Animer</h2>
@@ -175,6 +132,9 @@
       </div>
     </div>
   </footer>
+  <!-- Le calque des corrections publiees depuis l'espace animateur·ices. Charge
+       AVANT le script qui lit les cartes : `defer` garde l'ordre du document. -->
+  <script src="../assets/js/calque-cartes.js" defer></script>
   <script src="animateurs.js" defer></script>
   <script src="apercu.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>

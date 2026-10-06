@@ -51,11 +51,15 @@ test("les adresses des participant·es ne circulent pas", () => {
   assert.ok(!/to: parts\.slice/.test(SRC), "un·e participant·e serait exposé·e");
 });
 
-test("les invitations pointent les formulaires du site par défaut", () => {
-  // Les deux formulaires vivent sur le site (/retour/ et /temoignage/) et leurs
-  // réponses arrivent dans l'espace admin. Les variables d'environnement
-  // permettent de basculer vers des formulaires externes sans toucher au code.
-  assert.match(SRC, /FORM_RETOURS_URL \|\| \(LIEN \+ "\/retour\/"\)/);
+test("les invitations pointent les bons endroits du site par défaut", () => {
+  /* LE RETOUR VA LA OU IL SERA LU ET TRAITE. Il partait vers /retour/, un
+     formulaire a part dont les reponses dormaient dans l'espace admin. L'onglet
+     Retours permet de commenter l'atelier ET une carte en particulier, rend le
+     retour visible tout de suite, et la correction se publie depuis la meme
+     page. Deux endroits auraient partage les retours, dont un que personne
+     n'ouvre. Le temoignage, lui, reste un formulaire : il est destine a la
+     communication, pas a la relecture des cartes. */
+  assert.match(SRC, /FORM_RETOURS_URL \|\| \(LIEN \+ "\/animateurs\/retours\/"\)/);
   assert.match(SRC, /FORM_TEMOIGNAGE_URL \|\| \(LIEN \+ "\/temoignage\/"\)/);
   // Le bloc reste conditionnel : une variable vidée à la main ne doit pas
   // produire une invitation vers rien.

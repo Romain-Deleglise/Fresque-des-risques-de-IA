@@ -273,6 +273,20 @@
 
     if (barre.childNodes.length) liste.parentNode.insertBefore(barre, liste);
 
+    function viserLAncre() {
+      var id = (location.hash || "").replace(/^#/, "");
+      if (!/^atelier-[A-Za-z0-9_-]{1,24}$/.test(id)) return;
+      var el = document.getElementById(id);
+      if (!el) return;
+      // Deux images : le temps que la carte soit posee et mesuree.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) { el.scrollIntoView(); }
+          el.classList.add("atelier-vise");
+        });
+      });
+    }
+
     function rendre() {
       var okFmt = function (a) { return etat.format === "tous" || a.mode === etat.format; };
       var avenir = avenirTous.filter(okFmt).sort(function (x, y) { return x.quandMs - y.quandMs; });
@@ -287,6 +301,11 @@
       show.forEach(function (a) { liste.appendChild(carte(a)); });
     }
     rendre();
+    /* ON ARRIVE D'UN E-MAIL D'ANNONCE. La liste est construite en JavaScript,
+       donc bien apres que le navigateur a cherche l'ancre : c'est a nous de
+       l'amener a l'ecran une fois les cartes posees. On la souligne aussi,
+       sinon rien ne distingue l'atelier annonce de ses voisins. */
+    viserLAncre();
     donneesStructurees(avenirTous);
   }
 
@@ -371,6 +390,10 @@
 
   function carte(a) {
     var el = document.createElement("article");
+    /* L'ANCRE DES E-MAILS D'ANNONCE. Chaque atelier annonce renvoie vers
+       « /participer/#atelier-CODE » : sans cet identifiant, le lien deposait en
+       haut d'une liste ou il fallait retrouver le bon a la main. */
+    if (a.code) el.id = "atelier-" + a.code;
     el.className = "atelier-carte" + (a.ouvert ? "" : " passe");
     var lieu = a.mode === "enligne" ? T.enligne : (T.presentiel + (a.lieu ? " · " + esc(a.lieu) : ""));
     var titre = a.titre ? esc(a.titre) : (a.mode === "enligne" ? T.enligne : T.presentiel);

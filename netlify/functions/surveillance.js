@@ -24,7 +24,10 @@
 const { getStore } = require("@netlify/blobs");
 const mail = require("./lib/mail.js");
 
-const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN = LIENS.SITE;
 const RELAIS = (process.env.RELAIS_URL || "https://curseurs.pauseia.fr").replace(/\/+$/, "");
 // Doit rester egale a RELAIS_MINI dans site/en-ligne/session/session.js : c'est
 // la version de protocole que le client exige pour avoir toutes ses fonctions.

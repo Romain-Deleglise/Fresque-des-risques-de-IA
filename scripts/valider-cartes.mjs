@@ -33,6 +33,17 @@ for (const c of cartes) {
   if (c.intro === true) intros++;
   if (!c.titre || typeof c.titre !== "string") erreurs.push(`Carte ${c.n} : titre manquant.`);
   if (!Array.isArray(c.verso) || c.verso.length === 0) erreurs.push(`Carte ${c.n} : verso manquant.`);
+  /* `explication` est FACULTATIF : les 38 textes restent a ecrire, et une carte
+     sans explication doit rester valide. Mais si le champ est la, il doit etre
+     de la meme forme que `verso` (une liste de paragraphes non vides), sinon
+     l'espace animateur-ices afficherait un bloc vide ou le mot « undefined ». */
+  if (c.explication !== undefined) {
+    if (!Array.isArray(c.explication) || c.explication.length === 0) {
+      erreurs.push(`Carte ${c.n} : explication presente mais vide ; retirez le champ ou ecrivez-le.`);
+    } else if (c.explication.some((p) => typeof p !== "string" || !p.trim())) {
+      erreurs.push(`Carte ${c.n} : explication, chaque paragraphe doit etre un texte non vide.`);
+    }
+  }
   if (c.n !== 0 && !(c.image && c.image.vignette && c.image.grand)) {
     erreurs.push(`Carte ${c.n} : variantes d'image (vignette/grand) manquantes.`);
   }

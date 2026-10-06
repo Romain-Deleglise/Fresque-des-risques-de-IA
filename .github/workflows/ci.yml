@@ -138,3 +138,40 @@ jobs:
       # mesurerait une mise en page que personne ne voit).
       - name: Verifier le rythme vertical des pages
         run: node scripts/verifier-rythme.mjs
+
+      # L'apres-inscription des alertes : confirmation, annonce, non-repetition,
+      # desabonnement en un clic. Sur les vraies fonctions, pas sur un bouchon.
+      - name: Verifier le parcours complet des alertes
+        run: node scripts/verifier-parcours-alertes.cjs
+
+      # La planche d'impression se construit depuis cartes.json : si une carte
+      # perd son titre, son verso ou son image, on le sait ici et non chez
+      # l'imprimeur. `--verifier` ne garde aucun fichier.
+      # Pillow reduit les images avant impression : sans lui le PDF passe de
+      # 5,7 Mo a 40 Mo, pour une illustration qui tient dans une carte A6.
+      - name: Installer Pillow (reduction des images de la planche)
+        run: python3 -m pip install --quiet Pillow
+      - name: Verifier que la planche d'impression est generable
+        run: node scripts/generer-planche-pdf.mjs --verifier
+
+      # Les brouillons de cartes : un texte non relu ne doit pas fuiter, et
+      # publier ne doit rien perdre du fichier d'origine.
+      - name: Verifier les brouillons de cartes
+        run: node scripts/verifier-brouillons.cjs
+
+      # Le bloc d'edition ecrit dans un texte publie : il ne doit pas apparaitre
+      # sans jeton, ni pre-remplir le texte d'origine quand un brouillon attend.
+      - name: Verifier l'edition des cartes depuis le panneau
+        run: node scripts/verifier-edition.mjs
+
+      # Le mode edition de la fresque deplace des cartes et trace des liens dans
+      # un plan destine a etre publie. Rien de tout cela ne se verifie sans
+      # navigateur : ce sont des gestes, une mise a l'echelle et une couche SVG.
+      - name: Verifier l'edition de la fresque de reference
+        run: node scripts/verifier-fresque-edition.mjs
+
+      # Les communes suggerees et choisies n'existent qu'apres une frappe :
+      # l'audit axe-core, qui regarde les pages au repos, ne les voyait pas. Leur
+      # contraste etait de 1,00 en theme sombre, c'est-a-dire invisible.
+      - name: Verifier le contraste du formulaire d'alertes
+        run: node scripts/verifier-contraste-alertes.mjs

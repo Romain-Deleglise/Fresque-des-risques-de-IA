@@ -120,9 +120,16 @@
   color: var(--lot, var(--gris-clair)); text-transform: uppercase; white-space: nowrap;
 }
 
-/* ── Panneau latéral ────────────────────────────────────────── */
+/* ── Panneau latéral ──────────────────────────────────────────
+   UNE SEULE VALEUR commande la largeur du panneau ET le retrait du plateau.
+   Elles étaient écrites deux fois, et différemment : `min(420px, 92vw)` pour
+   le panneau, `min(420px, 40vw)` pour le plateau. Au-delà de 1050 px de
+   fenêtre les deux formules divergent, et le bord du plateau s'arrêtait avant
+   le panneau : une bande vide entre les deux, qui grandissait avec l'écran. */
+.fresque-zone { --panneau-l: min(560px, 40vw); }
+@media (max-width: 900px) { .fresque-zone { --panneau-l: 92vw; } }
 .panneau {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw);
+  position: fixed; top: 0; right: 0; bottom: 0; width: var(--panneau-l);
   background: var(--surface); border-left: 1px solid var(--ligne);
   box-shadow: -8px 0 28px rgb(0 0 0 / 12%);
   overflow-y: auto; z-index: 60;
@@ -267,8 +274,8 @@
 .panneau-liens .vers-carte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* En plein écran, la section prend toute la place : le cadre doit suivre. */
-#plateau-section:fullscreen { background: var(--bg); padding: 1rem; overflow: auto; }
-#plateau-section:fullscreen .wrap { max-width: none; }
+#plateau-hote:fullscreen { background: var(--bg); padding: 1rem; overflow: auto; }
+#plateau-hote:fullscreen .wrap { max-width: none; }
 
 /* ── Sommaire de l'espace ───────────────────────────────────── */
 .avert-large { max-width: none; }
@@ -562,7 +569,8 @@
    que de disparaître dessous. Sous 900 px le panneau occupe presque l'écran,
    rétrécir le plateau n'aurait plus de sens : on le laisse dessous. */
 @media (min-width: 900px) {
-  .panneau-ouvert .plateau-cadre { margin-right: min(420px, 40vw); }
+  .panneau-ouvert .plateau-cadre,
+  .panneau-ouvert .grille-cartes { margin-right: var(--panneau-l); }
 }
 .panneau-liens .h-reponse { color: #c1444e; }
 .panneau-liens .l-reponse .vers-carte { color: #c1444e; }
@@ -581,9 +589,18 @@
    quoi il deposerait en haut d'une page dont la fresque est le milieu. */
 .ancre-fresque { display: block; position: relative; top: -5rem; }
 
-/* --- Apercu depliable de la fresque, sur l'accueil de l'espace ------------- */
-.apercu { margin: 1.2rem 0 1.8rem; border: 1px solid var(--ligne); border-radius: 14px;
-  background: var(--surface); padding: .9rem 1rem 1.1rem; }
+/* --- Apercu depliable de la fresque, sur l'accueil de l'espace -------------
+   PAS D'ENCADRE AUTOUR DE L'OUTIL. Ce bloc etait une carte (bord, coins
+   arrondis, fond `--surface`, rembourrage) du temps ou l'apercu tenait dans la
+   colonne de lecture. L'outil prend desormais toute la largeur de la fenetre :
+   il SORT de cette carte, dont le fond ne peignait plus que la largeur de la
+   colonne. On voyait donc une bande d'une autre teinte de chaque cote, tres
+   visible en theme sombre (`--surface` #201d16 contre `--bg` #17150f).
+
+   Le conteneur ne garde que ses marges. L'outil s'affiche alors sur le fond de
+   la page, exactement comme sur la page Retours : un seul outil, un seul
+   rendu. */
+.apercu { margin: 1.2rem 0 1.8rem; }
 .apercu-barre { display: flex; align-items: center; justify-content: space-between;
   gap: .8rem; flex-wrap: wrap; margin-bottom: .7rem; }
 .apercu .plateau-cadre { height: min(62vh, 34rem); }
@@ -597,6 +614,38 @@
    c'est le plateau qui se deplace, pas la page. Le cadre prend la place
    restante sous la barre, sa hauteur etant posee par le script. */
 .fresque-zone { position: relative; }
+/* PLEINE LARGEUR DE FENETRE, hors de la colonne de lecture. Une fresque de
+   38 cartes etouffait dans les 1120 px de `.wrap`, alors que le plein ecran,
+   lui, lui donnait tout.
+
+   ON ELARGIT LE CONTENEUR, ON NE FAIT PLUS SORTIR LA ZONE. La premiere version
+   tirait la zone hors de sa colonne avec `margin-inline: calc(50% - 50vw)`.
+   Or `50vw` compte la barre de defilement : chez qui en a une visible, la zone
+   depassait de quelques pixels de chaque cote et la barre d'outils se trouvait
+   rognee a gauche. En elargissant le conteneur, il n'y a plus de calcul en
+   `vw`, donc plus de decalage possible.
+
+   ET UNE GOUTTIERE. La zone prend toute la largeur, mais son CONTENU ne doit
+   pas toucher les bords de l'ecran : sans cette marge, le zoom et les filtres
+   se collaient au bord, et paraissaient sortir du cadre. */
+/* `50vw` compte la barre de defilement, pas `50%`. L'ecart valait donc une
+   demi-barre de chaque cote, et la barre d'outils se trouvait rognee a gauche
+   chez qui a une barre visible. On la MESURE (animateurs.js la pose dans
+   --barre-defilement) au lieu de l'ignorer. Elargir le conteneur serait plus
+   simple, mais emporterait le texte de la page hors de sa colonne de lecture. */
+.fresque-zone { margin-inline: calc(50% - 50vw + (var(--barre-defilement, 0px) / 2)); }
+/* LA GOUTTIERE VA SUR L'EN-TETE, PAS SUR LA ZONE. Posee sur la zone, elle
+   eloignait aussi le PLATEAU de son bord droit, et rouvrait les 26 px de vide
+   entre le tableau et le panneau qu'on venait de fermer. Le plateau et la
+   grille gardent donc toute la largeur ; seuls les elements qui se lisent
+   comme du texte prennent une marge. */
+.fresque-zone > .barre,
+.fresque-zone > .apercu-barre,
+.fresque-zone > .lots,
+.fresque-zone > .cle-fleches,
+.fresque-zone > .barre-aide,
+.fresque-zone > .etat { padding-inline: clamp(1rem, 2vw, 1.75rem); }
+.grille-cartes { padding-inline: clamp(1rem, 2vw, 1.75rem); }
 .fresque-zone:fullscreen {
   background: var(--bg); padding: .8rem 1rem; overflow: hidden;
   display: flex; flex-direction: column;
@@ -606,11 +655,11 @@
    arithmetique a base de hauteurs laissait quelques pixels de debordement,
    donc un ascenseur. `flex` n'a pas ce probleme, a condition que chaque
    maillon de la chaine puisse retrecir (`min-height: 0`). */
-.fresque-zone:fullscreen #plateau-section {
+.fresque-zone:fullscreen #plateau-hote {
   flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 0;
 }
-.fresque-zone:fullscreen #plateau-section > .wrap,
-.fresque-zone:fullscreen #plateau-section > * { flex: 1 1 auto; min-height: 0; }
+.fresque-zone:fullscreen #plateau-hote > .wrap,
+.fresque-zone:fullscreen #plateau-hote > * { flex: 1 1 auto; min-height: 0; }
 .fresque-zone:fullscreen .plateau-cadre { flex: 1 1 auto; min-height: 0; height: auto !important; }
 /* Le panneau se cale DANS la zone plutot que dans la fenetre : en plein ecran,
    `position: fixed` se rapporte a l'element plein ecran, mais le bord droit de
@@ -622,3 +671,202 @@
 .quitter-plein { display: none; }
 .fresque-zone:fullscreen .quitter-plein { display: inline-flex; }
 #apercu-fermer { display: inline-flex; }
+
+/* ── SÉLECTEUR DE VUE ────────────────────────────────────────
+   Deux positions, pas une liste déroulante : on doit voir laquelle est active
+   sans l'ouvrir, et il n'y en aura jamais une troisième. */
+.vues { display: inline-flex; border: 1px solid var(--ligne); border-radius: 9px; overflow: hidden; }
+.btn-vue {
+  font-family: var(--f-ui); font-weight: 600; font-size: .88rem;
+  padding: .5rem .9rem; border: 0; background: var(--surface); color: var(--gris);
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.btn-vue + .btn-vue { border-left: 1px solid var(--ligne); }
+.btn-vue:hover { color: var(--ink); }
+.btn-vue.est-active { background: var(--accent-aplat); color: var(--sur-accent); }
+.btn-vue:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ── VUE CARTES ──────────────────────────────────────────────
+   Une grille qui se remplit de gauche à droite, par numéro croissant. Pas de
+   zoom ni de défilement interne : on vient y retrouver une carte, pas suivre
+   une chaîne de causes. `auto-fill` plutôt qu'un nombre fixe de colonnes, pour
+   que la densité suive la largeur de l'écran sans point de rupture à régler. */
+.grille-cartes {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 1rem; padding: 1.2rem 1.75rem 2rem;
+}
+.g-carte {
+  position: relative; display: flex; flex-direction: column; gap: .5rem;
+  padding: 0; border: 1px solid var(--ligne); border-top: 3px solid var(--lot, var(--accent));
+  border-radius: 12px; background: var(--surface); cursor: pointer; text-align: left;
+  transition: border-color .15s, box-shadow .15s, transform .15s, opacity .15s;
+}
+.g-carte:hover { box-shadow: 0 10px 24px rgb(0 0 0 / 12%); transform: translateY(-2px); }
+.g-carte:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.g-carte.actif { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-doux); }
+/* Le filtre et la recherche se lisent de la même façon que sur la fresque. */
+.g-carte.pale { opacity: .22; }
+.g-carte.trouve { border-color: var(--accent); }
+.g-vis { position: relative; display: block; aspect-ratio: 1.6 / 1; background: #14110d;
+  border-radius: 9px 9px 0 0; overflow: hidden; }
+.g-vis img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* LE NUMÉRO EN GRAND, AU MILIEU : c'est par lui qu'on cherche une carte quand
+   on prépare un atelier. Le halo le garde lisible sur une image claire comme
+   sur une image sombre, sans assombrir la vignette. */
+.g-num {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--f-titre); font-size: 2.6rem; font-weight: 700; color: #fff;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 85%), 0 0 3px rgb(0 0 0 / 70%);
+}
+.g-tit { font-family: var(--f-ui); font-size: .8rem; line-height: 1.3; color: var(--ink);
+  padding: 0 .7rem .7rem; }
+.g-carte .pastille {
+  position: absolute; top: -.5rem; right: -.5rem; min-width: 1.5rem; height: 1.5rem;
+  display: grid; place-items: center; padding: 0 .35rem; border-radius: 999px;
+  background: var(--accent-aplat); color: var(--sur-accent);
+  font-family: var(--f-ui); font-weight: 700; font-size: .78rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+}
+
+/* ── ONGLETS DU PANNEAU ──────────────────────────────────────
+   En haut du panneau, AU-DESSUS de l'image : le panneau mêlait le verso, les
+   liens, les retours et leur formulaire en une seule colonne qu'il fallait
+   parcourir en entier pour savoir ce qu'elle contenait. La croix de fermeture
+   les rejoint sur la même ligne, à droite. */
+.panneau-onglets {
+  display: flex; align-items: stretch; gap: .35rem;
+  padding: .45rem .45rem 0; border-bottom: 1px solid var(--ligne);
+  background: var(--bg-doux); position: sticky; top: 0; z-index: 2;
+}
+.onglet {
+  font-family: var(--f-ui); font-weight: 600; font-size: .92rem;
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .7rem 1rem; border: 1px solid transparent; border-bottom: 0;
+  border-radius: 9px 9px 0 0; background: none; color: var(--gris); cursor: pointer;
+}
+.onglet:hover { color: var(--ink); }
+.onglet.est-actif { background: var(--surface); border-color: var(--ligne); color: var(--ink);
+  margin-bottom: -1px; padding-bottom: calc(.7rem + 1px); }
+.onglet:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.onglet-nb {
+  min-width: 1.25rem; height: 1.25rem; display: grid; place-items: center; padding: 0 .3rem;
+  border-radius: 999px; background: var(--accent-doux); color: var(--accent-txt-fort);
+  font-size: .74rem; font-weight: 700;
+}
+.onglet.est-actif .onglet-nb { background: var(--accent-aplat); color: var(--sur-accent); }
+/* La croix rejoint la ligne des onglets : elle n'a plus à flotter au-dessus du
+   contenu, où elle recouvrait le haut de l'image. */
+.panneau-onglets .panneau-fermer { position: static; margin-left: auto; align-self: center; }
+
+/* Le bloc « Explications », sous le verso. Masqué tant que la carte n'en a pas :
+   un titre suivi de rien ressemble à une panne. */
+.panneau-explication { margin-top: 1.2rem; border-top: 1px solid var(--ligne); padding-top: 1rem; }
+.panneau-explication h4 { font-family: var(--f-ui); font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--gris); margin: 0 0 .6rem; }
+.panneau-explication p { font-size: .95rem; line-height: 1.6; margin: 0 0 .7rem; }
+
+/* « Qu'est-ce qui pose problème dans ce lien ? », rattaché à sa flèche. */
+.retours .texte-lien { margin-top: .4rem; font-size: .92rem; color: var(--ink-doux, var(--gris)); }
+.retours .quoi-lien { font-family: var(--f-ui); font-weight: 600; color: var(--accent-txt); }
+
+/* Panneau sans onglets : il ne reste que la croix. La barre perd alors son
+   fond et sa bordure, qui n'encadraient que les onglets, et se réduit à ce
+   qu'il faut pour poser la croix en haut à droite. */
+.panneau-onglets.sans-onglets { background: none; border-bottom: 0; padding: 0; }
+.panneau-onglets.sans-onglets .panneau-fermer { position: absolute; top: .5rem; right: .5rem; }
+
+/* ── CORRIGER UNE CARTE DEPUIS LE PANNEAU ────────────────────
+   Visible seulement avec le jeton de modération. Encadré, parce qu'on y écrit
+   dans un texte publié : ça ne doit pas se confondre avec sa lecture. */
+.panneau-edition { margin-top: 1.4rem; border-top: 1px solid var(--ligne); padding-top: 1.1rem; }
+.panneau-edition h4 { font-family: var(--f-ui); font-size: .82rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--gris); margin: 0 0 .8rem; }
+.panneau-edition label { display: block; font-family: var(--f-ui); font-size: .85rem;
+  font-weight: 600; margin: .8rem 0 .3rem; }
+.panneau-edition input, .panneau-edition textarea {
+  width: 100%; font: inherit; font-size: .92rem; padding: .55rem .7rem;
+  border: 1px solid var(--ligne); border-radius: 8px; background: var(--bg-doux); color: var(--ink);
+}
+.panneau-edition textarea { resize: vertical; line-height: 1.5; }
+.panneau-edition input:focus-visible, .panneau-edition textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; }
+.aide-edition { font-size: .82rem; margin: .5rem 0 .9rem; }
+.edition-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+/* Une carte qui porte un brouillon se signale : sinon on republie sans savoir
+   qu'une correction attend déjà. */
+.panneau-edition.a-un-brouillon { border-left: 3px solid var(--accent); padding-left: .9rem; }
+#publier-modifs { background: var(--accent-aplat); color: var(--sur-accent); border-color: transparent; font-weight: 700; }
+
+/* Un retour « pris en compte » : la correction est faite, mais le retour reste
+   lisible. Le supprimer effacerait la trace de ce qui l'a motivée, et quelqu'un
+   signalerait la même chose six mois plus tard. */
+.retours li.traite { border-left: 3px solid var(--ok, #2e7d32); }
+.retours li.traite .texte { color: var(--gris); }
+.retours .actions .traiter.est-traite { background: var(--accent-doux); color: var(--accent-txt-fort); border-color: var(--accent); }
+
+/* ── MODE ÉDITION DE LA FRESQUE DE RÉFÉRENCE ─────────────────
+   Réservé à la modération : la bascule n'apparaît qu'avec le jeton. Tout ce
+   bloc ne vit que sous `.en-edition`, pour qu'un visiteur qui lit la fresque
+   n'hérite d'aucun de ces comportements. */
+.barre-edition {
+  display: flex; flex-direction: column; gap: .7rem;
+  padding: .9rem clamp(1rem, 2vw, 1.75rem);
+  border-top: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne);
+  background: var(--bg-doux);
+}
+.edition-rang { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+  font-family: var(--f-ui); font-size: .85rem; }
+.edition-rang label { font-weight: 600; color: var(--gris); }
+.edition-titre { font-family: var(--f-ui); font-size: .78rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--gris); }
+.edition-rang select, .edition-rang input {
+  font: inherit; padding: .4rem .55rem; border: 1px solid var(--ligne);
+  border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 16rem;
+}
+.edition-rang select:focus-visible, .edition-rang input:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; }
+.edition-rang .etat { margin: 0; }
+.btn-outil.btn-fort { background: var(--accent-aplat); color: var(--sur-accent);
+  border-color: transparent; font-weight: 700; }
+.btn-outil.btn-danger { color: #c1444e; }
+.btn-outil:disabled { opacity: .45; cursor: not-allowed; }
+
+/* UNE CARTE QU'ON PEUT PRENDRE LE DIT. Sans ce curseur, on clique pour lire et
+   la carte part sous le pointeur. */
+.c-carte.deplacable { cursor: grab; }
+.c-carte.deplacable:active { cursor: grabbing; }
+/* La sélection de texte ruinait le geste : au deuxième aller-retour, la moitié
+   de la fresque passait en surbrillance bleue. */
+.plateau.en-edition { user-select: none; -webkit-user-select: none; }
+.plateau.en-edition img { -webkit-user-drag: none; }
+
+/* LA POIGNÉE DE LIEN, sur le bord droit de la carte. Deux gestes distincts sur
+   le même objet demandent deux prises distinctes : le corps déplace, la poignée
+   relie. Elle reste discrète au repos et se révèle au survol de la carte. */
+/* DANS la carte, et non sur son bord : `.c-carte` masque ce qui dépasse (pour
+   que la vignette épouse ses coins arrondis), et une poignée posée à l'extérieur
+   y disparaissait entièrement. En haut à droite, le numéro étant en haut à
+   gauche. */
+.poignee-lien {
+  position: absolute; top: 6px; right: 6px;
+  width: var(--poignee, 21px); height: var(--poignee, 21px);
+  border-radius: 999px;
+  background: var(--accent-aplat); border: 2px solid var(--surface);
+  opacity: .45; transition: opacity .15s, transform .15s;
+  cursor: crosshair; touch-action: none;
+}
+.c-carte:hover .poignee-lien, .c-carte:focus-visible .poignee-lien { opacity: 1; }
+.poignee-lien:hover { transform: scale(1.2); }
+
+/* UN TRAIT DE DEUX PIXELS NE SE CLIQUE PAS. Le doublon transparent, large de
+   seize pixels, reçoit le pointeur à sa place. Hors édition il n'en reçoit
+   aucun : le survol des cartes doit traverser la couche des liens. */
+.liens .touche { stroke: transparent; stroke-width: 16; fill: none; pointer-events: none; }
+.plateau.en-edition .liens .touche { pointer-events: stroke; cursor: pointer; }
+.liens g.choisi path { stroke: var(--accent-txt); stroke-width: 4; }
+.liens g.choisi .touche { stroke: transparent; }
+.liens g.choisi .tete { fill: var(--accent-txt); }
+.liens g.choisi text { display: block; fill: var(--accent-txt); font-weight: 700; }
+/* Le trait qu'on tire d'une carte vers une autre, le temps du geste. */
+.liens .trace { stroke: var(--accent-aplat); stroke-width: 3; stroke-dasharray: 8 6;
+  pointer-events: none; }

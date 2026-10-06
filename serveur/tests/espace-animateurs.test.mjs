@@ -46,7 +46,15 @@ test("l'espace n'est pas dans le plan du site", () => {
   assert.ok(!sm.includes("/facilitators"));
 });
 
-test("aucune page publique n'y renvoie, sauf la fin du guide", () => {
+/* UNE SEULE PAGE PUBLIQUE RENVOIE VERS L'ESPACE : LE GUIDE. Il s'adresse aux
+   animateur·ices et non aux participant·es ; y proposer l'onglet Retours a donc
+   un sens, et un animateur qui lit « donnez votre avis » doit pouvoir cliquer.
+   L'exception s'arrete la : partout ailleurs, l'espace se transmet par courriel,
+   et le guide ne doit toujours pas nommer la fresque de reference (test
+   suivant), qui gacherait l'atelier a qui la verrait avant de le vivre. */
+const EXCEPTIONS = { "site/guide/index.html": ["animateurs/retours/"] };
+
+test("aucune page publique n'y renvoie, sauf le guide vers l'onglet Retours", () => {
   const pages = [];
   (function parcourir(dir) {
     for (const e of fs.readdirSync(path.join(RACINE, dir), { withFileTypes: true })) {
@@ -56,24 +64,38 @@ test("aucune page publique n'y renvoie, sauf la fin du guide", () => {
     }
   })("site");
 
-  const renvoient = pages
-    .filter((p) => /href="[^"]*(animateurs|facilitators)\//.test(lire(p)))
-    .sort();
-  assert.deepEqual(renvoient, [],
-    "aucune page publique ne doit renvoyer vers l'espace animateur·ices");
+  const fautifs = [];
+  for (const p of pages) {
+    const permis = EXCEPTIONS[p] || [];
+    for (const m of lire(p).matchAll(/href="([^"]*(?:animateurs|facilitators)\/[^"]*)"/g)) {
+      const cible = m[1].replace(/^(\.\.\/)+/, "");
+      if (!permis.includes(cible)) fautifs.push(p + " -> " + m[1]);
+    }
+  }
+  assert.deepEqual(fautifs, [],
+    "une page publique renvoie vers l'espace animateur·ices hors de l'exception prévue");
 });
 
-/* LE GUIDE NE RENVOIE PLUS VERS L'ESPACE. L'encart de fin a ete retire : le
-   guide est un document public, telechargeable en PDF, et il y nommait la
-   fresque de reference. L'espace se transmet par courriel. */
-test("le guide ne nomme ni l'espace ni la fresque de référence", () => {
+/* LE GUIDE NE NOMME PAS LA FRESQUE DE REFERENCE, et c'est ce qui compte le
+   plus ici. Le guide est telechargeable en PDF, donc il circule : montrer la
+   fresque terminee a quelqu'un qui n'a pas encore fait l'atelier le lui gache.
+   Le lien vers l'onglet Retours, lui, est assume (voir EXCEPTIONS ci-dessus) :
+   c'est un document d'animateur·ices, et le retour se depose la. */
+test("le guide ne nomme pas la fresque de référence", () => {
   for (const chemin of ["site/guide/index.html", "site/en/guide/index.html"]) {
     const guide = lire(chemin);
-    assert.ok(!/href="\.\.\/(animateurs|facilitators)\//.test(guide),
-      `${chemin} renvoie encore vers l'espace`);
     assert.ok(!/fresque de r[ée]f[ée]rence|reference fresk/i.test(guide),
       `${chemin} nomme encore la fresque de référence`);
   }
+});
+
+/* La version anglaise, elle, n'a pas recu ce lien : son contenu suit son propre
+   calendrier. Ce test l'enregistre, pour qu'on le voie si quelqu'un l'ajoute
+   sans toucher a la liste des exceptions. */
+test("seul le guide français porte le lien, et vers le seul onglet Retours", () => {
+  assert.match(lire("site/guide/index.html"), /href="\.\.\/animateurs\/retours\/"/);
+  assert.ok(!/href="[^"]*(animateurs|facilitators)\//.test(lire("site/en/guide/index.html")),
+    "le guide anglais renvoie vers l'espace sans que la liste des exceptions le prevoie");
 });
 
 test("la navigation du site ne mentionne pas l'espace", () => {
@@ -239,7 +261,9 @@ test("une réponse du lot 5 n'est pas présentée comme une cause", () => {
   const css = lire("site/animateurs/animateurs.css");
   assert.match(css, /g\.reponse path \{[^}]*stroke-dasharray/);
   // Et la clé de lecture doit exister, sinon le trait discontinu ne dit rien.
-  assert.match(lire("site/animateurs/retours/index.html"), /cle-fleches/);
+  // Elle est désormais construite par le script : le HTML de l'outil n'existe
+  // plus qu'à un seul endroit, les deux pages ne portent qu'un conteneur vide.
+  assert.match(js, /cle-fleches/);
 });
 
 test("cliquer une carte allume bien sa chaîne", () => {
@@ -265,4 +289,75 @@ test("survoler une carte montre où elle mène, sans engager de sélection", () 
   // L'aperçu se tait dès qu'une carte est choisie, sinon deux mises en avant
   // concurrentes se superposent.
   assert.match(js, /if \(cibleN != null\) g\.classList\.remove\('survol'\)/);
+});
+
+/* --- Le HTML de l'outil n'existe qu'a un seul endroit ---------------------
+   Il etait copie dans les deux pages : toute evolution devait etre ecrite deux
+   fois, et il suffisait d'en oublier une pour que les pages divergent sans que
+   rien ne le signale. Ce test est la pour que la copie ne revienne pas. */
+test("l'outil n'est ecrit que dans animateurs.js", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  assert.match(js, /function construireOutil/);
+  for (const page of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
+    const html = lire(page);
+    assert.match(html, /id="fresque-outil"/, page + " doit porter le conteneur");
+    for (const marqueur of ["plateau-sizer", "panneau-corps", 'id="lots"', 'id="panneau"']) {
+      assert.ok(!html.includes(marqueur),
+        page + " ne doit plus contenir « " + marqueur + " » : l'outil est bati par le script");
+    }
+  }
+});
+
+test("les retours sont commandes par data-commentaires, pas par la page", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  assert.match(js, /data-commentaires/);
+  assert.match(lire("site/animateurs/retours/index.html"), /data-commentaires="oui"/);
+  assert.match(lire("site/animateurs/index.html"), /data-commentaires="non"/);
+});
+
+/* Une seule valeur commande la largeur du panneau ET le retrait du plateau.
+   Ecrites deux fois et differemment, elles laissaient une bande vide entre le
+   bord du tableau et le panneau, qui grandissait avec l'ecran. */
+test("la largeur du panneau et le retrait du plateau sortent de la meme valeur", () => {
+  const css = lire("site/animateurs/animateurs.css");
+  assert.match(css, /--panneau-l:/);
+  assert.match(css, /\.panneau \{[^}]*width: var\(--panneau-l\)/);
+  assert.match(css, /margin-right: var\(--panneau-l\)/);
+  // Hors commentaires : l'ancienne valeur y est citee pour expliquer le defaut.
+  const regles = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.ok(!/min\(420px, 40vw\)/.test(regles),
+    "l'ancienne valeur en double ne doit plus etre appliquee");
+});
+
+/* Le champ `explication` est facultatif : les 38 textes restent a ecrire. */
+test("le champ explication est declare et facultatif", () => {
+  const schema = JSON.parse(lire("site/data/cartes.schema.json"));
+  const props = schema.properties.cartes.items.properties;
+  assert.ok(props.explication, "le schema doit declarer explication");
+  assert.ok(!schema.properties.cartes.items.required.includes("explication"),
+    "explication ne doit pas etre obligatoire");
+  assert.match(lire("scripts/valider-cartes.mjs"), /c\.explication !== undefined/);
+  assert.match(lire("site/animateurs/animateurs.js"), /panneau-explication/);
+});
+
+/* --- La planche d'impression n'a plus sa propre copie des textes ----------
+   Les titres et versos etaient recopies dans le gabarit, a cote de
+   cartes.json. Les deux copies avaient DEJA diverge : la carte 3 avait deux
+   paragraphes a l'impression et un seul sur le site, pour le meme texte. */
+test("le gabarit d'impression lit cartes.json au lieu de recopier les textes", () => {
+  const g = lire("contenus/Planche d'impression (20pages).html");
+  assert.match(g, /const MISE_EN_PAGE = \[/);
+  assert.match(g, /SOURCE_TEXTES = "\.\.\/site\/data\/cartes\.json"/);
+  assert.ok(!/const CARDS = \[/.test(g), "le tableau de textes ne doit plus exister");
+  // Aucun verso recopie : on verifie sur un texte long, propre a une carte.
+  const ref = JSON.parse(lire("site/data/cartes.json")).cartes;
+  const extrait = ref.find((c) => c.n === 1).verso[0].slice(0, 60);
+  assert.ok(!g.includes(extrait), "un verso est encore ecrit dans le gabarit : " + extrait);
+});
+
+test("une planche incomplete s'arrete au lieu de s'imprimer vide", () => {
+  const g = lire("contenus/Planche d'impression (20pages).html");
+  // Un PDF aux cartes vides passerait inapercu jusqu'a l'imprimeur.
+  assert.match(g, /function echec\(/);
+  assert.match(g, /n'a ni titre ni verso/);
 });

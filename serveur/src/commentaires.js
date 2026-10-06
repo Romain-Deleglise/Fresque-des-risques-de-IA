@@ -52,6 +52,12 @@ function valider(corps, now) {
   var lien = numeroDeCarte(corps.lien);
   if (carte === null || lien === carte) lien = null;
 
+  /* « QU'EST-CE QUI POSE PROBLEME DANS CE LIEN ? » Facultatif, et sans valeur
+     hors d'un lien : savoir qu'une fleche gene n'apprend rien tant qu'on ne
+     sait pas en quoi. On l'efface donc avec le lien plutot que de garder un
+     texte orphelin, impossible a rattacher a quoi que ce soit. */
+  var lienTexte = lien === null ? "" : tronque(corps.lienTexte, MAX_TEXTE);
+
   var email = tronque(corps.email, MAX_EMAIL);
   // Une adresse manifestement fausse est effacee plutot que refusee : le
   // retour compte davantage que la possibilite de repondre.
@@ -62,6 +68,7 @@ function valider(corps, now) {
       sujet: sujet,
       carte: carte,
       lien: lien,
+      lienTexte: lienTexte,
       texte: texte,
       nom: tronque(corps.nom, MAX_NOM),
       email: email,
@@ -82,10 +89,19 @@ function public_(retour, cle_) {
     cle: cle_,
     sujet: retour.sujet,
     carte: retour.carte,
+    /* Le lien etait ENREGISTRE mais jamais rendu : le moderateur ne pouvait pas
+       savoir de quelle fleche on lui parlait, alors que la personne avait pris
+       la peine de la designer. */
+    lien: retour.lien === undefined ? null : retour.lien,
+    lienTexte: retour.lienTexte || "",
     texte: retour.texte,
     nom: retour.nom,
     date: retour.date,
-    valide: !!retour.valide
+    valide: !!retour.valide,
+    /* « PRIS EN COMPTE » : la correction est faite, le retour reste lisible.
+       Le supprimer effacerait la trace de ce qui a conduit a la correction, et
+       un autre animateur signalerait la meme chose six mois plus tard. */
+    traite: !!retour.traite
   };
 }
 

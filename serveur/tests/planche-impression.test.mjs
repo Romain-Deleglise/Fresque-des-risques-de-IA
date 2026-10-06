@@ -1,86 +1,62 @@
-/* LES TEXTES DES CARTES NE DOIVENT EXISTER QU'EN UN SEUL EXEMPLAIRE.
+/* LA PLANCHE D'IMPRESSION ET cartes.json
 
-   Ils vivent aujourd'hui a deux endroits : site/data/cartes.json, que lisent le
-   site et l'outil en ligne, et la liste CARDS ecrite en dur dans la planche
-   d'impression, dont sort le PDF. Les deux sont pour l'instant rigoureusement
-   identiques, et c'est precisement le moment d'y veiller : le jour ou ils
-   divergeront, personne ne le verra. Le PDF circule, il s'imprime, il devient
-   la reference, et il aura tort sans que rien ne le signale.
+   AVANT : les titres et les versos etaient ecrits DEUX FOIS, dans
+   site/data/cartes.json et dans le gabarit d'impression. Ce fichier comparait
+   les deux copies... et laissait passer la divergence qu'il y avait vraiment :
+   la carte 3 avait deux paragraphes a l'impression et un seul sur le site,
+   parce que la comparaison remplacait les sauts de paragraphe par des espaces.
 
-   Ce test ne supprime pas la duplication -- il la rend visible. Le jour ou la
-   planche lira cartes.json (cahier des charges de l'outil de mise a jour), il
-   deviendra inutile et pourra partir.
-
-   `node --test`.
-*/
-import { test } from "node:test";
+   MAINTENANT : il n'y a plus qu'une source. Le gabarit ne garde que la MISE EN
+   PAGE (cadrage des images, anciens noms de fichiers) et lit cartes.json pour
+   le reste. Ce banc verifie donc ce qui peut encore casser : qu'aucun texte ne
+   revienne dans le gabarit, et qu'aucune carte ne se retrouve sans reglage de
+   mise en page -- auquel cas elle manquerait purement et simplement de la
+   planche. */
+import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const RACINE = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
 const lire = (p) => fs.readFileSync(path.join(RACINE, p), "utf8");
 
 const JSON_CARTES = JSON.parse(lire("site/data/cartes.json")).cartes;
 const PLANCHE = lire("contenus/Planche d'impression (20pages).html");
 
-/* La planche declare ses cartes dans un litteral JavaScript. On l'analyse au
-   plus simple : chaque entree commence par `{n:<numero>` et porte un `t:` et
-   un `v:`. Assez robuste pour detecter une divergence, sans embarquer un
-   analyseur JavaScript pour un test. */
-function cartesDeLaPlanche() {
-  const deb = PLANCHE.indexOf("const CARDS = [");
-  assert.ok(deb > 0, "la liste CARDS est introuvable dans la planche");
+/* La mise en page est un litteral JavaScript ; on n'en lit que les numeros. */
+function numerosDeLaPlanche() {
+  const deb = PLANCHE.indexOf("const MISE_EN_PAGE = [");
+  assert.ok(deb > 0, "la liste MISE_EN_PAGE est introuvable dans la planche");
   const bloc = PLANCHE.slice(deb, PLANCHE.indexOf("\n];", deb));
-  const out = new Map();
-  for (const p of bloc.split(/\n\s*\{n:/).slice(1)) {
-    const n = Number(/^(\d+)/.exec(p)[1]);
-    const t = /\bt:"((?:[^"\\]|\\.)*)"/.exec(p);
-    const v = /\bv:"((?:[^"\\]|\\.)*)"/.exec(p);
-    if (t && v) {
-      out.set(n, {
-        titre: t[1].replace(/\\"/g, '"'),
-        verso: v[1].replace(/\\n/g, " ").replace(/\\"/g, '"')
-      });
-    }
-  }
-  return out;
+  return bloc.split(/\n\s*\{n:/).slice(1).map((p) => Number(/^(\d+)/.exec(p)[1]));
 }
 
-const normal = (s) => s.replace(/\s+/g, " ").trim();
-const PLANCHE_CARTES = cartesDeLaPlanche();
-
-test("la planche et cartes.json décrivent le même nombre de cartes", () => {
-  assert.equal(PLANCHE_CARTES.size, JSON_CARTES.length);
-});
-
-test("chaque carte porte le même titre des deux côtés", () => {
+test("chaque carte de cartes.json a son reglage de mise en page", () => {
+  const nums = numerosDeLaPlanche();
   for (const c of JSON_CARTES) {
-    const p = PLANCHE_CARTES.get(c.n);
-    assert.ok(p, `la carte ${c.n} manque dans la planche d'impression`);
-    assert.equal(p.titre, c.titre,
-      `carte ${c.n} : le titre diverge entre cartes.json et la planche`);
+    assert.ok(nums.includes(c.n), "la carte " + c.n + " manque dans la planche d'impression");
   }
+  assert.equal(nums.length, JSON_CARTES.length,
+    "la planche decrit " + nums.length + " cartes pour " + JSON_CARTES.length + " dans cartes.json");
 });
 
-test("chaque carte porte le même verso des deux côtés", () => {
+test("la planche ne recopie plus aucun titre", () => {
   for (const c of JSON_CARTES) {
-    const p = PLANCHE_CARTES.get(c.n);
-    assert.equal(normal(p.verso), normal(c.verso.join(" ")),
-      `carte ${c.n} (${c.titre}) : le verso diverge entre cartes.json et la planche`);
+    assert.ok(!PLANCHE.includes('t:"' + c.titre + '"'),
+      "le titre de la carte " + c.n + " est encore ecrit dans le gabarit");
   }
 });
 
-test("chaque carte appartient au même lot des deux côtés", () => {
-  const bloc = PLANCHE.slice(PLANCHE.indexOf("const CARDS = ["));
-  for (const p of bloc.split(/\n\s*\{n:/).slice(1)) {
-    const n = Number(/^(\d+)/.exec(p)[1]);
-    const lot = /\blot:(\d+|null)/.exec(p);
-    if (!lot) continue;
-    const ref = JSON_CARTES.find((c) => c.n === n);
-    if (!ref) continue;
-    const attendu = lot[1] === "null" ? null : Number(lot[1]);
-    assert.equal(attendu, ref.lot ?? null, `carte ${n} : le lot diverge`);
+test("la planche ne recopie plus aucun verso", () => {
+  for (const c of JSON_CARTES) {
+    // Un extrait suffit, et evite de dependre de l'echappement des guillemets.
+    const extrait = c.verso[0].slice(0, 50);
+    assert.ok(!PLANCHE.includes(extrait),
+      "le verso de la carte " + c.n + " est encore ecrit dans le gabarit");
   }
+});
+
+test("la planche lit bien la source unique", () => {
+  assert.match(PLANCHE, /SOURCE_TEXTES = "\.\.\/site\/data\/cartes\.json"/);
+  assert.match(PLANCHE, /async function chargerContenus\(\)/);
 });

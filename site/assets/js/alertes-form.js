@@ -131,14 +131,57 @@
     }).then(function (r) {
       if (!r.ok || !r.d.ok) throw new Error((r.d && r.d.erreur) || "Enregistrement impossible.");
       msg.className = "msg ok";
-      msg.textContent = r.d.miseAJour
+      /* CE QUI SE PASSE ENSUITE, DIT TOUT DE SUITE. Un abonnement n'existe
+         qu'une fois le lien du premier e-mail ouvert : si la page se contente
+         de « c'est noté », la personne attend des annonces qui ne partiront
+         jamais. C'est exactement ce qu'un participant avait pris pour une
+         panne. */
+      msg.textContent = r.d.aConfirmer
+        ? "Presque fini : ouvrez l'e-mail que nous venons d'envoyer et cliquez le lien de confirmation. Sans ce clic, aucune annonce ne partira."
+        : r.d.miseAJour
         ? "C'est mis à jour. Vous recevrez les prochaines annonces selon ces choix."
-        : "C'est noté. Vous serez prévenu·e dès qu'un atelier vous concerne.";
+          : "C'est noté. Vous serez prévenu·e dès qu'un atelier vous concerne.";
     }).catch(function (err) {
       msg.className = "msg err";
       msg.textContent = err.message;
     }).finally(function () { btn.disabled = false; });
   });
 
+  /* MODIFIER SES PREFERENCES depuis le lien d'un e-mail (« ?m=<jeton> »). On
+     relit l'etat enregistre et on repose le formulaire dessus : sans cela, la
+     seule facon de changer de rayon etait de se desabonner puis de tout
+     ressaisir de memoire. Le point d'entree existait cote serveur depuis le
+     debut (« ?etat= »), aucune page ne s'en servait. */
+  function prefRemplir() {
+    var jeton = new URLSearchParams(location.search).get("m") || "";
+    if (!jeton) return;
+    fetch("/.netlify/functions/alertes?etat=" + encodeURIComponent(jeton))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.ok) return;
+        var mailChamp = form.querySelector('[name="mail"]');
+        if (d.mail && mailChamp) mailChamp.value = d.mail;
+        var fmt = form.querySelector('input[name="format"][value="' + d.format + '"]');
+        if (fmt) { fmt.checked = true; fmt.dispatchEvent(new Event("change", { bubbles: true })); }
+        if (d.rayonKm) { rayon.value = String(d.rayonKm); rayonTouche = true; }
+        zones = [];
+        (d.communes || []).forEach(function (code) {
+          zones.push({ code: code, nom: code, rayon: d.rayonKm });
+        });
+        rendreZones();
+        // Les noms des communes ne sont pas dans la reponse : on les relit dans
+        // la meme table que le champ de recherche, pour ne pas afficher un code.
+        if (window.Commune && window.Commune.nommer) {
+          window.Commune.nommer(zones.map(function (z) { return z.code; }), "../").then(function (noms) {
+            zones.forEach(function (z) { if (noms[z.code]) z.nom = noms[z.code]; });
+            rendreZones();
+          }).catch(function () {});
+        }
+        if (msg) { msg.className = "msg"; msg.textContent = "Vos préférences actuelles sont affichées. Modifiez-les, puis envoyez."; }
+      })
+      .catch(function () { /* le formulaire reste utilisable, vide */ });
+  }
+
   rendreZones();
+  prefRemplir();
 })();

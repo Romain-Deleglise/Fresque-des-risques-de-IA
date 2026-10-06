@@ -787,7 +787,8 @@ dans le dépôt) :
 | `FORM_RETOURS_URL` | suivi.js | (optionnel) formulaire de retour post-atelier (Notion). Sans elle, l'invitation n'apparaît pas dans les e-mails |
 | `FORM_TEMOIGNAGE_URL` | suivi.js | (optionnel) formulaire de témoignage. Sans elle, l'invitation n'apparaît pas |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
-| `ADMIN_TOKEN` | admin.js, commentaires.js | Clé secrète de l'espace `/admin/`, et jeton de modération des retours dans `/animateurs/`. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible |
+| `SITE_URL` | lib/lien.js | Adresse publique du site, utilisée dans les liens des e-mails. Facultative : sans elle, `URL` (que Netlify donne) sert en production. **Elle est ignorée hors production** : une deploy preview utilise `DEPLOY_PRIME_URL`, sinon un e-mail testé sur une preview renverrait vers la production, qui ne connaît ni son jeton ni son inscription |
+| `ADMIN_TOKEN` | admin.js, commentaires.js, brouillons.js | Clé secrète de l'espace `/admin/`, jeton de modération des retours dans `/animateurs/`, et clé des corrections de cartes et du mode édition de la fresque. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible. `cartes-publiees.js` n'en a pas besoin : il ne fait que lire ce qui est déjà affiché |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |
 | `CIVICRM_SITE_KEY` | subscribe.js | Clé de site CiviCRM |
@@ -969,6 +970,91 @@ e-mail laissée par un animateur n'est jamais renvoyée par l'API.
 **Contrepartie assumée :** un retour indésirable est visible, grisé, jusqu'à ce
 que quelqu'un le supprime. L'exposition reste bornée (la page n'est pas
 publique) et le débit est limité à 30 dépôts par IP et par heure.
+
+### Corriger depuis l'outil : les brouillons
+
+`netlify/functions/brouillons.js`, règles pures dans `serveur/src/brouillons.js`
+(les cartes) et `serveur/src/fresque-brouillon.js` (le plan de la fresque),
+stockage Netlify Blobs (`fresque-brouillons`). Tout y est gardé par
+`ADMIN_TOKEN`, **y compris la lecture** : un texte non relu n'a pas à circuler.
+
+Deux choses s'y corrigent, au même endroit que ce qu'on leur reproche :
+
+| Quoi | Où | Ce qu'on peut faire |
+| --- | --- | --- |
+| Le texte d'une carte | panneau de la carte, page Retours | titre, verso, explications (en ligne tout de suite) |
+| Le plan de la fresque | bascule « Mode édition », page Retours | déplacer les cartes, ajouter, renommer ou supprimer un lien (en ligne tout de suite) |
+
+**Publier met en ligne, tout de suite.** Pour les textes de cartes, « Publier »
+range les corrections dans un **calque** (Netlify Blobs, clé `publie`) que
+`netlify/functions/cartes-publiees.js` rend publiquement et que
+`site/assets/js/calque-cartes.js` applique par-dessus `data/cartes.json`. Elles
+sont visibles à la seconde, sur toutes les pages, sans dépôt ni CI ni fusion.
+Corriger une explication ne demande plus d'écrire une ligne de code.
+
+Donner à la fonction un droit d'écriture sur le dépôt aurait réglé la lenteur en
+ouvrant une surface d'attaque hors de proportion : un jeton de modération volé
+serait devenu un droit de pousser du code. Le calque est la troisième voie.
+
+**Le fichier statique reste servi en premier.** Les pages lisent
+`data/cartes.json` (CDN), puis le calque. Intercaler la fonction devant le
+fichier serait plus simple à écrire et bien plus fragile : une fonction en panne
+emporterait les cartes avec elle, au milieu d'un atelier. Ici, si le calque
+tombe, on affiche le texte publié : une correction en retard, jamais une page
+vide. Aucune fonction de `calque-cartes.js` ne rejette.
+
+**Le dépôt n'est réclamé que pour ce qui est imprimé.** Un titre ou un verso
+figurent sur la carte du jeu : les corriger en ligne rend la planche imprimée
+fausse, et le bouton « Télécharger cartes.json pour le dépôt (N) » apparaît pour
+qu'on l'y replie. Une **explication** ne figure sur aucune carte : elle vit très
+bien dans le calque, et réclamer un dépôt pour elle ne serait qu'un faux devoir.
+Le compte du bouton ne porte donc que les cartes dont un champ imprimé a changé.
+
+Une fois le dépôt à jour, **le calque se vide tout seul** : à chaque lecture, un
+champ égal à la source disparaît, et une carte sans champ disparaît avec lui
+(`B.residu`). Personne n'a de ménage à faire.
+
+Le calque corrige le **texte**, jamais les images : les vraies cartes portent
+leur titre imprimé dessus et se refabriquent depuis le dépôt
+(`scripts/generer-planche-pdf.mjs`).
+
+**Le plan de la fresque suit la même règle**, et pour la même raison inversée :
+rien d'imprimé n'en dépend, c'est une mise en page lue par le seul outil.
+« Publier la fresque » le met en ligne dans le calque `publie-fresque`, servi par
+le même appel que les textes et appliqué par `CalqueCartes.appliquerFresque`.
+Un bouton « Télécharger pour le dépôt » reste dans la barre d'édition, sans
+urgence : il ne sert qu'à garder le dépôt comme mémoire du projet, et ce calque
+se vide lui aussi tout seul quand le dépôt le rattrape (`FB.identique`, qui
+compare après normalisation pour qu'un ordre de clés ne fasse pas croire à une
+différence).
+
+Entrer en mode édition reprend, dans cet ordre : le brouillon en cours, sinon le
+plan déjà en ligne. Repartir du fichier du dépôt déferait sans prévenir une
+publication de la veille.
+
+Les brouillons **s'accumulent** : une carte relue donne dix virgules déplacées,
+et chacune devrait être relue séparément. On corrige au fil de l'eau, on relit
+ensemble, on publie une fois. Côté fresque il n'y a qu'un brouillon, et non un
+par carte : on déplace des cartes les unes par rapport aux autres, l'état n'a de
+sens qu'entier.
+
+**Le brouillon de la fresque ne s'applique pas à la lecture.** Il ne remplace la
+fresque publiée qu'une fois entré en mode édition : sinon la page Retours
+montrerait un plan que personne d'autre ne voit, et les retours porteraient sur
+lui.
+
+Le mode édition se conduit à la souris (glisser une carte, tirer sa poignée vers
+une autre pour les relier, cliquer un lien pour le désigner) **et au clavier**
+(les flèches déplacent la carte au focus de dix pixels, d'un seul avec Maj ; la
+barre d'édition porte les mêmes actions en listes déroulantes). Pas d'alignement
+automatique : la carte va où on la pose. `serveur/src/fresque-brouillon.js`
+refuse en amont ce qui ne se verrait qu'à l'œil trop tard : une carte posée deux
+fois, une carte à cheval sur le bord du plan, une flèche qui part d'une carte
+absente, un lien d'une carte vers elle-même.
+
+Vérifié par `serveur/tests/brouillons.test.mjs`,
+`serveur/tests/fresque-brouillon.test.mjs`, `scripts/verifier-brouillons.cjs`,
+`scripts/verifier-edition.mjs` et `scripts/verifier-fresque-edition.mjs`.
 
 ---
 

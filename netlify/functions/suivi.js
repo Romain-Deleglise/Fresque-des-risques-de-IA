@@ -13,7 +13,10 @@ const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, mailHtml = G.mailHtml, bouton = G.bouton, boutonSecondaire = G.boutonSecondaire;
 
-const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN = LIENS.SITE;
 const FIN_MS = 3 * 60 * 60 * 1000;          // atelier considere termine 3 h apres le debut
 const LIMITE_MS = 3 * 24 * 60 * 60 * 1000;  // fenetre d'envoi : jusqu'a 3 j apres
 const DISCORD = "https://discord.gg/vyXGd7AeGc";
@@ -25,11 +28,15 @@ const PAUSEIA = "https://pauseia.fr";
    renseignees les invitations correspondantes ne s'affichent pas. Un mail qui
    propose « laissez un retour » vers une page qui n'existe pas fait plus de
    mal que de bien. */
-/* Par defaut, les formulaires du site (/retour/ et /temoignage/), dont les
-   reponses arrivent dans l'espace admin. Les variables permettent de basculer
-   vers des formulaires externes le jour ou l'equipe en veut, sans toucher au
+/* LE RETOUR SE DEPOSE LA OU IL SERA LU ET TRAITE. Il partait vers /retour/, un
+   formulaire a part dont les reponses dormaient dans l'espace admin. L'onglet
+   Retours de l'espace animateur·ices fait mieux : on y commente l'atelier ET
+   une carte en particulier, le retour est visible tout de suite, et une
+   correction se publie depuis la meme page. Un formulaire de plus a cote
+   aurait partage les retours en deux endroits, dont un que personne n'ouvre.
+   La variable d'environnement reste, pour basculer ailleurs sans toucher au
    code. */
-const FORM_RETOURS = (process.env.FORM_RETOURS_URL || (LIEN + "/retour/")).trim();
+const FORM_RETOURS = (process.env.FORM_RETOURS_URL || (LIEN + "/animateurs/retours/")).trim();
 const FORM_TEMOIGNAGE = (process.env.FORM_TEMOIGNAGE_URL || (LIEN + "/temoignage/")).trim();
 
 /* Pied commun : qui nous sommes, et ou nous suivre. L'atelier est le premier
@@ -96,15 +103,15 @@ function mailParticipants(avecImage) {
 
   l.push("Bonjour,");
   l.push("");
-  l.push("Merci d'avoir participé à la Fresque des risques de l'IA. Elle est toute jeune et elle va continuer d'évoluer.");
+  l.push("Merci d'avoir participé à l'atelier. La fresque est toute jeune et elle va continuer d'évoluer.");
   c.push('<p style="margin:0 0 14px;">Bonjour,</p>');
-  c.push('<p style="margin:0 0 16px;">Merci d\'avoir participé à la Fresque des risques de l\'IA. Elle est toute jeune et elle va continuer d\'évoluer.</p>');
+  c.push('<p style="margin:0 0 16px;">Merci d\'avoir participé à l\'atelier. La fresque est toute jeune et elle va continuer d\'évoluer.</p>');
 
   if (FORM_RETOURS) {
     l.push("");
-    l.push("Dites-nous ce que vous en avez pensé : ce qui vous a marqué, ce qui n'était pas clair, ce que vous auriez voulu creuser.");
+    l.push("Dites-nous ce que vous en avez pensé : ce qui vous a marqué, ce qui n'était pas clair, ce que vous auriez voulu creuser. Vous pouvez aussi commenter directement une carte.");
     l.push("- Laisser un retour : " + FORM_RETOURS);
-    c.push('<p style="margin:0 0 12px;">Dites-nous ce que vous en avez pensé : ce qui vous a marqué, ce qui n\'était pas clair, ce que vous auriez voulu creuser.</p>');
+    c.push('<p style="margin:0 0 12px;">Dites-nous ce que vous en avez pensé : ce qui vous a marqué, ce qui n\'était pas clair, ce que vous auriez voulu creuser. Vous pouvez aussi commenter directement une carte.</p>');
     c.push('<p style="margin:0 0 18px;text-align:center;">' + bouton(FORM_RETOURS, "Laisser un retour") + '</p>');
   }
   if (FORM_TEMOIGNAGE) {

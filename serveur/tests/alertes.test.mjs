@@ -204,3 +204,84 @@ test("l'objet ne promet « près de chez vous » que pour du présentiel", () =>
   assert.equal(A.sujet([{ mode: "enligne" }, { mode: "physique" }]),
     "2 ateliers de la Fresque des risques de l'IA");
 });
+
+/* --- Un atelier n'est annonce qu'une fois --------------------------------
+   Le plafond hebdomadaire ne protegeait de rien : un seul atelier programme
+   deux mois a l'avance repartait a chaque tour. Mesure avant correction :
+   huit mardis, huit messages identiques. */
+test("un atelier deja annonce ne repart pas la semaine suivante", () => {
+  const a = enLigne({ code: "AAA", quandMs: NOW + 40 * JOUR });
+  const ab = { mail: "a@b.fr", format: "enligne", communes: [], actif: true, dernierEnvoi: 0, annonces: {} };
+  const premier = A.envoisDeLaSemaine([ab], [a], NOW);
+  assert.equal(premier.length, 1);
+
+  ab.dernierEnvoi = NOW;
+  ab.annonces = A.memoireApres(ab, premier[0].ateliers, NOW);
+  assert.equal(A.envoisDeLaSemaine([ab], [a], NOW + 8 * JOUR).length, 0);
+});
+
+test("un atelier reprogramme est une information neuve, donc reannoncee", () => {
+  const a = enLigne({ code: "AAA", quandMs: NOW + 40 * JOUR });
+  const ab = { mail: "a@b.fr", format: "enligne", communes: [], actif: true, dernierEnvoi: 0, annonces: {} };
+  ab.annonces = A.memoireApres(ab, [a], NOW);
+  ab.dernierEnvoi = NOW;
+  const deplace = enLigne({ code: "AAA", quandMs: NOW + 41 * JOUR });
+  assert.equal(A.envoisDeLaSemaine([ab], [deplace], NOW + 8 * JOUR).length, 1);
+});
+
+test("la memoire oublie les ateliers trop anciens au lieu de grossir sans fin", () => {
+  const vieux = { annonces: { VIEUX: NOW - A.MEMOIRE_MS - JOUR, RECENT: NOW - JOUR } };
+  const m = A.memoireApres(vieux, [], NOW);
+  assert.deepEqual(Object.keys(m), ["RECENT"]);
+});
+
+test("un abonne non confirme ne recoit rien", () => {
+  const a = enLigne({ code: "AAA", quandMs: NOW + 10 * JOUR });
+  const attente = { mail: "a@b.fr", format: "enligne", communes: [], actif: false, dernierEnvoi: 0 };
+  assert.equal(A.envoisDeLaSemaine([attente], [a], NOW).length, 0);
+  attente.actif = true;
+  assert.equal(A.envoisDeLaSemaine([attente], [a], NOW).length, 1);
+});
+
+/* --- La chronologie prime sur le groupement ------------------------------
+   Grouper par ville sans retrier mettait l'atelier de lundi prochain sous
+   celui du mois suivant, parce que sa ville venait plus loin dans la liste. */
+test("les groupes sont classes par leur atelier le plus proche", () => {
+  const tard = surPlace(BORDEAUX, { code: "T", quandMs: NOW + 30 * JOUR });
+  const tot = surPlace(LYON, { code: "P", quandMs: NOW + 3 * JOUR });
+  const g = A.grouper([tard, tot]);
+  assert.match(g.villes[0].ville, /Lyon/);
+  assert.match(g.villes[1].ville, /Bordeaux/);
+});
+
+test("dans un groupe, les ateliers sont classes par date", () => {
+  const b = surPlace(LYON, { code: "B", quandMs: NOW + 20 * JOUR });
+  const a = surPlace(LYON, { code: "A", quandMs: NOW + 5 * JOUR });
+  const g = A.grouper([b, a]);
+  assert.deepEqual(g.villes[0].ateliers.map((x) => x.code), ["A", "B"]);
+});
+
+/* --- L'inscription non confirmee s'efface vraiment -----------------------
+   Le message d'inscription promet qu'elle « s'effacera d'elle-meme ». Tant que
+   rien ne l'efface, on garde l'adresse de quelqu'un qui n'a jamais rien
+   demande : celle d'un tiers inscrit a son insu, ou une adresse mal tapee qui
+   appartient a une autre personne. */
+test("une inscription jamais confirmee est a effacer apres une semaine", () => {
+  const vieille = { actif: false, depuis: NOW - A.DELAI_CONFIRMATION_MS - JOUR };
+  assert.equal(A.aPurger(vieille, NOW), true);
+});
+
+test("une inscription recente non confirmee a encore le temps de l'etre", () => {
+  const fraiche = { actif: false, depuis: NOW - 2 * JOUR };
+  assert.equal(A.aPurger(fraiche, NOW), false);
+});
+
+test("un abonne confirme n'est jamais efface, meme ancien", () => {
+  const ancien = { actif: true, depuis: NOW - 400 * JOUR };
+  assert.equal(A.aPurger(ancien, NOW), false);
+});
+
+test("sans date d'inscription, on n'efface pas au hasard", () => {
+  assert.equal(A.aPurger({ actif: false }, NOW), false);
+  assert.equal(A.aPurger(null, NOW), false);
+});

@@ -222,6 +222,170 @@ for (const u of ["/animateurs/", "/animateurs/retours/"]) {
     !(await pg.evaluate(() => !!document.getElementById("zoom-ajuste"))));
 }
 
+/* ── AUCUNE BANDE D'UNE AUTRE TEINTE AUTOUR DE L'OUTIL ───────
+   L'outil prend toute la largeur de la fenetre : il SORT de la colonne de
+   lecture. Tout ancetre qui peint un fond s'arrete, lui, a la largeur de sa
+   propre boite, et on voit alors une bande d'une autre couleur de chaque cote.
+   C'est ce qui arrivait sur l'accueil, ou l'apercu etait un encadre a fond
+   `--surface` : tres visible en theme sombre (#201d16 contre #17150f). */
+console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");
+for (const u of ["/animateurs/", "/animateurs/retours/"]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
+  await pg.waitForTimeout(900);
+  const fautifs = await pg.evaluate(() => {
+    const z = document.getElementById("fresque-zone");
+    if (!z) return ["zone absente"];
+    const l = z.getBoundingClientRect().width, out = [];
+    let p = z.parentElement;
+    while (p && p !== document.documentElement) {
+      const c = getComputedStyle(p).backgroundColor;
+      const opaque = c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c);
+      if (opaque && p.getBoundingClientRect().width < l - 1) {
+        out.push((p.id ? "#" + p.id : p.tagName) + " " + c
+          + " large de " + Math.round(p.getBoundingClientRect().width) + " pour une zone de " + Math.round(l));
+      }
+      p = p.parentElement;
+    }
+    return out;
+  });
+  t("aucun ancetre ne peint un fond plus etroit que l'outil sur " + u,
+    fautifs.length === 0, fautifs.join(" | "));
+}
+
+/* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
+   Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
+   etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages
+   divergent sans que rien ne le signale. Il n'existe plus qu'une fois, dans
+   animateurs.js, et chaque page ne porte qu'un conteneur vide. */
+console.log("\n--- Un seul outil, deux pages ---");
+for (const f of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
+  const src = fs.readFileSync(path.join(RACINE, f), "utf8");
+  t(f.replace("site/", "") + " ne contient plus le HTML de l'outil",
+    !/plateau-sizer|panneau-corps|id="lots"/.test(src) && /id="fresque-outil"/.test(src));
+}
+
+console.log("\n--- Le selecteur de vue et la vue Cartes ---");
+for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/", false]]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
+  await pg.waitForTimeout(1200);
+  const d = await pg.evaluate(() => ({
+    selecteur: !!document.getElementById("vue-cartes") && !!document.getElementById("vue-fresque"),
+    parDefaut: document.getElementById("vue-fresque").getAttribute("aria-pressed"),
+    grilleCachee: document.getElementById("grille-cartes").hidden,
+    ongletExpl: !!document.getElementById("onglet-expl"),
+    ongletRetours: !!document.getElementById("onglet-retours"),
+    modeCom: !!document.getElementById("mode-commentaires"),
+    pastillesFresque: document.querySelectorAll(".c-carte .pastille").length,
+    zone: Math.round(document.querySelector(".fresque-zone").getBoundingClientRect().width),
+    /* On mesure le premier CONTROLE de la barre, pas la boite de la barre :
+       c'est lui qui paraissait sortir du cadre en touchant le bord. */
+    gouttiere: (() => {
+      const z = document.querySelector(".fresque-zone").getBoundingClientRect();
+      const c = document.querySelector(".barre-g > *, .apercu-barre .barre-g > *");
+      return c ? Math.round(c.getBoundingClientRect().left - z.left) : 0;
+    })(),
+    fenetre: window.innerWidth,
+    deborde: Math.max(0, document.documentElement.scrollWidth - window.innerWidth)
+  }));
+  t(u + " porte le selecteur de vue", d.selecteur);
+  t(u + " ouvre sur la vue Fresque", d.parDefaut === "true" && d.grilleCachee);
+  t(u + " a l'onglet Explications", d.ongletExpl);
+  t(u + (avecRetours ? " a l'onglet Retours" : " n'a PAS d'onglet Retours"), d.ongletRetours === avecRetours);
+  /* LES ONGLETS N'ONT DE SENS QU'EN MODE COMMENTAIRES. Sans lui le panneau n'a
+     qu'un contenu : deux onglets dont un seul sert annoncent une fausse
+     promesse. Ils disparaissent alors, la croix de fermeture reste. */
+  /* A cet endroit la vue Fresque est encore active : on ouvre une carte du
+     plateau. Le panneau doit etre ferme avant, sinon il intercepte le clic. */
+  const ouvrirCarte = async () => {
+    /* Clic par le DOM : le panneau est en position fixe et recouvre une partie
+       du plateau, donc un clic geometrique vise parfois le panneau lui-meme.
+       Ce n'est pas ce qu'on teste ici. */
+    await pg.evaluate(() => {
+      const p = document.getElementById("panneau");
+      if (p && !p.hidden) document.getElementById("panneau-fermer").click();
+      document.querySelector('.c-carte[data-n="3"]').click();
+    });
+    await pg.waitForTimeout(350);
+  };
+  await ouvrirCarte();
+  const sansCom = await pg.evaluate(() => {
+    const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
+    return { expl: vu("onglet-expl"), ret: vu("onglet-retours"), croix: vu("panneau-fermer"), volet: vu("volet-expl") };
+  });
+  t(u + " : aucun onglet hors mode commentaires", !sansCom.expl && !sansCom.ret, JSON.stringify(sansCom));
+  t(u + " : la croix et les explications restent", sansCom.croix && sansCom.volet, JSON.stringify(sansCom));
+  if (avecRetours) {
+    await pg.evaluate(() => {
+      document.getElementById("panneau-fermer").click();
+      const c = document.getElementById("mode-commentaires");
+      c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await pg.waitForTimeout(150);
+    await ouvrirCarte();
+    const avecCom = await pg.evaluate(() => {
+      const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
+      return { expl: vu("onglet-expl"), ret: vu("onglet-retours") };
+    });
+    t(u + " : les onglets apparaissent en mode commentaires", avecCom.expl && avecCom.ret, JSON.stringify(avecCom));
+    await pg.evaluate(() => {
+      const c = document.getElementById("mode-commentaires");
+      c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+  await pg.evaluate(() => { const p = document.getElementById("panneau"); if (p && !p.hidden) document.getElementById("panneau-fermer").click(); });
+  t(u + (avecRetours ? " a le mode commentaires" : " n'a PAS de mode commentaires"), d.modeCom === avecRetours);
+  /* Le plan porte deja numeros, lots et fleches : un chiffre de plus s'y
+     perdait. Le compte se lit sur la vue Cartes et sur l'onglet Retours. */
+  t(u + " n'a aucune pastille sur les cartes de la fresque", d.pastillesFresque === 0, String(d.pastillesFresque));
+  /* La zone prend toute la largeur de la fenetre, sans defilement lateral. */
+  t(u + " : la fresque occupe toute la largeur", d.zone === d.fenetre, d.zone + " / " + d.fenetre);
+  t(u + " : aucun debordement lateral", d.deborde === 0, String(d.deborde));
+  /* ET SON CONTENU NE TOUCHE PAS LES BORDS. Sans gouttiere, le zoom et les
+     filtres se collaient au bord de l'ecran et paraissaient sortir du cadre. */
+  t(u + " : la barre d'outils garde une gouttiere", d.gouttiere >= 12, d.gouttiere + " px");
+  /* `50vw` compte la barre de defilement, `50%` ne la compte pas : sans la
+     mesurer, la zone depassait d'une demi-barre de chaque cote. */
+  const bar = await pg.evaluate(() => {
+    const avant = document.querySelector(".fresque-zone").getBoundingClientRect().width;
+    document.documentElement.style.setProperty("--barre-defilement", "16px");
+    const apres = document.querySelector(".fresque-zone").getBoundingClientRect().width;
+    document.documentElement.style.removeProperty("--barre-defilement");
+    return Math.round(avant - apres);
+  });
+  t(u + " : la largeur de la barre de defilement est prise en compte", bar === 16, bar + " px de retrait pour 16");
+
+  // La vue Cartes : 38 cartes, la carte 0 exclue, le zoom sans objet.
+  await pg.click("#vue-cartes");
+  await pg.waitForTimeout(500);
+  const g = await pg.evaluate(() => ({
+    n: document.querySelectorAll(".g-carte").length,
+    zero: !!document.querySelector('.g-carte[data-n="0"]'),
+    ordre: [...document.querySelectorAll(".g-carte")].map((e) => +e.dataset.n),
+    plateauCache: document.getElementById("plateau-cadre").hidden,
+    zoomCache: document.getElementById("zoom-plus").hidden
+  }));
+  t(u + " : 38 cartes en vue Cartes, sans la carte 0", g.n === 38 && !g.zero, String(g.n));
+  t(u + " : par numero croissant", String(g.ordre) === String([...g.ordre].sort((a2, b2) => a2 - b2)));
+  t(u + " : le plateau et le zoom s'effacent", g.plateauCache && g.zoomCache);
+}
+
+/* LE VIDE ENTRE LE TABLEAU ET LE PANNEAU. La largeur du panneau et le retrait
+   du plateau etaient ecrits deux fois, et differemment : au-dela de 1050 px de
+   fenetre, une bande vide s'ouvrait entre les deux et grandissait avec l'ecran. */
+console.log("\n--- Le panneau touche le tableau ---");
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1200);
+await pg.click('.c-carte[data-n="3"]');
+await pg.waitForTimeout(400);
+const vide = await pg.evaluate(() => {
+  const p = document.getElementById("panneau").getBoundingClientRect();
+  const c = document.getElementById("plateau-cadre").getBoundingClientRect();
+  return Math.round(p.left - c.right);
+});
+t("aucun vide entre le bord du tableau et le panneau", vide === 0, vide + " px");
+
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 3).join(" | "));
 
 console.log("\n" + (ko ? "❌" : "✅") + " Espace animateur·ices : " + ok + " verifications reussies, " + ko + " echouees.\n");

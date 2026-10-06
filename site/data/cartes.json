@@ -72,7 +72,8 @@
       "lot": 1,
       "titre": "Amélioration des capacités",
       "verso": [
-        "Pour entraîner un modèle d'IA plus performant, il faut mobiliser des moyens considérables : davantage de puissance de calcul, des équipes de recherche spécialisées et d'immenses volumes de données d'entraînement. Plus l'investissement est important, plus il devient possible d'entraîner des modèles puissants, rapides et autonomes."
+        "Pour entraîner un modèle d'IA plus performant, il faut mobiliser des moyens considérables : davantage de puissance de calcul, des équipes de recherche spécialisées et d'immenses volumes de données d'entraînement.",
+        "Plus l'investissement est important, plus il devient possible d'entraîner des modèles puissants, rapides et autonomes."
       ],
       "image": {
         "petite": "assets/img/cartes/03-300.webp",

@@ -65,90 +65,16 @@
           Pour commenter une carte ou ses liens, activez le «&nbsp;Mode commentaires&nbsp;», puis
           cliquez sur la carte concernée.
         </p>
-        <p class="etat" id="chargement" role="status" aria-live="polite">Chargement de la fresque…</p>
       </div>
     </section>
 
     <section class="section section-doux" id="plateau-section" hidden>
       <span id="fresque" class="ancre-fresque" aria-hidden="true"></span>
       <div class="wrap">
-        <div class="fresque-zone" id="fresque-zone">
-        <div class="barre">
-          <div class="barre-g">
-            <button type="button" class="btn-outil" id="zoom-moins" aria-label="Dézoomer">−</button>
-            <span class="zoom-val" id="zoom-val">100&nbsp;%</span>
-            <button type="button" class="btn-outil" id="zoom-plus" aria-label="Zoomer">+</button>
-            <button type="button" class="btn-outil" id="plein-ecran">Plein écran</button>
-            <label class="recherche">
-              <span class="visuellement-cache" id="recherche-label">Chercher une carte</span>
-              <input type="search" id="recherche" placeholder="Chercher une carte…"
-                     aria-labelledby="recherche-label" autocomplete="off">
-            </label>
-          </div>
-          <div class="barre-d">
-            <label class="bascule">
-              <input type="checkbox" id="mode-commentaires">
-              <span>Mode commentaires</span>
-            </label>
-            <button type="button" class="btn-outil quitter-plein" id="quitter-plein">Fermer ✕</button>
-          </div>
-        </div>
-        <!-- Les lots servent de légende ET de filtre : préparer un atelier, c'est
-             réviser un lot à la fois. -->
-        <div class="lots" id="lots" role="group" aria-label="Filtrer par lot"></div>
-
-        <!-- Deux sortes de flèches, deux sens de lecture : sans cette clé, on
-             lit les réponses du lot 5 comme des causes. -->
-        <p class="cle-fleches">
-          <span><span class="cle-trait cle-cause" aria-hidden="true"></span> provoque</span>
-          <span><span class="cle-trait cle-reponse" aria-hidden="true"></span> répond à</span>
-        </p>
-
-        <p class="muted barre-aide" id="barre-aide">
-          Cliquez une carte pour lire son verso et éclairer ses liens. Glissez pour vous déplacer,
-          Ctrl + molette pour zoomer.
-        </p>
-
-        <div class="plateau-cadre" id="plateau-cadre">
-          <!-- Deux niveaux, et ce n'est pas superflu : `plateau` garde toujours
-               ses 3200x2200 et porte la mise a l'echelle, tandis que `sizer`
-               prend la taille APRES echelle. Sans lui, le cadre ne sait pas
-               quelle surface faire defiler, et redimensionner le plateau en
-               plus de l'echelonner le retrecissait deux fois. -->
-          <div class="plateau-sizer" id="plateau-sizer">
-            <div class="plateau" id="plateau">
-              <svg class="liens" id="liens" aria-hidden="true"></svg>
-              <div class="cartes" id="cartes"></div>
-              <div class="etiquettes" id="etiquettes"></div>
-            </div>
-          </div>
-        </div>
-          <!-- Panneau latéral : verso d'une carte, et commentaires la concernant. -->
-          <aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">
-            <button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="Fermer">✕</button>
-            <div class="panneau-corps">
-              <img class="panneau-img" id="panneau-img" src="" alt="">
-              <h3 id="panneau-titre"></h3>
-              <div class="panneau-verso" id="panneau-verso"></div>
-              <div class="panneau-liens" id="panneau-liens"></div>
-              <ul class="retours retours-carte" id="retours-carte"></ul>
-              <div class="panneau-commentaire" id="panneau-commentaire" hidden>
-                <h4>Un retour sur cette carte&nbsp;?</h4>
-                <label class="visuellement-cache" for="c-texte">Votre retour sur cette carte</label>
-                <textarea id="c-texte" rows="3" maxlength="2000"
-                  placeholder="Ce qui a été mal compris, ce qui manque, une reformulation…"></textarea>
-                <label for="c-lien">Ça concerne le lien avec la carte <span class="opt">(facultatif)</span></label>
-                <select id="c-lien">
-                  <option value="">Aucune carte en particulier</option>
-                </select>
-                <label class="visuellement-cache" for="c-nom">Votre prénom</label>
-                <input id="c-nom" type="text" maxlength="40" placeholder="Votre prénom (facultatif)">
-                <button type="button" class="btn btn-1" id="c-envoi">Envoyer</button>
-                <p class="etat" id="c-etat" role="status" aria-live="polite"></p>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <!-- Voir le commentaire du jumeau sur /animateurs/ : l'outil est construit
+             par animateurs.js. Ici avec les retours, et la page garde ce qui lui
+             est propre (jeton de moderation, formulaire general). -->
+        <div id="fresque-outil" data-commentaires="oui"></div>
       </div>
     </section>
 
@@ -199,6 +125,9 @@
     </div>
   </footer>
 
+  <!-- Le calque des corrections publiees depuis l'espace animateur·ices. Charge
+       AVANT le script qui lit les cartes : `defer` garde l'ordre du document. -->
+  <script src="../../assets/js/calque-cartes.js" defer></script>
   <script src="../animateurs.js" defer></script>
   <script src="../../assets/js/nav.js" defer></script>
 </body>

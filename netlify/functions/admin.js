@@ -77,7 +77,10 @@ async function listerRetours() {
    donné de son temps une fois, elle ne doit rien à personne. On lui dit ce qui
    a changé depuis et on lui laisse la main -- pas de « on ne vous voit plus ».
    Un seul lien, celui qui sert : programmer. */
-const LIEN_SITE = (process.env.SITE_URL || "https://fresquedesrisquedelia.netlify.app").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN_SITE = LIENS.SITE;
 function relanceAnimateur(mailDest) {
   const prog = LIEN_SITE + "/devenir-animateur/#programmer";
   const text = [

@@ -149,3 +149,49 @@ test("le sujet « atelier » est accepté tel quel", () => {
   assert.equal(r.sujet, "atelier");
   assert.ok(C.cleValide(C.cle(r, "ab12cd")), "la clé doit rester modérable");
 });
+
+/* --- « Qu'est-ce qui pose probleme dans ce lien ? » ------------------------
+   Un retour « cette fleche ne va pas » n'apprend rien tant qu'on ne sait pas
+   en quoi. Le champ n'a donc de sens qu'avec un lien, et le lien lui-meme doit
+   enfin ressortir : il etait enregistre depuis le debut, et jamais rendu. */
+test("le texte du lien est garde quand un lien est designe", () => {
+  const v = C.valider({ sujet: "carte", carte: 3, lien: 12, lienTexte: "la cause est inversee", texte: "un retour assez long pour passer" }, T);
+  assert.equal(v.retour.lien, 12);
+  assert.equal(v.retour.lienTexte, "la cause est inversee");
+});
+
+test("sans lien, le texte du lien est efface plutot que garde orphelin", () => {
+  const v = C.valider({ sujet: "carte", carte: 3, lienTexte: "texte sans lien", texte: "un retour assez long pour passer" }, T);
+  assert.equal(v.retour.lien, null);
+  assert.equal(v.retour.lienTexte, "");
+});
+
+test("un lien vers la carte elle-meme emporte son texte", () => {
+  const v = C.valider({ sujet: "carte", carte: 7, lien: 7, lienTexte: "boucle", texte: "un retour assez long pour passer" }, T);
+  assert.equal(v.retour.lien, null);
+  assert.equal(v.retour.lienTexte, "");
+});
+
+test("le texte du lien est tronque comme le retour principal", () => {
+  const long = "x".repeat(C.MAX_TEXTE + 500);
+  const v = C.valider({ sujet: "carte", carte: 3, lien: 12, lienTexte: long, texte: "un retour assez long pour passer" }, T);
+  assert.equal(v.retour.lienTexte.length, C.MAX_TEXTE);
+});
+
+test("le lien et son texte sont visibles par ceux qui lisent les retours", () => {
+  const v = C.valider({ sujet: "carte", carte: 3, lien: 12, lienTexte: "la cause est inversee", texte: "un retour assez long pour passer" }, T);
+  const pub = C.public(v.retour, "cle-x");
+  assert.equal(pub.lien, 12);
+  assert.equal(pub.lienTexte, "la cause est inversee");
+  assert.equal(pub.email, undefined, "l'adresse ne doit jamais sortir");
+});
+
+/* « PRIS EN COMPTE ». La correction est faite, mais le retour reste lisible :
+   le supprimer effacerait la trace de ce qui l'a motivee, et quelqu'un
+   signalerait la meme chose six mois plus tard. */
+test("un retour expose s'il a ete pris en compte", () => {
+  const v = C.valider({ sujet: "carte", carte: 3, texte: "un retour assez long pour passer" }, T);
+  assert.equal(C.public(v.retour, "k").traite, false, "faux par defaut");
+  v.retour.traite = true;
+  assert.equal(C.public(v.retour, "k").traite, true);
+});
