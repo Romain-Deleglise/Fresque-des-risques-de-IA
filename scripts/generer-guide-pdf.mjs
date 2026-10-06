@@ -150,6 +150,33 @@ for (const p of PAGES) {
       if (u.origin === location.origin) a.setAttribute("href", prod + u.pathname + u.search + u.hash);
     });
   }, PROD);
+  /* GARDE-FOU : CE QUI S'IMPRIME EXISTE-T-IL ?
+
+     Une regle `@media print` ecrite pour une page, mais posee dans une feuille
+     que toutes partagent, a masque tout le contenu de l'antiseche a
+     l'impression. Le PDF est parti quand meme : 8 Ko, une page blanche, livree
+     en telechargement sans que rien ne le signale. Ni l'empreinte du contenu
+     (qui compare le HTML de la PAGE, pas ce qui s'imprime) ni la relecture des
+     liens ne pouvaient le voir.
+
+     On mesure donc ce qui reste visible une fois la feuille `print`
+     appliquee. Le seuil est volontairement bas : il attrape le vide, pas une
+     page courte. */
+  const visible = await page.evaluate(() => {
+    const m = document.querySelector("main") || document.body;
+    const compte = [...m.querySelectorAll("*")].filter((e) => {
+      const c = getComputedStyle(e), r = e.getBoundingClientRect();
+      return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0;
+    }).length;
+    return { elements: compte, texte: m.innerText.replace(/\s+/g, " ").trim().length };
+  });
+  if (visible.texte < 300 || visible.elements < 10) {
+    console.error("\n❌ " + p.sortie + " s'imprimerait quasiment vide : "
+      + visible.elements + " element(s) visible(s), " + visible.texte + " caractere(s)."
+      + "\n   Une regle @media print masque probablement le contenu de cette page.\n");
+    await nav.close();
+    process.exit(1);
+  }
   const dest = path.join(RACINE, "site", "telechargements", p.sortie);
   await page.pdf({
     path: dest,

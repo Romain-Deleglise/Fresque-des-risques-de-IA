@@ -307,6 +307,48 @@ if (sel.ref) {
     sansFleche.length === 0, sansFleche.map((m) => m.id).join(" | "));
 }
 
+/* ── CE QUI S'IMPRIME EXISTE-T-IL ? ──────────────────────────
+   Une regle `@media print` ecrite pour la page du kit, mais posee dans la
+   feuille que TOUTES les pages de l'espace partagent, masquait tout ce qui
+   n'est pas `.section-doux`. L'antiseche sortait donc entierement blanche a
+   l'impression, et le PDF engendre depuis cette page avec elle : 8 Ko, une
+   page vide, livree en telechargement.
+
+   LA CI NE POUVAIT PAS LE VOIR : l'empreinte qui garde le PDF aligne sur sa
+   page compare le HTML de la page, et la panne venait du CSS. On regarde donc
+   ici ce qui reste visible une fois la feuille `print` appliquee. */
+console.log("\n--- Les pages imprimables impriment quelque chose ---");
+for (const [nom, u, mini] of [["l'antiseche", "/animateurs/antiseche/", 1200],
+                              ["le guide", "/guide/", 3000],
+                              ["le kit (affiche seule)", "/animateurs/kit/", 200]]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  await pg.emulateMedia({ media: "print" });
+  await pg.waitForTimeout(350);
+  const m = await pg.evaluate(() => {
+    const z = document.querySelector("main") || document.body;
+    const vus = [...z.querySelectorAll("*")].filter((e) => {
+      const c = getComputedStyle(e), r = e.getBoundingClientRect();
+      return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0;
+    }).length;
+    return { vus: vus, texte: z.innerText.replace(/\s+/g, " ").trim().length };
+  });
+  await pg.emulateMedia({ media: "screen" });
+  t(nom + " imprime son contenu", m.texte >= mini && m.vus >= 10,
+    m.vus + " element(s) visible(s), " + m.texte + " caractere(s), minimum " + mini);
+}
+/* Et la regle du kit fait toujours son travail SUR SA PAGE : elle ne doit pas
+   imprimer la page entiere sous pretexte qu'on l'a bornee. */
+await pg.goto(B + "/animateurs/kit/", { waitUntil: "networkidle" });
+await pg.emulateMedia({ media: "print" });
+await pg.waitForTimeout(350);
+t("le kit n'imprime que l'affiche, pas toute sa page",
+  await pg.evaluate(() => {
+    const vis = (s) => { const e = document.querySelector(s); if (!e) return false;
+      const c = getComputedStyle(e); return c.display !== "none"; };
+    return vis(".section-doux") && !vis("main > .section.no-print");
+  }));
+await pg.emulateMedia({ media: "screen" });
+
 /* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
    Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
    etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages

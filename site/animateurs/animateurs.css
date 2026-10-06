@@ -522,9 +522,19 @@
 }
 
 @media print {
-  /* N'imprimer que l'affiche, en pleine page. */
-  body > *:not(main), main > *:not(.section-doux) { display: none !important; }
-  .affiche {
+  /* N'IMPRIMER QUE L'AFFICHE, ET SEULEMENT SUR LA PAGE DE L'AFFICHE.
+
+     Cette regle vivait sans garde dans une feuille chargee par TOUTES les pages
+     de l'espace. Elle masquait donc tout ce qui n'est pas `.section-doux` a
+     l'impression, sur toutes les pages : l'antiseche, dont le contenu est dans
+     `.section.antiseche`, sortait entierement blanche, et le PDF engendre depuis
+     cette page avec elle (8 Ko, une page vide, livree telle quelle).
+
+     D'ou la classe sur le `body` du kit : une regle qui cache tout doit dire ou
+     elle s'applique. */
+  .page-affiche > *:not(main),
+  .page-affiche main > *:not(.section-doux) { display: none !important; }
+  .page-affiche .affiche {
     max-width: none; width: 100%; aspect-ratio: auto; min-height: 96vh;
     border: 0; box-shadow: none; padding: 6%;
   }
