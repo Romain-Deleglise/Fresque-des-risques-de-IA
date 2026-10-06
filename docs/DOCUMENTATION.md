@@ -787,6 +787,7 @@ dans le dépôt) :
 | `FORM_RETOURS_URL` | suivi.js | (optionnel) formulaire de retour post-atelier (Notion). Sans elle, l'invitation n'apparaît pas dans les e-mails |
 | `FORM_TEMOIGNAGE_URL` | suivi.js | (optionnel) formulaire de témoignage. Sans elle, l'invitation n'apparaît pas |
 | `AUDIENCE_KEY` | stats.js | (optionnel) protège la lecture de `/stats/` |
+| `SITE_URL` | lib/lien.js | Adresse publique du site, utilisée dans les liens des e-mails. Facultative : sans elle, `URL` (que Netlify donne) sert en production. **Elle est ignorée hors production** : une deploy preview utilise `DEPLOY_PRIME_URL`, sinon un e-mail testé sur une preview renverrait vers la production, qui ne connaît ni son jeton ni son inscription |
 | `ADMIN_TOKEN` | admin.js, commentaires.js, brouillons.js | Clé secrète de l'espace `/admin/`, jeton de modération des retours dans `/animateurs/`, et clé des corrections de cartes et du mode édition de la fresque. Sans elle, l'espace admin est désactivé (503) et aucune modération n'est possible. `cartes-publiees.js` n'en a pas besoin : il ne fait que lire ce qui est déjà affiché |
 | `CIVICRM_BASE_URL` | subscribe.js | URL du CRM Pause IA |
 | `CIVICRM_API_KEY` | subscribe.js | Clé API CiviCRM |

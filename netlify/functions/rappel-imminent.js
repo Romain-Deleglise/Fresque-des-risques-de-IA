@@ -11,7 +11,10 @@ const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton;
 
-const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN = LIENS.SITE;
 const T_MIN = 40 * 60 * 1000;   // pas avant 40 min
 const T_MAX = 80 * 60 * 1000;   // pas apres 80 min
 

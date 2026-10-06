@@ -15,7 +15,10 @@ const mail = require("./lib/mail.js");
 const G = require("./lib/gabarit.js");
 const h = G.h, mailHtml = G.mailHtml, bouton = G.bouton, boutonSecondaire = G.boutonSecondaire, dateLisible = G.dateLisible;
 
-const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN = LIENS.SITE;
 
 function storeAlertes() { return getStore({ name: "fresque-alertes" }); }
 function storeAteliers() { return getStore({ name: "fresque-ateliers" }); }

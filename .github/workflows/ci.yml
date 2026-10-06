@@ -169,3 +169,9 @@ jobs:
       # navigateur : ce sont des gestes, une mise a l'echelle et une couche SVG.
       - name: Verifier l'edition de la fresque de reference
         run: node scripts/verifier-fresque-edition.mjs
+
+      # Les communes suggerees et choisies n'existent qu'apres une frappe :
+      # l'audit axe-core, qui regarde les pages au repos, ne les voyait pas. Leur
+      # contraste etait de 1,00 en theme sombre, c'est-a-dire invisible.
+      - name: Verifier le contraste du formulaire d'alertes
+        run: node scripts/verifier-contraste-alertes.mjs

@@ -23,7 +23,10 @@ const G = require("./lib/gabarit.js");
 const h = G.h, dateLisible = G.dateLisible, mailHtml = G.mailHtml, bouton = G.bouton, boutonSecondaire = G.boutonSecondaire;
 
 // URL publique du site (variable d'environnement SITE_URL dans Netlify).
-const LIEN = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const LIEN = LIENS.SITE;
 const TTL_PURGE_MS = 7 * 24 * 60 * 60 * 1000; // on garde les ateliers 7 j apres leur date
 
 function store() { return getStore({ name: "fresque-ateliers" }); }

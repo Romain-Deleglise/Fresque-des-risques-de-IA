@@ -19,7 +19,10 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
 const G = require("../../serveur/src/agenda.js");
 
-const BASE = (process.env.SITE_URL || "https://fresquedesrisquesdelia.org").replace(/\/+$/, "");
+// L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
+// pour qu'un courriel teste sur une preview y ramene au lieu de la production.
+const LIENS = require("./lib/lien.js");
+const BASE = LIENS.SITE;
 
 function store() { return getStore({ name: "fresque-ateliers" }); }
 

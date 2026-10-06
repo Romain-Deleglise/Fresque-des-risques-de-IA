@@ -794,18 +794,28 @@ a.btn, a.btn:hover { text-decoration: none; }
 .form-alertes .ligne-zone .btn { flex: 0 0 auto; }
 @media (max-width: 620px) { .form-alertes .mode-choix { grid-template-columns: 1fr; } }
 .puces-zones { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.puce-zone { background: #f3efe8; border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
-.puce-x { border: 0; background: rgba(0, 0, 0, .07); border-radius: 50%; width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 15px; }
-.puce-x:hover { background: rgba(0, 0, 0, .16); }
+/* LES COULEURS SUIVENT LE THÈME, elles ne sont pas écrites en dur. Ce bloc
+   portait un fond clair fixe (#f3efe8) alors que le texte, lui, suit `--ink` :
+   en thème sombre, de l'encre presque blanche sur un fond presque blanc. Mesuré
+   avant correction : un contraste de 1,00 pour les puces et de 1,15 pour la
+   liste de suggestions, c'est-à-dire des communes rigoureusement illisibles.
+   L'audit axe-core ne le voyait pas : ces éléments n'existent qu'une fois
+   qu'on a tapé le nom d'une commune, et l'audit regarde les pages au repos. */
+.puce-zone { background: var(--bg-doux); color: var(--ink); border: 1px solid var(--ligne);
+  border-radius: 999px; padding: 5px 6px 5px 14px; font-size: 14px;
+  display: inline-flex; align-items: center; gap: 6px; }
+.puce-x { border: 0; background: var(--ligne); color: var(--ink); border-radius: 50%;
+  width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 15px; }
+.puce-x:hover { background: var(--accent); color: var(--sur-accent); }
 .piege { position: absolute; left: -9999px; }
 
 /* Attribut style= inutilisable : la CSP du site interdit les styles en ligne. */
 .espace-haut { margin-top: 1.2rem; }
 
 /* Sélecteur de commune : liste de suggestions sous le champ */
-.commune-liste { position: absolute; z-index: 40; list-style: none; margin: 4px 0 0; padding: 4px; width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--trait, #e6e1d8); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .12); max-height: 280px; overflow-y: auto; }
-.commune-item { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 15px; }
-.commune-item:hover, .commune-item.actif { background: #f3efe8; }
+.commune-liste { position: absolute; z-index: 40; list-style: none; margin: 4px 0 0; padding: 4px; width: 100%; max-width: 420px; background: var(--surface); color: var(--ink); border: 1px solid var(--ligne); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .28); max-height: 280px; overflow-y: auto; }
+.commune-item { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 15px; color: var(--ink); }
+.commune-item:hover, .commune-item.actif { background: var(--accent-doux); color: var(--accent-txt-fort); }
 .ligne-zone { position: relative; }
 .ligne-zone input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .champs-physique label { position: relative; }
@@ -814,5 +824,5 @@ a.btn, a.btn:hover { text-decoration: none; }
 /* Rappel des alertes sous les listes d'ateliers. Ce n'est pas parce que des
    ateliers sont déjà prévus que la personne n'est pas intéressée par les
    suivants : le rappel est donc visible même quand la liste est pleine. */
-.rappel-alertes { margin: 22px auto 0; max-width: 62ch; text-align: center; font-size: 15px; color: var(--txt-doux, #5a564e); background: #fbf6ee; border: 1px solid #f0e4d2; border-radius: 12px; padding: 14px 18px; }
+.rappel-alertes { margin: 22px auto 0; max-width: 62ch; text-align: center; font-size: 15px; color: var(--gris); background: var(--bg-doux); border: 1px solid var(--ligne); border-radius: 12px; padding: 14px 18px; }
 .rappel-alertes a { font-weight: 600; }
