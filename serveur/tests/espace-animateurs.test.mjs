@@ -46,7 +46,15 @@ test("l'espace n'est pas dans le plan du site", () => {
   assert.ok(!sm.includes("/facilitators"));
 });
 
-test("aucune page publique n'y renvoie, sauf la fin du guide", () => {
+/* UNE SEULE PAGE PUBLIQUE RENVOIE VERS L'ESPACE : LE GUIDE. Il s'adresse aux
+   animateur·ices et non aux participant·es ; y proposer l'onglet Retours a donc
+   un sens, et un animateur qui lit « donnez votre avis » doit pouvoir cliquer.
+   L'exception s'arrete la : partout ailleurs, l'espace se transmet par courriel,
+   et le guide ne doit toujours pas nommer la fresque de reference (test
+   suivant), qui gacherait l'atelier a qui la verrait avant de le vivre. */
+const EXCEPTIONS = { "site/guide/index.html": ["animateurs/retours/"] };
+
+test("aucune page publique n'y renvoie, sauf le guide vers l'onglet Retours", () => {
   const pages = [];
   (function parcourir(dir) {
     for (const e of fs.readdirSync(path.join(RACINE, dir), { withFileTypes: true })) {
@@ -56,24 +64,38 @@ test("aucune page publique n'y renvoie, sauf la fin du guide", () => {
     }
   })("site");
 
-  const renvoient = pages
-    .filter((p) => /href="[^"]*(animateurs|facilitators)\//.test(lire(p)))
-    .sort();
-  assert.deepEqual(renvoient, [],
-    "aucune page publique ne doit renvoyer vers l'espace animateur·ices");
+  const fautifs = [];
+  for (const p of pages) {
+    const permis = EXCEPTIONS[p] || [];
+    for (const m of lire(p).matchAll(/href="([^"]*(?:animateurs|facilitators)\/[^"]*)"/g)) {
+      const cible = m[1].replace(/^(\.\.\/)+/, "");
+      if (!permis.includes(cible)) fautifs.push(p + " -> " + m[1]);
+    }
+  }
+  assert.deepEqual(fautifs, [],
+    "une page publique renvoie vers l'espace animateur·ices hors de l'exception prévue");
 });
 
-/* LE GUIDE NE RENVOIE PLUS VERS L'ESPACE. L'encart de fin a ete retire : le
-   guide est un document public, telechargeable en PDF, et il y nommait la
-   fresque de reference. L'espace se transmet par courriel. */
-test("le guide ne nomme ni l'espace ni la fresque de référence", () => {
+/* LE GUIDE NE NOMME PAS LA FRESQUE DE REFERENCE, et c'est ce qui compte le
+   plus ici. Le guide est telechargeable en PDF, donc il circule : montrer la
+   fresque terminee a quelqu'un qui n'a pas encore fait l'atelier le lui gache.
+   Le lien vers l'onglet Retours, lui, est assume (voir EXCEPTIONS ci-dessus) :
+   c'est un document d'animateur·ices, et le retour se depose la. */
+test("le guide ne nomme pas la fresque de référence", () => {
   for (const chemin of ["site/guide/index.html", "site/en/guide/index.html"]) {
     const guide = lire(chemin);
-    assert.ok(!/href="\.\.\/(animateurs|facilitators)\//.test(guide),
-      `${chemin} renvoie encore vers l'espace`);
     assert.ok(!/fresque de r[ée]f[ée]rence|reference fresk/i.test(guide),
       `${chemin} nomme encore la fresque de référence`);
   }
+});
+
+/* La version anglaise, elle, n'a pas recu ce lien : son contenu suit son propre
+   calendrier. Ce test l'enregistre, pour qu'on le voie si quelqu'un l'ajoute
+   sans toucher a la liste des exceptions. */
+test("seul le guide français porte le lien, et vers le seul onglet Retours", () => {
+  assert.match(lire("site/guide/index.html"), /href="\.\.\/animateurs\/retours\/"/);
+  assert.ok(!/href="[^"]*(animateurs|facilitators)\//.test(lire("site/en/guide/index.html")),
+    "le guide anglais renvoie vers l'espace sans que la liste des exceptions le prevoie");
 });
 
 test("la navigation du site ne mentionne pas l'espace", () => {
