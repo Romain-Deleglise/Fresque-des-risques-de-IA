@@ -253,6 +253,60 @@ for (const u of ["/animateurs/", "/animateurs/retours/"]) {
     fautifs.length === 0, fautifs.join(" | "));
 }
 
+/* ── LES SELECTEURS RESSEMBLENT AUX AUTRES CHAMPS ────────────
+   « Ça concerne le lien avec la carte » s'affichait brut : police du systeme,
+   coins carres, fleche du systeme, juste sous un champ de texte soigne. La
+   regle qui habille les champs du panneau avait simplement oublie `select`.
+   On compare donc chaque selecteur au champ de texte qui le jouxte : meme
+   police, meme arrondi, meme bord, et la fleche maison a la place de celle du
+   navigateur. (La LISTE une fois ouverte reste dessinee par le navigateur :
+   aucun CSS ne l'atteint, et la remplacer couterait le clavier et le lecteur
+   d'ecran que le `select` natif donne gratuitement.) */
+console.log("\n--- Les selecteurs ressemblent aux autres champs ---");
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1100);
+await pg.evaluate(() => { const c = document.getElementById("mode-commentaires");
+  if (c) { c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); } });
+await pg.evaluate(() => { const el = document.querySelector(".c-carte"); if (el) el.click(); });
+await pg.waitForTimeout(500);
+await pg.evaluate(() => { const o = document.getElementById("onglet-retours"); if (o) o.click(); });
+await pg.waitForTimeout(400);
+
+const sel = await pg.evaluate(() => {
+  const out = [];
+  document.querySelectorAll("#panneau select, .form-retour select, .barre-edition select").forEach((s) => {
+    const c = getComputedStyle(s);
+    const env = s.closest(".select-joli");
+    out.push({
+      id: s.id,
+      police: c.fontFamily.split(",")[0].replace(/["']/g, ""),
+      rayon: c.borderRadius,
+      bord: c.borderColor,
+      apparence: c.appearance,
+      enveloppe: !!env,
+      fleche: env ? getComputedStyle(env, "::after").content : ""
+    });
+  });
+  /* Le champ de reference : le texte juste au-dessus du selecteur fautif. */
+  const t = document.getElementById("c-texte");
+  const ct = t ? getComputedStyle(t) : null;
+  return { selects: out, ref: ct ? { police: ct.fontFamily.split(",")[0].replace(/["']/g, ""),
+    rayon: ct.borderRadius, bord: ct.borderColor } : null };
+});
+
+t("on trouve bien des selecteurs a verifier", sel.selects.length >= 3, String(sel.selects.length));
+t("et un champ de texte servant de reference", !!sel.ref, JSON.stringify(sel.ref));
+if (sel.ref) {
+  const mauvais = sel.selects.filter((s) => s.police !== sel.ref.police || s.rayon !== sel.ref.rayon
+    || s.bord !== sel.ref.bord);
+  t("tous portent la police, l'arrondi et le bord des autres champs",
+    mauvais.length === 0, mauvais.map((m) => m.id + " " + m.police + " " + m.rayon).join(" | "));
+  const sansFleche = sel.selects.filter((s) => !s.enveloppe || s.apparence !== "none"
+    || !/[▾]/.test(s.fleche));
+  t("tous remplacent la fleche du systeme par la fleche maison",
+    sansFleche.length === 0, sansFleche.map((m) => m.id).join(" | "));
+}
+
 /* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
    Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
    etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages

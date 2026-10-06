@@ -263,12 +263,18 @@
       h.push('<div class="barre-edition" id="barre-edition" hidden>');
       h.push('<div class="edition-rang">');
       h.push('<strong class="edition-titre">' + T.nouveauLien + '</strong>');
-      h.push('<label for="f-de">' + T.depuis + '</label><select id="f-de"></select>');
-      h.push('<label for="f-vers">' + T.versCarte + '</label><select id="f-vers"></select>');
+      /* `select-joli` : la meme enveloppe que partout ailleurs sur le site. Elle
+         masque la fleche du systeme et en dessine une qui suit le theme. La LISTE
+         ouverte, elle, est dessinee par le navigateur et reste hors d'atteinte du
+         CSS : la remplacer demanderait de reecrire un menu deroulant a la main, et
+         d'y refaire le clavier, le lecteur d'ecran et la saisie au clavier que le
+         `select` natif donne gratuitement. */
+      h.push('<label for="f-de">' + T.depuis + '</label><span class="select-joli"><select id="f-de"></select></span>');
+      h.push('<label for="f-vers">' + T.versCarte + '</label><span class="select-joli"><select id="f-vers"></select></span>');
       h.push('<button type="button" class="btn-outil" id="f-ajouter">' + T.ajouterLien + '</button>');
       h.push('</div>');
       h.push('<div class="edition-rang">');
-      h.push('<label for="f-choix">' + T.choixLien + '</label><select id="f-choix"></select>');
+      h.push('<label for="f-choix">' + T.choixLien + '</label><span class="select-joli"><select id="f-choix"></select></span>');
       h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
       h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
       h.push('<button type="button" class="btn-outil" id="f-renommer">' + T.renommerLien + '</button>');
@@ -351,7 +357,7 @@
       h.push('<label class="visuellement-cache" for="c-texte">' + T.votreRetour + '</label>');
       h.push('<textarea id="c-texte" rows="3" maxlength="2000" placeholder="' + T.placeholderRetour + '"></textarea>');
       h.push('<label for="c-lien">' + T.concerneLien + ' <span class="opt">(' + T.facultatif + ')</span></label>');
-      h.push('<select id="c-lien"><option value="">' + T.lienAucun + '</option></select>');
+      h.push('<span class="select-joli"><select id="c-lien"><option value="">' + T.lienAucun + '</option></select></span>');
       /* Le champ n'apparait qu'une fois un lien choisi : demander ce qui pose
          probleme dans un lien qu'on n'a pas designe n'a pas de sens. */
       h.push('<div id="c-lien-bloc" hidden>');
