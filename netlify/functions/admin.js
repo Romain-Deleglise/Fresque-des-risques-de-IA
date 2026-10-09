@@ -26,6 +26,8 @@ const { getStore, connectLambda } = require("@netlify/blobs");
 const Com = require("../../serveur/src/communes.js");
 const C = require("./lib/contacts.js");
 const R = require("../../serveur/src/retours.js");
+const JOURNAL = require("../../serveur/src/journal.js");
+const PARCOURS = require("../../serveur/src/parcours.js");
 const An = require("../../serveur/src/animateurs.js");
 // Le circuit d'annulation vit dans la fonction « ateliers » : on l'appelle
 // plutôt que de le recopier, pour que les inscrit·es soient prévenu·es
@@ -204,6 +206,19 @@ exports.handler = async (event) => {
     if (event.httpMethod === "GET") {
       const q = event.queryStringParameters || {};
       if (q.action === "retours") return json(200, { retours: await listerRetours() });
+
+      /* LE JOURNAL DES ENVOIS. Le site est jeune et une bonne part de ce qu'il
+         fait est invisible : un courriel part trois jours apres un atelier, le
+         mardi matin, ou a l'instant d'une inscription. Quand quelqu'un dit
+         « je n'ai rien recu », la question se posait depuis un terminal.
+         Aucune adresse n'y figure : voir serveur/src/journal.js. */
+      if (q.action === "journal") {
+        const s2 = getStore({ name: "fresque-journal" });
+        const v = await s2.get("envois", { type: "json" }).catch(() => null);
+        const liste = (v && v.liste) || [];
+        return json(200, { journal: liste, bilan: JOURNAL.bilan(liste, Date.now()),
+          parcours: PARCOURS.tous() });
+      }
       if (q.action === "alertes") return json(200, await resumeAlertes());
       if (q.action === "ateliers") {
         const ateliers = await Ateliers.listerPourAdmin();

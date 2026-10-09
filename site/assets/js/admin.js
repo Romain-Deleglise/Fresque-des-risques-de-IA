@@ -57,6 +57,7 @@
       // propre gestion de cle.
       if (window.__retoursAdmin) window.__retoursAdmin.charger(api);
       if (window.__commentairesAdmin) window.__commentairesAdmin.charger(etat.cle);
+      if (window.__journalAdmin) window.__journalAdmin.charger(api);
       if (window.__alertesAdmin) window.__alertesAdmin.charger(api);
       if (window.__ateliersAdmin) window.__ateliersAdmin.charger(api);
     });
@@ -612,4 +613,103 @@
       .then(function (r) { if (!r.ok) throw new Error("refus"); return charger(cle); })
       .catch(function () { b.disabled = false; });
   });
+})();
+
+/* ============================================================
+   JOURNAL DES ENVOIS, ET CARTE DES PARCOURS
+   Le site est jeune et une bonne part de ce qu'il fait est invisible : un
+   courriel part trois jours apres un atelier, le mardi matin, ou a l'instant
+   d'une inscription. Les traces existaient, mais dans les journaux de la
+   plateforme. Elles sont ici.
+
+   AUCUNE ADRESSE DANS LE JOURNAL : voir serveur/src/journal.js. On y lit ce qui
+   est parti, quand, pour combien de personnes, et si ca a marche. Pas qui.
+   ============================================================ */
+(function () {
+  "use strict";
+  var hote = document.getElementById("liste-journal");
+  if (!hote) return;
+  var tout = [], bilan = null, parcours = [];
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function quand(ms) {
+    if (!ms) return "·";
+    try {
+      return new Date(ms).toLocaleString("fr-FR",
+        { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return "·"; }
+  }
+  var ETAT = { envoye: ["parti", "ok"], echec: ["échec", "ko"], bloque: ["bloqué", "attente"] };
+
+  function rendre() {
+    var f = (document.getElementById("filtre-journal") || {}).value || "tous";
+    var liste = f === "tous" ? tout : tout.filter(function (e) { return e.evt === f; });
+    var p = document.getElementById("bilan-journal");
+    if (p && bilan) {
+      p.textContent = bilan.envoyes24h + " parti(s) sur 24 h"
+        + (bilan.echecs24h ? " · " + bilan.echecs24h + " échec(s)" : "")
+        + (bilan.bloques24h ? " · " + bilan.bloques24h + " bloqué(s)" : "");
+    }
+    if (!liste.length) {
+      hote.innerHTML = '<p class="vide">' + (tout.length
+        ? "Rien dans ce filtre." : "Aucun envoi enregistré pour le moment.") + "</p>";
+      return;
+    }
+    hote.innerHTML = liste.map(function (e) {
+      var et = ETAT[e.evt] || ["?", ""];
+      return '<div class="r-item j-' + esc(et[1]) + '">'
+        + '<div class="r-tete"><strong>' + esc(e.sujet || "(sans sujet)") + "</strong>"
+        + "<span>· " + esc(quand(e.quand)) + "</span>"
+        + "<span>· " + e.dest + " destinataire(s)</span>"
+        + '<span class="r-badge">' + esc(et[0]) + "</span>"
+        + (e.raison ? "<span>· " + esc(e.raison) + "</span>" : "")
+        + "</div></div>";
+    }).join("");
+  }
+
+  /* LA CARTE SE LIT COMME UN PARCOURS, pas comme un tableau : une colonne par
+     depart, les courriels dans l'ordre ou ils arrivent, et sous chacun ce qu'il
+     contient. C'est la question « qu'est-ce que recoit quelqu'un qui s'inscrit,
+     et quand ? » mise a plat. */
+  function rendreParcours() {
+    var h = document.getElementById("carte-parcours");
+    if (!h) return;
+    if (!parcours.length) { h.innerHTML = '<p class="vide">Carte indisponible.</p>'; return; }
+    h.innerHTML = parcours.map(function (p) {
+      return '<section class="p-col"><h3>' + esc(p.titre) + "</h3>"
+        + '<p class="p-depart">' + esc(p.depart) + "</p>"
+        + '<ol class="p-etapes">' + p.etapes.map(function (e) {
+          return "<li>"
+            + '<span class="p-quand">' + esc(e.quand) + "</span>"
+            + '<strong class="p-sujet">' + esc(e.sujet) + "</strong>"
+            + '<span class="p-pour">→ ' + esc(e.pour) + "</span>"
+            + (e.porte && e.porte.length
+              ? '<ul class="p-porte">' + e.porte.map(function (x) {
+                  return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"
+              : "")
+            + "</li>";
+        }).join("") + "</ol></section>";
+    }).join("");
+  }
+
+  function charger(api) {
+    return api({ query: "?action=journal" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        tout = (d && d.journal) || [];
+        bilan = (d && d.bilan) || null;
+        parcours = (d && d.parcours) || [];
+        rendre();
+        rendreParcours();
+      })
+      .catch(function () { /* le tableau de bord reste utilisable sans */ });
+  }
+  window.__journalAdmin = { charger: charger };
+
+  var filtre = document.getElementById("filtre-journal");
+  if (filtre) filtre.addEventListener("change", rendre);
 })();

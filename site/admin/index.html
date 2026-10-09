@@ -100,6 +100,45 @@
         <div id="liste-retours" class="retours-admin" aria-live="polite"></div>
       </div>
 
+      <!-- LE JOURNAL DES ENVOIS. Le site est jeune et une bonne part de ce qu'il
+           fait est invisible : un courriel part trois jours apres un atelier, le
+           mardi matin, ou a l'instant d'une inscription. Quand quelqu'un dit
+           « je n'ai rien recu », la question se posait depuis un terminal.
+           AUCUNE ADRESSE n'y figure : voir serveur/src/journal.js. -->
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Journal des envois <span id="bilan-journal" class="pastille-info"></span></h2>
+          <div class="table-outils">
+            <select id="filtre-journal" aria-label="Filtrer le journal">
+              <option value="tous">Tout</option>
+              <option value="envoye">Partis</option>
+              <option value="echec">Échecs</option>
+              <option value="bloque">Bloqués par le plafond</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted petit">Les adresses n'y sont pas enregistrées&nbsp;: on y lit ce qui est
+        parti, quand, pour combien de personnes, et si ça a marché.</p>
+        <div id="liste-journal" class="retours-admin" aria-live="polite"></div>
+      </div>
+
+      <!-- LA CARTE DES PARCOURS. Vingt-trois courriels partent de neuf
+           fonctions, les uns a l'instant d'une action, les autres trois jours
+           plus tard ou le mardi matin. « Qu'est-ce que recoit quelqu'un qui
+           s'inscrit, et quand ? » n'avait pour reponse que la lecture de neuf
+           fichiers. La carte est verifiee contre le code par
+           serveur/tests/parcours.test.mjs : elle ne peut pas deriver en
+           silence. -->
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Parcours des e-mails</h2>
+        </div>
+        <p class="muted petit">Ce que reçoit chaque personne, dans l'ordre, et après combien de
+        temps. Cette carte est comparée au code à chaque vérification&nbsp;: un e-mail ajouté
+        sans être décrit ici fait échouer la suite de tests.</p>
+        <div id="carte-parcours" class="parcours"></div>
+      </div>
+
       <!-- LES COMMENTAIRES SUR LES CARTES se relisaient sur la page Retours de
            l'espace animateur·ices, qui portait pour cela un champ de jeton. Cette
            page ne sert plus qu'a en deposer : la relecture est ici, avec les

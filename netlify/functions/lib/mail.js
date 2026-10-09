@@ -101,8 +101,39 @@ async function peutAlerter(c, totalJour) {
 }
 // Journal structure (visible dans les logs de fonction Netlify). Aucune donnee
 // personnelle : on ne loggue pas les adresses, seulement le nombre et le motif.
+/* LE JOURNAL VA AUSSI DANS LE MAGASIN, et non plus seulement dans la console.
+   Les traces existaient, mais dans les journaux de la plateforme : il fallait
+   un acces technique et savoir ou regarder. Quand quelqu'un dit « je n'ai rien
+   recu », la question se pose depuis /admin/, pas depuis un terminal.
+
+   AUCUNE ADRESSE N'Y EST ECRITE : voir serveur/src/journal.js. On garde de quoi
+   repondre a « est-ce que ca marche ? », rien de quoi repondre a « qui ».
+
+   L'ecriture ne bloque jamais un envoi : un magasin indisponible fait perdre
+   une ligne de journal, pas un courriel. */
+var JOURNAL = require("../../../serveur/src/journal.js");
+
+function magasinJournal() {
+  try {
+    var b = require("@netlify/blobs");
+    return b.getStore({ name: "fresque-journal" });
+  } catch (e) { return null; }
+}
+
 function journal(champ) {
   try { console.log("[mail] " + JSON.stringify(champ)); } catch (e) {}
+  var s = magasinJournal();
+  if (!s) return;
+  var now = Date.now();
+  Promise.resolve()
+    .then(function () { return s.get("envois", { type: "json" }); })
+    .then(function (v) {
+      /* Deux envois simultanes peuvent s'ecraser l'un l'autre : c'est un
+         journal, pas une comptabilite, et perdre une ligne sur un pic vaut
+         mieux que serialiser les envois pour la garder. */
+      return s.setJSON("envois", { liste: JOURNAL.apres((v && v.liste) || [], JOURNAL.entree(champ, now), now) });
+    })
+    .catch(function () { /* une ligne de journal perdue, jamais un courriel */ });
 }
 
 // Adresse seule extraite de MAIL_FROM ("Nom <a@b.c>" -> "a@b.c").
@@ -123,7 +154,7 @@ async function envoi(m) {
   // Le mail d'alerte interne contourne le plafond et n'est ni compte ni re-alerte.
   if (!m._interne) {
     var garde = await plafondAtteint(c);
-    if (garde.bloque) { journal({ evt: "bloque", raison: garde.raison, dest: nbDest }); return { envoye: false, raison: garde.raison }; }
+    if (garde.bloque) { journal({ evt: "bloque", raison: garde.raison, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: garde.raison }; }
   }
   var corps = { from: c.from, to: to, subject: m.subject, text: m.text };
   if (m.html) corps.html = m.html;
@@ -144,15 +175,15 @@ async function envoi(m) {
       headers: { "Authorization": "Bearer " + c.cle, "Content-Type": "application/json" },
       body: JSON.stringify(corps)
     });
-    if (!r.ok) { journal({ evt: "echec", raison: "http_" + r.status, dest: nbDest }); return { envoye: false, raison: "http_" + r.status }; }
+    if (!r.ok) { journal({ evt: "echec", raison: "http_" + r.status, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: "http_" + r.status }; }
     if (!m._interne) {
       var totalJour = await incrementerCompteurs();
-      journal({ evt: "envoye", dest: nbDest, jour: totalJour });
+      journal({ evt: "envoye", dest: nbDest, jour: totalJour, sujet: m.subject });
       try { await peutAlerter(c, totalJour); } catch (e) {}
     }
     return { envoye: true };
   } catch (e) {
-    journal({ evt: "echec", raison: "exception", dest: nbDest });
+    journal({ evt: "echec", raison: "exception", dest: nbDest, sujet: m.subject });
     return { envoye: false, raison: "exception" };
   }
 }
