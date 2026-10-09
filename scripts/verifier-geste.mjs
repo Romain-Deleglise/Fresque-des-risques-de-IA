@@ -216,18 +216,55 @@ for(let i=1;i<utiles.length;i++){
   const dA=Math.hypot(a1[0]-a0[0],a1[1]-a0[1]);
   if(dA>0.8){ bouges++; if(dB<0.15) arrets++; }
 }
-// Irregularite de la vitesse : c'est elle qu'on ressent comme une saccade.
-// On compare la dispersion de la vitesse chez B a celle, reelle, chez A.
+/* IRREGULARITE DE LA VITESSE : c'est elle qu'on ressent comme une saccade. On
+   compare la dispersion de la vitesse chez B a celle, reelle, chez A.
+
+   MESUREE A LA MEDIANE, PAS A LA MOYENNE. La version precedente divisait un
+   ecart-type par une moyenne : deux statistiques qu'UNE SEULE image suffit a
+   faire exploser. Quand le navigateur cale puis rattrape, deux echantillons
+   arrivent a une milliseconde d'intervalle et la vitesse instantanee de cette
+   paire part a l'infini. Mesure sur une serie de 263 images : une seule image
+   de rattrapage faisait passer la mesure de 34 % a 176 %, cinq a 261 %. En CI,
+   sur une machine partagee, le banc a donc echoue a 406 % alors que le retard
+   (90 ms), les arrets (0,9 %) et la deformation (7,2 px) etaient excellents :
+   il mesurait l'ordonnanceur du runner, pas la fluidite du produit.
+
+   ON MESURE DONC SUR UNE FENETRE DE TEMPS FIXE, plus longue que le pas
+   d'envoi : la distance parcourue pendant 50 ms a un sens physique, celle d'une
+   paire d'echantillons n'en a pas. Meme statistique qu'avant (moyenne et
+   ecart-type), appliquee a des quantites qui veulent dire quelque chose.
+   Verification faite dans les trois sens : lien normal -9, lien degrade +28,
+   envoi grossier a 200 ms +107, c'est-a-dire refuse. */
+const FENETRE_MS = 50;   // plus longue que le pas d'envoi (33 ms) : voir ci-dessus
+
 function irregularite(pts, decal){
-  const v=[];
-  for(let i=1;i<pts.length;i++){
-    const dt=pts[i][0]-pts[i-1][0]; if(dt<=0) continue;
-    v.push(Math.hypot(pts[i][1]-pts[i-1][1],pts[i][2]-pts[i-1][2])/dt);
+  if(pts.length<5) return 0;
+  /* On rééchantillonne sur une grille de temps REGULIERE, puis on mesure le
+     chemin parcouru dans chaque fenêtre. La vitesse d'une fenêtre a un sens
+     physique ; celle d'une paire d'échantillons, non. */
+  const t0=pts[0][0], t1=pts[pts.length-1][0];
+  if(t1-t0 < 4*FENETRE_MS) return 0;
+  let i=0;
+  const pas=[];
+  for(let b=t0; b+FENETRE_MS<=t1; b+=FENETRE_MS){
+    let d=0;
+    while(i<pts.length && pts[i][0] < b) i++;
+    /* ON PART DU DERNIER POINT D'AVANT LA FENETRE. Demarrer a vide laissait
+       l'intervalle a cheval sur la frontiere compte dans aucune des deux :
+       avec trois points par fenetre, c'etait un tiers du chemin perdu, et le
+       tiers perdu n'etait pas le meme d'une fenetre a l'autre. */
+    let prev = i > 0 ? pts[i-1] : null;
+    let j=i;
+    while(j<pts.length && pts[j][0] <= b+FENETRE_MS){
+      if(prev) d+=Math.hypot(pts[j][1]-prev[1], pts[j][2]-prev[2]);
+      prev=pts[j]; j++;
+    }
+    pas.push(d);
   }
-  if(v.length<5) return 0;
-  const m=v.reduce((a,b)=>a+b,0)/v.length;
+  if(pas.length<5) return 0;
+  const m=pas.reduce((a,b)=>a+b,0)/pas.length;
   if(m<=0) return 0;
-  const sd=Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/v.length);
+  const sd=Math.sqrt(pas.reduce((a,b)=>a+(b-m)**2,0)/pas.length);
   return Math.round(100*sd/m);
 }
 const vraiA=ta.filter(p=>p[0]>=debut-best.lag && p[0]<=fin-best.lag);
@@ -271,8 +308,26 @@ if (!degrade) {
 }
 t("le trace n'est pas deforme (l'ecart restant est marginal)",
   m.ecart_residuel_px < 25, m.ecart_residuel_px + " px sur un geste de " + m.longueur_du_geste_px + " px");
+/* SEUIL : +40, MESURE ET NON DEVINE.
+
+   Ce que mesure vraiment ce controle : le flux RELAYE est-il plus saccade que
+   le geste d'origine ? C'est une comparaison entre A et B, donc elle ne voit
+   que ce que le relais ajoute. Elle ne voit pas, et ne peut pas voir, une
+   saccade commune aux deux : ralentir la cadence d'envoi (PAS_GLISS) hache le
+   trace de A autant que celui de B, l'ecart reste plat, et ce n'est pas un
+   defaut de la mesure, c'est son objet. Ce qui attrape ce cas-la, ce sont les
+   trois autres controles : retard, arrets, deformation.
+
+   Distributions relevees sur cette machine (ecart B - A) :
+     lien normal, 15 executions  : -10 a +1
+     lien degrade, 9 executions  :  -4 a +14
+   Quarante laisse donc pres de trois fois le bruit observe au-dessus du pire
+   cas acceptable. Soixante, l'ancien seuil, etait choisi pour une mesure
+   bruyante prise sur la vitesse de chaque PAIRE d'echantillons, qui sautait de
+   deux cents points sans raison ; la mesure sur fenetre fixe n'en a plus
+   besoin. */
 t("la vitesse affichee n'est pas plus irreguliere que le geste reel",
-  m.irregularite_vitesse_B_pct < m.irregularite_vitesse_A_pct + 60,
+  m.irregularite_vitesse_B_pct < m.irregularite_vitesse_A_pct + 40,
   "affichee " + m.irregularite_vitesse_B_pct + " %, reelle " + m.irregularite_vitesse_A_pct + " %");
 console.log("\n" + (ko ? "❌" : "✅") + " Geste relaye : " + ko + " controle(s) en echec.\n");
 await nav.close(); site.close(); process.exit(ko ? 1 : 0);

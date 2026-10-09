@@ -21,7 +21,6 @@ const PAGES = [
      est utilise en atelier, parfois projete, et rien ne justifie qu'il soit
      moins accessible que le reste. */
   ["Espace animateur·ices", "/animateurs/"],
-  ["Espace : outils", "/animateurs/outils/"],
   ["Espace : retours", "/animateurs/retours/"],
   ["Espace : antisèche", "/animateurs/antiseche/"],
   ["Espace : minuteur", "/animateurs/minuteur/"],

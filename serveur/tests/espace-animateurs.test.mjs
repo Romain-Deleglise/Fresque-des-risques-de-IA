@@ -106,14 +106,30 @@ test("la navigation du site ne mentionne pas l'espace", () => {
   assert.ok(!nav.includes("animateurs") && !nav.includes("facilitators"));
 });
 
-test("la modération se fait sur la page, sans détour par /admin/", () => {
-  assert.match(PAGE, /id="form-jeton"/);
-  assert.match(PAGE, /id="retours"/);
+/* LE JETON A SUIVI CE QU'IL OUVRE. Il vivait sur la page Retours, du temps ou
+   l'on y moderait les commentaires carte par carte. Cette page n'est plus qu'un
+   formulaire : la relecture se fait dans /admin/, avec les autres retours, et le
+   jeton ouvre ici ce qu'il garde vraiment, corriger une carte et deplacer le
+   plan. */
+test("le jeton ouvre l'édition de la fresque, et ne survit pas à l'onglet", () => {
+  assert.match(lire("site/animateurs/index.html"), /id="form-jeton"/,
+    "la page de la fresque doit porter le champ du jeton");
+  assert.ok(!/id="form-jeton"/.test(PAGE),
+    "la page Retours n'a plus rien a moderer : plus de champ de jeton");
   const js = lire("site/animateurs/animateurs.js");
-  assert.match(js, /action: action/);
   // Le jeton ne doit pas survivre à l'onglet : ni cookie, ni stockage local.
   assert.ok(!/localStorage|sessionStorage|document\.cookie/.test(js),
     "le jeton de modération ne doit pas être conservé");
+});
+
+/* LES COMMENTAIRES SE RELISENT DANS /admin/, au meme endroit que les retours
+   d'atelier et les temoignages. Sans cet ecran, ils tomberaient dans un magasin
+   qu'aucune interface ne montre. */
+test("les commentaires sur les cartes se relisent dans /admin/", () => {
+  assert.match(lire("site/admin/index.html"), /id="liste-commentaires"/);
+  const js = lire("site/assets/js/admin.js");
+  assert.match(js, /__commentairesAdmin/);
+  assert.match(js, /functions\/commentaires/);
 });
 
 test("la fonction refuse toute modération sans jeton configuré", () => {
@@ -181,42 +197,44 @@ test("les cartes portent leur titre, pas seulement une image", () => {
   assert.match(js, /LOT_COULEUR/, "la couleur de lot doit distinguer les familles");
 });
 
-test("le sommaire mène à chaque ressource, et chaque ressource revient au sommaire", () => {
+/* QUATRE ONGLETS, PAS DAVANTAGE. L'espace en avait cinq et un sommaire :
+   Accueil, Guide, Outils, Retours, plus un bouton « Fresque de reference ».
+   « Outils » ne portait que l'antiseche et le minuteur, et l'accueil n'etait
+   qu'une table des matieres. La fresque, elle, etait rangee dans l'onglet
+   Retours, c'est-a-dire la ou l'on vient ecrire, pas regarder. */
+test("l'espace tient en quatre onglets", () => {
+  const ONGLETS = ["Fresque", "Guide", "Antisèche", "Retours"];
+  for (const p of ["site/animateurs/index.html", "site/animateurs/retours/index.html",
+                   "site/animateurs/antiseche/index.html", "site/animateurs/minuteur/index.html",
+                   "site/animateurs/kit/index.html"]) {
+    const html = lire(p);
+    const nav = html.slice(html.indexOf('aria-label="Espace'), html.indexOf("</nav>"));
+    const liens = [...nav.matchAll(/>([^<>]+)<\/a>/g)].map((m) => m[1].trim());
+    assert.deepEqual(liens, ONGLETS, p + " : la navigation de l'espace doit tenir en quatre onglets");
+  }
+});
+
+test("la page de la fresque mène aux outils de l'atelier", () => {
   const sommaire = lire("site/animateurs/index.html");
-  for (const cible of ["../guide/?espace=1", "outils/", "retours/", "kit/"]) {
-    assert.ok(sommaire.includes('href="' + cible + '"'), `le sommaire ne mène pas à ${cible}`);
+  for (const cible of ["../guide/?espace=1", "antiseche/", "minuteur/", "kit/"]) {
+    assert.ok(sommaire.includes('href="' + cible + '"'), `la page ne mène pas à ${cible}`);
   }
-  const outils = lire("site/animateurs/outils/index.html");
-  for (const cible of ["../minuteur/", "../antiseche/"]) {
-    assert.ok(outils.includes('href="' + cible + '"'), `l'onglet Outils ne mène pas à ${cible}`);
-  }
-  /* LA FRESQUE DE REFERENCE NE FIGURE PLUS DANS LES OUTILS : elle se deplie
-     depuis l'accueil de l'espace, en lecture seule, et vit dans l'onglet
-     Retours quand il s'agit de commenter. Une tuile de plus vers la meme page
-     n'ajoutait qu'un detour. */
-  assert.ok(!/class="ressource"[^>]*href="\.\.\/retours\//.test(outils),
-    "l'onglet Outils ne doit plus porter de tuile vers la fresque de référence");
-  assert.match(sommaire, /id="btn-apercu"/, "l'accueil doit porter le bouton de dépliage");
-  assert.match(sommaire, /id="apercu"/, "l'accueil doit porter le bloc de la fresque");
-  /* En lecture seule : rien de ce qui sert a commenter. */
-  for (const interdit of ["mode-commentaires", "form-general", "form-jeton", "retours-section"]) {
+  assert.match(sommaire, /id="fresque-outil"/, "la fresque s'affiche directement");
+  assert.ok(!/id="btn-apercu"/.test(sommaire),
+    "plus de bouton de dépliage : la fresque est le sujet de la page");
+  /* Plus rien de ce qui servait a commenter carte par carte. */
+  for (const interdit of ["mode-commentaires", "form-general", "retours-section"]) {
     assert.ok(!sommaire.includes('id="' + interdit + '"'),
-      `l'aperçu de l'accueil ne doit pas porter ${interdit}`);
+      `la page de la fresque ne doit pas porter ${interdit}`);
   }
   /* LES MEMES ONGLETS PARTOUT. Naviguer dans l'espace renvoyait aux onglets du
      site public, d'ou l'on ne revenait qu'avec le bouton « precedent ». Chaque
      page de l'espace porte donc la meme barre, et le guide la reconstruit quand
      on y arrive avec ?espace=1. */
-  for (const p of ["site/animateurs/index.html", "site/animateurs/outils/index.html",
-                   "site/animateurs/retours/index.html", "site/animateurs/antiseche/index.html",
-                   "site/animateurs/minuteur/index.html", "site/animateurs/kit/index.html"]) {
-    const page = lire(p);
-    assert.match(page, /aria-label="Espace animateur·ices"/, `${p} n'a pas la barre de l'espace`);
-    for (const onglet of ["Accueil", "Guide", "Outils", "Retours"]) {
-      assert.ok(page.includes(">" + onglet + "</a>"), `${p} : onglet ${onglet} manquant`);
-    }
-    assert.match(page, /class="btn-nav" href="[^"]*animateurs\/retours\/#fresque"/,
-      `${p} : le bouton « Fresque de référence » doit mener à l'onglet Retours`);
+  for (const p of ["site/animateurs/index.html", "site/animateurs/retours/index.html",
+                   "site/animateurs/antiseche/index.html", "site/animateurs/minuteur/index.html",
+                   "site/animateurs/kit/index.html"]) {
+    assert.match(lire(p), /aria-label="Espace animateur·ices"/, `${p} n'a pas la barre de l'espace`);
   }
 });
 
@@ -298,21 +316,43 @@ test("survoler une carte montre où elle mène, sans engager de sélection", () 
 test("l'outil n'est ecrit que dans animateurs.js", () => {
   const js = lire("site/animateurs/animateurs.js");
   assert.match(js, /function construireOutil/);
+  /* L'outil ne vit plus que sur une page : la fresque. La page Retours n'est
+     plus qu'un formulaire, elle n'en porte plus rien. */
+  const fresque = lire("site/animateurs/index.html");
+  assert.match(fresque, /id="fresque-outil"/, "la page de la fresque doit porter le conteneur");
   for (const page of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
     const html = lire(page);
-    assert.match(html, /id="fresque-outil"/, page + " doit porter le conteneur");
     for (const marqueur of ["plateau-sizer", "panneau-corps", 'id="lots"', 'id="panneau"']) {
       assert.ok(!html.includes(marqueur),
-        page + " ne doit plus contenir « " + marqueur + " » : l'outil est bati par le script");
+        page + " ne doit pas contenir « " + marqueur + " » : l'outil est bati par le script");
     }
   }
 });
 
-test("les retours sont commandes par data-commentaires, pas par la page", () => {
+/* LE MODE COMMENTAIRES A ETE RETIRE. Commenter se faisait carte par carte :
+   activer un mode, trouver la carte, ouvrir son panneau, choisir un onglet,
+   parfois designer un lien. Beaucoup d'etapes pour une phrase. On demande
+   desormais la meme chose en un formulaire, sur la page Retours. L'outil ne
+   garde que la lecture et, derriere le jeton, l'edition. */
+test("l'outil n'a plus de mode commentaires", () => {
   const js = lire("site/animateurs/animateurs.js");
-  assert.match(js, /data-commentaires/);
-  assert.match(lire("site/animateurs/retours/index.html"), /data-commentaires="oui"/);
-  assert.match(lire("site/animateurs/index.html"), /data-commentaires="non"/);
+  for (const disparu of ["mode-commentaires", "panneau-commentaire", "retours-carte",
+                         "onglet-retours", "chargerRetours", "majPastilles"]) {
+    assert.ok(!js.includes(disparu), "l'outil contient encore « " + disparu + " »");
+  }
+  assert.match(js, /data-edition/);
+  assert.match(lire("site/animateurs/index.html"), /data-edition="oui"/);
+});
+
+/* UN LOT ECARTE DISPARAIT, il ne palit pas. Grise, il restait a l'ecran avec
+   toutes les fleches par-dessus : on ne regardait jamais un lot seul. */
+test("les lots se choisissent à plusieurs et masquent le reste", () => {
+  const js = lire("site/animateurs/animateurs.js");
+  assert.match(js, /lotsActifs/);
+  assert.ok(!/lotActif/.test(js), "le filtre a un seul lot ne doit plus exister");
+  assert.match(js, /classList\.toggle\('masque'/);
+  assert.match(js, /function cadrerSurLaSelection/);
+  assert.match(lire("site/animateurs/animateurs.css"), /\.c-carte\.masque[^{]*\{[^}]*display: none/);
 });
 
 /* Une seule valeur commande la largeur du panneau ET le retrait du plateau.

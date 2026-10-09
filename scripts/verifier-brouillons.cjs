@@ -170,6 +170,41 @@ const J = "jeton-de-banc-123456";
   t("et l'outil ne le propose plus au depot",
     lire(await get({ jeton: J })).fresquePubliee === null);
 
+  /* ── L'HISTORIQUE DE LA FRESQUE ──────────────────────────────
+     Publier ecrasait le plan precedent : une fausse manoeuvre sur trente-huit
+     cartes ne se defaisait qu'en les replacant une a une. */
+  console.log("\n--- Revenir sur une version precedente ---");
+  const v1 = lire(await post({ action: "fresque-versions", jeton: J }));
+  t("la publication a archive le plan qu'elle remplacait",
+    v1.versions.length === 1 && v1.versions[0].cartes === ref.tableau.cartes.length,
+    JSON.stringify(v1.versions));
+
+  // Une deuxieme publication, differente, pour avoir deux versions.
+  const bouge2 = JSON.parse(JSON.stringify(ref.tableau));
+  bouge2.cartes[1].y += 70;
+  await post({ action: "fresque-enregistrer", tableau: bouge2, jeton: J });
+  const p2f = lire(await post({ action: "fresque-publier", jeton: J }));
+  t("chaque publication ajoute une version", p2f.versions.length === 2, JSON.stringify(p2f.versions.length));
+  t("la plus recente est en tete", p2f.versions[0].quand >= p2f.versions[1].quand);
+
+  const vieille = p2f.versions[1].quand;
+  const relue = lire(await post({ action: "fresque-version", quand: vieille, jeton: J }));
+  t("on peut relire une version precedente",
+    relue.ok && relue.tableau.cartes.length === ref.tableau.cartes.length, JSON.stringify(relue.erreur || ""));
+  t("et c'est bien le plan d'avant le premier deplacement",
+    relue.tableau.cartes[0].x === ref.tableau.cartes[0].x, String(relue.tableau.cartes[0].x));
+
+  t("une version inexistante est refusee proprement",
+    (await post({ action: "fresque-version", quand: 1, jeton: J })).statusCode === 404);
+
+  /* REPUBLIER UNE VERSION la remet en ligne : c'est le chemin de retour. */
+  await post({ action: "fresque-enregistrer", tableau: relue.tableau, jeton: J });
+  await post({ action: "fresque-publier", jeton: J });
+  t("republier une ancienne version la remet en ligne",
+    JSON.stringify(lire(await get({ jeton: J })).fresquePubliee) === "null"
+    || lire(await get({ jeton: J })).fresquePubliee === null,
+    "le plan en ligne redevient celui du depot");
+
   await post({ action: "fresque-oublier", jeton: J });
   t("sans brouillon de fresque, publier est refuse",
     !!lire(await post({ action: "fresque-publier", jeton: J })).erreur);

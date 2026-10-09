@@ -83,7 +83,7 @@ await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   return rep({ ok: true, fichier: { cartes: [] }, resume: [] });
 });
 
-await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(1300);
 const vu = (id) => pg.evaluate((i) => { const e = document.getElementById(i); return !!e && !e.hidden; }, id);
 

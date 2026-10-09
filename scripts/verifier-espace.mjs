@@ -1,17 +1,21 @@
 /* Banc de l'espace animateur·ices.
 
-   Ce que ce banc protege, et pourquoi chaque controle existe :
+   L'espace a ete ramene a QUATRE ONGLETS : Fresque, Guide, Antiseche, Retours.
+   Il en avait cinq et un sommaire, la fresque etait rangee dans l'onglet
+   Retours (c'est-a-dire la ou l'on vient ecrire, pas regarder), et commenter
+   demandait d'activer un mode, de trouver la carte, d'ouvrir son panneau et de
+   choisir un onglet. Ce banc protege la forme simplifiee :
 
-   - LA FRESQUE S'AFFICHE SANS CLIC. Il fallait cliquer « Afficher la fresque de
-     reference » a chaque venue, sur une page deja reservee et deja precedee de
-     son avertissement. Le clic ne protegeait rien.
-   - LES MEMES ONGLETS PARTOUT. Naviguer dans l'espace renvoyait aux onglets du
-     site public, d'ou l'on ne revenait qu'avec le bouton « precedent ». Le
-     guide, lui, est une page publique : il ne reprend les onglets de l'espace
-     que lorsqu'on y arrive avec ?espace=1, et les rend a un visiteur ordinaire.
-   - LE CHAMP « LIEN AVEC LA CARTE X ». « Cette carte devrait pointer vers
-     l'autre » est le retour le plus frequent et le plus inexploitable tant
-     qu'on ne sait pas laquelle. Les cartes deja liees sont proposees d'abord.
+   - QUATRE ONGLETS, LES MEMES PARTOUT. Naviguer renvoyait aux onglets du site
+     public, d'ou l'on ne revenait qu'avec le bouton « precedent ».
+   - LA FRESQUE EST LE SUJET DE SA PAGE. Elle s'affichait apres un clic, dans un
+     bloc depliable, sur une page qui n'etait qu'une table des matieres.
+   - UN LOT ECARTE DISPARAIT. Grise, il restait a l'ecran avec toutes les
+     fleches par-dessus : on ne regardait jamais un lot seul.
+   - LE PLEIN ECRAN REND L'ECRAN A LA FRESQUE. La barre d'outils, la legende et
+     l'aide en prenaient un quart.
+   - LA PAGE RETOURS EST UN FORMULAIRE. Rien d'autre : la relecture est dans
+     /admin/, avec les autres retours.
 
    Usage : node scripts/verifier-espace.mjs
    Le site est servi par le banc lui-meme : rien a lancer a cote. */
@@ -58,335 +62,225 @@ const pg = await nav.newPage({ viewport: { width: 1280, height: 900 } });
 const erreursJS = [];
 pg.on("pageerror", (e) => erreursJS.push(e.message));
 
-console.log("\n--- La fresque de reference ---");
-await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
-await pg.waitForSelector("#plateau-section:not([hidden])", { timeout: 20000 }).catch(() => {});
-const vue = await pg.evaluate(() => ({
-  plateau: !document.getElementById("plateau-section").hidden,
-  cartes: document.querySelectorAll("#cartes .c-carte").length,
-  bouton: !!document.getElementById("btn-reveal"),
-  retours: !document.getElementById("retours-section").hidden
-}));
-t("la fresque s'affiche sans qu'on clique quoi que ce soit", vue.plateau && vue.cartes > 30, JSON.stringify(vue));
-t("le bouton « Afficher la fresque de référence » a disparu", !vue.bouton);
-t("la section des retours est visible du même coup", vue.retours);
+const ONGLETS = ["Fresque", "Guide", "Antisèche", "Retours"];
+const PAGES = ["/animateurs/", "/animateurs/retours/", "/animateurs/antiseche/",
+               "/animateurs/minuteur/", "/animateurs/kit/"];
 
-console.log("\n--- L'apercu depliable, sur l'accueil de l'espace ---");
-await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
-await pg.waitForFunction(() => document.querySelectorAll("#cartes .c-carte").length > 30,
-  null, { timeout: 20000 }).catch(() => {});
-const lireApercu = () => pg.evaluate(() => ({
-  replie: document.getElementById("apercu").hidden,
-  libelle: document.getElementById("btn-apercu").textContent.replace(/\s+/g, " ").trim(),
-  deplie: document.getElementById("btn-apercu").getAttribute("aria-expanded"),
-  cadre: document.getElementById("plateau-cadre").clientWidth,
-  plein: !!document.fullscreenElement,
-  /* LECTURE SEULE : ni bascule « mode commentaires », ni formulaire, ni
-     moderation. C'est la meme fresque que l'onglet Retours, sans ce qui sert a
-     commenter. */
-  modeCom: !!document.getElementById("mode-commentaires"),
-  formulaire: !!document.getElementById("form-general"),
-  jeton: !!document.getElementById("form-jeton")
-}));
-let a = await lireApercu();
-t("la fresque est repliee a l'arrivee", a.replie && a.deplie === "false", JSON.stringify(a));
-t("et l'accueil ne propose ni commentaires ni moderation",
-  !a.modeCom && !a.formulaire && !a.jeton, JSON.stringify(a));
-
-const avantDefil = await pg.evaluate(() => window.scrollY);
-await pg.evaluate(() => document.getElementById("btn-apercu").click());
-await pg.waitForTimeout(900);
-a = await lireApercu();
-/* LE BOUTON N'EMMENE PAS AILLEURS. Il faisait descendre la page jusqu'a la
-   fresque : on perdait de vue le texte qu'on lisait. Le clic est declenche par
-   programme, sinon c'est le banc qui amene le bouton a l'ecran et la mesure ne
-   veut plus rien dire. */
-t("le dépliage ne fait pas défiler la page",
-  (await pg.evaluate(() => window.scrollY)) === avantDefil,
-  "défilement de " + ((await pg.evaluate(() => window.scrollY)) - avantDefil) + " px");
-const largeurDepliee = a.cadre;
-t("le bouton la deplie sur la meme page", !a.replie && a.deplie === "true", JSON.stringify(a));
-t("et devient « Masquer la fresque de référence »", /^Masquer/.test(a.libelle), a.libelle);
-/* Le plateau se met a l'echelle d'apres la largeur de son cadre, et un bloc
-   `hidden` n'a pas de largeur : sans recadrage apres depliage, la fresque
-   s'ouvrait a une echelle calculee sur zero pixel. */
-t("la fresque est recadree apres le depliage", a.cadre > 300, "cadre " + a.cadre + " px");
-
-await pg.click("#plein-ecran");
-await pg.waitForTimeout(800);
-a = await lireApercu();
-t("« Plein écran » passe par-dessus toute la page, sans changer de page",
-  a.plein && !a.replie, JSON.stringify(a));
-/* La sortie est declenchee ici par programme : en navigateur sans fenetre, la
-   touche Echap ne rend pas la main sur le plein ecran natif. C'est une limite
-   du banc, pas du site : le navigateur gere Echap lui-meme. */
-/* LE PANNEAU DOIT RESTER ATTEIGNABLE EN PLEIN ECRAN. Il etait un FRERE du
-   plateau, hors de l'element passe en plein ecran : le navigateur ne le
-   dessinait pas du tout, et cliquer une carte ne montrait plus son verso. */
-await pg.click("#cartes .c-carte[data-n='9']");
-await pg.waitForTimeout(700);
-const enPlein = await pg.evaluate(() => {
-  const z = document.getElementById("fresque-zone");
-  const pan = document.getElementById("panneau");
-  const r = pan.getBoundingClientRect();
-  return {
-    panneau: !pan.hidden && r.width > 50 && r.right <= innerWidth + 2 && r.top >= -2,
-    ascenseur: z.scrollHeight - z.clientHeight,
-    fermer: !!document.getElementById("apercu-fermer"),
-    modeCom: !!document.getElementById("mode-commentaires")
-  };
-});
-t("cliquer une carte montre son verso, même en plein écran", enPlein.panneau, JSON.stringify(enPlein));
-/* AUCUN ASCENSEUR. On se deplace dans le plateau, pas dans la page. */
-t("le plein écran n'a aucun ascenseur", enPlein.ascenseur === 0, "débordement de " + enPlein.ascenseur + " px");
-t("un bouton « Fermer ✕ » est disponible", enPlein.fermer);
-t("et l'accueil reste sans mode commentaires", !enPlein.modeCom);
-
-/* On referme le panneau avant de mesurer : ouvert, il retrecit legitimement le
-   cadre (`.panneau-ouvert .plateau-cadre`), et la comparaison ne porterait plus
-   sur la meme chose. */
-await pg.evaluate(() => document.getElementById("panneau-fermer").click());
-await pg.waitForTimeout(300);
-await pg.evaluate(() => document.exitFullscreen());
-await pg.waitForTimeout(800);
-a = await lireApercu();
-t("en sortir ramene la fresque a sa taille d'avant",
-  !a.plein && Math.abs(a.cadre - largeurDepliee) < 8,
-  "avant " + largeurDepliee + " px, apres " + a.cadre + " px");
-
-await pg.evaluate(() => document.getElementById("apercu-fermer").click());
-await pg.waitForTimeout(400);
-t("« Fermer » replie", (await lireApercu()).replie);
-await pg.evaluate(() => document.getElementById("btn-apercu").click());
-await pg.waitForTimeout(600);
-await pg.keyboard.press("Escape");
-await pg.waitForTimeout(400);
-t("Echap replie aussi", (await lireApercu()).replie);
-
-await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
-await pg.waitForSelector("#plateau-section:not([hidden])", { timeout: 20000 }).catch(() => {});
-
-console.log("\n--- Le lien avec une autre carte ---");
-await pg.evaluate(() => document.getElementById("mode-commentaires").click());
-await pg.click("#cartes .c-carte[data-n='14']");
-await pg.waitForSelector("#panneau:not([hidden])", { timeout: 10000 });
-const champ = await pg.evaluate(() => {
-  const s = document.getElementById("c-lien");
-  if (!s) return null;
-  return {
-    visible: !document.getElementById("panneau-commentaire").hidden,
-    groupes: [...s.querySelectorAll("optgroup")].map((g) => g.label),
-    options: s.options.length,
-    soi: [...s.options].some((o) => o.value === "14")
-  };
-});
-t("le champ « lien avec la carte X » est offert dans le panneau",
-  !!champ && champ.visible && champ.options > 30, JSON.stringify(champ));
-t("les cartes déjà liées sont proposées d'abord",
-  !!champ && champ.groupes[0] === "Cartes déjà liées à celle-ci", JSON.stringify(champ && champ.groupes));
-t("une carte ne se propose pas elle-même", !!champ && !champ.soi);
-
-console.log("\n--- Les onglets de l'espace ---");
-const ATTENDU = ["Accueil", "Guide", "Outils", "Retours", "Fresque de référence"];
-const lireOnglets = async (url) => {
-  await pg.goto(B + url, { waitUntil: "networkidle" });
-  return pg.evaluate(() => {
-    const nav = document.querySelector(".entete .nav");
-    const b = nav && nav.querySelector(".btn-nav");
-    return { liens: nav ? [...nav.querySelectorAll("a")].map((a) => a.textContent.trim()) : [],
-      bouton: b ? b.getAttribute("href") : null };
+console.log("\n--- Quatre onglets, les memes partout ---");
+for (const u of PAGES) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  const onglets = await pg.evaluate(() => {
+    const n = document.querySelector('nav[aria-label^="Espace"]');
+    return n ? [...n.querySelectorAll("a")].map((a) => a.textContent.trim()) : null;
   });
-};
-for (const u of ["/animateurs/", "/animateurs/outils/", "/animateurs/retours/",
-                 "/animateurs/antiseche/", "/animateurs/minuteur/", "/animateurs/kit/",
-                 "/guide/?espace=1"]) {
-  const o = await lireOnglets(u);
-  t("les mêmes onglets sur " + u,
-    JSON.stringify(o.liens) === JSON.stringify(ATTENDU), JSON.stringify(o.liens));
-  t("le bouton orange mène à l'onglet Retours depuis " + u,
-    !!o.bouton && o.bouton.includes("animateurs/retours/#fresque"), String(o.bouton));
-}
-/* L'ESPACE NE DEBORDE PAS SUR LE SITE PUBLIC. Le guide est telechargeable et
-   indexe : un visiteur ordinaire ne doit y voir aucun onglet reserve. */
-const pub = await lireOnglets("/guide/");
-t("sans ?espace=1, le guide garde la navigation publique",
-  pub.liens.indexOf("Retours") === -1 && pub.liens.indexOf("Outils") === -1,
-  JSON.stringify(pub.liens));
-
-/* LE BOUTON « AJUSTER » A ETE RETIRE : le recadrage se fait tout seul quand il
-   le faut. Un bouton qu'il faut penser a presser pour que l'affichage soit
-   correct n'est pas une option, c'est un defaut deguise. */
-for (const u of ["/animateurs/", "/animateurs/retours/"]) {
-  await pg.goto(B + u, { waitUntil: "networkidle" });
-  t("plus de bouton « Ajuster » sur " + u,
-    !(await pg.evaluate(() => !!document.getElementById("zoom-ajuste"))));
+  t("les quatre onglets sur " + u, JSON.stringify(onglets) === JSON.stringify(ONGLETS),
+    JSON.stringify(onglets));
 }
 
-/* ── AUCUNE BANDE D'UNE AUTRE TEINTE AUTOUR DE L'OUTIL ───────
-   L'outil prend toute la largeur de la fenetre : il SORT de la colonne de
-   lecture. Tout ancetre qui peint un fond s'arrete, lui, a la largeur de sa
-   propre boite, et on voit alors une bande d'une autre couleur de chaque cote.
-   C'est ce qui arrivait sur l'accueil, ou l'apercu etait un encadre a fond
-   `--surface` : tres visible en theme sombre (#201d16 contre #17150f). */
+/* LE GUIDE EST UNE PAGE PUBLIQUE : il ne reprend les onglets de l'espace que
+   lorsqu'on y arrive avec ?espace=1, et les rend a un visiteur ordinaire. */
+await pg.goto(B + "/guide/?espace=1", { waitUntil: "networkidle" });
+await pg.waitForTimeout(400);
+/* ON VERIFIE LE CONTENU, pas la seule presence : le guide reconstruit sa barre
+   en JavaScript, et il affichait a lui seul l'ancienne, cinq entrees dont deux
+   menaient a des pages supprimees. Une barre « presente » ne dit rien. */
+const barreGuide = await pg.evaluate(() => {
+  const n = document.querySelector('nav[aria-label^="Espace"]');
+  return n ? [...n.querySelectorAll("a")].map((a) => a.textContent.trim()) : null;
+});
+t("le guide reprend LES MEMES onglets quand on y arrive depuis l'espace",
+  JSON.stringify(barreGuide) === JSON.stringify(ONGLETS), JSON.stringify(barreGuide));
+t("et aucun de ses liens ne mene a une page supprimee",
+  await pg.evaluate(() => {
+    const n = document.querySelector('nav[aria-label^="Espace"]');
+    return !n || ![...n.querySelectorAll("a")].some((a) => /outils|#fresque/.test(a.getAttribute("href")));
+  }));
+await pg.goto(B + "/guide/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(400);
+t("et les rend a un visiteur ordinaire",
+  await pg.evaluate(() => !document.querySelector('nav[aria-label^="Espace"]')));
+
+console.log("\n--- La fresque est le sujet de sa page ---");
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1500);
+const f = await pg.evaluate(() => ({
+  cartes: document.querySelectorAll(".c-carte").length,
+  liens: document.querySelectorAll("#liens g[data-id]").length,
+  lots: document.querySelectorAll(".lot-puce").length,
+  jeton: !!document.getElementById("form-jeton"),
+  modeCom: !!document.getElementById("mode-commentaires"),
+  onglets: document.querySelectorAll("#panneau-onglets .onglet").length,
+  deplier: !!document.getElementById("btn-apercu"),
+  vues: document.querySelectorAll(".btn-vue").length
+}));
+t("les 38 cartes sont posees sans clic prealable", f.cartes === 38, String(f.cartes));
+t("et leurs 65 liens", f.liens === 65, String(f.liens));
+t("plus de bouton de depliage", !f.deplier);
+t("le jeton de moderation est sur cette page : c'est ici qu'il sert", f.jeton);
+t("plus de mode commentaires", !f.modeCom);
+t("plus d'onglets dans le panneau : il n'a qu'un contenu", f.onglets === 0, String(f.onglets));
+t("le selecteur de vue a ses deux positions", f.vues === 2, String(f.vues));
+
+console.log("\n--- Un lot ecarte disparait, il ne palit pas ---");
+await pg.evaluate(() => {
+  document.querySelector('.lot-puce[data-lot="1"]').click();
+  document.querySelector('.lot-puce[data-lot="2"]').click();
+});
+await pg.waitForTimeout(600);
+const lots = await pg.evaluate(() => {
+  const vis = (e) => getComputedStyle(e).display !== "none";
+  const cartes = [...document.querySelectorAll(".c-carte")];
+  return {
+    visibles: cartes.filter(vis).length,
+    pales: cartes.filter((e) => e.classList.contains("pale")).length,
+    liens: [...document.querySelectorAll("#liens g[data-id]")].filter(vis).length,
+    actives: document.querySelectorAll(".lot-puce.actif").length,
+    zoom: (new DOMMatrixReadOnly(getComputedStyle(document.getElementById("plateau")).transform)).a
+  };
+});
+t("deux lots se choisissent ensemble", lots.actives === 2, String(lots.actives));
+t("seules leurs cartes restent a l'ecran", lots.visibles > 0 && lots.visibles < 38, String(lots.visibles));
+t("aucune carte n'est simplement grisee", lots.pales === 0, String(lots.pales));
+/* UNE FLECHE DONT UNE EXTREMITE A DISPARU partirait du vide. */
+t("les fleches a cheval sur un lot ecarte s'en vont aussi", lots.liens < 65, String(lots.liens));
+t("la vue se recadre sur ce qui reste", lots.zoom > 0.12, Math.round(lots.zoom * 100) + " %");
+
+await pg.evaluate(() => document.querySelector('.lot-puce[data-lot=""]').click());
+await pg.waitForTimeout(500);
+t("« Tous » ramene les 38 cartes",
+  await pg.evaluate(() => [...document.querySelectorAll(".c-carte")]
+    .filter((e) => getComputedStyle(e).display !== "none").length) === 38);
+
+console.log("\n--- Le panneau d'une carte ---");
+await pg.evaluate(() => document.querySelector('.c-carte[data-n="3"]').click());
+await pg.waitForTimeout(500);
+const p = await pg.evaluate(() => ({
+  ouvert: !document.getElementById("panneau").hidden,
+  titre: (document.getElementById("panneau-titre") || {}).textContent,
+  verso: (document.getElementById("panneau-verso") || {}).textContent.length,
+  liens: document.querySelectorAll("#panneau-liens .vers-carte").length,
+  commentaire: !!document.getElementById("panneau-commentaire")
+}));
+t("il s'ouvre au clic", p.ouvert);
+t("il porte le titre et le verso", !!p.titre && p.verso > 40, p.titre);
+t("et les cartes liees, cliquables", p.liens > 0, String(p.liens));
+t("il ne porte plus de formulaire de commentaire", !p.commentaire);
+
+console.log("\n--- Le plein ecran rend l'ecran a la fresque ---");
+await pg.evaluate(() => { document.getElementById("panneau-fermer").click();
+  document.getElementById("plein-ecran").click(); });
+await pg.waitForTimeout(900);
+const pe = await pg.evaluate(() => {
+  const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
+  return { plein: !!document.fullscreenElement,
+    cadre: document.getElementById("plateau-cadre").getBoundingClientRect().height,
+    fenetre: window.innerHeight, aide: vis("#barre-aide"), legende: vis(".cle-fleches"), lots: vis("#lots") };
+});
+t("la zone passe en plein ecran", pe.plein);
+t("l'aide et la legende se replient", !pe.aide && !pe.legende);
+/* Les filtres restent : choisir ce qu'on montre est justement ce qu'on fait en
+   plein ecran, devant un groupe. */
+t("les filtres de lot restent accessibles", pe.lots);
+t("le plateau prend au moins 80 % de l'ecran", pe.cadre / pe.fenetre >= 0.8,
+  Math.round(100 * pe.cadre / pe.fenetre) + " %");
+await pg.evaluate(() => document.exitFullscreen && document.exitFullscreen());
+await pg.waitForTimeout(400);
+
+console.log("\n--- La page Retours est un formulaire ---");
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1200);
+const r = await pg.evaluate(() => ({
+  champs: ["g-sujet", "g-carte", "g-texte", "g-nom", "g-email"].filter((i) => !!document.getElementById(i)),
+  cartes: document.querySelectorAll("#g-carte option").length,
+  jeton: !!document.getElementById("form-jeton"),
+  outil: !!document.getElementById("fresque-outil"),
+  liste: !!document.getElementById("retours")
+}));
+t("les cinq champs demandes sont la", r.champs.length === 5, r.champs.join(","));
+t("les 38 cartes sont proposees, plus « aucune »", r.cartes === 39, String(r.cartes));
+t("plus de fresque sur cette page", !r.outil);
+t("plus de liste de retours : la relecture est dans /admin/", !r.liste);
+t("et donc plus de jeton : il n'y a plus rien a moderer ici", !r.jeton);
+
 console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");
-for (const u of ["/animateurs/", "/animateurs/retours/"]) {
-  await pg.goto(B + u, { waitUntil: "networkidle" });
-  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
-  await pg.waitForTimeout(900);
-  const fautifs = await pg.evaluate(() => {
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1200);
+t("aucun ancetre ne peint un fond plus etroit que l'outil",
+  (await pg.evaluate(() => {
     const z = document.getElementById("fresque-zone");
     if (!z) return ["zone absente"];
     const l = z.getBoundingClientRect().width, out = [];
-    let p = z.parentElement;
-    while (p && p !== document.documentElement) {
-      const c = getComputedStyle(p).backgroundColor;
-      const opaque = c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c);
-      if (opaque && p.getBoundingClientRect().width < l - 1) {
-        out.push((p.id ? "#" + p.id : p.tagName) + " " + c
-          + " large de " + Math.round(p.getBoundingClientRect().width) + " pour une zone de " + Math.round(l));
-      }
-      p = p.parentElement;
+    let q = z.parentElement;
+    while (q && q !== document.documentElement) {
+      const c = getComputedStyle(q).backgroundColor;
+      if (c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c)
+          && q.getBoundingClientRect().width < l - 1) out.push(q.id || q.tagName);
+      q = q.parentElement;
     }
     return out;
-  });
-  t("aucun ancetre ne peint un fond plus etroit que l'outil sur " + u,
-    fautifs.length === 0, fautifs.join(" | "));
-}
+  })).length === 0);
 
-/* ── UN SEUL OUTIL POUR LES DEUX PAGES ───────────────────────
-   Le HTML de l'outil etait COPIE dans les deux pages : toute evolution devait
-   etre ecrite deux fois, et il suffisait d'en oublier une pour que les pages
-   divergent sans que rien ne le signale. Il n'existe plus qu'une fois, dans
-   animateurs.js, et chaque page ne porte qu'un conteneur vide. */
-console.log("\n--- Un seul outil, deux pages ---");
-for (const f of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
-  const src = fs.readFileSync(path.join(RACINE, f), "utf8");
-  t(f.replace("site/", "") + " ne contient plus le HTML de l'outil",
-    !/plateau-sizer|panneau-corps|id="lots"/.test(src) && /id="fresque-outil"/.test(src));
-}
-
-console.log("\n--- Le selecteur de vue et la vue Cartes ---");
-for (const [u, avecRetours] of [["/animateurs/retours/", true], ["/animateurs/", false]]) {
-  await pg.goto(B + u, { waitUntil: "networkidle" });
-  if (u === "/animateurs/") await pg.click("#btn-apercu").catch(() => {});
-  await pg.waitForTimeout(1200);
-  const d = await pg.evaluate(() => ({
-    selecteur: !!document.getElementById("vue-cartes") && !!document.getElementById("vue-fresque"),
-    parDefaut: document.getElementById("vue-fresque").getAttribute("aria-pressed"),
-    grilleCachee: document.getElementById("grille-cartes").hidden,
-    ongletExpl: !!document.getElementById("onglet-expl"),
-    ongletRetours: !!document.getElementById("onglet-retours"),
-    modeCom: !!document.getElementById("mode-commentaires"),
-    pastillesFresque: document.querySelectorAll(".c-carte .pastille").length,
-    zone: Math.round(document.querySelector(".fresque-zone").getBoundingClientRect().width),
-    /* On mesure le premier CONTROLE de la barre, pas la boite de la barre :
-       c'est lui qui paraissait sortir du cadre en touchant le bord. */
-    gouttiere: (() => {
-      const z = document.querySelector(".fresque-zone").getBoundingClientRect();
-      const c = document.querySelector(".barre-g > *, .apercu-barre .barre-g > *");
-      return c ? Math.round(c.getBoundingClientRect().left - z.left) : 0;
-    })(),
-    fenetre: window.innerWidth,
-    deborde: Math.max(0, document.documentElement.scrollWidth - window.innerWidth)
-  }));
-  t(u + " porte le selecteur de vue", d.selecteur);
-  t(u + " ouvre sur la vue Fresque", d.parDefaut === "true" && d.grilleCachee);
-  t(u + " a l'onglet Explications", d.ongletExpl);
-  t(u + (avecRetours ? " a l'onglet Retours" : " n'a PAS d'onglet Retours"), d.ongletRetours === avecRetours);
-  /* LES ONGLETS N'ONT DE SENS QU'EN MODE COMMENTAIRES. Sans lui le panneau n'a
-     qu'un contenu : deux onglets dont un seul sert annoncent une fausse
-     promesse. Ils disparaissent alors, la croix de fermeture reste. */
-  /* A cet endroit la vue Fresque est encore active : on ouvre une carte du
-     plateau. Le panneau doit etre ferme avant, sinon il intercepte le clic. */
-  const ouvrirCarte = async () => {
-    /* Clic par le DOM : le panneau est en position fixe et recouvre une partie
-       du plateau, donc un clic geometrique vise parfois le panneau lui-meme.
-       Ce n'est pas ce qu'on teste ici. */
-    await pg.evaluate(() => {
-      const p = document.getElementById("panneau");
-      if (p && !p.hidden) document.getElementById("panneau-fermer").click();
-      document.querySelector('.c-carte[data-n="3"]').click();
-    });
-    await pg.waitForTimeout(350);
-  };
-  await ouvrirCarte();
-  const sansCom = await pg.evaluate(() => {
-    const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
-    return { expl: vu("onglet-expl"), ret: vu("onglet-retours"), croix: vu("panneau-fermer"), volet: vu("volet-expl") };
-  });
-  t(u + " : aucun onglet hors mode commentaires", !sansCom.expl && !sansCom.ret, JSON.stringify(sansCom));
-  t(u + " : la croix et les explications restent", sansCom.croix && sansCom.volet, JSON.stringify(sansCom));
-  if (avecRetours) {
-    await pg.evaluate(() => {
-      document.getElementById("panneau-fermer").click();
-      const c = document.getElementById("mode-commentaires");
-      c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await pg.waitForTimeout(150);
-    await ouvrirCarte();
-    const avecCom = await pg.evaluate(() => {
-      const vu = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getBoundingClientRect().height > 0; };
-      return { expl: vu("onglet-expl"), ret: vu("onglet-retours") };
-    });
-    t(u + " : les onglets apparaissent en mode commentaires", avecCom.expl && avecCom.ret, JSON.stringify(avecCom));
-    await pg.evaluate(() => {
-      const c = document.getElementById("mode-commentaires");
-      c.checked = false; c.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  }
-  await pg.evaluate(() => { const p = document.getElementById("panneau"); if (p && !p.hidden) document.getElementById("panneau-fermer").click(); });
-  t(u + (avecRetours ? " a le mode commentaires" : " n'a PAS de mode commentaires"), d.modeCom === avecRetours);
-  /* Le plan porte deja numeros, lots et fleches : un chiffre de plus s'y
-     perdait. Le compte se lit sur la vue Cartes et sur l'onglet Retours. */
-  t(u + " n'a aucune pastille sur les cartes de la fresque", d.pastillesFresque === 0, String(d.pastillesFresque));
-  /* La zone prend toute la largeur de la fenetre, sans defilement lateral. */
-  t(u + " : la fresque occupe toute la largeur", d.zone === d.fenetre, d.zone + " / " + d.fenetre);
-  t(u + " : aucun debordement lateral", d.deborde === 0, String(d.deborde));
-  /* ET SON CONTENU NE TOUCHE PAS LES BORDS. Sans gouttiere, le zoom et les
-     filtres se collaient au bord de l'ecran et paraissaient sortir du cadre. */
-  t(u + " : la barre d'outils garde une gouttiere", d.gouttiere >= 12, d.gouttiere + " px");
-  /* `50vw` compte la barre de defilement, `50%` ne la compte pas : sans la
-     mesurer, la zone depassait d'une demi-barre de chaque cote. */
-  const bar = await pg.evaluate(() => {
-    const avant = document.querySelector(".fresque-zone").getBoundingClientRect().width;
-    document.documentElement.style.setProperty("--barre-defilement", "16px");
-    const apres = document.querySelector(".fresque-zone").getBoundingClientRect().width;
-    document.documentElement.style.removeProperty("--barre-defilement");
-    return Math.round(avant - apres);
-  });
-  t(u + " : la largeur de la barre de defilement est prise en compte", bar === 16, bar + " px de retrait pour 16");
-
-  // La vue Cartes : 38 cartes, la carte 0 exclue, le zoom sans objet.
-  await pg.click("#vue-cartes");
-  await pg.waitForTimeout(500);
-  const g = await pg.evaluate(() => ({
-    n: document.querySelectorAll(".g-carte").length,
-    zero: !!document.querySelector('.g-carte[data-n="0"]'),
-    ordre: [...document.querySelectorAll(".g-carte")].map((e) => +e.dataset.n),
-    plateauCache: document.getElementById("plateau-cadre").hidden,
-    zoomCache: document.getElementById("zoom-plus").hidden
-  }));
-  t(u + " : 38 cartes en vue Cartes, sans la carte 0", g.n === 38 && !g.zero, String(g.n));
-  t(u + " : par numero croissant", String(g.ordre) === String([...g.ordre].sort((a2, b2) => a2 - b2)));
-  t(u + " : le plateau et le zoom s'effacent", g.plateauCache && g.zoomCache);
-}
-
-/* LE VIDE ENTRE LE TABLEAU ET LE PANNEAU. La largeur du panneau et le retrait
-   du plateau etaient ecrits deux fois, et differemment : au-dela de 1050 px de
-   fenetre, une bande vide s'ouvrait entre les deux et grandissait avec l'ecran. */
-console.log("\n--- Le panneau touche le tableau ---");
+console.log("\n--- Les selecteurs ressemblent aux autres champs ---");
 await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
-await pg.waitForTimeout(1200);
-await pg.click('.c-carte[data-n="3"]');
-await pg.waitForTimeout(400);
-const vide = await pg.evaluate(() => {
-  const p = document.getElementById("panneau").getBoundingClientRect();
-  const c = document.getElementById("plateau-cadre").getBoundingClientRect();
-  return Math.round(p.left - c.right);
+await pg.waitForTimeout(900);
+const sel = await pg.evaluate(() => {
+  const s = document.getElementById("g-carte"), t2 = document.getElementById("g-texte");
+  const cs = getComputedStyle(s), ct = getComputedStyle(t2);
+  const env = s.closest(".select-joli");
+  return { police: cs.fontFamily === ct.fontFamily, rayon: cs.borderRadius === ct.borderRadius,
+    bord: cs.borderColor === ct.borderColor, apparence: cs.appearance,
+    fleche: env ? getComputedStyle(env, "::after").content : "" };
 });
-t("aucun vide entre le bord du tableau et le panneau", vide === 0, vide + " px");
+t("meme police, meme arrondi, meme bord que le champ de texte",
+  sel.police && sel.rayon && sel.bord, JSON.stringify(sel));
+t("et la fleche maison a la place de celle du systeme",
+  sel.apparence === "none" && /▾/.test(sel.fleche), sel.apparence + " " + sel.fleche);
 
-t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 3).join(" | "));
+/* ── CE QUI S'IMPRIME EXISTE-T-IL ? ──────────────────────────
+   Une regle `@media print` ecrite pour la page du kit, mais posee dans la
+   feuille que toutes les pages partagent, a rendu l'antiseche entierement
+   blanche a l'impression, et le PDF engendre depuis elle avec. L'empreinte qui
+   garde le PDF aligne sur sa page compare le HTML : la panne venait du CSS. */
+console.log("\n--- Les pages imprimables impriment quelque chose ---");
+for (const [nom, u, mini] of [["l'antiseche", "/animateurs/antiseche/", 1200],
+                              ["le guide", "/guide/", 3000],
+                              ["le kit (affiche seule)", "/animateurs/kit/", 200]]) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  await pg.emulateMedia({ media: "print" });
+  await pg.waitForTimeout(350);
+  const m = await pg.evaluate(() => {
+    const z = document.querySelector("main") || document.body;
+    const vus = [...z.querySelectorAll("*")].filter((e) => {
+      const c = getComputedStyle(e), b = e.getBoundingClientRect();
+      return c.display !== "none" && c.visibility !== "hidden" && b.width > 0 && b.height > 0;
+    }).length;
+    return { vus: vus, texte: z.innerText.replace(/\s+/g, " ").trim().length };
+  });
+  await pg.emulateMedia({ media: "screen" });
+  t(nom + " imprime son contenu", m.texte >= mini && m.vus >= 10,
+    m.vus + " element(s), " + m.texte + " caractere(s), minimum " + mini);
+}
+await pg.goto(B + "/animateurs/kit/", { waitUntil: "networkidle" });
+await pg.emulateMedia({ media: "print" });
+await pg.waitForTimeout(350);
+t("le kit n'imprime que l'affiche, pas toute sa page",
+  await pg.evaluate(() => {
+    const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
+    return vis(".section-doux") && !vis("main > .section.no-print");
+  }));
+await pg.emulateMedia({ media: "screen" });
+
+/* ── UN SEUL OUTIL, ECRIT UNE SEULE FOIS ─────────────────────
+   Son HTML etait copie dans deux pages : toute evolution devait etre ecrite
+   deux fois, et il suffisait d'en oublier une pour qu'elles divergent. */
+console.log("\n--- Un seul outil, ecrit une seule fois ---");
+for (const fichier of ["site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
+  const html = fs.readFileSync(path.join(RACINE, fichier), "utf8");
+  t(fichier.replace("site/", "") + " ne contient pas le HTML de l'outil",
+    !/plateau-sizer|panneau-corps|id="lots"/.test(html));
+}
+
+t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 2).join(" | "));
 
 console.log("\n" + (ko ? "❌" : "✅") + " Espace animateur·ices : " + ok + " verifications reussies, " + ko + " echouees.\n");
 await nav.close();

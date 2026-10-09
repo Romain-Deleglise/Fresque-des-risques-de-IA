@@ -162,8 +162,11 @@
   font-weight: 600; margin: .9rem 0 .3rem;
 }
 .form-retour .opt { font-weight: 400; color: var(--gris); }
+/* `select` ETAIT ABSENT DE CETTE LISTE pour le panneau : « Ça concerne le lien
+   avec la carte » n'heritait donc d'aucun style et s'affichait brut, police du
+   systeme et coins carres, juste sous un champ de texte soigne. */
 .form-retour input, .form-retour select, .form-retour textarea,
-.panneau-commentaire input, .panneau-commentaire textarea {
+.panneau-commentaire input, .panneau-commentaire select, .panneau-commentaire textarea {
   width: 100%; font: inherit; font-family: var(--f-ui); font-size: .95rem;
   padding: .6rem .7rem; margin-bottom: .6rem;
   border: 1px solid var(--ligne); border-radius: 8px;
@@ -519,9 +522,19 @@
 }
 
 @media print {
-  /* N'imprimer que l'affiche, en pleine page. */
-  body > *:not(main), main > *:not(.section-doux) { display: none !important; }
-  .affiche {
+  /* N'IMPRIMER QUE L'AFFICHE, ET SEULEMENT SUR LA PAGE DE L'AFFICHE.
+
+     Cette regle vivait sans garde dans une feuille chargee par TOUTES les pages
+     de l'espace. Elle masquait donc tout ce qui n'est pas `.section-doux` a
+     l'impression, sur toutes les pages : l'antiseche, dont le contenu est dans
+     `.section.antiseche`, sortait entierement blanche, et le PDF engendre depuis
+     cette page avec elle (8 Ko, une page vide, livree telle quelle).
+
+     D'ou la classe sur le `body` du kit : une regle qui cache tout doit dire ou
+     elle s'applique. */
+  .page-affiche > *:not(main),
+  .page-affiche main > *:not(.section-doux) { display: none !important; }
+  .page-affiche .affiche {
     max-width: none; width: 100%; aspect-ratio: auto; min-height: 96vh;
     border: 0; box-shadow: none; padding: 6%;
   }
@@ -870,3 +883,47 @@
 /* Le trait qu'on tire d'une carte vers une autre, le temps du geste. */
 .liens .trace { stroke: var(--accent-aplat); stroke-width: 3; stroke-dasharray: 8 6;
   pointer-events: none; }
+
+/* ── LES SELECTEURS, COMME PARTOUT AILLEURS SUR LE SITE ──────
+   `.select-joli` (site.css) masque la fleche du systeme et en dessine une qui
+   suit le theme. On enveloppe donc les quatre selecteurs de l'espace plutot que
+   d'inventer un cinquieme habillage.
+
+   CE QU'ON NE PEUT PAS HABILLER : la LISTE une fois ouverte. Elle est dessinee
+   par le navigateur, hors d'atteinte du CSS. La remplacer demanderait de
+   reecrire un menu deroulant a la main, et d'y refaire le clavier, le lecteur
+   d'ecran, la saisie au clavier et le rendu sur telephone que le `select` natif
+   donne gratuitement. Le jeu n'en vaut pas la chandelle. */
+.panneau-commentaire .select-joli, .form-retour .select-joli { display: block; }
+.edition-rang .select-joli { display: inline-block; }
+/* La fleche a besoin de place : sans ce rembourrage elle se pose sur le texte
+   de l'option la plus longue. */
+.panneau-commentaire .select-joli select,
+.form-retour .select-joli select { padding-right: 2.2rem; }
+.edition-rang .select-joli select { padding-right: 2rem; }
+/* Le champ garde sa marge basse, c'est l'enveloppe qui la porte maintenant. */
+.panneau-commentaire .select-joli select, .form-retour .select-joli select { margin-bottom: 0; }
+.panneau-commentaire .select-joli, .form-retour .select-joli { margin-bottom: .6rem; }
+/* La fleche se cale sur la hauteur du champ, pas sur celle de l'enveloppe. */
+.select-joli::after { top: 50%; }
+
+/* ── UN LOT ÉCARTÉ DISPARAÎT ─────────────────────────────────
+   Il était grisé : la carte restait là, pâle, et les soixante-cinq flèches
+   passaient toujours par-dessus. On ne regardait donc jamais un lot seul, on le
+   regardait à travers les autres. Une flèche dont une extrémité a disparu part
+   du vide : elle s'en va avec la carte. */
+.c-carte.masque, .g-carte.masque, .liens g.masque { display: none; }
+
+/* ── VRAI PLEIN ÉCRAN ────────────────────────────────────────
+   Le navigateur ne dessine que la zone, donc l'en-tête du site disparaît déjà.
+   Restait la barre de l'outil : zoom, recherche, filtres, légende et ligne
+   d'aide prenaient près de 200 px sur 800, un quart de l'écran rendu à autre
+   chose que la fresque. On ne garde que ce qui sert à regarder. */
+.fresque-zone:fullscreen .cle-fleches,
+.fresque-zone:fullscreen .barre-aide,
+.fresque-zone:fullscreen .barre-edition,
+.fresque-zone:fullscreen .etat { display: none; }
+/* Les filtres de lot restent : choisir ce qu'on montre est justement ce qu'on
+   fait en plein écran, devant un groupe. Ils se resserrent. */
+.fresque-zone:fullscreen .lots { padding-block: .35rem; }
+.fresque-zone:fullscreen .barre { padding-block: .4rem; }
