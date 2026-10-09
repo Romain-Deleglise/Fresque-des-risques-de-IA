@@ -23,11 +23,10 @@
     <div class="wrap">
       <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
       <nav class="nav" aria-label="Espace animateur·ices">
-        <a href="../../animateurs/">Accueil</a>
+        <a href="../../animateurs/">Fresque</a>
         <a href="../../guide/?espace=1">Guide</a>
-        <a href="../../animateurs/outils/">Outils</a>
+        <a href="../../animateurs/antiseche/">Antisèche</a>
         <a href="../../animateurs/retours/" aria-current="page">Retours</a>
-        <a class="btn-nav" href="../../animateurs/retours/#fresque">Fresque de référence</a>
       </nav>
     </div>
   </header>
@@ -35,82 +34,46 @@
   <main id="contenu">
     <div class="page-tete">
       <div class="wrap">
-        <!-- Moderation sur place : saisir le jeton fait apparaitre, sur chaque
-             retour, de quoi le valider ou le supprimer. Rien a ouvrir dans
-             /admin/. Le jeton n'est jamais stocke : il vit le temps de l'onglet. -->
-        <form class="jeton" id="form-jeton">
-          <label for="jeton">Jeton de modération</label>
-          <input id="jeton" type="password" autocomplete="off" placeholder="facultatif">
-          <button type="submit" class="btn-outil">Activer</button>
-          <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
-        </form>
-        <h1>Retours</h1>
-        <p class="page-sous">Nous vous proposons deux moyens de nous faire vos retours&nbsp;:</p>
-        <ul class="page-sous-liste">
-          <li>sur une carte ou un lien précis&nbsp;: commentez directement la fresque de référence,
-            plus bas&nbsp;;</li>
-          <li>sur l'atelier ou le jeu en général&nbsp;: remplissez le formulaire, en bas de page.</li>
-        </ul>
+        <h1>Un retour&nbsp;?</h1>
+        <p class="page-sous">Sur une carte, sur l'atelier, sur le jeu&nbsp;: dites-nous ce qui a
+        coincé, ce qui a bien marché, ce qui manque. Nous lisons tout.</p>
       </div>
     </div>
 
     <section class="section">
       <div class="wrap etroit">
-        <h2>La fresque de référence</h2>
-        <p>
-          Un exemple de fresque terminée. C'est une disposition possible parmi d'autres&nbsp;: il
-          n'y a pas de fresque parfaite.
-        </p>
-        <p>
-          Pour commenter une carte ou ses liens, activez le «&nbsp;Mode commentaires&nbsp;», puis
-          cliquez sur la carte concernée.
-        </p>
-      </div>
-    </section>
-
-    <section class="section section-doux" id="plateau-section" hidden>
-      <span id="fresque" class="ancre-fresque" aria-hidden="true"></span>
-      <div class="wrap">
-        <!-- Voir le commentaire du jumeau sur /animateurs/ : l'outil est construit
-             par animateurs.js. Ici avec les retours, et la page garde ce qui lui
-             est propre (jeton de moderation, formulaire general). -->
-        <div id="fresque-outil" data-commentaires="oui"></div>
-      </div>
-    </section>
-
-    <section class="section" id="retours-section" hidden>
-      <div class="wrap etroit">
-        <h2>Votre retour sur l'atelier</h2>
-        <p>
-          Comment s'est passé votre atelier&nbsp;? Ce qui vous a plu, ce qui a coincé, ce que vous
-          changeriez&nbsp;: racontez-nous. Vos retours nous aident à l'améliorer. Merci d'avance&nbsp;!
-        </p>
-        <form id="form-general" class="form-retour">
+        <!-- UN SEUL FORMULAIRE, ET PAS DE LISTE. Les retours deposes se
+             relisent dans /admin/, avec les retours d'atelier et les
+             temoignages : au meme endroit que le reste, plutot que sur une page
+             que les animateur·ices ouvrent pour ecrire, pas pour moderer. -->
+        <form id="form-retour" class="form-retour">
           <label for="g-sujet">Sujet</label>
           <span class="select-joli"><select id="g-sujet">
             <option value="atelier">L'atelier en général</option>
             <option value="jeu">Le jeu de cartes en général</option>
             <option value="deroule">Le déroulé et le minutage</option>
-            <option value="reference">Cette fresque de référence</option>
+            <option value="reference">La fresque de référence</option>
             <option value="autre">Autre</option>
           </select></span>
+
+          <label for="g-carte">Une carte en particulier&nbsp;? <span class="opt">(facultatif)</span></label>
+          <span class="select-joli"><select id="g-carte">
+            <option value="">Aucune carte en particulier</option>
+          </select></span>
+
           <label for="g-texte">Votre retour</label>
-          <textarea id="g-texte" rows="4" maxlength="2000" required
+          <textarea id="g-texte" rows="5" maxlength="2000" required
             placeholder="Ce qui a coincé, ce qui a bien marché, ce qui manque…"></textarea>
+
           <label for="g-nom">Votre prénom <span class="opt">(facultatif)</span></label>
           <input id="g-nom" type="text" maxlength="40" autocomplete="given-name">
+
           <label for="g-email">Votre e-mail <span class="opt">(facultatif, si vous voulez une réponse)</span></label>
           <input id="g-email" type="email" maxlength="120" autocomplete="email">
+
           <button type="submit" class="btn btn-1">Envoyer</button>
           <p class="etat" id="g-etat" role="status" aria-live="polite"></p>
         </form>
-
-        <h3 class="retours-titre">Ce que les autres ont remonté</h3>
-        <p class="muted">
-          Un retour apparaît dès son envoi, <span class="exemple-attente">grisé</span> tant qu'il
-          n'a pas été relu par l'équipe.
-        </p>
-        <ul class="retours" id="retours"></ul>
       </div>
     </section>
   </main>
@@ -128,7 +91,7 @@
   <!-- Le calque des corrections publiees depuis l'espace animateur·ices. Charge
        AVANT le script qui lit les cartes : `defer` garde l'ordre du document. -->
   <script src="../../assets/js/calque-cartes.js" defer></script>
-  <script src="../animateurs.js" defer></script>
+  <script src="retours.js" defer></script>
   <script src="../../assets/js/nav.js" defer></script>
 </body>
 </html>

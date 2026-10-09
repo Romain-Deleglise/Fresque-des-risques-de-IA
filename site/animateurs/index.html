@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Espace animateur·ices · La Fresque des risques de l'IA</title>
-  <meta name="description" content="Tout ce qu'il faut pour préparer et mener un atelier : antisèche, minuteur, fresque de référence, kit de communication.">
+  <title>La fresque de référence · Espace animateur·ices</title>
+  <meta name="description" content="La fresque de référence, vue d'ensemble ou carte par carte, pour préparer votre atelier.">
   <!-- PAGE NON PUBLIQUE : voir le commentaire de /animateurs/reference/. -->
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" sizes="64x64" href="../assets/img/social/favicon.png?v=3">
@@ -19,11 +19,10 @@
     <div class="wrap">
       <a class="logo" href="../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
       <nav class="nav" aria-label="Espace animateur·ices">
-        <a href="../animateurs/" aria-current="page">Accueil</a>
+        <a href="../animateurs/" aria-current="page">Fresque</a>
         <a href="../guide/?espace=1">Guide</a>
-        <a href="../animateurs/outils/">Outils</a>
+        <a href="../animateurs/antiseche/">Antisèche</a>
         <a href="../animateurs/retours/">Retours</a>
-        <a class="btn-nav" href="../animateurs/retours/#fresque">Fresque de référence</a>
       </nav>
     </div>
   </header>
@@ -31,95 +30,50 @@
   <main id="contenu">
     <div class="page-tete">
       <div class="wrap">
-        <p class="eyebrow">Réservé aux animateur·ices</p>
-        <h1>Votre espace</h1>
-        <p class="page-sous">
-          Tout pour vous préparer et animer. C'est aussi ici que vous nous faites vos retours :
-          l'équipe s'en servira pour les prochaines mises à jour des cartes.
-        </p>
+        <!-- LE JETON A SUIVI CE QU'IL OUVRE. Il vivait sur la page Retours, du
+             temps ou l'on y moderait les commentaires. Cette page-la n'est plus
+             qu'un formulaire ; le jeton ouvre desormais ce qu'il garde vraiment :
+             corriger une carte, et deplacer le plan de la fresque. Il n'est
+             jamais conserve, ni cookie ni stockage local : il vit le temps de
+             l'onglet. -->
+        <form class="jeton" id="form-jeton">
+          <label for="jeton">Jeton de modération</label>
+          <input id="jeton" type="password" autocomplete="off" placeholder="facultatif">
+          <button type="submit" class="btn-outil">Activer</button>
+          <span class="jeton-etat" id="jeton-etat" role="status" aria-live="polite"></span>
+        </form>
+        <h1>La fresque de référence</h1>
+        <p class="page-sous">Un exemple de fresque terminée, pour préparer votre atelier.
+        C'est une disposition possible parmi d'autres&nbsp;: il n'y a pas de fresque parfaite.</p>
+        <p class="page-sous">Basculez entre la <strong>vue d'ensemble</strong>, qui montre les liens,
+        et la <strong>vue carte par carte</strong>. Les filtres de lot n'affichent que les lots
+        choisis&nbsp;: cliquez-en un ou plusieurs.</p>
       </div>
     </div>
 
-    <section class="section">
+    <section class="section" id="plateau-section">
       <div class="wrap">
-        <p class="avert-ligne" role="note">
-          <strong>Ne diffusez pas ces pages aux participant·es.</strong> Ils viennent chercher
-          les liens eux-mêmes.
-        </p>
+        <!-- L'outil est construit par animateurs.js : son HTML etait copie sur
+             deux pages, toute evolution devait etre faite deux fois. Ici avec
+             l'edition, gardee par le jeton ci-dessus. -->
+        <div id="fresque-outil" data-edition="oui"></div>
+      </div>
+    </section>
 
-        <!-- ANNONCER. En tete parce que c'est la seule action qui a une echeance :
-             une affiche ne sert a rien une fois l'atelier passe. -->
-        <div class="encart-annonce">
-          <h2>Annoncer <span class="ressource-tag">en test</span></h2>
-          <p>
-            Si vous avez programmé un atelier public sur notre site, il est déjà visible et ouvert
-            aux inscriptions. Besoin d'une affiche ou d'un texte d'invitation ? Cet outil les
-            prépare à partir de la date et du lieu de votre atelier.
-          </p>
-          <p><a class="btn btn-1" href="kit/">Préparer mon annonce</a></p>
-        </div>
-
-        <!-- TROIS TEMPS, dans l'ordre ou l'on en a besoin : se preparer, animer,
-             recueillir. Chaque temps renvoie vers UN onglet, pas vers une liste
-             de liens : c'est la navigation qui porte la structure. -->
-        <h2 class="etape-titre"><span class="etape-n">1</span> Se préparer</h2>
+    <section class="section">
+      <div class="wrap etroit">
+        <h2>Pendant l'atelier</h2>
         <p>
-          Le guide d'animation vous accompagne pas à pas : préparation, déroulé lot par lot avec
-          son minutage et conseils pour relancer le groupe.
+          <a class="btn btn-1" href="antiseche/">L'antisèche</a>
+          <a class="btn btn-2" href="minuteur/">Le minuteur</a>
         </p>
-        <p><a class="btn btn-2" href="../guide/?espace=1">Lire le guide</a></p>
-        <p>Vous pouvez voir à quoi ressemble une fresque terminée avec notre fresque de référence.</p>
+        <h2>Avant l'atelier</h2>
         <p>
-          <button type="button" class="btn btn-1" id="btn-apercu" aria-expanded="false" aria-controls="apercu">
-            Afficher la fresque de référence <span class="chevron" aria-hidden="true">▾</span>
-          </button>
+          <a class="btn btn-2" href="../guide/?espace=1">Lire le guide</a>
+          <a class="btn btn-2" href="kit/">Préparer mon annonce</a>
         </p>
-
-        <!-- APERCU DEPLIABLE, EN LECTURE SEULE. C'est le meme module que
-             l'onglet Retours, sans les commentaires : ni bascule « mode
-             commentaires », ni formulaire, ni moderation. Le script
-             animateurs.js accepte que ces elements n'existent pas (voir `on`).
-             Le plein ecran ne change pas de page : le bloc passe par-dessus
-             tout, et Echap ou « Fermer » ramene au meme endroit. -->
-        <!-- L'OUTIL N'EST PLUS ECRIT ICI. Son HTML etait copie a l'identique sur
-             cette page et sur la page Retours : toute evolution devait etre
-             faite deux fois. Il est desormais construit par animateurs.js, qui
-             lit `data-commentaires` pour savoir s'il faut les retours (non ici :
-             on vient voir la fresque, pas la commenter). -->
-        <div class="apercu" id="apercu" hidden>
-          <div id="fresque-outil" data-commentaires="non" data-fermer="apercu-fermer"></div>
-        </div>
-
-        <h2 class="etape-titre"><span class="etape-n">2</span> Animer</h2>
-        <p>Outils à garder sous la main pendant l'atelier :</p>
-        <ul class="liste-outils">
-          <li><strong>le minuteur</strong> : le temps restant sur chaque étape, pour voir tout de
-            suite si une partie déborde</li>
-          <li><strong>l'antisèche</strong> : le déroulé et les phrases de relance</li>
-        </ul>
-        <p><a class="btn btn-2" href="outils/">Découvrir les outils</a></p>
-
-        <h2 class="etape-titre"><span class="etape-n">3</span> Recueillir les retours</h2>
-        <p>
-          Après chaque atelier programmé sur le site, participant·es et animateur·ices reçoivent
-          automatiquement un lien pour nous écrire. Vous pouvez laisser vos retours de deux façons :
-        </p>
-        <ul class="liste-outils">
-          <li>commenter une carte ou un lien directement sur la fresque de référence</li>
-          <li>remplir le formulaire, pour une remarque plus générale</li>
-        </ul>
-        <p>L'équipe s'appuie sur tout ce que vous signalez pour les prochaines mises à jour.</p>
-        <p class="muted">
-          Atelier organisé hors du site&nbsp;? Envoyez vous-même le lien du formulaire de retour aux
-          participant·es&nbsp;: <a href="../retour/">fresquedesrisquesdelia.org/retour/</a>
-        </p>
-        <p><a class="btn btn-2" href="retours/">Donner mon retour</a></p>
-
-        <p class="muted a-venir-ligne">
-          À venir : la possibilité d'assister à un atelier en observateur·ice, et des variantes
-          (format court, classe, stand).
-          <a href="mailto:contact@pauseia.fr?subject=Espace%20animateur%C2%B7ices%20%3A%20une%20ressource%20qui%20me%20manque">Dites-nous par laquelle commencer.</a>
-        </p>
+        <p class="muted">Une ressource vous manque&nbsp;?
+          <a href="mailto:contact@pauseia.fr?subject=Espace%20animateur%C2%B7ices%20%3A%20une%20ressource%20qui%20me%20manque">Dites-le-nous</a>.</p>
       </div>
     </section>
   </main>
@@ -136,7 +90,6 @@
        AVANT le script qui lit les cartes : `defer` garde l'ordre du document. -->
   <script src="../assets/js/calque-cartes.js" defer></script>
   <script src="animateurs.js" defer></script>
-  <script src="apercu.js" defer></script>
   <script src="../assets/js/nav.js" defer></script>
 </body>
 </html>

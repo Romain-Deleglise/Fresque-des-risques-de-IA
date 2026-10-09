@@ -906,3 +906,24 @@
 .panneau-commentaire .select-joli, .form-retour .select-joli { margin-bottom: .6rem; }
 /* La fleche se cale sur la hauteur du champ, pas sur celle de l'enveloppe. */
 .select-joli::after { top: 50%; }
+
+/* ── UN LOT ÉCARTÉ DISPARAÎT ─────────────────────────────────
+   Il était grisé : la carte restait là, pâle, et les soixante-cinq flèches
+   passaient toujours par-dessus. On ne regardait donc jamais un lot seul, on le
+   regardait à travers les autres. Une flèche dont une extrémité a disparu part
+   du vide : elle s'en va avec la carte. */
+.c-carte.masque, .g-carte.masque, .liens g.masque { display: none; }
+
+/* ── VRAI PLEIN ÉCRAN ────────────────────────────────────────
+   Le navigateur ne dessine que la zone, donc l'en-tête du site disparaît déjà.
+   Restait la barre de l'outil : zoom, recherche, filtres, légende et ligne
+   d'aide prenaient près de 200 px sur 800, un quart de l'écran rendu à autre
+   chose que la fresque. On ne garde que ce qui sert à regarder. */
+.fresque-zone:fullscreen .cle-fleches,
+.fresque-zone:fullscreen .barre-aide,
+.fresque-zone:fullscreen .barre-edition,
+.fresque-zone:fullscreen .etat { display: none; }
+/* Les filtres de lot restent : choisir ce qu'on montre est justement ce qu'on
+   fait en plein écran, devant un groupe. Ils se resserrent. */
+.fresque-zone:fullscreen .lots { padding-block: .35rem; }
+.fresque-zone:fullscreen .barre { padding-block: .4rem; }

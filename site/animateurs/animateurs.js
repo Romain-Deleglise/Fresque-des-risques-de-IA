@@ -23,7 +23,7 @@
   var PLAN_W = 2840, PLAN_H = 1750;   // idem : le fichier fait foi
   var cartes = {};      // n -> carte de cartes.json
   var ref = null;       // fresque de reference
-  var zoom = 1, cibleN = null, modeCom = false;
+  var zoom = 1, cibleN = null;
   /* Mode edition de la fresque de reference : declare ici parce que le rendu
      des cartes et des liens en depend, et qu'il s'ecrit plus bas. */
   var editionFresque = false, lienChoisi = null;
@@ -31,7 +31,7 @@
   var jeton = '';     // jeton de moderation, garde en memoire seulement
 
   var $ = function (id) { return document.getElementById(id); };
-  var avecRetours = false;   // pose par construireOutil() : retours ou non
+  var avecEdition = false;   // pose par construireOutil() : edition ou lecture seule
 
   /* Les chaines produites par le script (celles qui ne sont pas dans le HTML).
      La page anglaise sert le meme fichier : sans cette table, elle afficherait
@@ -39,43 +39,26 @@
   var EN = document.documentElement.lang === 'en';
   var T = EN ? {
     aideLecture: 'Click a card to read its back. Drag to move around the fresk.',
-    aideCommentaire: 'Click a card to read its back and leave feedback on it.',
     envoi: 'Sending…',
-    merci: 'Thank you. Your feedback shows up right away; we review it afterwards.',
-    echecEnvoi: 'Could not send. Please try again later.',
     echecAction: 'Action failed.',
-    ecrivez: 'Write your feedback before sending.',
-    vide: 'No feedback yet. Be the first.',
-    anonyme: 'Anonymous',
-    attente: 'awaiting review',
-    valider: 'Approve', supprimer: 'Delete',
-    confirmer: 'Permanently delete this feedback?',
+    supprimer: 'Delete',
     moderation: 'Moderation enabled',
     lotNom: { 1: 'AI', 2: 'Capabilities', 3: 'Present risks', 4: 'Existential risks', 5: 'Solutions' },
     tousLots: 'All', pleinEcran: 'Full screen', quitterPlein: 'Exit full screen',
-    aucunResultat: 'No card matches',
     chargement: 'Loading…',
     echecChargement: 'Could not load. Please reload the page.',
     mene: 'What leads to it', entraine: 'What it leads to',
     repondA: 'What it answers', reponses: 'The answers to it',
-    langue: 'en-GB',
-    sujets: { carte: 'on a card', atelier: 'the workshop', jeu: 'the card deck',
-              deroule: 'the run-through', reference: 'the reference fresk', autre: 'other' },
     lienAucun: 'No particular card', lienLiees: 'Cards already linked to this one',
-    lienAutres: 'All the other cards', lienAvec: 'link with',
     deZoomer: 'Zoom out', zoomer: 'Zoom in', chercherCarte: 'Search for a card',
     choixVue: 'Choose a view', vueCartes: 'Cards', vueFresque: 'Fresk',
-    modeCommentaires: 'Feedback mode', fermer: 'Close ✕', fermerPanneau: 'Close',
+    fermer: 'Close ✕', fermerPanneau: 'Close',
     filtrerLot: 'Filter by batch', provoque: 'leads to', repond: 'answers',
-    ongletExpl: 'Explanations', ongletRetours: 'Feedback', titreExpl: 'Explanations',
-    retourSurCarte: 'Feedback on this card?', votreRetour: 'Your feedback on this card',
-    placeholderRetour: 'What was misunderstood, what is missing, a rewording…',
-    concerneLien: 'This is about the link with card', facultatif: 'optional',
-    quoiDansLien: 'What is wrong with that link?',
-    placeholderLien: 'The direction is reversed, the label is unclear…',
-    votrePrenom: 'Your first name', envoyer: 'Send',
+    titreExpl: 'Explanations',
+    facultatif: 'optional',
+    envoyer: 'Send',
     aideGrille: 'Click a card to read it. Filter by batch or search above.',
-    lienAvecCarte: 'Link with card', numeroCarte: 'Card',
+    numeroCarte: 'Card',
     corriger: 'Correct this card', champTitre: 'Title', champVerso: 'Back of the card',
     champExplication: 'Explanations', aideParagraphes: 'One blank line between two paragraphs.',
     enregistrerModifs: 'Save changes', annulerModifs: 'Undo my changes',
@@ -84,12 +67,10 @@
     telecharge: 'cartes.json downloaded. Put it in the repository: CI will check it, then someone merges it.',
     publieEnLigne: 'Published. The corrections are live on the site right away.',
     deposer: 'Download cartes.json for the repository',
-    aDeposer: 'correction(s) live but not yet in the repository',
     pourquoiDeposer: 'The repository also builds the printed deck: fold these corrections back into it. This list empties itself once a deployment catches up.',
     fresquePubliee: 'Published. The fresk is live for everyone right away.',
     deposerFresque: 'Download for the repository',
     pourquoiDeposerFresque: 'Nothing printed depends on this plan: the download only keeps the repository as the project memory. No hurry.',
-    prisEnCompte: 'Handled', retourTraite: 'handled',
     modeEdition: 'Edit mode',
     aideEdition: 'Drag a card to move it. Pull its handle onto another card to link them. Click a link to edit it. Arrow keys move the focused card.',
     poigneeLien: 'Draw a link from this card',
@@ -109,46 +90,28 @@
     lienExiste: 'That link already exists.',
     memeCarte: 'A card cannot link to itself.',
     aucunLien: 'No link selected.',
-    deplacees: 'cards moved', liensPlus: 'links added', liensMoins: 'links removed'
-  } : {
+    deplacees: 'cards moved', liensPlus: 'links added', liensMoins: 'links removed'  } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
-    aideCommentaire: 'Cliquez une carte pour lire son verso et laisser un retour dessus.',
     envoi: 'Envoi…',
-    merci: 'Merci, c’est noté. Votre retour est visible tout de suite ; nous le relisons ensuite.',
-    echecEnvoi: 'Envoi impossible. Réessayez plus tard.',
     echecAction: 'Action impossible.',
-    ecrivez: 'Écrivez votre retour avant d’envoyer.',
-    vide: 'Aucun retour pour le moment. Soyez le premier.',
-    anonyme: 'Anonyme',
-    attente: 'en attente de relecture',
-    valider: 'Valider', supprimer: 'Supprimer',
-    confirmer: 'Supprimer définitivement ce retour ?',
+    supprimer: 'Supprimer',
     moderation: 'Modération activée',
     lotNom: { 1: 'L’IA', 2: 'Capacités', 3: 'Risques actuels', 4: 'Risques existentiels', 5: 'Solutions' },
     tousLots: 'Tous', pleinEcran: 'Plein écran', quitterPlein: 'Quitter le plein écran',
-    aucunResultat: 'Aucune carte ne correspond',
     chargement: 'Chargement…',
     echecChargement: 'Chargement impossible. Rechargez la page.',
     mene: 'Ce qui y mène', entraine: 'Ce que ça entraîne',
     repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
-    langue: 'fr-FR',
-    sujets: { carte: 'sur une carte', atelier: 'l’atelier', jeu: 'le jeu de cartes',
-              deroule: 'le déroulé', reference: 'la fresque de référence', autre: 'autre' },
     lienAucun: 'Aucune carte en particulier', lienLiees: 'Cartes déjà liées à celle-ci',
-    lienAutres: 'Toutes les autres cartes', lienAvec: 'lien avec',
     deZoomer: 'Dézoomer', zoomer: 'Zoomer', chercherCarte: 'Chercher une carte',
     choixVue: 'Choisir une vue', vueCartes: 'Cartes', vueFresque: 'Fresque',
-    modeCommentaires: 'Mode commentaires', fermer: 'Fermer ✕', fermerPanneau: 'Fermer',
+    fermer: 'Fermer ✕', fermerPanneau: 'Fermer',
     filtrerLot: 'Filtrer par lot', provoque: 'provoque', repond: 'répond à',
-    ongletExpl: 'Explications', ongletRetours: 'Retours', titreExpl: 'Explications',
-    retourSurCarte: 'Un retour sur cette carte ?', votreRetour: 'Votre retour sur cette carte',
-    placeholderRetour: 'Ce qui a été mal compris, ce qui manque, une reformulation…',
-    concerneLien: 'Ça concerne le lien avec la carte', facultatif: 'facultatif',
-    quoiDansLien: 'Qu\'est-ce qui pose problème dans ce lien ?',
-    placeholderLien: 'Le sens est inversé, le libellé est ambigu…',
-    votrePrenom: 'Votre prénom', envoyer: 'Envoyer',
+    titreExpl: 'Explications',
+    facultatif: 'facultatif',
+    envoyer: 'Envoyer',
     aideGrille: 'Cliquez une carte pour la lire. Filtrez par lot ou cherchez ci-dessus.',
-    lienAvecCarte: 'Lien avec la carte', numeroCarte: 'Carte',
+    numeroCarte: 'Carte',
     corriger: 'Corriger cette carte', champTitre: 'Titre', champVerso: 'Verso de la carte',
     champExplication: 'Explications', aideParagraphes: 'Une ligne vide entre deux paragraphes.',
     enregistrerModifs: 'Enregistrer les modifications', annulerModifs: 'Annuler mes modifications',
@@ -157,12 +120,10 @@
     telecharge: 'cartes.json téléchargé. Déposez-le dans le dépôt : la CI le valide, puis quelqu\'un fusionne.',
     publieEnLigne: 'Publié. Les corrections sont en ligne tout de suite.',
     deposer: 'Télécharger cartes.json pour le dépôt',
-    aDeposer: 'correction(s) en ligne, pas encore dans le dépôt',
     pourquoiDeposer: 'Le dépôt fabrique aussi le jeu imprimé : repliez-y ces corrections. Cette liste se vide toute seule au déploiement qui la rattrape.',
     fresquePubliee: 'Publié. La fresque est en ligne pour tout le monde.',
     deposerFresque: 'Télécharger pour le dépôt',
     pourquoiDeposerFresque: 'Rien d\'imprimé ne dépend de ce plan : le téléchargement ne sert qu\'à garder le dépôt comme mémoire du projet. Rien ne presse.',
-    prisEnCompte: 'Pris en compte', retourTraite: 'pris en compte',
     modeEdition: 'Mode édition',
     aideEdition: 'Glissez une carte pour la déplacer. Tirez sa poignée vers une autre carte pour les relier. Cliquez un lien pour le modifier. Les flèches du clavier déplacent la carte au focus.',
     poigneeLien: 'Tracer un lien depuis cette carte',
@@ -199,7 +160,12 @@
 
      Pas un seul attribut `style=` ici non plus : la CSP du site les refuse. */
   function construireOutil(hote) {
-    var avecRetours = hote.getAttribute('data-commentaires') === 'oui';
+    /* `data-edition="oui"` : cette page propose-t-elle de CORRIGER la fresque ?
+       L'attribut s'appelait `data-commentaires` et decidait d'un mode ou l'on
+       commentait carte par carte. Ce mode a ete retire : donner un retour se
+       fait en un formulaire, sur la page Retours. Ne reste ici que l'edition,
+       gardee par le jeton de moderation. */
+    var avecEdition = hote.getAttribute('data-edition') === 'oui';
     var fermerId = hote.getAttribute('data-fermer') || '';
     var h = [];
 
@@ -223,9 +189,7 @@
     h.push('<button type="button" class="btn-vue" id="vue-cartes" aria-pressed="false">' + T.vueCartes + '</button>');
     h.push('<button type="button" class="btn-vue est-active" id="vue-fresque" aria-pressed="true">' + T.vueFresque + '</button>');
     h.push('</div>');
-    if (avecRetours) {
-      h.push('<label class="bascule"><input type="checkbox" id="mode-commentaires"><span>'
-        + T.modeCommentaires + '</span></label>');
+    if (avecEdition) {
       /* LE MODE EDITION N'APPARAIT QU'AVEC LE JETON. Deplacer les cartes de la
          fresque de reference n'est pas une lecture : c'est la preparation d'une
          publication. L'offrir a qui passe serait promettre une action que la
@@ -259,7 +223,7 @@
        une autre ailleurs. Rien ici n'est un surgissement place a la main : la
        CSP du site refuse les positions en attribut, et un panneau flottant mal
        place vaut moins qu'une barre qui reste ou on l'a laissee. */
-    if (avecRetours) {
+    if (avecEdition) {
       h.push('<div class="barre-edition" id="barre-edition" hidden>');
       h.push('<div class="edition-rang">');
       h.push('<strong class="edition-titre">' + T.nouveauLien + '</strong>');
@@ -311,27 +275,23 @@
     /* Le panneau est DANS la zone : hors de l'element passe en plein ecran, le
        navigateur ne le dessine pas, et cliquer une carte ne montrait plus rien. */
     h.push('<aside class="panneau" id="panneau" hidden aria-labelledby="panneau-titre">');
-    h.push('<div class="panneau-onglets" id="panneau-onglets" role="tablist">');
-    h.push('<button type="button" class="onglet est-actif" id="onglet-expl" role="tab" aria-selected="true" aria-controls="volet-expl">'
-      + T.ongletExpl + '</button>');
-    if (avecRetours) {
-      h.push('<button type="button" class="onglet" id="onglet-retours" role="tab" aria-selected="false" aria-controls="volet-retours">'
-        + T.ongletRetours + '<span class="onglet-nb" id="onglet-retours-nb" hidden></span></button>');
-    }
+    /* PLUS D'ONGLETS. Le panneau en portait deux : ce qu'on vient lire, et ce
+       qu'on vient dire. Il n'a plus qu'un contenu, le verso et ses liens, donc
+       plus rien a departager. Reste la croix, qui garde sa place. */
+    h.push('<div class="panneau-onglets sans-onglets" id="panneau-onglets">');
     h.push('<button type="button" class="panneau-fermer" id="panneau-fermer" aria-label="' + T.fermerPanneau + '">✕</button>');
     h.push('</div>');
     h.push('<div class="panneau-corps">');
-    h.push('<div class="volet" id="volet-expl" role="tabpanel" aria-labelledby="onglet-expl">');
+    h.push('<div class="volet" id="volet-expl">');
     h.push('<img class="panneau-img" id="panneau-img" src="" alt="">');
     h.push('<h3 id="panneau-titre"></h3>');
     h.push('<div class="panneau-verso" id="panneau-verso"></div>');
     // Bloc « Explications » : masque tant que la carte n'en a pas.
     h.push('<div class="panneau-explication" id="panneau-explication" hidden></div>');
     h.push('<div class="panneau-liens" id="panneau-liens"></div>');
-    /* CORRIGER LA CARTE LA OU ON LIT CE QU'ON LUI REPROCHE. Le bloc n'existe
-       que sur la page Retours, et ne se montre qu'une fois le jeton de
-       moderation saisi : on corrige un texte publie, pas une note personnelle. */
-    if (avecRetours) {
+    /* CORRIGER LA CARTE LA OU ON LA LIT. Le bloc ne se montre qu'une fois le
+       jeton de moderation saisi : on corrige un texte publie. */
+    if (avecEdition) {
       h.push('<div class="panneau-edition" id="panneau-edition" hidden>');
       h.push('<h4>' + T.corriger + '</h4>');
       h.push('<label for="e-titre">' + T.champTitre + '</label>');
@@ -349,32 +309,11 @@
       h.push('</div>');
     }
     h.push('</div>');
-    if (avecRetours) {
-      h.push('<div class="volet" id="volet-retours" role="tabpanel" aria-labelledby="onglet-retours" hidden>');
-      h.push('<ul class="retours retours-carte" id="retours-carte"></ul>');
-      h.push('<div class="panneau-commentaire" id="panneau-commentaire" hidden>');
-      h.push('<h4>' + T.retourSurCarte + '</h4>');
-      h.push('<label class="visuellement-cache" for="c-texte">' + T.votreRetour + '</label>');
-      h.push('<textarea id="c-texte" rows="3" maxlength="2000" placeholder="' + T.placeholderRetour + '"></textarea>');
-      h.push('<label for="c-lien">' + T.concerneLien + ' <span class="opt">(' + T.facultatif + ')</span></label>');
-      h.push('<span class="select-joli"><select id="c-lien"><option value="">' + T.lienAucun + '</option></select></span>');
-      /* Le champ n'apparait qu'une fois un lien choisi : demander ce qui pose
-         probleme dans un lien qu'on n'a pas designe n'a pas de sens. */
-      h.push('<div id="c-lien-bloc" hidden>');
-      h.push('<label for="c-lien-texte">' + T.quoiDansLien + ' <span class="opt">(' + T.facultatif + ')</span></label>');
-      h.push('<textarea id="c-lien-texte" rows="2" maxlength="2000" placeholder="' + T.placeholderLien + '"></textarea>');
-      h.push('</div>');
-      h.push('<label class="visuellement-cache" for="c-nom">' + T.votrePrenom + '</label>');
-      h.push('<input id="c-nom" type="text" maxlength="40" placeholder="' + T.votrePrenom + ' (' + T.facultatif + ')">');
-      h.push('<button type="button" class="btn btn-1" id="c-envoi">' + T.envoyer + '</button>');
-      h.push('<p class="etat" id="c-etat" role="status" aria-live="polite"></p>');
-      h.push('</div></div>');
-    }
     h.push('</div></aside>');
     h.push('</div>');
 
     hote.innerHTML = h.join('');
-    return avecRetours;
+    return avecEdition;
   }
 
   /* ── Chargement ─────────────────────────────────────────── */
@@ -552,8 +491,6 @@
       tit.className = 'tit';
       tit.textContent = c.titre;
 
-      /* Pas de pastille de retours ici : voir majPastilles(). Le plan porte
-         deja numeros, lots et fleches ; un chiffre de plus s'y perdait. */
       el.appendChild(vis);
       el.appendChild(tit);
       /* DEUX GESTES SUR LE MEME OBJET, DEUX PRISES DISTINCTES. Glisser le corps
@@ -596,36 +533,6 @@
      propose d'abord les cartes DEJA LIEES a celle qu'on commente : c'est sur un
      lien existant que porte neuf fois sur dix la remarque. Les autres cartes
      suivent, pour signaler un lien qui manque. */
-  function remplirChoixLien(n, sort, entre, reponses) {
-    var sel = $('c-lien');
-    if (!sel) return;
-    var deja = {}, liees = [];
-    [sort, entre, reponses].forEach(function (groupe) {
-      groupe.forEach(function (f) {
-        var autre = f.de === n ? f.vers : f.de;
-        if (autre === n || deja[autre] || !cartes[autre]) return;
-        deja[autre] = true; liees.push(autre);
-      });
-    });
-    var autres = Object.keys(cartes).map(Number).filter(function (m) {
-      return m !== n && !deja[m];
-    }).sort(function (a, b) { return a - b; });
-
-    var option = function (m) {
-      return '<option value="' + m + '">' + echapper(m + ' · ' + cartes[m].titre) + '</option>';
-    };
-    var html = '<option value="">' + echapper(T.lienAucun) + '</option>';
-    if (liees.length) {
-      html += '<optgroup label="' + echapper(T.lienLiees) + '">'
-        + liees.map(option).join('') + '</optgroup>';
-    }
-    if (autres.length) {
-      html += '<optgroup label="' + echapper(T.lienAutres) + '">'
-        + autres.map(option).join('') + '</optgroup>';
-    }
-    sel.innerHTML = html;
-    sel.value = '';
-  }
 
   /* ── Mise en avant d'une carte et de ses liens ───────────── */
   function surligner(n) {
@@ -634,7 +541,13 @@
   }
 
   /* ── Filtrer par lot ────────────────────────────────────── */
-  var lotActif = null;
+  /* LES LOTS SE CHOISISSENT A PLUSIEURS, et ce qui n'est pas choisi DISPARAIT.
+     Un lot ecarte etait grise : la carte restait la, pale, et la fresque gardait
+     ses soixante-cinq fleches par-dessus. On ne regardait donc jamais un lot
+     seul, on le regardait a travers les autres. Vide = tous les lots. */
+  var lotsActifs = [];
+  function lotMontre(n) { return !lotsActifs.length || lotsActifs.indexOf(n) !== -1; }
+  function carteMontree(n) { var c = cartes[n]; return !c || lotMontre(c.lot); }
 
   function construireLots() {
     var hote = $('lots');
@@ -643,9 +556,10 @@
     var faire = function (n, texte) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'lot-puce' + (lotActif === n ? ' actif' : '');
+      var choisi = n === null ? !lotsActifs.length : lotsActifs.indexOf(n) !== -1;
+      b.className = 'lot-puce' + (choisi ? ' actif' : '');
       b.dataset.lot = n === null ? '' : n;
-      b.setAttribute('aria-pressed', String(lotActif === n));
+      b.setAttribute('aria-pressed', String(choisi));
       if (n !== null) b.style.setProperty('--lot', LOT_COULEUR[n]);
       b.textContent = texte;
       hote.appendChild(b);
@@ -672,12 +586,17 @@
     Array.prototype.forEach.call(document.querySelectorAll('.c-carte'), function (el) {
       var n = +el.dataset.n;
       var c = cartes[n];
-      var gardee = true;
-      if (lotActif != null && c && c.lot !== lotActif) gardee = false;
+      /* UN LOT ECARTE DISPARAIT, il ne palit pas : c'est la difference entre
+         « montre-moi ce lot » et « montre-moi tout, avec ce lot en avant ». La
+         recherche, elle, continue de palir : on y cherche une carte parmi les
+         autres, on ne retire pas les autres. */
+      var montree = carteMontree(n);
+      var gardee = montree;
       if (q && c && c.titre.toLowerCase().indexOf(q) === -1) gardee = false;
       if (voisins && !voisins[n]) gardee = false;
       if (gardee) trouves++;
-      el.classList.toggle('pale', !gardee);
+      el.classList.toggle('masque', !montree);
+      el.classList.toggle('pale', montree && !gardee);
       el.classList.toggle('actif', cibleN != null && n === cibleN);
       el.classList.toggle('trouve', !!q && gardee);
     });
@@ -688,20 +607,22 @@
     Array.prototype.forEach.call(document.querySelectorAll('.g-carte'), function (el) {
       var n = +el.dataset.n;
       var c = cartes[n];
-      var gardee = true;
-      if (lotActif != null && c && c.lot !== lotActif) gardee = false;
+      var montree = carteMontree(n);
+      var gardee = montree;
       if (q && c && c.titre.toLowerCase().indexOf(q) === -1) gardee = false;
-      el.classList.toggle('pale', !gardee);
+      el.classList.toggle('masque', !montree);
+      el.classList.toggle('pale', montree && !gardee);
       el.classList.toggle('actif', cibleN != null && n === cibleN);
       el.classList.toggle('trouve', !!q && gardee);
     });
     Array.prototype.forEach.call(document.querySelectorAll('#liens g'), function (g) {
       var lie = cibleN != null && (+g.dataset.de === cibleN || +g.dataset.vers === cibleN);
-      var dedans = lotActif == null
-        || (cartes[+g.dataset.de] && cartes[+g.dataset.de].lot === lotActif)
-        || (cartes[+g.dataset.vers] && cartes[+g.dataset.vers].lot === lotActif);
+      /* UNE FLECHE DONT UNE EXTREMITE A DISPARU N'A PLUS DE SENS : elle partirait
+         du vide. On la retire avec la carte. */
+      var entiere = carteMontree(+g.dataset.de) && carteMontree(+g.dataset.vers);
+      g.classList.toggle('masque', !entiere);
       g.classList.toggle('vif', lie);
-      g.classList.toggle('pale', (cibleN != null && !lie) || (lotActif != null && !dedans));
+      g.classList.toggle('pale', entiere && cibleN != null && !lie);
       // L'aperçu de survol s'efface : sinon il reste allumé sous la sélection,
       // et deux mises en avant concurrentes se superposent.
       if (cibleN != null) g.classList.remove('survol');
@@ -753,9 +674,6 @@
     }
 
     // On revient toujours sur « Explications » : c'est ce qu'on vient lire.
-    choisirOnglet('expl');
-    majOnglets();
-    majOngletNb(n);
     remplirEdition(n);
 
     /* UNE REPONSE N'ENTRAINE PAS SON RISQUE. Les fleches partant du lot 5
@@ -796,9 +714,6 @@
     }
     $('panneau-liens').innerHTML = bloc;
 
-    rendreRetoursCarte(n);
-    remplirChoixLien(n, sort, entre, reponses);
-    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom;
     if ($('c-texte')) $('c-texte').value = '';
     if ($('c-etat')) $('c-etat').textContent = '';
     $('panneau').hidden = false;
@@ -862,6 +777,34 @@
     $('plateau-sizer').style.height = (PLAN_H * zoom) + 'px';
     $('zoom-val').textContent = Math.round(zoom * 100) + ' %';
   }
+  /* LA VUE SUIT CE QU'ON A CHOISI. Masquer trois lots sur cinq laissait la
+     fresque a son echelle d'origine : un quart d'ecran occupe, le reste vide, et
+     le lot qu'on voulait voir minuscule dans un coin. On recadre donc sur ce qui
+     reste visible, zoom et defilement compris. Rien de choisi (tous les lots)
+     revient au cadrage d'ensemble. */
+  function cadrerSurLaSelection() {
+    var cadre = $('plateau-cadre');
+    if (!cadre || vue !== 'fresque' || !ref) return;
+    var visibles = ref.tableau.cartes.filter(function (p) { return carteMontree(p.n); });
+    if (!visibles.length || visibles.length === ref.tableau.cartes.length) { ajuster(); return; }
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    visibles.forEach(function (p) {
+      x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
+      x1 = Math.max(x1, p.x + CARTE_W); y1 = Math.max(y1, p.y + CARTE_H);
+    });
+    var marge = 40;
+    var l = (x1 - x0) + marge * 2, h = (y1 - y0) + marge * 2;
+    var dispo = cadre.clientWidth - 8;
+    var hautDispo = Math.min(window.innerHeight * 0.72, 760);
+    zoom = Math.max(0.12, Math.min(1, Math.min(dispo / l, hautDispo / h)));
+    appliquerZoom();
+    hauteurCadre();
+    /* On centre sur la selection : la recadrer sans l'amener sous les yeux
+       laisserait regarder du vide. */
+    cadre.scrollLeft = Math.max(0, ((x0 + x1) / 2) * zoom - cadre.clientWidth / 2);
+    cadre.scrollTop = Math.max(0, ((y0 + y1) / 2) * zoom - cadre.clientHeight / 2);
+  }
+
   function ajuster() {
     var cadre = $('plateau-cadre');
     var dispo = cadre.clientWidth - 8;
@@ -937,39 +880,7 @@
      /en/facilitators/ a deux. Le HTML le declare, le script s'y fie. */
   var RACINE = document.body.dataset.racine || '../';
 
-  function envoyer(charge, etatEl) {
-    etatEl.className = 'etat';
-    etatEl.textContent = T.envoi;
-    return fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(charge)
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok || !d.ok) throw new Error(d.erreur || T.echecEnvoi);
-        etatEl.className = 'etat ok';
-        etatEl.textContent = T.merci;
-        return d;
-      });
-    }).catch(function (e) {
-      etatEl.className = 'etat err';
-      etatEl.textContent = e.message || T.echecEnvoi;
-      throw e;
-    });
-  }
 
-  function chargerRetours() {
-    return fetch(API)
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        if (!d) return;
-        retours = d.retours || [];
-        majPastilles(d.compte || {});
-        rendreRetours();
-        if (cibleN != null) rendreRetoursCarte(cibleN);
-      })
-      .catch(function () { /* la liste est un agrément, pas une dépendance */ });
-  }
 
   /* LE NOMBRE DE RETOURS SE LIT A DEUX ENDROITS, ET PAS TROIS. Sur la vue
      Fresque, une pastille par carte ajoutait un chiffre de plus a un plan deja
@@ -977,91 +888,11 @@
      la vue Cartes, qui est faite pour parcourir, et sur l'onglet Retours du
      panneau, qui reste visible depuis les deux vues. */
   var compteRetours = {};
-  function majPastilles(compte) {
-    compteRetours = compte || {};
-    Array.prototype.forEach.call(document.querySelectorAll('.g-carte'), function (el) {
-      var p = el.querySelector('.pastille');
-      if (!p) return;
-      var k = compteRetours[el.dataset.n] || 0;
-      p.hidden = !k;
-      p.textContent = k;
-      p.setAttribute('aria-label', k + ' ' + T.ongletRetours.toLowerCase());
-    });
-    majOngletNb(cibleN);
-  }
 
-  /* Le petit chiffre porte par l'onglet « Retours », masque a zero. */
-  function majOngletNb(n) {
-    var el = $('onglet-retours-nb');
-    if (!el) return;
-    var k = (n == null) ? 0 : (compteRetours[n] || 0);
-    el.hidden = !k;
-    el.textContent = k;
-  }
 
-  function ligneRetour(r) {
-    var quand = new Date(r.date).toLocaleDateString(T.langue,
-      { day: 'numeric', month: 'long', year: 'numeric' });
-    var quoi = r.carte != null && cartes[r.carte]
-      ? cartes[r.carte].titre
-      : (T.sujets[r.sujet] || r.sujet);
-    if (r.lien != null && cartes[r.lien]) {
-      quoi += ' · ' + T.lienAvec + ' ' + r.lien + ' · ' + cartes[r.lien].titre;
-    }
-    var html = '<li class="' + (r.valide ? '' : 'attente') + (r.traite ? ' traite' : '')
-      + '" data-cle="' + echapper(r.cle) + '">'
-      + '<div class="meta">'
-      + '<strong>' + echapper(r.nom || T.anonyme) + '</strong>'
-      + '<span>·</span><span>' + echapper(quoi) + '</span>'
-      + '<span>·</span><span>' + echapper(quand) + '</span>'
-      + (r.valide ? '' : '<span class="badge-attente">' + T.attente + '</span>')
-      + '</div>'
-      + '<p class="texte">' + echapper(r.texte) + '</p>';
-    /* CE QUI NE VA PAS DANS LE LIEN, sous le retour et rattache a sa fleche.
-       Sans le nom de la carte liee, « le sens est inverse » ne designe rien. */
-    if (r.lienTexte && r.lien != null && cartes[r.lien]) {
-      html += '<p class="texte texte-lien"><span class="quoi-lien">'
-        + echapper(T.lienAvecCarte + ' ' + r.lien + ' · ' + cartes[r.lien].titre)
-        + '</span> : ' + echapper(r.lienTexte) + '</p>';
-    }
-    if (jeton) {
-      html += '<div class="actions">'
-        + (r.valide ? '' : '<button type="button" class="valider">' + T.valider + '</button>')
-        + '<button type="button" class="traiter' + (r.traite ? ' est-traite' : '') + '">'
-        + T.prisEnCompte + '</button>'
-        + '<button type="button" class="supprimer">' + T.supprimer + '</button></div>';
-    }
-    return html + '</li>';
-  }
 
-  function rendreRetours() {
-    var hote = $('retours');
-    if (!hote) return;
-    if (!retours.length) {
-      hote.innerHTML = '<li class="retours-vide">' + echapper(T.vide) + '</li>';
-      return;
-    }
-    hote.innerHTML = retours.map(ligneRetour).join('');
-  }
 
-  function rendreRetoursCarte(n) {
-    var hote = $('retours-carte');
-    if (!hote) return;
-    var liste = retours.filter(function (r) { return r.carte === n; });
-    hote.innerHTML = liste.length ? liste.map(ligneRetour).join('') : '';
-  }
 
-  function moderer(cle, action) {
-    return fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, cle: cle, jeton: jeton })
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok || !d.ok) throw new Error(d.erreur || T.echecAction);
-      });
-    }).then(chargerRetours);
-  }
 
   /* ── BROUILLONS DE CARTES ───────────────────────────────────
      On lit les retours sur une carte, on corrige, on passe a la suivante.
@@ -1447,14 +1278,6 @@
     if (editionFresque) {
       basculerVue('fresque');
       fermerPanneau();
-      /* Les deux modes se disputent le clic sur une carte : commenter ouvre le
-         panneau, editer la deplace. On n'en laisse qu'un actif. */
-      if ($('mode-commentaires')) {
-        $('mode-commentaires').checked = false;
-        $('mode-commentaires').disabled = true;
-      }
-      modeCom = false;
-      majOnglets();
       /* ON REPREND CE QUI EXISTE DEJA, dans cet ordre : le brouillon en cours,
          sinon le plan deja en ligne. Repartir du fichier du depot ferait
          defaire, sans prevenir, une publication faite la veille. */
@@ -1462,8 +1285,6 @@
         ref.tableau = clonerTableau(brouillonFresque || fresquePubliee);
         modifie = false;
       }
-    } else if ($('mode-commentaires')) {
-      $('mode-commentaires').disabled = false;
     }
     histoire = [];
     lienChoisi = null;
@@ -1474,7 +1295,7 @@
     });
     if ($('plateau')) $('plateau').classList.toggle('en-edition', editionFresque);
     if ($('barre-aide')) $('barre-aide').textContent = editionFresque
-      ? T.aideEdition : (modeCom ? T.aideCommentaire : T.aideLecture);
+      ? T.aideEdition : T.aideLecture;
     majSelectsCartes();
     majChoixLien();
     dessinerCartes();
@@ -1551,14 +1372,6 @@
 
         el.appendChild(vis);
         el.appendChild(tit);
-        /* Pas de pastille sans retours : sur l'accueil, l'outil ne les charge
-           pas, et un compteur qui ne compte rien n'a pas a exister. */
-        if (avecRetours) {
-          var pastille = document.createElement('span');
-          pastille.className = 'pastille';
-          pastille.hidden = true;
-          el.appendChild(pastille);
-        }
         // Le clic est traite par le gestionnaire global, comme pour la fresque.
         el.addEventListener('mouseenter', function () { survoler(n); });
         el.addEventListener('mouseleave', function () { survoler(null); });
@@ -1586,7 +1399,7 @@
       if ($(id)) $(id).hidden = surCartes;
     });
     if ($('barre-aide')) $('barre-aide').textContent = surCartes
-      ? T.aideGrille : (modeCom ? T.aideCommentaire : T.aideLecture);
+      ? T.aideGrille : T.aideLecture;
     /* La legende des fleches ne decrit que la fresque : en vue Cartes elle
        annonce une lecture qui n'existe pas a l'ecran. */
     var cle = document.querySelector('.cle-fleches');
@@ -1600,31 +1413,11 @@
      le panneau n'a qu'un contenu : le verso, les explications et les liens. Deux
      onglets dont l'un est seul a servir n'annoncent qu'une fausse promesse. On
      les retire alors, et la croix de fermeture reste a sa place. */
-  function majOnglets() {
-    var avecOnglets = avecRetours && modeCom;
-    var barre = $('panneau-onglets');
-    if (barre) barre.classList.toggle('sans-onglets', !avecOnglets);
-    ['onglet-expl', 'onglet-retours'].forEach(function (id) {
-      if ($(id)) $(id).hidden = !avecOnglets;
-    });
-    if (!avecOnglets) choisirOnglet('expl');
-  }
 
   /* ── PANNEAU : DEUX ONGLETS ─────────────────────────────────
      Le panneau melait le verso, les liens, les retours et leur formulaire en
      une seule colonne qu'il fallait parcourir en entier. Deux onglets : ce
      qu'on vient lire, et ce qu'on vient dire. */
-  function choisirOnglet(quel) {
-    var paires = [['onglet-expl', 'volet-expl'], ['onglet-retours', 'volet-retours']];
-    paires.forEach(function (x) {
-      var o = $(x[0]), v = $(x[1]);
-      if (!o || !v) return;
-      var actif = (x[0] === 'onglet-' + quel);
-      o.classList.toggle('est-actif', actif);
-      o.setAttribute('aria-selected', actif ? 'true' : 'false');
-      v.hidden = !actif;
-    });
-  }
 
   /* ── Mise en route ──────────────────────────────────────────
      LA FRESQUE S'AFFICHE TOUT DE SUITE. Il fallait cliquer « Afficher la
@@ -1638,7 +1431,7 @@
        la, sans erreur (le minuteur et l'antiseche chargent le meme fichier). */
     var hote = $('fresque-outil');
     if (!hote) return;
-    avecRetours = construireOutil(hote);
+    avecEdition = construireOutil(hote);
 
     /* LA LARGEUR DE LA BARRE DE DEFILEMENT, MESUREE. La zone sort de sa colonne
        pour prendre toute la fenetre, ce qui se calcule en `vw` -- or `vw`
@@ -1671,7 +1464,6 @@
       glisserCartes($('cartes'));
       majSelectsCartes();
       majChoixLien();
-      if ($('retours') || $('retours-carte')) chargerRetours();
     }).catch(function (e) {
       console.error('espace animateurs :', e);
       if (attente) {
@@ -1741,20 +1533,19 @@
      qui n'a pas de largeur tant qu'il l'est. */
   window.FresqueRef = { ajuster: ajuster };
 
-  on('mode-commentaires', 'change', function () {
-    modeCom = this.checked;
-    majOnglets();
-    $('barre-aide').textContent = modeCom ? T.aideCommentaire : T.aideLecture;
-    if ($('panneau-commentaire')) $('panneau-commentaire').hidden = !modeCom || $('panneau').hidden;
-  });
 
   $('lots').addEventListener('click', function (e) {
     var b = e.target.closest('.lot-puce');
     if (!b) return;
     var n = b.dataset.lot === '' ? null : +b.dataset.lot;
-    lotActif = (lotActif === n) ? null : n;
+    if (n === null) lotsActifs = [];
+    else {
+      var k = lotsActifs.indexOf(n);
+      if (k === -1) lotsActifs.push(n); else lotsActifs.splice(k, 1);
+    }
     construireLots();
     appliquerMiseEnAvant();
+    cadrerSurLaSelection();
   });
 
   var minuteurRecherche = null;
@@ -1771,6 +1562,13 @@
      dessine pas du tout. On cliquait donc une carte et il ne se passait rien.
      La zone contient desormais la barre d'outils, le plateau et le panneau :
      tout ce qui sert reste atteignable. */
+  /* VRAI PLEIN ECRAN. Le navigateur ne dessine que la zone, donc l'en-tete du
+     site disparait deja. Restait la barre de l'outil : zoom, recherche, filtres
+     de lot, legende des fleches et ligne d'aide prenaient pres de deux cents
+     pixels sur huit cents, soit un quart de l'ecran rendu a autre chose que la
+     fresque. En plein ecran, on ne garde que ce qui sert a regarder (voir
+     `.fresque-zone:fullscreen` dans la feuille de style) et le plateau prend la
+     place. */
   on('plein-ecran', 'click', function () {
     var cible = $('fresque-zone') || $('plateau-section');
     if (document.fullscreenElement) document.exitFullscreen();
@@ -1807,31 +1605,6 @@
     // Le jeton n'est pas verifie ici : la fonction le refusera a la premiere
     // action. L'afficher comme « activé » sans l'avoir eprouve serait mentir,
     // mais le verifier a vide couterait un appel pour rien.
-    rendreRetours();
-    if (cibleN != null) rendreRetoursCarte(cibleN);
-  });
-
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest('.retours .actions button');
-    if (!b) return;
-    var li = b.closest('li');
-    var action = b.classList.contains('valider') ? 'valider'
-      : b.classList.contains('traiter') ? 'traiter' : 'supprimer';
-    if (action === 'supprimer' && !confirm(T.confirmer)) return;
-    b.disabled = true;
-    moderer(li.dataset.cle, action).catch(function (err) {
-      b.disabled = false;
-      var etat = $('jeton-etat');
-      etat.className = 'jeton-etat err';
-      etat.textContent = err.message || T.echecAction;
-    });
-  });
-
-  /* Le champ « qu'est-ce qui pose probleme » n'apparait qu'une fois un lien
-     choisi : pose avant, il demande d'expliquer un lien qui n'existe pas. */
-  on('c-lien', 'change', function () {
-    var bloc = $('c-lien-bloc');
-    if (bloc) bloc.hidden = !$('c-lien').value;
   });
 
   on('e-enregistrer', 'click', function () {
@@ -2009,44 +1782,6 @@
 
   on('vue-cartes', 'click', function () { basculerVue('cartes'); });
   on('vue-fresque', 'click', function () { basculerVue('fresque'); });
-  on('onglet-expl', 'click', function () { choisirOnglet('expl'); });
-  on('onglet-retours', 'click', function () { choisirOnglet('retours'); });
 
-  on('c-envoi', 'click', function () {
-    var texte = $('c-texte').value.trim();
-    if (texte.length < 3) {
-      $('c-etat').className = 'etat err';
-      $('c-etat').textContent = 'Écrivez votre retour avant d’envoyer.';
-      return;
-    }
-    var lien = $('c-lien') ? parseInt($('c-lien').value, 10) : NaN;
-    envoyer({
-      sujet: 'carte', carte: cibleN, texte: texte,
-      lien: isFinite(lien) ? lien : null,
-      // Ce qui ne va pas dans ce lien. Le serveur l'efface si aucun lien n'est
-      // designe : un texte sans sa fleche serait impossible a rattacher.
-      lienTexte: $('c-lien-texte') ? $('c-lien-texte').value.trim() : '',
-      nom: $('c-nom').value.trim()
-    }, $('c-etat'))
-      .then(function () {
-        $('c-texte').value = '';
-        if ($('c-lien')) $('c-lien').value = '';
-        if ($('c-lien-texte')) $('c-lien-texte').value = '';
-        if ($('c-lien-bloc')) $('c-lien-bloc').hidden = true;
-        return chargerRetours();
-      })
-      .catch(function () { /* l'état est déjà affiché */ });
-  });
 
-  on('form-general', 'submit', function (e) {
-    e.preventDefault();
-    envoyer({
-      sujet: $('g-sujet').value,
-      texte: $('g-texte').value.trim(),
-      nom: $('g-nom').value.trim(),
-      email: $('g-email').value.trim()
-    }, $('g-etat'))
-      .then(function () { $('g-texte').value = ''; return chargerRetours(); })
-      .catch(function () { /* l'état est déjà affiché */ });
-  });
 })();

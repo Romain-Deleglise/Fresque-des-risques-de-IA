@@ -93,7 +93,7 @@ await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   return rep({ ok: true, fichier: { cartes: [] }, resume: [] });
 });
 
-await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(1300);
 const vu = (id) => pg.evaluate((i) => { const e = document.getElementById(i); return !!e && !e.hidden; }, id);
 const pos = (n) => pg.evaluate((k) => {
@@ -171,8 +171,10 @@ t("la poignée garde une taille attrapable au zoom d'ouverture", tp >= 12,
 t("le sélecteur de vue est verrouillé (rien à déplacer dans une grille)",
   await pg.evaluate(() => document.getElementById("vue-cartes").disabled
     && document.getElementById("vue-fresque").disabled));
-t("le mode commentaires est désactivé (les deux se disputent le clic)",
-  await pg.evaluate(() => document.getElementById("mode-commentaires").disabled));
+/* Le mode commentaires a ete retire de l'outil : donner un retour se fait en
+   un formulaire, sur la page Retours. Il n'y a donc plus qu'un mode a activer. */
+t("le panneau de lecture ne s'ouvre pas en édition",
+  await pg.evaluate(() => document.getElementById("panneau").hidden));
 t("l'aide dit quoi faire", /[Gg]lissez/.test(await pg.textContent("#barre-aide")));
 
 console.log("\n--- Déplacer une carte : les flèches suivent ---");
@@ -388,8 +390,8 @@ await pg.evaluate(() => { window.confirm = () => true;
   c.dispatchEvent(new Event("change", { bubbles: true })); });
 await pg.waitForTimeout(300);
 t("sortir referme la barre", !(await vu("barre-edition")));
-t("et rend le mode commentaires",
-  await pg.evaluate(() => !document.getElementById("mode-commentaires").disabled));
+t("et rend le clic de lecture aux cartes",
+  await pg.evaluate(() => !document.getElementById("plateau").classList.contains("en-edition")));
 await pg.evaluate(() => { const c = document.getElementById("mode-edition"); c.checked = true;
   c.dispatchEvent(new Event("change", { bubbles: true })); });
 await pg.waitForTimeout(400);
@@ -429,13 +431,19 @@ await pg.evaluate(() => { const c = document.getElementById("mode-edition"); c.c
 await pg.waitForTimeout(500);
 t("rentrer en édition reprend le plan publié", (await pos(12)).x === 0, String((await pos(12)).x));
 
-console.log("\n--- L'accueil n'a rien de tout cela ---");
+/* L'EDITION NE S'OFFRE PAS A QUI PASSE. L'outil ne vit plus que sur une page,
+   celle de la fresque : ce qui la garde n'est donc plus « quelle page ? » mais
+   le jeton. Sans lui, la bascule reste invisible, meme si le balisage existe.
+   Et la page Retours, elle, ne porte plus l'outil du tout. */
+console.log("\n--- L'edition ne s'offre pas a qui passe ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
-await pg.waitForTimeout(1200);
-t("pas de bascule d'édition sans retours",
-  (await pg.locator("#bascule-edition").count()) === 0);
-t("pas de barre d'édition",
-  (await pg.locator("#barre-edition").count()) === 0);
+await pg.waitForTimeout(1300);
+t("sans jeton, la bascule d'édition reste cachée", !(await vu("bascule-edition")));
+t("et la barre d'édition avec elle", !(await vu("barre-edition")));
+await pg.goto(B + "/animateurs/retours/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(800);
+t("la page Retours ne porte aucun outil de fresque",
+  (await pg.locator("#fresque-outil, #bascule-edition, #barre-edition").count()) === 0);
 
 t("aucune erreur JavaScript sur tout le parcours", erreursJS.length === 0, erreursJS.slice(0, 2).join(" | "));
 

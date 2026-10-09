@@ -56,6 +56,7 @@
       // a besoin d'emprunter l'appel authentifie plutot que de refaire sa
       // propre gestion de cle.
       if (window.__retoursAdmin) window.__retoursAdmin.charger(api);
+      if (window.__commentairesAdmin) window.__commentairesAdmin.charger(etat.cle);
       if (window.__alertesAdmin) window.__alertesAdmin.charger(api);
       if (window.__ateliersAdmin) window.__ateliersAdmin.charger(api);
     });
@@ -514,4 +515,101 @@
         .catch(function () { /* le reste du tableau de bord reste utilisable */ });
     }
   };
+})();
+
+
+/* ============================================================
+   COMMENTAIRES SUR LES CARTES
+   Deposes depuis /animateurs/retours/, relus ici. Ils vivaient dans leur propre
+   magasin et ne s'affichaient que sur la page qui sert a les ecrire : pour les
+   relire, il fallait ouvrir cette page et y saisir le jeton. Ils rejoignent donc
+   les autres retours, au meme endroit.
+
+   Ce module parle DIRECTEMENT au service des commentaires : la lecture y est
+   publique (c'est ce qui s'affichait deja sur le site) et la moderation demande
+   le meme ADMIN_TOKEN que cet espace. Rien de nouveau cote serveur.
+   ============================================================ */
+(function () {
+  "use strict";
+  var hote = document.getElementById("liste-commentaires");
+  if (!hote) return;
+  var API = "/.netlify/functions/commentaires";
+  var SUJETS = { carte: "sur une carte", atelier: "l'atelier", jeu: "le jeu de cartes",
+    deroule: "le déroulé", reference: "la fresque de référence", autre: "autre" };
+
+  var tous = [], cartes = {}, cle = "";
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function dateFr(ms) {
+    if (!ms) return "·";
+    try { return new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }); }
+    catch (e) { return "·"; }
+  }
+
+  function filtres() {
+    var f = (document.getElementById("filtre-commentaires") || {}).value || "attente";
+    if (f === "attente") return tous.filter(function (r) { return !r.valide; });
+    if (f === "valide") return tous.filter(function (r) { return r.valide; });
+    return tous;
+  }
+
+  function rendre() {
+    var liste = filtres();
+    var pastille = document.getElementById("compte-commentaires");
+    if (pastille) {
+      var enAttente = tous.filter(function (r) { return !r.valide; }).length;
+      pastille.textContent = enAttente ? String(enAttente) : "";
+      pastille.hidden = !enAttente;
+    }
+    if (!liste.length) { hote.innerHTML = '<p class="vide">Rien à relire.</p>'; return; }
+    hote.innerHTML = liste.map(function (r) {
+      var quoi = r.carte != null
+        ? "carte " + r.carte + (cartes[r.carte] ? " · " + cartes[r.carte].titre : "")
+        : (SUJETS[r.sujet] || r.sujet);
+      return '<div class="r-item' + (r.valide ? "" : " r-attente") + '" data-cle="' + esc(r.cle) + '">'
+        + '<div class="r-tete"><strong>' + esc(r.nom || "Anonyme") + '</strong>'
+        + '<span>· ' + esc(quoi) + '</span><span>· ' + esc(dateFr(r.date)) + '</span>'
+        + (r.valide ? "" : '<span class="r-badge">à relire</span>') + '</div>'
+        + '<p class="r-texte">' + esc(r.texte) + '</p>'
+        + '<div class="r-actions">'
+        + (r.valide ? "" : '<button type="button" data-op="valider">Valider</button>')
+        + '<button type="button" data-op="traiter">' + (r.traite ? "Déjà pris en compte" : "Pris en compte") + '</button>'
+        + '<button type="button" data-op="supprimer">Supprimer</button>'
+        + '</div></div>';
+    }).join("");
+  }
+
+  function charger(cleAdmin) {
+    cle = cleAdmin || "";
+    /* Les titres des cartes servent a nommer un commentaire : sans eux on lit
+       « carte 17 » et il faut aller chercher laquelle. */
+    var titres = Object.keys(cartes).length ? Promise.resolve() : fetch("../data/cartes.json")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { (d.cartes || []).forEach(function (c) { cartes[c.n] = c; }); })
+      .catch(function () { /* on affichera le numero seul */ });
+    return titres.then(function () { return fetch(API); })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { tous = (d && d.retours) || []; rendre(); })
+      .catch(function () { /* le tableau de bord reste utilisable sans */ });
+  }
+  window.__commentairesAdmin = { charger: charger };
+
+  var filtre = document.getElementById("filtre-commentaires");
+  if (filtre) filtre.addEventListener("change", rendre);
+
+  hote.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-op]");
+    if (!b) return;
+    var op = b.dataset.op;
+    if (op === "supprimer" && !window.confirm("Supprimer définitivement ce commentaire ?")) return;
+    b.disabled = true;
+    fetch(API, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: op, cle: b.closest(".r-item").dataset.cle, jeton: cle }) })
+      .then(function (r) { if (!r.ok) throw new Error("refus"); return charger(cle); })
+      .catch(function () { b.disabled = false; });
+  });
 })();

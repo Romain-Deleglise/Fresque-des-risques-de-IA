@@ -100,6 +100,24 @@
         <div id="liste-retours" class="retours-admin" aria-live="polite"></div>
       </div>
 
+      <!-- LES COMMENTAIRES SUR LES CARTES se relisaient sur la page Retours de
+           l'espace animateur·ices, qui portait pour cela un champ de jeton. Cette
+           page ne sert plus qu'a en deposer : la relecture est ici, avec les
+           autres retours, au meme endroit que le reste. -->
+      <div class="panneau">
+        <div class="table-tete">
+          <h2>Commentaires sur les cartes <span id="compte-commentaires" class="pastille"></span></h2>
+          <div class="table-outils">
+            <select id="filtre-commentaires" aria-label="Filtrer les commentaires">
+              <option value="attente">À relire</option>
+              <option value="tous">Tout</option>
+              <option value="valide">Relus</option>
+            </select>
+          </div>
+        </div>
+        <div id="liste-commentaires" class="retours-admin" aria-live="polite"></div>
+      </div>
+
       <div class="panneau">
         <div class="table-tete">
           <h2>Contacts <span id="compte-contacts" class="pastille"></span></h2>
