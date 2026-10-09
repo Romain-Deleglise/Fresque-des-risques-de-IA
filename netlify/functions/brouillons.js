@@ -205,11 +205,14 @@ exports.handler = async (event) => {
     const v = FB.valider(b.tableau, publiee.plan);
     if (v.erreur) return json(400, { erreur: v.erreur });
     /* ON ARCHIVE CE QU'ON REMPLACE, pas ce qu'on pose : l'etat d'avant est le
-       seul qui disparaitrait. La toute premiere publication archive donc le
-       plan du depot, qui redevient ainsi une version comme les autres. */
-    const avant = await lirePublieFresque(s, publiee);
+       seul qui disparaitrait. Et on n'archive QUE s'il differe de ce qu'on
+       pose : republier une ancienne version ramene le plan du depot en ligne,
+       et `lirePublieFresque` rend alors null, comme lorsque rien n'a jamais ete
+       publie. Sans cette comparaison, chaque retour en arriere ajoutait une
+       copie de plus du plan du depot a l'historique. */
+    const avant = (await lirePublieFresque(s, publiee)) || publiee.tableau;
     const quand = Date.now();
-    await archiver(s, avant || publiee.tableau, quand);
+    if (!FB.identique(avant, v.tableau)) await archiver(s, avant, quand);
     await s.setJSON(CLE_PUBLIE_FRESQUE, { quand: quand, tableau: v.tableau });
     await s.delete(CLE_FRESQUE).catch(() => {});
     return json(200, { ok: true, enLigne: true,

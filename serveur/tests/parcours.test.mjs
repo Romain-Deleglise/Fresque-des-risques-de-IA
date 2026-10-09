@@ -75,15 +75,24 @@ test("chaque étape dit pour qui, quand, et d'où elle part", () => {
    « à » donnerait son adresse a tous les autres, qui ne se la sont pas donnee.
    La carte le dit ; le code doit le faire. */
 test("les courriels annoncés « en copie cachée » le sont vraiment", () => {
+  let verifies = 0;
   for (const p of P.tous()) {
-    for (const e of p.etapes.filter((x) => /copie cachée/.test(x.pour))) {
+    /* SANS ACCENT : parcours.js ecrit « copie cachee ». Avec l'accent, ce
+       filtre ne retenait rien et le test passait en ne verifiant rien. */
+    const collectifs = p.etapes.filter((x) => /copie cach/.test(x.pour));
+    for (const e of collectifs) {
       const src = fs.readFileSync(path.join(DIR, e.source), "utf8");
       const i = src.indexOf(e.sujet);
       assert.ok(i !== -1, `${e.sujet} : introuvable dans ${e.source}`);
       const autour = src.slice(Math.max(0, i - 400), i + 200);
       assert.match(autour, /bcc:/, `${e.sujet} doit partir en copie cachée`);
+      verifies++;
     }
   }
+  /* UN TEST QUI NE VERIFIE RIEN PASSE TOUJOURS. C'est ce qui est arrive ici :
+     le filtre portait un accent que la carte n'a pas, et la boucle tournait a
+     vide. On compte donc ce qu'on a verifie. */
+  assert.ok(verifies >= 5, `seulement ${verifies} envoi(s) collectif(s) vérifié(s)`);
 });
 
 /* LE JOURNAL NE GARDE AUCUNE ADRESSE. Un journal des envois qui retient les

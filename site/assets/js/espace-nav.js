@@ -21,20 +21,22 @@
   var racine = document.body.dataset.racine || "../";
   var en = (document.documentElement.lang || "fr").indexOf("en") === 0;
 
+  /* LES MEMES QUATRE ONGLETS QUE LES AUTRES PAGES DE L'ESPACE. Ce script
+     reconstruisait l'ancienne barre : cinq entrees, dont « Outils » vers une
+     page supprimee et un bouton « Fresque de reference » vers une ancre qui
+     n'existe plus. Le guide affichait donc, a lui seul, une navigation d'une
+     autre epoque, avec deux liens qui ne menaient nulle part. */
   var onglets = en ? [
-    ["Home", racine + "facilitators/"],
+    ["Fresk", racine + "facilitators/"],
     ["Guide", racine + "en/guide/?espace=1"],
-    ["Tools", racine + "facilitators/outils/"],
+    ["Cheat sheet", racine + "facilitators/antiseche/"],
     ["Feedback", racine + "facilitators/retours/"]
   ] : [
-    ["Accueil", racine + "animateurs/"],
+    ["Fresque", racine + "animateurs/"],
     ["Guide", racine + "guide/?espace=1"],
-    ["Outils", racine + "animateurs/outils/"],
+    ["Antisèche", racine + "animateurs/antiseche/"],
     ["Retours", racine + "animateurs/retours/"]
   ];
-  var bouton = en
-    ? ["Reference fresk", racine + "facilitators/retours/#fresque"]
-    : ["Fresque de référence", racine + "animateurs/retours/#fresque"];
 
   nav.setAttribute("aria-label", en ? "Facilitators' space" : "Espace animateur·ices");
   nav.textContent = "";
@@ -46,9 +48,4 @@
     if (o[0] === "Guide") a.setAttribute("aria-current", "page");
     nav.appendChild(a);
   });
-  var b = document.createElement("a");
-  b.href = bouton[1];
-  b.className = "btn-nav";
-  b.textContent = bouton[0];
-  nav.appendChild(b);
 })();

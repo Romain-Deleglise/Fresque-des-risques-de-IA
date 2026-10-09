@@ -81,8 +81,20 @@ for (const u of PAGES) {
    lorsqu'on y arrive avec ?espace=1, et les rend a un visiteur ordinaire. */
 await pg.goto(B + "/guide/?espace=1", { waitUntil: "networkidle" });
 await pg.waitForTimeout(400);
-t("le guide reprend les onglets quand on y arrive depuis l'espace",
-  await pg.evaluate(() => !!document.querySelector('nav[aria-label^="Espace"]')));
+/* ON VERIFIE LE CONTENU, pas la seule presence : le guide reconstruit sa barre
+   en JavaScript, et il affichait a lui seul l'ancienne, cinq entrees dont deux
+   menaient a des pages supprimees. Une barre « presente » ne dit rien. */
+const barreGuide = await pg.evaluate(() => {
+  const n = document.querySelector('nav[aria-label^="Espace"]');
+  return n ? [...n.querySelectorAll("a")].map((a) => a.textContent.trim()) : null;
+});
+t("le guide reprend LES MEMES onglets quand on y arrive depuis l'espace",
+  JSON.stringify(barreGuide) === JSON.stringify(ONGLETS), JSON.stringify(barreGuide));
+t("et aucun de ses liens ne mene a une page supprimee",
+  await pg.evaluate(() => {
+    const n = document.querySelector('nav[aria-label^="Espace"]');
+    return !n || ![...n.querySelectorAll("a")].some((a) => /outils|#fresque/.test(a.getAttribute("href")));
+  }));
 await pg.goto(B + "/guide/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(400);
 t("et les rend a un visiteur ordinaire",

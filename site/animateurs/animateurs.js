@@ -27,7 +27,6 @@
   /* Mode edition de la fresque de reference : declare ici parce que le rendu
      des cartes et des liens en depend, et qu'il s'ecrit plus bas. */
   var editionFresque = false, lienChoisi = null;
-  var retours = [];   // tous les retours, tels que la fonction les renvoie
   var jeton = '';     // jeton de moderation, garde en memoire seulement
 
   var $ = function (id) { return document.getElementById(id); };
@@ -175,7 +174,7 @@
        commentait carte par carte. Ce mode a ete retire : donner un retour se
        fait en un formulaire, sur la page Retours. Ne reste ici que l'edition,
        gardee par le jeton de moderation. */
-    var avecEdition = hote.getAttribute('data-edition') === 'oui';
+    avecEdition = hote.getAttribute('data-edition') === 'oui';
     var fermerId = hote.getAttribute('data-fermer') || '';
     var h = [];
 
@@ -735,8 +734,6 @@
     }
     $('panneau-liens').innerHTML = bloc;
 
-    if ($('c-texte')) $('c-texte').value = '';
-    if ($('c-etat')) $('c-etat').textContent = '';
     $('panneau').hidden = false;
     surligner(n);
     // Le plateau se retire sous le panneau : à l'échelle d'ajustement il n'y a
@@ -895,8 +892,6 @@
      de quarante identifiants juste pour montrer un plateau. */
   function on(id, ev, fn) { var el = $(id); if (el) el.addEventListener(ev, fn); }
 
-  /* ── Commentaires ───────────────────────────────────────── */
-  var API = '/.netlify/functions/commentaires';
   /* Chemin vers la racine du site : /animateurs/ est a un niveau,
      /en/facilitators/ a deux. Le HTML le declare, le script s'y fie. */
   var RACINE = document.body.dataset.racine || '../';
@@ -908,7 +903,6 @@
      dense, ou se croisent deja numeros, lots et fleches. On la garde donc sur
      la vue Cartes, qui est faite pour parcourir, et sur l'onglet Retours du
      panneau, qui reste visible depuis les deux vues. */
-  var compteRetours = {};
 
 
 
@@ -1464,7 +1458,7 @@
      onglets dont l'un est seul a servir n'annoncent qu'une fausse promesse. On
      les retire alors, et la croix de fermeture reste a sa place. */
 
-  /* ── PANNEAU : DEUX ONGLETS ─────────────────────────────────
+  /* ── LE PANNEAU D'UNE CARTE ─────────────────────────────────
      Le panneau melait le verso, les liens, les retours et leur formulaire en
      une seule colonne qu'il fallait parcourir en entier. Deux onglets : ce
      qu'on vient lire, et ce qu'on vient dire. */

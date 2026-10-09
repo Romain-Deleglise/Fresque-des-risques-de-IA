@@ -155,3 +155,32 @@ body.admin { background: var(--bg-doux); }
 @media (max-width: 640px) {
   .table-ateliers { display: block; overflow-x: auto; }
 }
+
+/* ── JOURNAL DES ENVOIS ──────────────────────────────────────
+   Trois états, trois couleurs : parti, échec, bloqué par le plafond. Le bord
+   gauche suffit à parcourir la liste sans la lire. */
+.pastille-info { font-family: var(--f-ui); font-size: .8rem; font-weight: 600;
+  color: var(--gris); margin-left: .5rem; }
+.petit { font-size: .85rem; margin-top: -.4rem; }
+.r-item.j-ok { border-left: 3px solid var(--ok, #2e7d32); }
+.r-item.j-ko { border-left: 3px solid var(--err, #c1444e); }
+.r-item.j-attente { border-left: 3px solid var(--accent); }
+
+/* ── CARTE DES PARCOURS ──────────────────────────────────────
+   Une colonne par départ, les e-mails dans l'ordre où ils arrivent, et sous
+   chacun ce qu'il contient. On lit « qu'est-ce que reçoit quelqu'un qui
+   s'inscrit, et quand ? » d'un seul regard, sans ouvrir neuf fichiers. */
+.parcours { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.1rem; margin-top: .9rem; }
+.p-col { border: 1px solid var(--ligne); border-radius: 12px; padding: 1rem 1.1rem;
+  background: var(--bg-doux); }
+.p-col h3 { font-family: var(--f-ui); font-size: .95rem; margin: 0 0 .3rem; color: var(--ink); }
+.p-depart { font-size: .82rem; color: var(--gris); margin: 0 0 .8rem; }
+/* Numérotée : l'ordre d'arrivée est l'information principale. */
+.p-etapes { margin: 0; padding-left: 1.1rem; display: grid; gap: .8rem; }
+.p-etapes > li { font-size: .86rem; }
+.p-quand { display: block; font-family: var(--f-ui); font-size: .74rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--accent-txt); }
+.p-sujet { display: block; color: var(--ink); line-height: 1.3; }
+.p-pour { display: block; font-size: .8rem; color: var(--gris); }
+.p-porte { margin: .35rem 0 0; padding-left: 1rem; font-size: .78rem; color: var(--gris); }

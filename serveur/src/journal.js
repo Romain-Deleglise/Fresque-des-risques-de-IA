@@ -30,7 +30,12 @@ function tronque(v, n) { return String(v == null ? "" : v).slice(0, n).trim(); }
    retenue, parce qu'aucun champ ne l'accueille. */
 function entree(champ, now) {
   champ = champ || {};
-  var evt = ["envoye", "echec", "bloque"].indexOf(champ.evt) === -1 ? "echec" : champ.evt;
+  /* « alerte_seuil » existe aussi (mail.js previent l'equipe quand on approche
+     du plafond). Le ranger dans « echec » faisait apparaitre, chaque jour ou le
+     seuil est franchi, un envoi en echec qui n'en etait pas un. Un evenement
+     inconnu reste un echec : mieux vaut un faux signalement qu'un silence. */
+  var evt = ["envoye", "echec", "bloque", "alerte_seuil"].indexOf(champ.evt) === -1
+    ? "echec" : champ.evt;
   var n = Number(champ.dest);
   return {
     quand: Number(now) || 0,

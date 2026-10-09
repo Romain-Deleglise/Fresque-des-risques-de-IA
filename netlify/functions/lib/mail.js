@@ -120,12 +120,17 @@ function magasinJournal() {
   } catch (e) { return null; }
 }
 
+/* ON ATTEND L'ECRITURE, et c'est indispensable : sur Lambda le processus GELE
+   des que la fonction rend la main. Une promesse lancee sans etre attendue ne
+   reprend jamais, et le journal restait vide pendant que les courriels
+   partaient tres bien. Pire, dans la boucle des annonces hebdomadaires, chaque
+   tour ecrasait le precedent faute d'avoir attendu sa lecture. */
 function journal(champ) {
   try { console.log("[mail] " + JSON.stringify(champ)); } catch (e) {}
   var s = magasinJournal();
-  if (!s) return;
+  if (!s) return Promise.resolve();
   var now = Date.now();
-  Promise.resolve()
+  return Promise.resolve()
     .then(function () { return s.get("envois", { type: "json" }); })
     .then(function (v) {
       /* Deux envois simultanes peuvent s'ecraser l'un l'autre : c'est un
@@ -154,7 +159,7 @@ async function envoi(m) {
   // Le mail d'alerte interne contourne le plafond et n'est ni compte ni re-alerte.
   if (!m._interne) {
     var garde = await plafondAtteint(c);
-    if (garde.bloque) { journal({ evt: "bloque", raison: garde.raison, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: garde.raison }; }
+    if (garde.bloque) { await journal({ evt: "bloque", raison: garde.raison, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: garde.raison }; }
   }
   var corps = { from: c.from, to: to, subject: m.subject, text: m.text };
   if (m.html) corps.html = m.html;
@@ -175,15 +180,15 @@ async function envoi(m) {
       headers: { "Authorization": "Bearer " + c.cle, "Content-Type": "application/json" },
       body: JSON.stringify(corps)
     });
-    if (!r.ok) { journal({ evt: "echec", raison: "http_" + r.status, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: "http_" + r.status }; }
+    if (!r.ok) { await journal({ evt: "echec", raison: "http_" + r.status, dest: nbDest, sujet: m.subject }); return { envoye: false, raison: "http_" + r.status }; }
     if (!m._interne) {
       var totalJour = await incrementerCompteurs();
-      journal({ evt: "envoye", dest: nbDest, jour: totalJour, sujet: m.subject });
+      await journal({ evt: "envoye", dest: nbDest, jour: totalJour, sujet: m.subject });
       try { await peutAlerter(c, totalJour); } catch (e) {}
     }
     return { envoye: true };
   } catch (e) {
-    journal({ evt: "echec", raison: "exception", dest: nbDest, sujet: m.subject });
+    await journal({ evt: "echec", raison: "exception", dest: nbDest, sujet: m.subject });
     return { envoye: false, raison: "exception" };
   }
 }
