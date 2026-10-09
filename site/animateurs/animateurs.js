@@ -90,7 +90,12 @@
     lienExiste: 'That link already exists.',
     memeCarte: 'A card cannot link to itself.',
     aucunLien: 'No link selected.',
-    deplacees: 'cards moved', liensPlus: 'links added', liensMoins: 'links removed'  } : {
+    deplacees: 'cards moved', liensPlus: 'links added', liensMoins: 'links removed',
+    versions: 'Earlier versions', chargerVersion: 'Load this one',
+    aucuneVersion: 'No earlier version yet',
+    versionChargee: 'Earlier version loaded. Look it over, then publish it to put it back online.',
+    versionIntrouvable: 'That version is gone.',
+    cartesEtLiens: 'cards', liensCourt: 'links'  } : {
     aideLecture: 'Cliquez une carte pour lire son verso. Glissez pour vous déplacer dans la fresque.',
     envoi: 'Envoi…',
     echecAction: 'Action impossible.',
@@ -143,7 +148,12 @@
     lienExiste: 'Ce lien existe déjà.',
     memeCarte: 'Une carte ne peut pas se relier à elle-même.',
     aucunLien: 'Aucun lien sélectionné.',
-    deplacees: 'cartes déplacées', liensPlus: 'liens ajoutés', liensMoins: 'liens retirés'
+    deplacees: 'cartes déplacées', liensPlus: 'liens ajoutés', liensMoins: 'liens retirés',
+    versions: 'Versions précédentes', chargerVersion: 'Charger celle-ci',
+    aucuneVersion: 'Aucune version précédente pour le moment',
+    versionChargee: 'Version précédente chargée. Relisez-la, puis publiez-la pour la remettre en ligne.',
+    versionIntrouvable: 'Cette version n\'existe plus.',
+    cartesEtLiens: 'cartes', liensCourt: 'liens'
   };
 
   /* ── L'OUTIL, CONSTRUIT UNE SEULE FOIS ────────────────────
@@ -254,6 +264,17 @@
          reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
          yeux de qui ne modifie pas la fresque. */
       h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
+      h.push('</div>');
+      /* REVENIR EN ARRIERE. Publier ecrasait le plan precedent : une fausse
+         manoeuvre sur trente-huit cartes ne se defaisait qu'en les replacant une
+         a une. Chaque publication archive ce qu'elle remplace ; on recharge ici
+         une version anterieure, on la relit, et on la republie si elle convient.
+         Charger ne met rien en ligne : c'est « Publier » qui le fait, et c'est
+         voulu, pour qu'on voie ce qu'on remet avant de le remettre. */
+      h.push('<div class="edition-rang">');
+      h.push('<label for="f-versions">' + T.versions + '</label>');
+      h.push('<span class="select-joli"><select id="f-versions"></select></span>');
+      h.push('<button type="button" class="btn-outil" id="f-charger">' + T.chargerVersion + '</button>');
       h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
       h.push('</div>');
       h.push('</div>');
@@ -1006,6 +1027,7 @@
 
      COMME POUR LES CARTES : PUBLIER TELECHARGE, IL N'ECRIT PAS. Voir le
      commentaire du bloc des brouillons. */
+  var versions = [];             // les plans publies avant celui en ligne
   var brouillonFresque = null;   // le tableau enregistre cote serveur, s'il existe
   var fresquePubliee = null;     // le plan DEJA en ligne, pas encore dans le depot
   var histoire = [];             // les etats precedents, pour « Annuler »
@@ -1036,6 +1058,33 @@
 
   function fleche(id) {
     return ref.tableau.fleches.find(function (f) { return f.id === id; }) || null;
+  }
+
+  /* La liste se lit au format long : une version se choisit a la date, pas a un
+     horodatage. On y ajoute sa taille, qui suffit a reconnaitre un plan ampute. */
+  function majVersions() {
+    var sel = $('f-versions');
+    if (!sel) return;
+    if (!versions.length) {
+      sel.innerHTML = '<option value="">' + echapper(T.aucuneVersion) + '</option>';
+    } else {
+      sel.innerHTML = versions.map(function (v) {
+        var d = new Date(v.quand).toLocaleString(EN ? 'en-GB' : 'fr-FR',
+          { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return '<option value="' + v.quand + '">' + echapper(d)
+          + ' · ' + v.cartes + ' ' + T.cartesEtLiens + ', ' + v.fleches + ' ' + T.liensCourt
+          + '</option>';
+      }).join('');
+    }
+    if ($('f-charger')) $('f-charger').disabled = !versions.length;
+  }
+
+  function chargerVersions() {
+    if (!jeton || !$('f-versions')) return Promise.resolve();
+    return envoyerFresque({ action: 'fresque-versions' }).then(function (d) {
+      versions = d.versions || [];
+      majVersions();
+    }).catch(function () { /* l'edition reste possible sans l'historique */ });
   }
 
   function majEdition() {
@@ -1298,6 +1347,7 @@
       ? T.aideEdition : T.aideLecture;
     majSelectsCartes();
     majChoixLien();
+    if (editionFresque) chargerVersions();
     dessinerCartes();
     dessinerLiens();
     appliquerMiseEnAvant();
@@ -1716,6 +1766,28 @@
     dessinerLiens();
     etatEdition(T.lienSupprime, false);
   });
+  /* CHARGER NE MET RIEN EN LIGNE. La version revient dans l'editeur, on la
+     regarde, et c'est « Publier » qui decide. Remettre en ligne sans avoir vu
+     ce qu'on remet est exactement la manoeuvre qui a rendu l'historique
+     necessaire. */
+  on('f-charger', 'click', function () {
+    var quand = Number($('f-versions').value);
+    if (!quand) return;
+    envoyerFresque({ action: 'fresque-version', quand: quand }).then(function (d) {
+      if (!d.tableau) { etatEdition(T.versionIntrouvable, true); return; }
+      memoriser();
+      ref.tableau = clonerTableau(d.tableau);
+      lienChoisi = null;
+      majSelectsCartes();
+      majChoixLien();
+      dessinerCartes();
+      dessinerLiens();
+      appliquerMiseEnAvant();
+      majEdition();
+      etatEdition(T.versionChargee, false);
+    }).catch(function () { /* l'etat est deja affiche */ });
+  });
+
   on('f-annuler', 'click', annulerDernier);
 
   on('f-enregistrer', 'click', function () {
@@ -1761,6 +1833,8 @@
       /* Le calque lu au chargement ne vaut plus : « Abandonner » doit revenir
          sur ce qu'on vient de publier, pas sur l'etat d'il y a dix minutes. */
       if (window.CalqueCartes) window.CalqueCartes.oublier();
+      versions = d.versions || versions;
+      majVersions();
       majEdition();
       etatEdition(T.fresquePubliee + ' ' + resumeFresque(d.resume), false);
     }).catch(function () { /* l'etat est deja affiche */ });

@@ -65,6 +65,41 @@ const CLE_FRESQUE = "fresque";
 const CLE_PUBLIE = "publie";
 const CLE_PUBLIE_FRESQUE = "publie-fresque";
 
+/* L'HISTORIQUE DE LA FRESQUE. Publier ecrasait le plan precedent : une fausse
+   manoeuvre sur trente-huit cartes ne se defaisait qu'en les replacant une a
+   une. Chaque publication archive donc l'etat qu'elle remplace, et l'on peut
+   recharger une version anterieure dans l'editeur pour la republier.
+
+   UNE CLE PAR VERSION, horodatee : la liste se trie sans lire le contenu, et
+   une version ne se perd pas dans un tableau qu'on reecrit en entier. On en
+   garde vingt : au-dela, ce n'est plus un filet de securite, c'est une archive
+   que personne ne relit. */
+const PREFIXE_VERSION = "fresque-v:";
+const MAX_VERSIONS = 20;
+
+async function archiver(s, tableau, quand) {
+  if (!tableau) return;
+  await s.setJSON(PREFIXE_VERSION + quand, { quand: quand, tableau: tableau });
+  const { blobs } = await s.list({ prefix: PREFIXE_VERSION }).catch(() => ({ blobs: [] }));
+  const cles = (blobs || []).map((b) => b.key).sort();   // horodatees : l'ordre des cles est l'ordre du temps
+  for (const vieille of cles.slice(0, Math.max(0, cles.length - MAX_VERSIONS))) {
+    await s.delete(vieille).catch(() => {});
+  }
+}
+
+async function lireVersions(s) {
+  const { blobs } = await s.list({ prefix: PREFIXE_VERSION }).catch(() => ({ blobs: [] }));
+  const out = [];
+  for (const b of blobs || []) {
+    const v = await s.get(b.key, { type: "json" }).catch(() => null);
+    if (v && v.tableau) {
+      out.push({ quand: v.quand, cartes: (v.tableau.cartes || []).length,
+        fleches: (v.tableau.fleches || []).length });
+    }
+  }
+  return out.sort((a, b) => b.quand - a.quand);
+}
+
 /* LE PLAN PUBLIE EN LIGNE, nettoye a chaque lecture comme celui des cartes :
    le jour ou le depot le porte, il n'a plus rien a ajouter. */
 async function lirePublieFresque(s, fichier) {
@@ -169,10 +204,30 @@ exports.handler = async (event) => {
        version plus ancienne du code, ou la fresque publiee avoir change depuis. */
     const v = FB.valider(b.tableau, publiee.plan);
     if (v.erreur) return json(400, { erreur: v.erreur });
-    await s.setJSON(CLE_PUBLIE_FRESQUE, { quand: Date.now(), tableau: v.tableau });
+    /* ON ARCHIVE CE QU'ON REMPLACE, pas ce qu'on pose : l'etat d'avant est le
+       seul qui disparaitrait. La toute premiere publication archive donc le
+       plan du depot, qui redevient ainsi une version comme les autres. */
+    const avant = await lirePublieFresque(s, publiee);
+    const quand = Date.now();
+    await archiver(s, avant || publiee.tableau, quand);
+    await s.setJSON(CLE_PUBLIE_FRESQUE, { quand: quand, tableau: v.tableau });
     await s.delete(CLE_FRESQUE).catch(() => {});
     return json(200, { ok: true, enLigne: true,
-      resume: FB.resume(publiee.tableau, v.tableau) });
+      resume: FB.resume(publiee.tableau, v.tableau),
+      versions: await lireVersions(s) });
+  }
+
+  /* LES VERSIONS PRECEDENTES, pour en recharger une dans l'editeur. On rend la
+     liste, puis le plan demande : deux appels, parce qu'on parcourt la liste
+     souvent et qu'on ne charge qu'une version a la fois. */
+  if (corps.action === "fresque-versions") {
+    return json(200, { ok: true, versions: await lireVersions(s) });
+  }
+
+  if (corps.action === "fresque-version") {
+    const v = await s.get(PREFIXE_VERSION + Number(corps.quand), { type: "json" }).catch(() => null);
+    if (!v || !v.tableau) return json(404, { erreur: "Cette version n'existe plus." });
+    return json(200, { ok: true, tableau: v.tableau, quand: v.quand });
   }
 
   /* LE FICHIER DU PLAN, POUR LE DEPOT. Separe de la publication, et sans

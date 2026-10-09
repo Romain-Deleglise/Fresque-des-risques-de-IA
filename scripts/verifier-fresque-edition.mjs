@@ -57,6 +57,7 @@ pg.on("pageerror", (e) => erreursJS.push(e.message));
 /* Le service bouchonne. Il garde le brouillon comme le vrai : un seul, entier. */
 let brouillonFresque = null;
 let fresquePubliee = null;      // le plan DEJA en ligne
+let versions = [];              // les plans publies avant lui
 const recus = [];
 await pg.route("**/.netlify/functions/commentaires**", (r) => r.fulfill({ status: 200,
   contentType: "application/json", body: JSON.stringify({ ok: true, compte: {}, retours: [] }) }));
@@ -78,10 +79,24 @@ await pg.route("**/.netlify/functions/brouillons**", async (r) => {
   if (c.action === "fresque-publier") {
     if (!brouillonFresque) return r.fulfill({ status: 400, contentType: "application/json",
       body: JSON.stringify({ erreur: "Aucune modification à publier." }) });
+    /* Comme le vrai service : on archive ce qu'on remplace, pas ce qu'on pose. */
+    const avant = fresquePubliee;
+    if (avant) versions.unshift({ quand: Date.now(), cartes: avant.cartes.length,
+      fleches: avant.fleches.length, tableau: avant });
     fresquePubliee = brouillonFresque;
     brouillonFresque = null;
     return rep({ ok: true, enLigne: true,
-      resume: { cartesDeplacees: 1, cartesAjoutees: 0, liensAjoutes: 1, liensRetires: 0 } });
+      resume: { cartesDeplacees: 1, cartesAjoutees: 0, liensAjoutes: 1, liensRetires: 0 },
+      versions: versions.map((v) => ({ quand: v.quand, cartes: v.cartes, fleches: v.fleches })) });
+  }
+  if (c.action === "fresque-versions") {
+    return rep({ ok: true, versions: versions.map((v) => ({ quand: v.quand, cartes: v.cartes, fleches: v.fleches })) });
+  }
+  if (c.action === "fresque-version") {
+    const v = versions.find((x) => x.quand === c.quand);
+    if (!v) return r.fulfill({ status: 404, contentType: "application/json",
+      body: JSON.stringify({ erreur: "Cette version n'existe plus." }) });
+    return rep({ ok: true, tableau: v.tableau, quand: v.quand });
   }
   if (c.action === "fresque-telecharger") {
     const t2 = brouillonFresque || fresquePubliee;
@@ -435,6 +450,48 @@ t("rentrer en édition reprend le plan publié", (await pos(12)).x === 0, String
    celle de la fresque : ce qui la garde n'est donc plus « quelle page ? » mais
    le jeton. Sans lui, la bascule reste invisible, meme si le balisage existe.
    Et la page Retours, elle, ne porte plus l'outil du tout. */
+/* ── REVENIR SUR UNE VERSION PRECEDENTE ──────────────────────
+   Publier ecrasait le plan precedent : une fausse manoeuvre sur trente-huit
+   cartes ne se defaisait qu'en les replacant une a une. Charger ne met rien en
+   ligne : la version revient dans l'editeur, on la regarde, et c'est
+   « Publier » qui decide. */
+console.log("\n--- Revenir sur une version precedente ---");
+const posAvant = (await pos(12)).x;
+await pg.evaluate(() => { const c = document.getElementById("mode-edition");
+  if (!c.checked) { c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); } });
+await pg.waitForTimeout(600);
+// Un deuxieme deplacement, puis une deuxieme publication : deux versions.
+await pg.evaluate(() => {
+  const el = document.querySelector('.c-carte[data-n="12"]');
+  el.focus();
+  for (let i = 0; i < 5; i++) el.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+});
+await pg.waitForTimeout(300);
+await pg.evaluate(() => document.getElementById("f-enregistrer").click());
+await pg.waitForTimeout(500);
+await pg.evaluate(() => { window.alert = () => {}; document.getElementById("f-publier").click(); });
+await pg.waitForTimeout(800);
+const listees = await pg.evaluate(() => [...document.querySelectorAll("#f-versions option")]
+  .map((o) => o.value).filter(Boolean).length);
+t("les versions precedentes sont proposees", listees >= 1, String(listees));
+t("et chacune se lit a la date, pas a un horodatage",
+  /\d/.test(await pg.evaluate(() => (document.querySelector("#f-versions option") || {}).textContent || "")),
+  await pg.evaluate(() => (document.querySelector("#f-versions option") || {}).textContent || ""));
+
+const avantCharge = (await pos(12)).x;
+await pg.evaluate(() => document.getElementById("f-charger").click());
+await pg.waitForTimeout(700);
+t("charger ramene le plan d'avant dans l'editeur", (await pos(12)).x !== avantCharge,
+  avantCharge + " → " + (await pos(12)).x);
+t("et l'etat dit qu'il faut encore publier pour le remettre en ligne",
+  /publi/i.test(await pg.textContent("#f-etat")), await pg.textContent("#f-etat"));
+t("charger ne met rien en ligne tout seul",
+  fresquePubliee !== null && JSON.stringify(fresquePubliee) !== JSON.stringify(versions[0] && versions[0].tableau));
+await pg.evaluate(() => { window.confirm = () => true;
+  const c = document.getElementById("mode-edition"); c.checked = false;
+  c.dispatchEvent(new Event("change", { bubbles: true })); });
+await pg.waitForTimeout(300);
+
 console.log("\n--- L'edition ne s'offre pas a qui passe ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(1300);
