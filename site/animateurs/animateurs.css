@@ -641,12 +641,24 @@
    ET UNE GOUTTIERE. La zone prend toute la largeur, mais son CONTENU ne doit
    pas toucher les bords de l'ecran : sans cette marge, le zoom et les filtres
    se collaient au bord, et paraissaient sortir du cadre. */
-/* `50vw` compte la barre de defilement, pas `50%`. L'ecart valait donc une
-   demi-barre de chaque cote, et la barre d'outils se trouvait rognee a gauche
-   chez qui a une barre visible. On la MESURE (animateurs.js la pose dans
-   --barre-defilement) au lieu de l'ignorer. Elargir le conteneur serait plus
-   simple, mais emporterait le texte de la page hors de sa colonne de lecture. */
-.fresque-zone { margin-inline: calc(50% - 50vw + (var(--barre-defilement, 0px) / 2)); }
+/* LA ZONE RESTE DANS LA PAGE. Elle debordait sur toute la largeur de la
+   fenetre, et c'etait trop : une bande de bord a bord au milieu d'une page qui
+   a, partout ailleurs, une colonne de lecture. Elle est juste un peu plus large
+   que le texte, ce qui suffit a une fresque de 38 cartes sans casser la mise en
+   page. LA PLEINE LARGEUR EST RESERVEE AU PLEIN ECRAN, qui est fait pour ca.
+
+   `50vw` compte la barre de defilement, pas `50%` : d'ou la mesure posee dans
+   --barre-defilement par animateurs.js, gardee ici pour le debordement mesure
+   de la zone elargie. */
+/* AUCUN DEBORD : la zone reste dans la colonne de la page. Elle en sortait sur
+   toute la largeur de la fenetre, et c'etait trop : une bande de bord a bord au
+   milieu d'une page qui a partout ailleurs une colonne de lecture. */
+.fresque-zone { margin-inline: 0; }
+/* Un cadre visible, maintenant que la zone ne va plus bord a bord : sans lui,
+   l'outil flotte au milieu de la page sans qu'on voie ou il commence. */
+.fresque-zone { border: 1px solid var(--ligne); border-radius: 14px; overflow: hidden; }
+.fresque-zone:fullscreen { border: 0; border-radius: 0; }
+
 /* LA GOUTTIERE VA SUR L'EN-TETE, PAS SUR LA ZONE. Posee sur la zone, elle
    eloignait aussi le PLATEAU de son bord droit, et rouvrait les 26 px de vide
    entre le tableau et le panneau qu'on venait de fermer. Le plateau et la
@@ -923,7 +935,58 @@
 .fresque-zone:fullscreen .barre-aide,
 .fresque-zone:fullscreen .barre-edition,
 .fresque-zone:fullscreen .etat { display: none; }
-/* Les filtres de lot restent : choisir ce qu'on montre est justement ce qu'on
-   fait en plein écran, devant un groupe. Ils se resserrent. */
 .fresque-zone:fullscreen .lots { padding-block: .35rem; }
 .fresque-zone:fullscreen .barre { padding-block: .4rem; }
+
+/* ── ET LE VRAI PLEIN ÉCRAN : PLUS RIEN QUE LA FRESQUE ───────
+   Masquer la légende et l'aide ne suffisait pas : la barre d'outils et les
+   filtres restaient, et c'est précisément ce bandeau du haut qu'on demandait
+   à faire disparaître. Un bouton le replie entièrement.
+
+   IL FAUT POUVOIR LE RAPPELER, sinon on se retrouve enfermé devant un groupe
+   sans savoir comment sortir. Trois sorties : la pastille en haut à droite,
+   qui réapparaît au moindre mouvement de souris, la touche B, et Échap qui
+   quitte le plein écran comme toujours. */
+.fresque-zone:fullscreen.sans-bandeau > .barre,
+.fresque-zone:fullscreen.sans-bandeau > .lots { display: none; }
+
+.rappel-bandeau { display: none; }
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau {
+  display: inline-flex; align-items: center; gap: .4rem;
+  position: absolute; top: .6rem; right: .6rem; z-index: 70;
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
+  padding: .45rem .8rem; border: 1px solid var(--ligne); border-radius: 999px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  /* Discrète tant qu'on ne bouge pas : la fresque est le sujet. Elle revient
+     franche dès que la souris bouge ou qu'on la survole. */
+  opacity: .25; transition: opacity .25s ease;
+}
+.fresque-zone:fullscreen.sans-bandeau.souris-bouge .rappel-bandeau,
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau:hover,
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau:focus-visible { opacity: 1; }
+.rappel-bandeau:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Le bouton qui replie le bandeau n'existe qu'en plein écran : ailleurs il n'y
+   a rien à replier, la page porte déjà sa propre navigation. */
+#masquer-bandeau { display: none; }
+.fresque-zone:fullscreen #masquer-bandeau { display: inline-flex; }
+
+/* ── LES CARTES CHOISIES, EN PUCES ───────────────────────────
+   Un retour porte souvent sur deux ou trois cartes à la fois. Sans ces puces,
+   on ne voit pas ce qu'on a déjà pris et on choisit deux fois la même. Elles
+   reprennent la forme des communes choisies sur la page Participer. */
+.puces-cartes { list-style: none; padding: 0; margin: .2rem 0 .8rem;
+  display: flex; flex-wrap: wrap; gap: .45rem; }
+.puce-carte {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--accent-doux); color: var(--accent-txt-fort);
+  border: 1px solid var(--accent); border-radius: 999px;
+  padding: .25rem .3rem .25rem .7rem;
+  font-family: var(--f-ui); font-size: .84rem; font-weight: 600;
+}
+.puce-carte .puce-x {
+  border: 0; background: transparent; color: inherit; cursor: pointer;
+  width: 1.3rem; height: 1.3rem; border-radius: 50%; line-height: 1; font-size: 1rem;
+}
+.puce-carte .puce-x:hover { background: var(--accent); color: var(--sur-accent); }
+.puce-carte .puce-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

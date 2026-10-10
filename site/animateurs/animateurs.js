@@ -50,6 +50,8 @@
     repondA: 'What it answers', reponses: 'The answers to it',
     lienAucun: 'No particular card', lienLiees: 'Cards already linked to this one',
     deZoomer: 'Zoom out', zoomer: 'Zoom in', chercherCarte: 'Search for a card',
+    masquerBandeau: 'Hide the bar', montrerBandeau: 'Show the bar',
+    rappelBandeau: 'Show the bar (B)',
     choixVue: 'Choose a view', vueCartes: 'Cards', vueFresque: 'Fresk',
     fermer: 'Close ✕', fermerPanneau: 'Close',
     filtrerLot: 'Filter by batch', provoque: 'leads to', repond: 'answers',
@@ -108,6 +110,8 @@
     repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
     lienAucun: 'Aucune carte en particulier', lienLiees: 'Cartes déjà liées à celle-ci',
     deZoomer: 'Dézoomer', zoomer: 'Zoomer', chercherCarte: 'Chercher une carte',
+    masquerBandeau: 'Masquer la barre', montrerBandeau: 'Afficher la barre',
+    rappelBandeau: 'Afficher la barre (B)',
     choixVue: 'Choisir une vue', vueCartes: 'Cartes', vueFresque: 'Fresque',
     fermer: 'Fermer ✕', fermerPanneau: 'Fermer',
     filtrerLot: 'Filtrer par lot', provoque: 'provoque', repond: 'répond à',
@@ -179,12 +183,21 @@
     var h = [];
 
     h.push('<div class="fresque-zone" id="fresque-zone">');
+    /* LA SORTIE, TOUJOURS LA. Replier le bandeau sans moyen de le rappeler
+       enferme qui projette devant un groupe. Discrete au repos, franche des
+       que la souris bouge. */
+    h.push('<button type="button" class="rappel-bandeau" id="rappel-bandeau">↑ '
+      + T.rappelBandeau + '</button>');
     h.push('<div class="barre">');
     h.push('<div class="barre-g">');
     h.push('<button type="button" class="btn-outil" id="zoom-moins" aria-label="' + T.deZoomer + '">−</button>');
     h.push('<span class="zoom-val" id="zoom-val">100&nbsp;%</span>');
     h.push('<button type="button" class="btn-outil" id="zoom-plus" aria-label="' + T.zoomer + '">+</button>');
     h.push('<button type="button" class="btn-outil" id="plein-ecran">' + T.pleinEcran + '</button>');
+    /* REPLIER TOUT LE BANDEAU, et pas seulement l'aide : c'est ce que « vrai
+       plein ecran » veut dire. N'existe qu'en plein ecran (voir la feuille de
+       style) : ailleurs, la page porte sa propre navigation. */
+    h.push('<button type="button" class="btn-outil" id="masquer-bandeau">' + T.masquerBandeau + '</button>');
     h.push('<label class="recherche"><span class="visuellement-cache" id="recherche-label">'
       + T.chercherCarte + '</span><input type="search" id="recherche" placeholder="' + T.chercherCarte
       + '…" aria-labelledby="recherche-label" autocomplete="off"></label>');
@@ -1613,6 +1626,42 @@
      fresque. En plein ecran, on ne garde que ce qui sert a regarder (voir
      `.fresque-zone:fullscreen` dans la feuille de style) et le plateau prend la
      place. */
+  /* ── REPLIER LE BANDEAU ─────────────────────────────────────
+     Masquer la legende et l'aide ne suffisait pas : la barre d'outils et les
+     filtres restaient, et c'est ce bandeau-la qu'on demandait a faire
+     disparaitre. Trois sorties pour le rappeler : la pastille, la touche B, et
+     Echap qui quitte le plein ecran comme toujours. */
+  function bandeau(masque) {
+    var z = $('fresque-zone');
+    if (!z) return;
+    z.classList.toggle('sans-bandeau', !!masque);
+    var b = $('masquer-bandeau');
+    if (b) b.textContent = masque ? T.montrerBandeau : T.masquerBandeau;
+    setTimeout(ajuster, 60);
+  }
+  on('masquer-bandeau', 'click', function () {
+    bandeau(!$('fresque-zone').classList.contains('sans-bandeau'));
+  });
+  on('rappel-bandeau', 'click', function () { bandeau(false); });
+  document.addEventListener('keydown', function (e) {
+    if (!document.fullscreenElement) return;
+    if (e.key !== 'b' && e.key !== 'B') return;
+    // Pas pendant une saisie : « b » s'ecrit aussi dans le champ de recherche.
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    bandeau(!$('fresque-zone').classList.contains('sans-bandeau'));
+  });
+  /* La pastille revient en pleine lumiere des que la souris bouge, puis
+     s'efface : on la trouve quand on la cherche, elle ne gene pas sinon. */
+  var minuteurSouris = null;
+  document.addEventListener('mousemove', function () {
+    var z = $('fresque-zone');
+    if (!z || !z.classList.contains('sans-bandeau')) return;
+    z.classList.add('souris-bouge');
+    clearTimeout(minuteurSouris);
+    minuteurSouris = setTimeout(function () { z.classList.remove('souris-bouge'); }, 2200);
+  });
+
   on('plein-ecran', 'click', function () {
     var cible = $('fresque-zone') || $('plateau-section');
     if (document.fullscreenElement) document.exitFullscreen();
@@ -1625,6 +1674,9 @@
   });
   document.addEventListener('fullscreenchange', function () {
     if ($('plein-ecran')) $('plein-ecran').textContent = document.fullscreenElement ? T.quitterPlein : T.pleinEcran;
+    // On ne sort jamais du plein ecran avec un bandeau replie : la page
+    // n'aurait plus ni zoom, ni recherche, ni filtres.
+    if (!document.fullscreenElement) bandeau(false);
     // La hauteur du cadre est calculée d'après la fenêtre : elle vient de
     // changer du tout au tout.
     setTimeout(ajuster, 60);

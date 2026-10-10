@@ -166,6 +166,28 @@ t("il porte le titre et le verso", !!p.titre && p.verso > 40, p.titre);
 t("et les cartes liees, cliquables", p.liens > 0, String(p.liens));
 t("il ne porte plus de formulaire de commentaire", !p.commentaire);
 
+/* LA ZONE RESTE DANS LA PAGE. Elle sortait sur toute la largeur de la fenetre :
+   une bande de bord a bord au milieu d'une page qui a partout ailleurs une
+   colonne de lecture. La pleine largeur est reservee au plein ecran. */
+console.log("\n--- La fresque reste dans la page ---");
+const large = await pg.evaluate(() => ({
+  zone: document.getElementById("fresque-zone").getBoundingClientRect().width,
+  fenetre: window.innerWidth,
+  colonne: document.querySelector("#plateau-section .wrap").getBoundingClientRect().width
+}));
+t("la zone ne va pas bord a bord", large.zone < large.fenetre - 100,
+  Math.round(large.zone) + " px pour une fenetre de " + large.fenetre);
+t("et tient dans la colonne de la page", large.zone <= large.colonne + 1,
+  Math.round(large.zone) + " pour " + Math.round(large.colonne));
+
+/* ON DOIT VOIR QU'ON A CHANGE DE MAISON : meme logo, meme titre que le site
+   public, seuls les onglets changeaient. */
+t("l'en-tete annonce l'espace animateur·ices",
+  await pg.evaluate(() => {
+    const m = document.querySelector(".entete .marque-espace");
+    return !!m && /animateur/i.test(m.textContent);
+  }));
+
 console.log("\n--- Le plein ecran rend l'ecran a la fresque ---");
 await pg.evaluate(() => { document.getElementById("panneau-fermer").click();
   document.getElementById("plein-ecran").click(); });
@@ -174,7 +196,9 @@ const pe = await pg.evaluate(() => {
   const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
   return { plein: !!document.fullscreenElement,
     cadre: document.getElementById("plateau-cadre").getBoundingClientRect().height,
-    fenetre: window.innerHeight, aide: vis("#barre-aide"), legende: vis(".cle-fleches"), lots: vis("#lots") };
+    fenetre: window.innerHeight, aide: vis("#barre-aide"), legende: vis(".cle-fleches"), lots: vis("#lots"),
+    largeur: Math.round(document.getElementById("fresque-zone").getBoundingClientRect().width),
+    largeurFenetre: window.innerWidth };
 });
 t("la zone passe en plein ecran", pe.plein);
 t("l'aide et la legende se replient", !pe.aide && !pe.legende);
@@ -183,6 +207,31 @@ t("l'aide et la legende se replient", !pe.aide && !pe.legende);
 t("les filtres de lot restent accessibles", pe.lots);
 t("le plateau prend au moins 80 % de l'ecran", pe.cadre / pe.fenetre >= 0.8,
   Math.round(100 * pe.cadre / pe.fenetre) + " %");
+t("la zone prend alors toute la largeur", pe.largeur >= pe.largeurFenetre - 1,
+  pe.largeur + " / " + pe.largeurFenetre);
+
+/* ── ET LE VRAI PLEIN ECRAN ──────────────────────────────────
+   Masquer la legende et l'aide ne suffisait pas : la barre d'outils et les
+   filtres restaient, et c'est ce bandeau-la qu'on demandait a faire
+   disparaitre. Il faut aussi pouvoir le rappeler, sinon on s'enferme devant un
+   groupe. */
+await pg.evaluate(() => document.getElementById("masquer-bandeau").click());
+await pg.waitForTimeout(600);
+const nu = await pg.evaluate(() => {
+  const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
+  return { barre: vis(".barre"), lots: vis("#lots"), rappel: vis("#rappel-bandeau"),
+    cadre: document.getElementById("plateau-cadre").getBoundingClientRect().height,
+    fenetre: window.innerHeight };
+});
+t("la barre d'outils se replie entierement", !nu.barre);
+t("les filtres aussi", !nu.lots);
+t("une pastille permet de la rappeler", nu.rappel);
+t("le plateau prend alors presque tout l'ecran", nu.cadre / nu.fenetre >= 0.93,
+  Math.round(100 * nu.cadre / nu.fenetre) + " %");
+await pg.keyboard.press("b");
+await pg.waitForTimeout(400);
+t("la touche B la ramene",
+  await pg.evaluate(() => getComputedStyle(document.querySelector(".barre")).display !== "none"));
 await pg.evaluate(() => document.exitFullscreen && document.exitFullscreen());
 await pg.waitForTimeout(400);
 

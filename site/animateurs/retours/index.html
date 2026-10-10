@@ -22,6 +22,10 @@
   <header class="entete">
     <div class="wrap">
       <a class="logo" href="../../"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="11" fill="#E8811C"/><g fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="26" y1="24" x2="37" y2="21"/><line x1="20" y1="29" x2="31" y2="37"/><line x1="43" y1="26" x2="33" y2="37"/></g><g fill="#ffffff"><rect x="13" y="19" width="13" height="10" rx="2"/><rect x="37" y="16" width="13" height="10" rx="2"/><rect x="25" y="37" width="14" height="10" rx="2"/></g></svg> La Fresque des risques de l'IA</a>
+      <!-- ON DOIT VOIR QU'ON A CHANGE DE MAISON. L'espace animateur·ices
+           portait exactement le meme bandeau que le site public : seuls les
+           onglets changeaient, et on ne savait pas ou l'on etait. -->
+      <span class="marque-espace">Espace animateur·ices</span>
       <nav class="nav" aria-label="Espace animateur·ices">
         <a href="../../animateurs/">Fresque</a>
         <a href="../../guide/?espace=1">Guide</a>
@@ -56,10 +60,15 @@
             <option value="autre">Autre</option>
           </select></span>
 
-          <label for="g-carte">Une carte en particulier&nbsp;? <span class="opt">(facultatif)</span></label>
+          <!-- PLUSIEURS CARTES, PAS UNE SEULE. Un retour porte souvent sur deux
+               ou trois cartes a la fois (« ces trois-la se confondent »), et il
+               fallait alors envoyer trois fois le meme texte. On choisit dans la
+               liste, la carte s'ajoute en puce, et on voit ce qu'on a deja pris. -->
+          <label for="g-carte">Une ou plusieurs cartes&nbsp;? <span class="opt">(facultatif)</span></label>
           <span class="select-joli"><select id="g-carte">
-            <option value="">Aucune carte en particulier</option>
+            <option value="">Ajouter une carte…</option>
           </select></span>
+          <ul class="puces-cartes" id="cartes-choisies" aria-live="polite"></ul>
 
           <label for="g-texte">Votre retour</label>
           <textarea id="g-texte" rows="5" maxlength="2000" required

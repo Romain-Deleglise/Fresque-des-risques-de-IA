@@ -214,10 +214,14 @@ test("l'espace tient en quatre onglets", () => {
   }
 });
 
-test("la page de la fresque mène aux outils de l'atelier", () => {
+/* LA PAGE DE LA FRESQUE N'A QU'UN SUJET. Elle portait en bas des raccourcis
+   vers l'antiseche, le minuteur, le guide et le kit : les onglets y menent
+   deja, et ces blocs faisaient de la page de la fresque une table des matieres
+   de plus. */
+test("la page de la fresque ne porte que la fresque", () => {
   const sommaire = lire("site/animateurs/index.html");
-  for (const cible of ["../guide/?espace=1", "antiseche/", "minuteur/", "kit/"]) {
-    assert.ok(sommaire.includes('href="' + cible + '"'), `la page ne mène pas à ${cible}`);
+  for (const bloc of ["Pendant l'atelier", "Avant l'atelier", "ressource vous manque"]) {
+    assert.ok(!sommaire.includes(bloc), `la page porte encore « ${bloc} »`);
   }
   assert.match(sommaire, /id="fresque-outil"/, "la fresque s'affiche directement");
   assert.ok(!/id="btn-apercu"/.test(sommaire),
