@@ -23,8 +23,7 @@ const PAGES_ESPACE = [
   "site/animateurs/antiseche/index.html",
   "site/animateurs/minuteur/index.html",
   "site/animateurs/kit/index.html",
-  "site/en/facilitators/index.html",
-  "site/en/facilitators/reference/index.html"
+  "site/en/facilitators/index.html"
 ];
 const PAGE = lire("site/animateurs/retours/index.html");
 
@@ -404,4 +403,39 @@ test("une planche incomplete s'arrete au lieu de s'imprimer vide", () => {
   // Un PDF aux cartes vides passerait inapercu jusqu'a l'imprimeur.
   assert.match(g, /function echec\(/);
   assert.match(g, /n'a ni titre ni verso/);
+});
+
+/* AUCUN LIEN DE L'ESPACE NE DOIT MENER DANS LE VIDE.
+
+   La version anglaise de la fresque de reference a ete retiree : deux cartes
+   de /en/facilitators/ pointaient encore dessus, et rien ne l'aurait dit. Une
+   page supprimee laisse toujours des liens derriere elle, et un 404 dans un
+   espace reserve ne remonte par aucun canal : personne n'ecrit pour signaler
+   un lien casse sur une page qu'on lui a dit de ne pas partager.
+
+   On accepte un lien qui mene a un fichier, a un dossier portant un
+   index.html, ou a une adresse que netlify.toml redirige. */
+test("aucun lien interne de l'espace ne mene a une page qui n'existe pas", () => {
+  const toml = lire("netlify.toml");
+  const redirections = [...toml.matchAll(/from\s*=\s*"([^"]+)"/g)]
+    .map((m) => m[1].replace(/\*$/, ""));
+  const morts = [];
+  for (const p of PAGES_ESPACE) {
+    const dossier = path.dirname(path.join(RACINE, p));
+    for (const m of lire(p).matchAll(/\shref="([^"]+)"/g)) {
+      const brut = m[1];
+      if (/^(https?:|mailto:|tel:|#|data:)/.test(brut)) continue;
+      const chemin = brut.split("#")[0].split("?")[0];
+      if (!chemin) continue;
+      const vise = path.resolve(chemin.startsWith("/")
+        ? path.join(RACINE, "site", chemin) : path.join(dossier, chemin));
+      if (fs.existsSync(vise)
+        && (!fs.statSync(vise).isDirectory() || fs.existsSync(path.join(vise, "index.html")))) continue;
+      // Une adresse absolue peut etre servie par une redirection.
+      const absolu = "/" + path.relative(path.join(RACINE, "site"), vise).replace(/\\/g, "/");
+      if (redirections.some((r) => (absolu + "/").startsWith(r))) continue;
+      morts.push(p + " -> " + brut);
+    }
+  }
+  assert.deepEqual(morts, [], "liens morts : " + morts.join(", "));
 });

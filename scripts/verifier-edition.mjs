@@ -245,8 +245,7 @@ t("l'accueil public lit le calque",
    cherche longtemps pourquoi la correction « n'a pas marche ». */
 console.log("\n--- Le calque est charge, par un chemin qui existe ---");
 for (const f2 of ["site/index.html", "site/en/index.html", "site/en-ligne/session/index.html",
-                  "site/animateurs/index.html", "site/animateurs/retours/index.html",
-                  "site/en/facilitators/reference/index.html"]) {
+                  "site/animateurs/index.html", "site/animateurs/retours/index.html"]) {
   const src = fs.readFileSync(path.join(RACINE, f2), "utf8");
   const m2 = src.match(/<script src="([^"]*calque-cartes\.js)"/);
   const vise = m2 ? path.resolve(path.dirname(path.join(RACINE, f2)), m2[1]) : null;
