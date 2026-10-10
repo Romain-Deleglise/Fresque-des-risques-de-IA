@@ -137,6 +137,20 @@
         temps. Cette carte est comparée au code à chaque vérification&nbsp;: un e-mail ajouté
         sans être décrit ici fait échouer la suite de tests.</p>
         <div id="carte-parcours" class="parcours"></div>
+
+        <!-- VOIR L'E-MAIL, PAS SEULEMENT SON SUJET. Le cadre affiche le
+             courriel tel qu'il part, construit par le code qui l'envoie
+             vraiment, avec des donnees d'exemple : aucun atelier reel, aucune
+             adresse reelle, et rien n'est envoye. -->
+        <div class="apercu-courriel" id="apercu-courriel" hidden>
+          <div class="apercu-tete">
+            <strong id="apercu-sujet"></strong>
+            <span class="muted petit" id="apercu-etat" role="status" aria-live="polite"></span>
+            <a class="petit" id="apercu-texte" href="#" target="_blank" rel="noopener">Version texte</a>
+            <button type="button" id="apercu-fermer" class="apercu-fermer" aria-label="Fermer l'aperçu">✕</button>
+          </div>
+          <iframe id="apercu-cadre" title="Aperçu de l'e-mail" sandbox=""></iframe>
+        </div>
       </div>
 
       <!-- LES COMMENTAIRES SUR LES CARTES se relisaient sur la page Retours de

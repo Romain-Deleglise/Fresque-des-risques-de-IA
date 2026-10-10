@@ -184,3 +184,37 @@ body.admin { background: var(--bg-doux); }
 .p-sujet { display: block; color: var(--ink); line-height: 1.3; }
 .p-pour { display: block; font-size: .8rem; color: var(--gris); }
 .p-porte { margin: .35rem 0 0; padding-left: 1rem; font-size: .78rem; color: var(--gris); }
+
+/* ── APERÇU D'UN E-MAIL ──────────────────────────────────────
+   Le sujet d'un e-mail, dans la carte des parcours, s'ouvre : on voit ce qui
+   part sans avoir à provoquer l'événement qui l'envoie. Le cadre est
+   `sandbox` sans aucune permission : le contenu ne peut ni exécuter de
+   script, ni naviguer, ni atteindre quoi que ce soit du tableau de bord. */
+button.p-sujet {
+  display: block; width: 100%; text-align: left; padding: 0;
+  border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-weight: 700; color: inherit;
+  text-decoration: underline; text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+button.p-sujet:hover { color: var(--accent-txt, #B0560A); text-decoration-style: solid; }
+button.p-sujet:focus-visible { outline: 2px solid var(--accent, #E8811C); outline-offset: 2px; }
+
+.apercu-courriel {
+  margin-top: 1.2rem; border: 1px solid var(--ligne, #ece9e2); border-radius: 12px;
+  overflow: hidden; background: var(--surface, #fff);
+}
+.apercu-tete {
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  padding: .6rem .9rem; border-bottom: 1px solid var(--ligne, #ece9e2);
+  background: var(--bg-doux, #faf7f2);
+}
+.apercu-tete strong { font-size: .9rem; }
+.apercu-tete a { margin-left: auto; }
+.apercu-fermer {
+  width: 30px; height: 30px; line-height: 1; border-radius: 50%;
+  border: 1px solid var(--ligne, #ece9e2); background: var(--surface, #fff);
+  color: var(--gris, #6b665e); cursor: pointer;
+}
+.apercu-fermer:hover { color: var(--accent-txt, #B0560A); border-color: var(--accent, #E8811C); }
+#apercu-cadre { display: block; width: 100%; height: 70vh; border: 0; background: #faf7f2; }

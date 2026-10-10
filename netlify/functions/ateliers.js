@@ -717,3 +717,19 @@ exports.listerPourAdmin = async function () {
   out.sort((x, y) => y.quandMs - x.quandMs);
   return out;
 };
+
+/* LES CONSTRUCTEURS, EXPOSES POUR L'APERCU DE /admin/. Le tableau de bord
+   affiche chaque courriel tel qu'il part, en appelant ces fonctions-la avec
+   des donnees d'exemple : une copie du contenu ailleurs aurait derive.
+   Rien n'est envoye par cette porte, elle ne fait que construire. */
+exports._courriels = {
+  animateurProgramme: mailAnimateur,
+  participantInscrit: mailParticipant,
+  nouvelInscrit: mailNouvelInscrit,
+  desistParticipant: mailDesistParticipant,
+  desistAnimateur: mailDesistAnimateur,
+  annulationAnimateur: mailAnnulationAnimateur,
+  annulationParticipants: mailAnnulation,
+  deplacementAnimateur: mailDeplacementAnimateur,
+  deplacementParticipants: mailDeplacementParticipants
+};

@@ -143,3 +143,12 @@ exports.handler = async () => {
   } catch (e) {}
   return { statusCode: 200, body: "rappels envoyés: " + envoyes };
 };
+
+/* LES CONSTRUCTEURS, EXPOSES POUR L'APERCU DE /admin/. Le tableau de bord
+   affiche chaque courriel tel qu'il part, en appelant ces fonctions-la avec
+   des donnees d'exemple : une copie du contenu ailleurs aurait derive.
+   Rien n'est envoye par cette porte, elle ne fait que construire. */
+exports._courriels = {
+  rappelAnimateur: mailRappelAnimateur,
+  rappelParticipants: mailRappelParticipants
+};

@@ -197,6 +197,21 @@
     # en direct (temps reel), auto-heberge sur le serveur de dev.
     Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self' wss://curseurs.pauseia.fr; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
+# L'APERCU D'UN COURRIEL A BESOIN DES STYLES EN LIGNE, et lui seul. Un
+# courriel n'a pas de feuille de style : tout y est en attribut `style`, c'est
+# la seule chose que lisent les clients de messagerie. La politique du site
+# l'interdit partout, a juste titre ; cette regle-ci ouvre cette porte-la, et
+# rien d'autre : aucun script, aucune requete sortante. `frame-ancestors 'self'`
+# parce que le tableau de bord l'affiche dans un cadre, alors que le reste du
+# site refuse d'etre encadre. Placee APRES la regle generale : a chemin plus
+# precis, derniere regle gagnante.
+[[headers]]
+  for = "/.netlify/functions/apercu-courriel"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+
 # Cache avec revalidation. IMPORTANT : les fichiers gardent un nom stable
 # (site.css, cartes.js...) sans empreinte de version, donc on NE met PAS
 # "immutable" (sinon le navigateur garde une vieille version pendant un an).

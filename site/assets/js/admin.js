@@ -685,7 +685,8 @@
         + '<ol class="p-etapes">' + p.etapes.map(function (e) {
           return "<li>"
             + '<span class="p-quand">' + esc(e.quand) + "</span>"
-            + '<strong class="p-sujet">' + esc(e.sujet) + "</strong>"
+            + '<button type="button" class="p-sujet" data-sujet="' + esc(e.sujet)
+              + '" title="Voir cet e-mail tel qu\'il part">' + esc(e.sujet) + "</button>"
             + '<span class="p-pour">→ ' + esc(e.pour) + "</span>"
             + (e.porte && e.porte.length
               ? '<ul class="p-porte">' + e.porte.map(function (x) {
@@ -696,7 +697,11 @@
     }).join("");
   }
 
+  /* `charger` recoit l'api ; le clic sur un sujet arrive bien plus tard, il
+     faut donc la garder. */
+  var dernierApi = null;
   function charger(api) {
+    dernierApi = api;
     return api({ query: "?action=journal" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
@@ -708,8 +713,72 @@
       })
       .catch(function () { /* le tableau de bord reste utilisable sans */ });
   }
-  window.__journalAdmin = { charger: charger };
+  /* ── VOIR UN COURRIEL TEL QU'IL PART ──────────────────────
+     Relire un e-mail demandait de provoquer ce qui l'envoie : creer un
+     atelier, s'y inscrire, attendre le mardi matin. On le relisait donc
+     rarement, et une mise en forme cassee pouvait vivre des semaines. Un clic
+     sur son sujet l'affiche, construit par le code qui l'envoie vraiment.
+
+     DANS UN CADRE, ET PAR UNE ADRESSE : un `iframe` ne porte pas d'en-tete, il
+     ne peut donc pas presenter la cle comme le reste du tableau de bord. On
+     demande un billet de dix minutes, qui n'ouvre que les apercus : la cle
+     d'administration ne doit jamais se retrouver dans une adresse. */
+  var APERCU = "/.netlify/functions/apercu-courriel";
+  var billet = null, billetJusqu = 0;
+
+  function obtenirBillet(api) {
+    if (billet && Date.now() < billetJusqu) return Promise.resolve(billet);
+    return api({ query: "?action=billet-apercu" })
+      .then(function (r) { if (!r.ok) throw new Error("Aperçu indisponible (" + r.status + ")."); return r.json(); })
+      .then(function (d) {
+        billet = d.billet;
+        // On le reprend une minute avant sa fin : un cadre qui s'ouvre sur
+        // « billet invalide » ne dit rien a qui le lit.
+        billetJusqu = Date.now() + 9 * 60 * 1000;
+        return billet;
+      });
+  }
+
+  function fermerApercu() {
+    var d = document.getElementById("apercu-courriel");
+    if (d) d.hidden = true;
+    var c = document.getElementById("apercu-cadre");
+    if (c) c.removeAttribute("src");
+  }
+
+  function ouvrirApercu(api, sujet) {
+    var boite = document.getElementById("apercu-courriel");
+    if (!boite) return;
+    document.getElementById("apercu-sujet").textContent = sujet;
+    boite.hidden = false;
+    /* LE CADRE EST SOUS LA CARTE, qui tient trois colonnes : sans cela, on
+       clique un sujet et rien ne semble se passer. */
+    boite.scrollIntoView({ block: "center", behavior: "smooth" });
+    document.getElementById("apercu-etat").textContent = "Chargement…";
+    obtenirBillet(api).then(function (b) {
+      var url = APERCU + "?sujet=" + encodeURIComponent(sujet) + "&b=" + encodeURIComponent(b);
+      document.getElementById("apercu-cadre").src = url;
+      var t = document.getElementById("apercu-texte");
+      if (t) t.href = url + "&format=texte";
+      document.getElementById("apercu-etat").textContent = "";
+    }).catch(function (e) {
+      document.getElementById("apercu-etat").textContent = e.message;
+    });
+  }
+
+  window.__journalAdmin = { charger: charger, ouvrirApercu: ouvrirApercu };
 
   var filtre = document.getElementById("filtre-journal");
   if (filtre) filtre.addEventListener("change", rendre);
+
+  var carte = document.getElementById("carte-parcours");
+  if (carte) carte.addEventListener("click", function (e) {
+    var b = e.target.closest("button.p-sujet");
+    if (b) ouvrirApercu(dernierApi, b.dataset.sujet);
+  });
+  var fermer = document.getElementById("apercu-fermer");
+  if (fermer) fermer.addEventListener("click", fermerApercu);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") fermerApercu();
+  });
 })();

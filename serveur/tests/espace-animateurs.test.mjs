@@ -176,9 +176,23 @@ test("aucun attribut style= : la CSP du site les ignore", () => {
   // terre : 38 cartes empilées en haut à gauche, étiquettes superposées,
   // flèches à l'échelle 1, et invisible en local, où le serveur de test
   // n'envoie aucune CSP. Toutes les positions passent donc par le CSSOM.
-  const csp = lire("netlify.toml");
-  assert.match(csp, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
-  assert.ok(!/unsafe-inline/.test(csp), "la CSP autorise désormais l'inline");
+  /* ON LIT LA REGLE GENERALE, PAS LE FICHIER ENTIER. L'aperçu des e-mails de
+     /admin/ a sa propre règle, sur son seul chemin : un e-mail n'a pas de
+     feuille de style, tout y est en attribut `style`, c'est la seule chose
+     que lisent les clients de messagerie. Cette exception-là ne relâche rien
+     pour les pages du site, et c'est ce que ce test doit continuer de
+     garantir. */
+  const toml = lire("netlify.toml");
+  const general = toml.slice(toml.indexOf('for = "/*"'),
+    toml.indexOf("[[headers]]", toml.indexOf('for = "/*"')));
+  assert.match(general, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
+  assert.ok(!/unsafe-inline/.test(general), "la CSP générale autorise désormais l'inline");
+  /* Et l'exception reste bornée à ce seul chemin : on retire le bloc de
+     l'aperçu, et plus personne ne doit demander l'inline. */
+  const sansApercu = toml.replace(
+    /for = "\/\.netlify\/functions\/apercu-courriel"[\s\S]*?(?=\n\[\[headers\]\]|\n#)/, "");
+  assert.ok(!/unsafe-inline/.test(sansApercu),
+    "une autre règle que l'aperçu des e-mails autorise l'inline");
 
   const scripts = ["site/animateurs/animateurs.js", "site/animateurs/minuteur/minuteur.js",
                    "site/animateurs/kit/kit.js", "site/animateurs/antiseche/antiseche.js"];

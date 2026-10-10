@@ -181,3 +181,11 @@ exports.handler = async () => {
 
   return { statusCode: 200, body: "alertes envoyées: " + envoyes + ", inscriptions non confirmées effacées: " + purges };
 };
+
+/* LES CONSTRUCTEURS, EXPOSES POUR L'APERCU DE /admin/. Le tableau de bord
+   affiche chaque courriel tel qu'il part, en appelant ces fonctions-la avec
+   des donnees d'exemple : une copie du contenu ailleurs aurait derive.
+   Rien n'est envoye par cette porte, elle ne fait que construire. */
+exports._courriels = {
+  annonce: contenu
+};
