@@ -694,7 +694,24 @@
    quitter. Sauf sur l'accueil, ou il replie l'apercu (classe `apercu-fermer`
    posee par la page). */
 .quitter-plein { display: none; }
-.fresque-zone:fullscreen .quitter-plein { display: inline-flex; }
+/* ET IL DOIT AVOIR L'AIR D'UNE SORTIE. Rendu comme les autres boutons de la
+   barre, il se perdait au bout d'une rangee de commandes d'edition : on ne
+   voyait pas comment sortir du plein ecran. Pastille detachee par un filet,
+   et franchement accentuee au survol. */
+.fresque-zone:fullscreen .quitter-plein {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  margin-left: .55rem; padding: 0 .95rem; min-width: 0;
+  border-radius: 999px; font-weight: 600; letter-spacing: .01em;
+  position: relative;
+}
+.fresque-zone:fullscreen .quitter-plein::before {
+  content: ""; position: absolute; left: -.55rem; top: 20%; bottom: 20%;
+  width: 1px; background: var(--ligne);
+}
+.fresque-zone:fullscreen .quitter-plein:hover,
+.fresque-zone:fullscreen .quitter-plein:focus-visible {
+  background: var(--accent-aplat); border-color: var(--accent-aplat); color: #fff;
+}
 #apercu-fermer { display: inline-flex; }
 
 /* ── SÉLECTEUR DE VUE ────────────────────────────────────────
@@ -851,6 +868,55 @@
 .edition-rang select:focus-visible, .edition-rang input:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px; }
 .edition-rang .etat { margin: 0; }
+/* L'etat pousse les boutons a gauche et se lit au bout du rang : « enregistre »,
+   « non enregistre », c'est la reponse a ce qu'on vient de cliquer. */
+.edition-rang-actions .etat { margin-left: auto; text-align: right; }
+
+/* LE DEPLIANT. Les listes servent au clavier et aux versions anterieures : on
+   ne s'en sert pas a chaque retouche, elles n'ont pas a tenir la moitie de la
+   barre. Replie, il tient sur une ligne. */
+.edition-plus { font-family: var(--f-ui); font-size: .85rem; }
+.edition-plus > summary {
+  cursor: pointer; width: fit-content; padding: .3rem .6rem;
+  border: 1px solid var(--ligne); border-radius: 999px;
+  background: var(--surface); color: var(--gris); font-weight: 600;
+}
+.edition-plus > summary:hover { color: var(--accent-txt); border-color: var(--accent); }
+.edition-plus > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.edition-plus[open] > summary { margin-bottom: .7rem; }
+.edition-plus .edition-rang + .edition-rang { margin-top: .55rem; }
+
+/* ── LA BULLE DE LIEN, SUR LE PLATEAU ────────────────────────
+   Elle se pose au milieu du trait choisi, dans le repere du plateau : elle
+   defile donc avec lui. `translate(-50%, …)` la centre sur le trait et la
+   remonte juste au-dessus, pour ne pas couvrir ce qu'on vient de designer. */
+.editeur-lien {
+  position: absolute; z-index: 40; transform: translate(-50%, -115%);
+  display: flex; flex-direction: column; gap: .4rem;
+  padding: .6rem .7rem; width: 15rem;
+  border: 1px solid var(--ligne); border-radius: 12px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .18);
+  font-family: var(--f-ui); font-size: .85rem;
+}
+.editeur-lien[hidden] { display: none; }
+/* Sous le trait quand il n'y a pas la place au-dessus. */
+.editeur-lien.sous { transform: translate(-50%, 15%); }
+.editeur-lien label { font-weight: 600; color: var(--gris); }
+.editeur-lien input {
+  font: inherit; padding: .4rem .55rem; border: 1px solid var(--ligne);
+  border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%;
+}
+.editeur-lien input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.editeur-lien-actions { display: flex; align-items: center; gap: .4rem; }
+.editeur-lien-actions .btn-outil { min-height: 36px; min-width: 0; font-size: .82rem; padding: 0 .6rem; }
+.editeur-lien-x {
+  margin-left: auto; width: 32px; height: 32px; line-height: 1;
+  border: 1px solid var(--ligne); border-radius: 50%;
+  background: var(--bg); color: var(--gris); cursor: pointer;
+}
+.editeur-lien-x:hover { color: var(--accent-txt); border-color: var(--accent); }
+.editeur-lien-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn-outil.btn-fort { background: var(--accent-aplat); color: var(--sur-accent);
   border-color: transparent; font-weight: 700; }
 .btn-outil.btn-danger { color: #c1444e; }
@@ -933,6 +999,7 @@
    chose que la fresque. On ne garde que ce qui sert à regarder. */
 .fresque-zone:fullscreen .cle-fleches,
 .fresque-zone:fullscreen .barre-aide,
+.fresque-zone:fullscreen .editeur-lien,
 .fresque-zone:fullscreen .barre-edition,
 .fresque-zone:fullscreen .etat { display: none; }
 .fresque-zone:fullscreen .lots { padding-block: .35rem; }
@@ -990,3 +1057,36 @@
 }
 .puce-carte .puce-x:hover { background: var(--accent); color: var(--sur-accent); }
 .puce-carte .puce-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── LA PAGE RETOURS ─────────────────────────────────────────
+   Le formulaire flottait seul au milieu d'une page vide, avec un bord gauche
+   different de celui du titre. Une carte le pose, et la liste de ce qui a deja
+   ete dit lui repond dessous. */
+.carte-formulaire {
+  border: 1px solid var(--ligne); border-radius: 14px;
+  padding: 1.3rem clamp(1rem, 2.5vw, 1.6rem);
+  background: var(--surface);
+}
+.carte-formulaire .form-retour { margin-top: 0; }
+
+.retours-publics { margin-top: 2.5rem; }
+.retours-publics h2 { margin: 0 0 .3rem; }
+.retours-publics .muted { margin: 0 0 1rem; font-size: .9rem; }
+.retours-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.retour-public {
+  border: 1px solid var(--ligne); border-radius: 12px;
+  padding: .8rem 1rem; background: var(--surface);
+}
+/* EN ATTENTE SE VOIT, SANS DISPARAITRE. Grise au point d'etre illisible, le
+   retour ne servirait a personne ; un filet suffit a dire qu'il n'est pas
+   encore relu. */
+.retour-public.en-attente { border-left: 3px solid var(--accent); }
+.retour-tete {
+  display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap;
+  margin: 0 0 .35rem; font-family: var(--f-ui); font-size: .8rem;
+}
+.retour-sujet { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gris); }
+.retour-date { color: var(--gris-clair); }
+.retour-texte { margin: 0; }
+.retour-pied { margin: .45rem 0 0; font-family: var(--f-ui); font-size: .8rem; color: var(--gris); }
+.retour-attente { color: var(--accent-txt); font-weight: 600; }

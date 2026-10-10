@@ -62,6 +62,19 @@ const pg = await nav.newPage({ viewport: { width: 1280, height: 900 } });
 const erreursJS = [];
 pg.on("pageerror", (e) => erreursJS.push(e.message));
 
+/* Le service des retours, bouchonne : la page en lit la liste publique, et on
+   veut pouvoir verifier ce qu'elle en fait, y compris le marquage « en attente
+   de relecture » qui distingue un retour relu d'un retour qui ne l'est pas. */
+const RETOURS_BANC = [
+  { cle: "carte:3:a", sujet: "carte", carte: 3, texte: "La 3 et la 6 se confondent.",
+    nom: "Lea", date: Date.now() - 86400000, valide: true, traite: false },
+  { cle: "general:deroule:b", sujet: "deroule", carte: null, texte: "Le lot 3 deborde.",
+    nom: "", date: Date.now() - 3 * 86400000, valide: false, traite: false }
+];
+await pg.route("**/.netlify/functions/commentaires**", (r) => r.fulfill({ status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({ ok: true, compte: {}, retours: RETOURS_BANC }) }));
+
 const ONGLETS = ["Fresque", "Guide", "Antisèche", "Retours"];
 const PAGES = ["/animateurs/", "/animateurs/retours/", "/animateurs/antiseche/",
                "/animateurs/minuteur/", "/animateurs/kit/"];
@@ -243,12 +256,27 @@ const r = await pg.evaluate(() => ({
   cartes: document.querySelectorAll("#g-carte option").length,
   jeton: !!document.getElementById("form-jeton"),
   outil: !!document.getElementById("fresque-outil"),
-  liste: !!document.getElementById("retours")
+  /* LA LISTE PUBLIQUE EST REVENUE, SANS LA MODERATION. On lit ce qui a deja
+     ete signale, pour ne pas le redire ; valider ou supprimer reste dans
+     /admin/, et aucun bouton ne doit le laisser croire ici. */
+  publics: document.querySelectorAll("#retours-liste .retour-public").length,
+  attente: document.querySelectorAll("#retours-liste .en-attente").length,
+  nomme: /carte 3/.test(document.getElementById("retours-liste").textContent || ""),
+  moderation: document.querySelectorAll("#retours-publics button").length,
+  colonne: (() => {
+    const h = document.querySelector(".page-tete h1").getBoundingClientRect().left;
+    const f = document.querySelector(".carte-formulaire").getBoundingClientRect().left;
+    return Math.abs(h - f);
+  })()
 }));
 t("les cinq champs demandes sont la", r.champs.length === 5, r.champs.join(","));
 t("les 38 cartes sont proposees, plus « aucune »", r.cartes === 39, String(r.cartes));
 t("plus de fresque sur cette page", !r.outil);
-t("plus de liste de retours : la relecture est dans /admin/", !r.liste);
+t("les retours deja deposes se lisent sur la page", r.publics === 2, String(r.publics));
+t("celui qui n'est pas relu est marque comme tel", r.attente === 1, String(r.attente));
+t("et la carte est nommee, pas seulement numerotee", r.nomme);
+t("aucun bouton de moderation ici : elle reste dans /admin/", r.moderation === 0, String(r.moderation));
+t("le titre et le formulaire partagent le meme bord gauche", r.colonne < 2, r.colonne + " px");
 t("et donc plus de jeton : il n'y a plus rien a moderer ici", !r.jeton);
 
 console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");

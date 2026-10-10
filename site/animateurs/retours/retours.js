@@ -29,13 +29,25 @@
     merci: 'Thank you. Your feedback has reached us; we read every one.',
     echecEnvoi: 'Could not send. Please try again later.',
     ecrivez: 'Write your feedback before sending.',
-    retirer: 'Remove card'
+    retirer: 'Remove card',
+    attente: 'awaiting review',
+    anonyme: 'Anonymous',
+    aucunRetour: 'Nothing has been reported yet. Yours would be the first.',
+    combien: function (k) { return k + (k > 1 ? ' pieces of feedback' : ' piece of feedback') + ', most recent first.'; },
+    sujets: { carte: 'A card', atelier: 'The workshop', jeu: 'The card set',
+      deroule: 'Timing', reference: 'Reference collage', autre: 'Other' }
   } : {
     envoi: 'Envoi…',
     merci: 'Merci, c’est noté. Votre retour nous est bien parvenu ; nous les lisons tous.',
     echecEnvoi: 'Envoi impossible. Réessayez plus tard.',
     ecrivez: 'Écrivez votre retour avant d’envoyer.',
-    retirer: 'Retirer la carte'
+    retirer: 'Retirer la carte',
+    attente: 'en attente de relecture',
+    anonyme: 'Anonyme',
+    aucunRetour: 'Rien n’a encore été signalé. Le vôtre serait le premier.',
+    combien: function (k) { return k + ' retour' + (k > 1 ? 's' : '') + ', du plus récent au plus ancien.'; },
+    sujets: { carte: 'Une carte', atelier: 'L’atelier', jeu: 'Le jeu de cartes',
+      deroule: 'Le déroulé', reference: 'La fresque de référence', autre: 'Autre' }
   };
 
   /* ── Le choix de la carte ─────────────────────────────────
@@ -101,6 +113,50 @@
       .catch(function () { /* sans la liste, le reste du formulaire marche */ });
   }
 
+  /* ── CE QUI A DEJA ETE DIT ────────────────────────────────
+     Sans cette liste, deux personnes signalent la meme carte a deux semaines
+     d'intervalle sans jamais le savoir, et qui depose un retour ne voit nulle
+     part qu'il est arrive. Lecture seule : valider et supprimer restent dans
+     /admin/, avec le reste de la moderation. Le service ne renvoie jamais
+     l'adresse e-mail (serveur/src/commentaires.js, `public`). */
+  function dateCourte(ms) {
+    if (!ms) return '';
+    try {
+      return new Date(ms).toLocaleDateString(EN ? 'en-GB' : 'fr-FR',
+        { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (e) { return ''; }
+  }
+
+  function ligneRetour(r) {
+    var sujet = T.sujets[r.sujet] || T.sujets.autre;
+    var carte = r.carte ? ' · ' + (EN ? 'card ' : 'carte ') + r.carte
+      + (titres[r.carte] ? ' · ' + echapper(titres[r.carte]) : '') : '';
+    return '<li class="retour-public' + (r.valide ? '' : ' en-attente') + '">'
+      + '<p class="retour-tete"><span class="retour-sujet">' + echapper(sujet) + carte + '</span>'
+      + '<span class="retour-date">' + echapper(dateCourte(r.date)) + '</span></p>'
+      + '<p class="retour-texte">' + echapper(r.texte).replace(/\n/g, '<br>') + '</p>'
+      + '<p class="retour-pied">' + echapper(r.nom || T.anonyme)
+      + (r.valide ? '' : ' · <span class="retour-attente">' + T.attente + '</span>')
+      + '</p></li>';
+  }
+
+  function rendreRetours(liste) {
+    var hote = $('retours-liste');
+    var bloc = $('retours-publics');
+    if (!hote || !bloc) return;
+    bloc.hidden = false;
+    var compte = $('retours-compte');
+    if (compte) compte.textContent = liste.length ? T.combien(liste.length) : T.aucunRetour;
+    hote.innerHTML = liste.map(ligneRetour).join('');
+  }
+
+  function chargerRetours() {
+    return fetch(API).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) return;
+      rendreRetours(d.retours || []);
+    }).catch(function () { /* la page reste un formulaire : c'est l'essentiel */ });
+  }
+
   function envoyer(charge, etatEl, silencieux) {
     if (!silencieux) {
       etatEl.className = 'etat';
@@ -123,7 +179,8 @@
     });
   }
 
-  chargerCartes();
+  /* Les titres d'abord : la liste nomme la carte, pas seulement son numero. */
+  chargerCartes().then(chargerRetours);
 
   var sel = $('g-carte');
   if (sel) sel.addEventListener('change', function () {
@@ -169,6 +226,7 @@
       $('g-texte').value = '';
       choisies = [];
       majPuces();
+      chargerRetours();
     }).catch(function () { /* l'état est déjà affiché */ });
   });
 })();

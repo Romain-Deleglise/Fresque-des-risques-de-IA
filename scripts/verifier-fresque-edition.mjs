@@ -492,6 +492,80 @@ await pg.evaluate(() => { window.confirm = () => true;
   c.dispatchEvent(new Event("change", { bubbles: true })); });
 await pg.waitForTimeout(300);
 
+/* ── LES COMMANDES SONT A PORTEE, PAS EN RANG D'OIGNONS ──────
+   La barre alignait douze commandes sur quatre rangs, et le libelle d'un lien
+   se modifiait a deux cents pixels du trait qu'on venait de cliquer. Ce qui
+   suit verifie que l'essentiel tient en une rangee, et que le reste se fait
+   sur le plateau meme. */
+console.log("\n--- Les commandes d'edition se tiennent sur le plateau ---");
+await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await pg.waitForTimeout(1300);
+await pg.evaluate(() => { document.getElementById("jeton").value = "jeton-de-banc-123456";
+  document.getElementById("form-jeton").requestSubmit(); });
+await pg.waitForTimeout(400);
+await pg.check("#mode-edition");
+await pg.waitForTimeout(700);
+const visiblesUi = await pg.evaluate(() => [...document.querySelectorAll("#barre-edition button, #barre-edition select, #barre-edition input")]
+  .filter((e) => e.checkVisibility()).map((e) => e.id || e.tagName));
+t("la barre ne montre plus qu'une poignee de commandes", visiblesUi.length <= 5, visiblesUi.join(","));
+t("les listes et les versions sont repliees",
+  (await pg.evaluate(() => !document.getElementById("edition-plus").open)));
+t("et elles restent atteignables au clavier",
+  (await pg.evaluate(() => { const d = document.getElementById("edition-plus"); d.open = true;
+    return ["f-de", "f-vers", "f-ajouter", "f-choix", "f-versions"].every((i) => document.getElementById(i).checkVisibility()); })));
+await pg.evaluate(() => { document.getElementById("edition-plus").open = false;
+  document.getElementById("plateau-cadre").scrollIntoView({ block: "center" }); });
+await pg.waitForTimeout(300);
+const cibleUi = await pg.evaluate(() => {
+  for (const g of document.querySelectorAll("#liens g[data-id]")) {
+    const b = g.querySelector(".touche").getBoundingClientRect();
+    const x = b.x + b.width / 2, y = b.y + b.height / 2;
+    if (y > 120 && y < 800 && x > 60) return { x, y, id: g.dataset.id };
+  }
+  return null;
+});
+t("un lien se designe sur le plateau", !!cibleUi, cibleUi ? cibleUi.id : "aucun");
+if (cibleUi) {
+  await pg.mouse.click(cibleUi.x, cibleUi.y);
+  await pg.waitForTimeout(350);
+  const bulleUi = await pg.evaluate(() => {
+    const e = document.getElementById("editeur-lien");
+    const c = document.getElementById("plateau-cadre");
+    const b = e.getBoundingClientRect(), r = c.getBoundingClientRect();
+    return { vue: !e.hidden, dedans: b.left >= r.left - 1 && b.right <= r.right + 1,
+      champ: document.activeElement && document.activeElement.id };
+  });
+  t("la bulle du lien s'ouvre la ou on a clique", bulleUi.vue);
+  t("et elle tient entierement dans le cadre", bulleUi.dedans, JSON.stringify(bulleUi));
+  t("le curseur est deja dans le libelle", bulleUi.champ === "f-libelle", String(bulleUi.champ));
+  await pg.fill("#f-libelle", "aggrave");
+  await pg.press("#f-libelle", "Enter");
+  await pg.waitForTimeout(300);
+  t("Entree suffit a renommer le lien",
+    (await pg.evaluate((id) => [...document.querySelectorAll("#liens g[data-id]")]
+      .some((g) => g.dataset.id === id && /aggrave/.test(g.textContent)), cibleUi.id)));
+  await pg.press("#f-libelle", "Escape");
+  await pg.waitForTimeout(250);
+  t("Echap referme la bulle", (await pg.evaluate(() => document.getElementById("editeur-lien").hidden)));
+}
+/* La sortie du plein ecran doit se voir : rendue comme les autres boutons, elle
+   se perdait au bout de la rangee. */
+await pg.evaluate(() => document.getElementById("fresque-zone").requestFullscreen());
+await pg.waitForTimeout(500);
+const sortieUi = await pg.evaluate(() => {
+  const b = document.getElementById("quitter-plein");
+  const c = getComputedStyle(b);
+  return { vu: b.offsetParent !== null, rayon: c.borderRadius, poids: c.fontWeight };
+});
+t("le bouton de sortie du plein ecran se distingue des autres",
+  sortieUi.vu && parseInt(sortieUi.rayon, 10) >= 100 && Number(sortieUi.poids) >= 600, JSON.stringify(sortieUi));
+await pg.evaluate(() => document.exitFullscreen && document.exitFullscreen());
+await pg.waitForTimeout(400);
+await pg.evaluate(() => { window.confirm = () => true;
+  const c = document.getElementById("mode-edition"); c.checked = false;
+  c.dispatchEvent(new Event("change", { bubbles: true })); });
+await pg.waitForTimeout(300);
+
 console.log("\n--- L'edition ne s'offre pas a qui passe ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(1300);

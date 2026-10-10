@@ -84,6 +84,7 @@
     nonEnregistre: 'Unsaved changes.',
     quitterEdition: 'Leave edit mode? Changes that have not been saved will be lost.',
     choixLien: 'A link to edit', libelleLien: 'Label', renommerLien: 'Rename',
+    editionTitre: 'Editing the collage', plusDOptions: 'Lists and versions',
     supprimerLien: 'Delete this link', nouveauLien: 'New link',
     depuis: 'From', versCarte: 'To', ajouterLien: 'Add the link',
     lienAjoute: 'Link added. Give it a label below.',
@@ -144,6 +145,7 @@
     nonEnregistre: 'Modifications non enregistrées.',
     quitterEdition: 'Quitter le mode édition ? Les modifications non enregistrées seront perdues.',
     choixLien: 'Un lien à modifier', libelleLien: 'Libellé', renommerLien: 'Renommer',
+    editionTitre: 'Modification de la fresque', plusDOptions: 'Listes et versions',
     supprimerLien: 'Supprimer ce lien', nouveauLien: 'Nouveau lien',
     depuis: 'Depuis', versCarte: 'Vers', ajouterLien: 'Ajouter le lien',
     lienAjoute: 'Lien ajouté. Donnez-lui un libellé ci-dessous.',
@@ -246,7 +248,29 @@
        CSP du site refuse les positions en attribut, et un panneau flottant mal
        place vaut moins qu'une barre qui reste ou on l'a laissee. */
     if (avecEdition) {
+      /* TROIS ACTIONS VISIBLES, LE RESTE REPLIE. La barre alignait douze
+         commandes sur quatre rangs : deux listes pour creer un lien, une
+         troisieme pour en designer un, un champ, quatre boutons, un historique.
+         On ne savait plus par ou commencer, alors que presque tout se fait sur
+         le plateau meme (glisser une carte, tirer sa poignee, cliquer un lien).
+         Ne restent donc ici que les trois decisions qui engagent quelque chose,
+         et les listes descendent dans un depliant pour qui navigue au clavier. */
       h.push('<div class="barre-edition" id="barre-edition" hidden>');
+      h.push('<div class="edition-rang edition-rang-actions">');
+      h.push('<strong class="edition-titre">' + T.editionTitre + '</strong>');
+      h.push('<button type="button" class="btn-outil" id="f-annuler" disabled>' + T.annulerDernier + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
+      h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
+      /* RANGE ICI, ET PAS DANS LA BARRE PRINCIPALE. Rien d'imprime ne depend de
+         ce plan : le depot n'est qu'une memoire, il n'y a pas d'urgence a lui
+         reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
+         yeux de qui ne modifie pas la fresque. */
+      h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
+      h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
+      h.push('</div>');
+      h.push('<details class="edition-plus" id="edition-plus">');
+      h.push('<summary>' + T.plusDOptions + '</summary>');
       h.push('<div class="edition-rang">');
       h.push('<strong class="edition-titre">' + T.nouveauLien + '</strong>');
       /* `select-joli` : la meme enveloppe que partout ailleurs sur le site. Elle
@@ -261,21 +285,6 @@
       h.push('</div>');
       h.push('<div class="edition-rang">');
       h.push('<label for="f-choix">' + T.choixLien + '</label><span class="select-joli"><select id="f-choix"></select></span>');
-      h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
-      h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
-      h.push('<button type="button" class="btn-outil" id="f-renommer">' + T.renommerLien + '</button>');
-      h.push('<button type="button" class="btn-outil btn-danger" id="f-supprimer">' + T.supprimerLien + '</button>');
-      h.push('</div>');
-      h.push('<div class="edition-rang">');
-      h.push('<button type="button" class="btn-outil" id="f-annuler" disabled>' + T.annulerDernier + '</button>');
-      h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
-      h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
-      h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
-      /* RANGE ICI, ET PAS DANS LA BARRE PRINCIPALE. Rien d'imprime ne depend de
-         ce plan : le depot n'est qu'une memoire, il n'y a pas d'urgence a lui
-         reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
-         yeux de qui ne modifie pas la fresque. */
-      h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
       h.push('</div>');
       /* REVENIR EN ARRIERE. Publier ecrasait le plan precedent : une fausse
          manoeuvre sur trente-huit cartes ne se defaisait qu'en les replacant une
@@ -287,8 +296,8 @@
       h.push('<label for="f-versions">' + T.versions + '</label>');
       h.push('<span class="select-joli"><select id="f-versions"></select></span>');
       h.push('<button type="button" class="btn-outil" id="f-charger">' + T.chargerVersion + '</button>');
-      h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
       h.push('</div>');
+      h.push('</details>');
       h.push('</div>');
     }
     h.push('<p class="etat" id="chargement" role="status" aria-live="polite">' + T.chargement + '</p>');
@@ -300,7 +309,23 @@
     h.push('<div class="plateau-cadre" id="plateau-cadre"><div class="plateau-sizer" id="plateau-sizer">');
     h.push('<div class="plateau" id="plateau"><svg class="liens" id="liens" aria-hidden="true"></svg>');
     h.push('<div class="cartes" id="cartes"></div><div class="etiquettes" id="etiquettes"></div>');
-    h.push('</div></div></div>');
+    h.push('</div></div>');
+    if (avecEdition) {
+      /* LE LIEN SE MODIFIE LA OU IL EST. Son libelle et sa suppression vivaient
+         en haut de la page, derriere une liste deroulante : on cliquait un
+         trait au milieu du plan, puis on remontait chercher un champ a deux
+         cents pixels de la, sans plus voir lequel on tenait. La bulle se pose
+         au milieu du trait choisi et disparait avec lui. */
+      h.push('<div class="editeur-lien" id="editeur-lien" hidden>');
+      h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
+      h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
+      h.push('<div class="editeur-lien-actions">');
+      h.push('<button type="button" class="btn-outil" id="f-renommer">' + T.renommerLien + '</button>');
+      h.push('<button type="button" class="btn-outil btn-danger" id="f-supprimer">' + T.supprimerLien + '</button>');
+      h.push('<button type="button" class="editeur-lien-x" id="f-fermer-lien" aria-label="' + T.fermerPanneau + '">✕</button>');
+      h.push('</div></div>');
+    }
+    h.push('</div>');
     // La vue Cartes : une grille, sans zoom ni defilement interne.
     h.push('<div class="grille-cartes" id="grille-cartes" hidden></div>');
     h.push('</div>');
@@ -483,6 +508,7 @@
         (g.getAttribute('class') || '') + ' choisi');
       svg.appendChild(g);
     });
+    placerEditeurLien();
   }
 
   // Couleurs des lots, reprises telles quelles du tableau en ligne : un
@@ -807,6 +833,7 @@
     $('plateau-sizer').style.width = (PLAN_W * zoom) + 'px';
     $('plateau-sizer').style.height = (PLAN_H * zoom) + 'px';
     $('zoom-val').textContent = Math.round(zoom * 100) + ' %';
+    placerEditeurLien();
   }
   /* LA VUE SUIT CE QU'ON A CHOISI. Masquer trois lots sur cinq laissait la
      fresque a son echelle d'origine : un quart d'ecran occupe, le reste vide, et
@@ -1141,13 +1168,44 @@
     majEdition();
   }
 
+  /* LA BULLE SUIT LE TRAIT. Posee une fois pour toutes, elle resterait sur
+     place quand on deplace une carte ou qu'on change d'echelle : on la replace
+     donc a chaque redessin des liens. Le milieu des deux centres suffit, la
+     courbe passe a quelques pixels de la. */
+  function placerEditeurLien() {
+    var ed = $('editeur-lien');
+    if (!ed) return;
+    var l = editionFresque ? fleche(lienChoisi) : null;
+    var a = l && ref.tableau.cartes.filter(function (q) { return q.n === l.de; })[0];
+    var b = l && ref.tableau.cartes.filter(function (q) { return q.n === l.vers; })[0];
+    if (!a || !b) { ed.hidden = true; return; }
+    ed.hidden = false;
+    /* ON LA RAMENE DANS LE CADRE. Un lien au bord gauche du plan posait la
+       bulle a moitie dehors, et le cadre la coupait : la moitie des champs
+       devenait inatteignable. On borne donc son centre, et on la bascule sous
+       le trait quand il n'y a pas la place au-dessus. */
+    var demi = ed.offsetWidth / 2 || 120;
+    var haut = ed.offsetHeight || 120;
+    var x = ((a.x + b.x) / 2 + CARTE_W / 2) * zoom;
+    var y = ((a.y + b.y) / 2 + CARTE_H / 2) * zoom;
+    var large = PLAN_W * zoom;
+    ed.classList.toggle('sous', y < haut + 12);
+    ed.style.left = Math.round(Math.max(demi + 6, Math.min(large - demi - 6, x))) + 'px';
+    ed.style.top = Math.round(y) + 'px';
+  }
+
   /* Designer un lien, a la souris sur le plateau comme au clavier dans la
      liste : un seul chemin, pour que les deux montrent toujours la meme chose. */
   function choisirLien(id, focus) {
     lienChoisi = fleche(id) ? id : null;
     majChoixLien();
     dessinerLiens();
-    if (focus && lienChoisi && $('f-libelle')) $('f-libelle').focus();
+    /* LE FOCUS APRES LE GESTE. Pose pendant le `pointerdown`, il est repris
+       par le navigateur au `mouseup` suivant : on cliquait un lien, le champ
+       s'ouvrait, et la frappe partait dans le vide. */
+    if (focus && lienChoisi && $('f-libelle')) {
+      setTimeout(function () { var c = $('f-libelle'); if (c) { c.focus(); c.select(); } }, 0);
+    }
   }
 
   function idLibre() {
@@ -1790,6 +1848,14 @@
   });
 
   on('f-choix', 'change', function () { choisirLien(this.value, false); });
+  on('f-fermer-lien', 'click', function () { choisirLien('', false); });
+  /* ENTREE VALIDE LE LIBELLE. On tape trois mots dans le champ, on attend que
+     ca prenne, et rien ne se passe : il fallait viser « Renommer ». Echap
+     referme la bulle sans rien changer. */
+  on('f-libelle', 'keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); var b = $('f-renommer'); if (b) b.click(); }
+    else if (e.key === 'Escape') { e.preventDefault(); choisirLien('', false); }
+  });
   on('f-ajouter', 'click', function () {
     ajouterLien(+$('f-de').value, +$('f-vers').value);
   });
