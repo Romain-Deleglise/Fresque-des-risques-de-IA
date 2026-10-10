@@ -103,6 +103,16 @@ const barreGuide = await pg.evaluate(() => {
 });
 t("le guide reprend LES MEMES onglets quand on y arrive depuis l'espace",
   JSON.stringify(barreGuide) === JSON.stringify(ONGLETS), JSON.stringify(barreGuide));
+/* LA MARQUE DE L'ESPACE SUR LE GUIDE AUSSI. Les quatre autres pages la portent
+   dans leur balisage ; le guide est une page publique qu'on rhabille en
+   JavaScript, et il restait seul sans rien qui dise ou l'on est. */
+t("et il annonce lui aussi l'espace animateur·ices",
+  await pg.evaluate(() => {
+    const m = document.querySelector(".entete .marque-espace");
+    return !!m && /animateur/i.test(m.textContent);
+  }));
+t("sans marque en double si l'on y revient",
+  await pg.evaluate(() => document.querySelectorAll(".entete .marque-espace").length === 1));
 t("et aucun de ses liens ne mene a une page supprimee",
   await pg.evaluate(() => {
     const n = document.querySelector('nav[aria-label^="Espace"]');
@@ -318,6 +328,35 @@ t("et la fleche maison a la place de celle du systeme",
    feuille que toutes les pages partagent, a rendu l'antiseche entierement
    blanche a l'impression, et le PDF engendre depuis elle avec. L'empreinte qui
    garde le PDF aligne sur sa page compare le HTML : la panne venait du CSS. */
+/* ── SUR UN TELEPHONE ────────────────────────────────────────
+   Trois pannes que la largeur de bureau cachait : le champ de recherche sortait
+   de la barre, le jeton de moderation occupait le premier ecran avant meme le
+   titre, et le deroule de l'antiseche tenait quatre colonnes dans 350 pixels. */
+console.log("\n--- Sur un telephone ---");
+const tel = await nav.newPage({ viewport: { width: 390, height: 844 } });
+await tel.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await tel.waitForTimeout(1200);
+const mob = await tel.evaluate(() => {
+  const i = document.getElementById("recherche").getBoundingClientRect();
+  const b = document.querySelector(".barre").getBoundingClientRect();
+  const h1 = document.querySelector("h1").getBoundingClientRect();
+  const j = document.querySelector(".jeton").getBoundingClientRect();
+  return { dedans: i.right <= b.right + 1, apresTitre: j.top > h1.top,
+    doc: document.documentElement.scrollWidth, vue: window.innerWidth };
+});
+t("le champ de recherche tient dans la barre", mob.dedans, JSON.stringify(mob));
+t("le jeton vient apres le titre, pas avant", mob.apresTitre);
+t("et rien ne deborde en largeur", mob.doc <= mob.vue + 1, mob.doc + " / " + mob.vue);
+await tel.goto(B + "/animateurs/antiseche/", { waitUntil: "networkidle" });
+await tel.waitForTimeout(600);
+t("le deroule de l'antiseche s'empile au lieu de se comprimer",
+  await tel.evaluate(() => {
+    const l = document.querySelector(".as-table tbody tr");
+    return getComputedStyle(l).display === "block"
+      && l.querySelector("td").getBoundingClientRect().width > 200;
+  }));
+await tel.close();
+
 console.log("\n--- Les pages imprimables impriment quelque chose ---");
 for (const [nom, u, mini] of [["l'antiseche", "/animateurs/antiseche/", 1200],
                               ["le guide", "/guide/", 3000],

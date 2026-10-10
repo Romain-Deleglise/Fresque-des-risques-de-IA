@@ -184,6 +184,18 @@
 @media (max-width: 640px) {
   .plateau-cadre { height: 60vh; }
   .barre { gap: .6rem; }
+  /* LE CHAMP DE RECHERCHE SORTAIT DE LA BARRE. Largeur fixe de 13 rem dans une
+     rangee de 400 pixels : il depassait a droite, moitie coupe. Il prend la
+     ligne entiere, sous les boutons. */
+  .barre-g { flex-wrap: wrap; }
+  .barre .recherche { flex: 1 1 100%; }
+  .barre .recherche input { width: 100%; }
+  /* LE JETON APRES LE TITRE. Premier element de la page sur telephone, il
+     occupait le premier ecran pour une saisie facultative que presque personne
+     ne fait : on arrivait sur « Jeton de moderation » avant de savoir sur
+     quelle page on etait. */
+  .page-tete .wrap { display: flex; flex-direction: column; }
+  .page-tete .jeton { order: 9; justify-content: flex-start; margin: 1rem 0 0; }
 }
 
 /* ── Jeton de modération ────────────────────────────────────── */
@@ -1090,3 +1102,22 @@
 .retour-texte { margin: 0; }
 .retour-pied { margin: .45rem 0 0; font-family: var(--f-ui); font-size: .8rem; color: var(--gris); }
 .retour-attente { color: var(--accent-txt); font-weight: 600; }
+
+/* L'ANTISECHE SUR UN TELEPHONE. Quatre colonnes dans 350 pixels donnaient des
+   mots coupes en deux et une phrase de relance sur dix lignes de trois mots.
+   Sur petit ecran, chaque moment du deroule devient un bloc : le titre, la
+   duree, ce qu'on y fait, la phrase. En-tetes caches a l'oeil, gardes pour les
+   lecteurs d'ecran par la structure du tableau.
+   `screen and` : a l'impression, le tableau reste un tableau, quelle que soit
+   la largeur de la page. */
+@media screen and (max-width: 640px) {
+  .as-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .as-table, .as-table tbody, .as-table tr, .as-table th, .as-table td { display: block; width: auto; }
+  .as-table tr { border-bottom: 1px solid var(--ligne); padding: .7rem 0; }
+  .as-table th, .as-table td { border: 0; padding: .1rem 0; }
+  .as-table tbody th { white-space: normal; margin-bottom: .2rem; }
+  .as-table tbody td:first-of-type {
+    font-family: var(--f-ui); font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--gris); margin-bottom: .25rem;
+  }
+}

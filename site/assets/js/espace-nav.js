@@ -38,6 +38,18 @@
     ["Retours", racine + "animateurs/retours/"]
   ];
 
+  /* LA MARQUE DE L'ESPACE AUSSI. Les quatre autres pages la portent dans leur
+     balisage ; le guide, lui, est une page publique qu'on rhabille ici. Sans
+     elle, on passait de l'espace au guide et le bandeau redevenait celui du
+     site public : rien ne disait plus ou l'on etait. */
+  var entete = nav.parentElement;
+  if (entete && !entete.querySelector(".marque-espace")) {
+    var marque = document.createElement("span");
+    marque.className = "marque-espace";
+    marque.textContent = en ? "Facilitators' space" : "Espace animateur·ices";
+    entete.insertBefore(marque, nav);
+  }
+
   nav.setAttribute("aria-label", en ? "Facilitators' space" : "Espace animateur·ices");
   nav.textContent = "";
   onglets.forEach(function (o) {
