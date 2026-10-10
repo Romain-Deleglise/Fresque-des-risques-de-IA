@@ -14,6 +14,9 @@
 "use strict";
 
 var MAX_LIBELLE = 60, MAX_FLECHES = 300, MAX_TEXTES = 20, MAX_CONTENU = 80;
+// Ecart maximal du point de controle d'une fleche, en pixels du plan : la
+// meme borne que l'outil (site/animateurs/animateurs.js).
+var COURBE_MAX = 600;
 var CARTE_MIN = 1, CARTE_MAX = 38;
 
 function nombre(v) { var n = Number(v); return isFinite(n) ? Math.round(n) : null; }
@@ -58,7 +61,20 @@ function valider(tableau, plan) {
     var id = tronque(f.id, 24) || ("f" + (j + 1));
     if (idsVus[id]) return { erreur: "Deux liens portent la même référence." };
     idsVus[id] = true;
-    fleches.push({ id: id, de: de, vers: vers, bidir: !!f.bidir, libelle: tronque(f.libelle, MAX_LIBELLE) });
+    /* LE TRAJET CHOISI A LA MAIN. `courbe` est l'ecart, en pixels du plan,
+       entre le point de controle calcule et celui qu'on a pose. Borne : plus
+       loin, la fleche part a l'autre bout du plan et on ne la retrouve plus.
+       Absent ou nul, on ne l'ecrit pas : un plan sans courbure voulue reste
+       octet pour octet celui d'avant. */
+    var lien = { id: id, de: de, vers: vers, bidir: !!f.bidir, libelle: tronque(f.libelle, MAX_LIBELLE) };
+    var cb = f.courbe || {};
+    var cbx = nombre(cb.x), cby = nombre(cb.y);
+    if (cbx !== null || cby !== null) {
+      cbx = Math.max(-COURBE_MAX, Math.min(COURBE_MAX, cbx || 0));
+      cby = Math.max(-COURBE_MAX, Math.min(COURBE_MAX, cby || 0));
+      if (cbx || cby) lien.courbe = { x: cbx, y: cby };
+    }
+    fleches.push(lien);
   }
 
   var textes = [];
@@ -90,7 +106,10 @@ function normaliser(t) {
   return JSON.stringify({
     cartes: (t.cartes || []).map(function (c) { return [c.n, c.x, c.y]; })
       .sort(function (a, b) { return a[0] - b[0]; }),
-    fleches: (t.fleches || []).map(function (f) { return [f.id, f.de, f.vers, !!f.bidir, f.libelle || ""]; })
+    fleches: (t.fleches || []).map(function (f) {
+      var c = f.courbe || {};
+      return [f.id, f.de, f.vers, !!f.bidir, f.libelle || "", c.x || 0, c.y || 0];
+    })
       .sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }),
     textes: (t.textes || []).map(function (x) { return [x.id, x.x, x.y, x.contenu]; })
       .sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })

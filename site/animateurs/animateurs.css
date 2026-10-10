@@ -903,7 +903,9 @@
    defile donc avec lui. `translate(-50%, …)` la centre sur le trait et la
    remonte juste au-dessus, pour ne pas couvrir ce qu'on vient de designer. */
 .editeur-lien {
-  position: absolute; z-index: 40; transform: translate(-50%, -115%);
+  /* Posee au-dessus du point de controle, et assez haut pour laisser la
+     pastille de courbure libre au clic. */
+  position: absolute; z-index: 40; transform: translate(-50%, calc(-100% - 18px));
   display: flex; flex-direction: column; gap: .4rem;
   padding: .6rem .7rem; width: 15rem;
   border: 1px solid var(--ligne); border-radius: 12px;
@@ -913,17 +915,42 @@
 }
 .editeur-lien[hidden] { display: none; }
 /* Sous le trait quand il n'y a pas la place au-dessus. */
-.editeur-lien.sous { transform: translate(-50%, 15%); }
-.editeur-lien label { font-weight: 600; color: var(--gris); }
+.editeur-lien.sous { transform: translate(-50%, 18px); }
+.editeur-lien-tete { display: flex; align-items: center; gap: .5rem; }
+.editeur-lien-titre {
+  font-weight: 700; font-size: .78rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gris);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* LA BULLE DESIGNE LE TRAIT QU'ELLE MODIFIE. Posée au-dessus sans rien qui la
+   relie, elle flottait là sans qu'on sache sur quoi elle porte. */
+.editeur-lien::after {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -6px; width: 11px; height: 11px; rotate: 45deg;
+  background: var(--surface);
+  border-right: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne);
+}
+.editeur-lien.sous::after { bottom: auto; top: -6px; rotate: 225deg; }
+.editeur-lien label { font-weight: 600; color: var(--gris); font-size: .8rem; }
 .editeur-lien input {
   font: inherit; padding: .4rem .55rem; border: 1px solid var(--ligne);
   border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%;
 }
 .editeur-lien input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.editeur-lien-actions { display: flex; align-items: center; gap: .4rem; }
-.editeur-lien-actions .btn-outil { min-height: 36px; min-width: 0; font-size: .82rem; padding: 0 .6rem; }
+.editeur-lien-actions { display: flex; align-items: center; gap: .5rem; margin-top: .15rem; }
+.editeur-lien-actions .btn-outil { min-height: 36px; min-width: 0; font-size: .82rem; padding: 0 .9rem; border-radius: 8px; }
+/* SUPPRIMER N'EST PAS UNE ACTION ORDINAIRE : en texte, a l'ecart du bouton qui
+   valide, pour qu'on ne la clique pas en visant l'autre. */
+.lien-supprimer {
+  margin-left: auto; white-space: nowrap; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: .8rem; color: #c1444e; text-decoration: underline;
+  text-underline-offset: 2px; padding: .3rem .1rem;
+}
+.lien-supprimer:hover { color: #9c2f38; }
+.lien-supprimer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.lien-supprimer:disabled { opacity: .45; cursor: not-allowed; text-decoration: none; }
 .editeur-lien-x {
-  margin-left: auto; width: 32px; height: 32px; line-height: 1;
+  margin-left: auto; flex: 0 0 auto; width: 30px; height: 30px; line-height: 1;
   border: 1px solid var(--ligne); border-radius: 50%;
   background: var(--bg); color: var(--gris); cursor: pointer;
 }
@@ -1129,3 +1156,29 @@
     letter-spacing: .06em; color: var(--gris); margin-bottom: .25rem;
   }
 }
+
+/* ── COURBER UNE FLÈCHE, VISER UNE CARTE ─────────────────────
+   Le trajet d'un lien était calculé, et lui seul : deux cartes voisines
+   reliées par un trait qui traverse une troisième, et rien à faire. La
+   pastille se tire ; elle n'apparaît que sur le lien choisi, en édition. */
+/* Au-dessus des cartes : dans la couche des liens, elle passait dessous, et
+   l'on attrapait la vignette en croyant courber la fleche. La taille grandit
+   quand on dezoome, comme la poignee de lien des cartes : a 35 %, 18 pixels de
+   plan n'en font plus que 6 a l'ecran. */
+.poignee-courbe {
+  position: absolute; z-index: 6; padding: 0;
+  width: var(--poignee-courbe, 18px); height: var(--poignee-courbe, 18px);
+  margin-left: calc(var(--poignee-courbe, 18px) / -2);
+  margin-top: calc(var(--poignee-courbe, 18px) / -2);
+  border: 2.5px solid var(--accent); border-radius: 50%;
+  background: var(--surface); cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+}
+.poignee-courbe[hidden] { display: none; }
+.poignee-courbe:hover { background: var(--accent); }
+.poignee-courbe:active { cursor: grabbing; }
+.poignee-courbe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* LA CARTE VISÉE PENDANT LE TRACÉ. Sans ce repère, on lâche le trait en
+   espérant avoir visé juste, et rien ne dit si l'arrivée a été reconnue. */
+.c-carte.visee { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }

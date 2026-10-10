@@ -548,6 +548,155 @@ if (cibleUi) {
   await pg.waitForTimeout(250);
   t("Echap referme la bulle", (await pg.evaluate(() => document.getElementById("editeur-lien").hidden)));
 }
+/* ── LES BOUTONS DE LA BULLE, A LA VRAIE SOURIS ─────────────
+   Ils etaient verifies par `click()` en JavaScript, qui ne passe pas par le
+   pointeur : les trois ne faisaient rien a la souris. Le cadre capturait le
+   pointeur au `pointerdown` (glisser pour se deplacer dans la fresque), le
+   relacher lui etait reroute, et le `click` n'atteignait jamais le bouton. */
+console.log("\n--- La bulle du lien repond a la souris ---");
+/* Le plateau sous les yeux : un clic de souris vise des coordonnees de
+   fenetre, et la page remonte des qu'on touche a la barre d'outils. */
+const recadrer = async () => {
+  await pg.evaluate(() => document.getElementById("plateau-cadre").scrollIntoView({ block: "center" }));
+  await pg.waitForTimeout(250);
+};
+await recadrer();
+const surLien = await pg.evaluate(() => {
+  for (const g of document.querySelectorAll("#liens g[data-id]")) {
+    const b = g.querySelector(".touche").getBoundingClientRect();
+    const x = b.x + b.width / 2, y = b.y + b.height / 2;
+    if (y > 150 && y < window.innerHeight - 120 && x > 80) return { x, y };
+  }
+  return null;
+});
+await pg.mouse.click(surLien.x, surLien.y);
+await pg.waitForTimeout(300);
+const idChoisi = await pg.evaluate(() => {
+  const g = document.querySelector("#liens g.choisi");
+  return g ? g.dataset.id : null;
+});
+t("un clic de souris designe bien un lien", !!idChoisi, String(idChoisi));
+t("la bulle dit lequel", /\d+ → \d+/.test(await pg.textContent("#editeur-lien-titre")),
+  await pg.textContent("#editeur-lien-titre"));
+await pg.fill("#f-libelle", "essai-souris");
+const bR = await pg.locator("#f-renommer").boundingBox();
+await pg.mouse.click(bR.x + bR.width / 2, bR.y + bR.height / 2);
+await pg.waitForTimeout(300);
+t("« Renommer » repond au clic de souris",
+  /essai-souris/.test(await pg.evaluate(() => (document.querySelector("#liens g.choisi") || {}).textContent || "")));
+
+/* ── COURBER UNE FLECHE ─────────────────────────────────────
+   Le trajet etait calcule, et lui seul : une fleche qui traverse une carte ne
+   se deviait pas. La pastille a d'abord vecu dans la couche des liens, qui
+   passe SOUS les cartes : on attrapait la vignette en croyant courber. */
+const poCourbe = await pg.evaluate(() => {
+  const c = document.getElementById("poignee-courbe");
+  if (!c || c.hidden) return null;
+  const b = c.getBoundingClientRect();
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+});
+t("le lien choisi porte une pastille de courbure", !!poCourbe);
+const traceAvant = await pg.evaluate(() =>
+  document.querySelector("#liens g.choisi path:not(.touche)").getAttribute("d"));
+if (poCourbe) {
+  t("et rien ne la recouvre",
+    await pg.evaluate((p) => {
+      const el = document.elementFromPoint(p.x, p.y);
+      return !!el && el.id === "poignee-courbe";
+    }, poCourbe));
+  await pg.mouse.move(poCourbe.x, poCourbe.y);
+  await pg.mouse.down();
+  await pg.mouse.move(poCourbe.x + 90, poCourbe.y - 70, { steps: 10 });
+  await pg.mouse.up();
+  await pg.waitForTimeout(300);
+  const traceApres = await pg.evaluate(() =>
+    document.querySelector("#liens g.choisi path:not(.touche)").getAttribute("d"));
+  t("tirer la pastille change le trajet du lien", traceAvant !== traceApres);
+  await pg.click("#f-enregistrer");
+  await pg.waitForTimeout(500);
+  const envoye = (brouillonFresque && brouillonFresque.fleches || [])
+    .filter((f) => f.id === idChoisi)[0];
+  t("et le trajet choisi part au service", !!(envoye && envoye.courbe),
+    JSON.stringify(envoye && envoye.courbe));
+  /* Cliquer dans la barre a fait remonter la page : sans ce recadrage, les
+     gestes suivants tombent sous le bord de la fenetre et ne touchent rien. */
+  await recadrer();
+  const po2 = await pg.evaluate(() => {
+    const b = document.getElementById("poignee-courbe").getBoundingClientRect();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  });
+  /* RIEN NE DOIT RECOUVRIR LA PASTILLE, la bulle du lien comprise : posee au
+     milieu des deux cartes, elle tombait dessus des que le lien etait courbe. */
+  t("la bulle ne recouvre pas la pastille de courbure",
+    await pg.evaluate((p) => {
+      const el = document.elementFromPoint(p.x, p.y);
+      return !!el && el.id === "poignee-courbe";
+    }, po2));
+  await pg.mouse.dblclick(po2.x, po2.y);
+  await pg.waitForTimeout(300);
+  t("le double-clic rend le trajet calcule",
+    (await pg.evaluate(() =>
+      document.querySelector("#liens g.choisi path:not(.touche)").getAttribute("d"))) === traceAvant);
+}
+await recadrer();
+const avantSuppSouris = await pg.evaluate(() => document.querySelectorAll("#liens g[data-id]").length);
+const bS = await pg.locator("#f-supprimer").boundingBox();
+await pg.mouse.click(bS.x + bS.width / 2, bS.y + bS.height / 2);
+await pg.waitForTimeout(300);
+t("« Supprimer » repond au clic de souris",
+  (await pg.evaluate(() => document.querySelectorAll("#liens g[data-id]").length)) === avantSuppSouris - 1);
+t("et la bulle se referme avec le lien",
+  await pg.evaluate(() => document.getElementById("editeur-lien").hidden));
+
+/* ── UN LIEN A MOITIE TRACE N'EST PAS UN LIEN ───────────────
+   Relache dans le vide ou sur sa propre carte, le geste n'a pas designe
+   d'arrivee. Et `pointercancel` (defilement tactile, fenetre qui perd le
+   focus) posait le lien sur la carte qui passait sous le pointeur. */
+console.log("\n--- Un lien a moitie trace n'est pas un lien ---");
+await recadrer();
+const n0 = await pg.evaluate(() => document.querySelectorAll("#liens g[data-id]").length);
+const poLien = await pg.evaluate(() => {
+  for (const h of document.querySelectorAll(".c-carte .poignee-lien")) {
+    const b = h.getBoundingClientRect();
+    const x = b.x + b.width / 2, y = b.y + b.height / 2;
+    if (y > 120 && y < window.innerHeight - 60 && x > 40) return { x, y };
+  }
+  return null;
+});
+const vide = await pg.evaluate(() => {
+  const c = document.getElementById("plateau-cadre").getBoundingClientRect();
+  for (let x = c.left + 20; x < c.right - 20; x += 25) {
+    for (let y = c.top + 20; y < c.bottom - 20; y += 25) {
+      const el = document.elementFromPoint(x, y);
+      if (el && !el.closest(".c-carte") && el.closest("#plateau-cadre")) return { x, y };
+    }
+  }
+  return null;
+});
+if (poLien && vide) {
+  await pg.mouse.move(poLien.x, poLien.y);
+  await pg.mouse.down();
+  await pg.mouse.move(vide.x, vide.y, { steps: 8 });
+  await pg.mouse.up();
+  await pg.waitForTimeout(300);
+  t("lache dans le vide, aucun lien n'est cree",
+    (await pg.evaluate(() => document.querySelectorAll("#liens g[data-id]").length)) === n0);
+  t("et on dit pourquoi", /arriv/i.test(await pg.textContent("#f-etat")),
+    await pg.textContent("#f-etat"));
+}
+t("un geste repris par le navigateur ne pose pas de lien",
+  await pg.evaluate((p) => {
+    const avant = document.querySelectorAll("#liens g[data-id]").length;
+    const h = document.querySelector(".c-carte .poignee-lien");
+    const b = h.getBoundingClientRect();
+    const opt = (x, y) => ({ bubbles: true, clientX: x, clientY: y, pointerId: 7, button: 0 });
+    h.dispatchEvent(new PointerEvent("pointerdown", opt(b.x + 5, b.y + 5)));
+    const c = document.querySelectorAll(".c-carte")[3].getBoundingClientRect();
+    h.dispatchEvent(new PointerEvent("pointermove", opt(c.x + 30, c.y + 30)));
+    h.dispatchEvent(new PointerEvent("pointercancel", opt(c.x + 30, c.y + 30)));
+    return document.querySelectorAll("#liens g[data-id]").length === avant;
+  }, {}));
+
 /* La sortie du plein ecran doit se voir : rendue comme les autres boutons, elle
    se perdait au bout de la rangee. */
 await pg.evaluate(() => document.getElementById("fresque-zone").requestFullscreen());

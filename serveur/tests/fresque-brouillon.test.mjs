@@ -87,3 +87,40 @@ test("le resume dit ce qui a bouge, pour relire avant de deposer", () => {
   assert.equal(r.liensAjoutes, 1);
   assert.equal(r.liensRetires, 0);
 });
+
+/* LE TRAJET CHOISI A LA MAIN SURVIT A L'ALLER-RETOUR.
+
+   Une fleche dont on a regle le trajet le perdait au premier enregistrement si
+   le service ne connaissait pas le champ : on refaisait le reglage a chaque
+   publication, sans comprendre pourquoi il ne tenait pas. */
+test("la courbure voulue d'un lien est conservee", () => {
+  const t = base();
+  t.fleches[0].courbe = { x: -120, y: 65 };
+  const v = F.valider(t, PLAN);
+  assert.equal(v.erreur, undefined, v.erreur);
+  assert.deepEqual(v.tableau.fleches[0].courbe, { x: -120, y: 65 });
+});
+
+test("une courbure absurde est ramenee dans les limites du plan", () => {
+  const t = base();
+  t.fleches[0].courbe = { x: 99999, y: -99999 };
+  const v = F.valider(t, PLAN);
+  assert.deepEqual(v.tableau.fleches[0].courbe, { x: 600, y: -600 });
+});
+
+test("un lien sans courbure n'en gagne pas une", () => {
+  const v = F.valider(base(), PLAN);
+  assert.ok(!("courbe" in v.tableau.fleches[0]),
+    "un plan sans courbure voulue doit rester celui d'avant");
+  // Ecrire un ecart nul revient a ne rien ecrire.
+  const t = base(); t.fleches[0].courbe = { x: 0, y: 0 };
+  assert.ok(!("courbe" in F.valider(t, PLAN).tableau.fleches[0]));
+});
+
+test("deux plans qui ne different que par la courbure ne sont pas identiques", () => {
+  // Sinon le calque se croirait rattrape par le depot et effacerait le reglage.
+  const a = base(), b = base();
+  b.fleches[0].courbe = { x: 40, y: 0 };
+  assert.ok(!F.identique(a, b));
+  assert.ok(F.identique(a, base()));
+});
