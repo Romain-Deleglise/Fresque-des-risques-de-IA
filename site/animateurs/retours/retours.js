@@ -58,10 +58,12 @@
      fois ; il fallait alors envoyer trois fois le meme texte. On garde donc une
      liste, et on la montre : sans les puces, on ne sait plus ce qu'on a pris.
 
-     LE TITRE N'EST AFFICHE QUE S'IL TIENT. « 27 · Enracinement des systemes de
-     controle et d'oppression » ferait une puce plus large que le formulaire :
-     au-dela, le numero seul, et le titre reste dans l'infobulle. */
-  var MAX_TITRE_PUCE = 28;
+     TOUJOURS LE NUMERO ET LE TITRE. Le titre n'etait affiche que s'il tenait en
+     vingt-huit signes : une puce sur deux montrait le numero seul, et on ne
+     savait plus laquelle on avait prise sans retourner compter dans la liste.
+     Elles portent donc toutes les deux, et c'est la puce qui s'adapte : elle
+     ne depasse pas la largeur du formulaire, le texte trop long se termine en
+     points de suspension, et l'infobulle garde le titre entier. */
   var choisies = [];
   var titres = {};
 
@@ -70,9 +72,9 @@
     if (!hote) return;
     hote.innerHTML = choisies.map(function (n) {
       var t = titres[n] || '';
-      var court = t.length > MAX_TITRE_PUCE ? '' : ' · ' + echapper(t);
-      return '<li class="puce-carte"><span title="' + echapper(n + ' · ' + t) + '">'
-        + n + court + '</span>'
+      var entier = t ? n + ' · ' + t : String(n);
+      return '<li class="puce-carte"><span title="' + echapper(entier) + '">'
+        + echapper(entier) + '</span>'
         + '<button type="button" class="puce-x" data-n="' + n + '" aria-label="'
         + echapper(T.retirer + ' ' + n) + '">×</button></li>';
     }).join('');

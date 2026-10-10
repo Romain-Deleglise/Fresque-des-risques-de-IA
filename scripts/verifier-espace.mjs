@@ -294,6 +294,28 @@ t("aucun bouton de moderation ici : elle reste dans /admin/", r.moderation === 0
 t("le titre et le formulaire partagent le meme bord gauche", r.colonne < 2, r.colonne + " px");
 t("et donc plus de jeton : il n'y a plus rien a moderer ici", !r.jeton);
 
+/* LES PUCES PORTENT TOUJOURS LE NUMERO ET LE TITRE. Le titre n'etait affiche
+   que s'il tenait en vingt-huit signes : une puce sur deux montrait le numero
+   seul, et on ne savait plus laquelle on avait prise. */
+console.log("\n--- Les cartes choisies se lisent ---");
+for (const n of ["3", "27", "6"]) await pg.selectOption("#g-carte", n);
+await pg.waitForTimeout(300);
+const puces = await pg.evaluate(() => {
+  const l = [...document.querySelectorAll(".puce-carte")];
+  const liste = document.getElementById("cartes-choisies").getBoundingClientRect();
+  return { textes: l.map((e) => e.querySelector("span").textContent),
+    infobulles: l.map((e) => e.querySelector("span").title),
+    dedans: l.every((e) => e.getBoundingClientRect().right <= liste.right + 1) };
+});
+t("trois cartes choisies, trois puces", puces.textes.length === 3, puces.textes.join(" | "));
+t("chacune porte son numero ET son titre",
+  puces.textes.every((x) => /^\d+ · \S/.test(x)), puces.textes.join(" | "));
+t("y compris le titre le plus long",
+  /^27 · Enracinement/.test(puces.textes[2] || ""), puces.textes[2]);
+t("l'infobulle garde le titre entier",
+  puces.infobulles.every((x, i) => x === puces.textes[i]));
+t("et aucune puce ne deborde de la liste", puces.dedans);
+
 console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
 await pg.waitForTimeout(1200);
