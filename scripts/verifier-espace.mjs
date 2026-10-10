@@ -111,6 +111,11 @@ t("et il annonce lui aussi l'espace animateur·ices",
     const m = document.querySelector(".entete .marque-espace");
     return !!m && /animateur/i.test(m.textContent);
   }));
+/* LA BASCULE CLAIR/SOMBRE SURVIT A LA REECRITURE DE LA BARRE. nav.js la pose
+   dans la barre, espace-nav.js reecrivait cette barre en entier : sur le
+   guide, et lui seul, le bouton de theme disparaissait. */
+t("et la bascule clair/sombre est toujours la",
+  await pg.evaluate(() => !!document.querySelector(".entete .theme-toggle")));
 t("sans marque en double si l'on y revient",
   await pg.evaluate(() => document.querySelectorAll(".entete .marque-espace").length === 1));
 t("et aucun de ses liens ne mene a une page supprimee",
@@ -332,6 +337,16 @@ t("et la fleche maison a la place de celle du systeme",
    Trois pannes que la largeur de bureau cachait : le champ de recherche sortait
    de la barre, le jeton de moderation occupait le premier ecran avant meme le
    titre, et le deroule de l'antiseche tenait quatre colonnes dans 350 pixels. */
+/* Sur toutes les pages de l'espace, pas seulement le guide : un bouton qui
+   existe ici et pas la se lit comme une panne. */
+console.log("\n--- La bascule clair/sombre est partout ---");
+for (const u of PAGES) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  await pg.waitForTimeout(500);
+  t("bascule clair/sombre sur " + u,
+    await pg.evaluate(() => !!document.querySelector(".entete .theme-toggle")));
+}
+
 console.log("\n--- Sur un telephone ---");
 const tel = await nav.newPage({ viewport: { width: 390, height: 844 } });
 await tel.goto(B + "/animateurs/", { waitUntil: "networkidle" });
