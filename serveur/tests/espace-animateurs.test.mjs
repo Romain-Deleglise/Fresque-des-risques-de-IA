@@ -23,8 +23,7 @@ const PAGES_ESPACE = [
   "site/animateurs/antiseche/index.html",
   "site/animateurs/minuteur/index.html",
   "site/animateurs/kit/index.html",
-  "site/en/facilitators/index.html",
-  "site/en/facilitators/reference/index.html"
+  "site/en/facilitators/index.html"
 ];
 const PAGE = lire("site/animateurs/retours/index.html");
 
@@ -177,9 +176,23 @@ test("aucun attribut style= : la CSP du site les ignore", () => {
   // terre : 38 cartes empilées en haut à gauche, étiquettes superposées,
   // flèches à l'échelle 1, et invisible en local, où le serveur de test
   // n'envoie aucune CSP. Toutes les positions passent donc par le CSSOM.
-  const csp = lire("netlify.toml");
-  assert.match(csp, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
-  assert.ok(!/unsafe-inline/.test(csp), "la CSP autorise désormais l'inline");
+  /* ON LIT LA REGLE GENERALE, PAS LE FICHIER ENTIER. L'aperçu des e-mails de
+     /admin/ a sa propre règle, sur son seul chemin : un e-mail n'a pas de
+     feuille de style, tout y est en attribut `style`, c'est la seule chose
+     que lisent les clients de messagerie. Cette exception-là ne relâche rien
+     pour les pages du site, et c'est ce que ce test doit continuer de
+     garantir. */
+  const toml = lire("netlify.toml");
+  const general = toml.slice(toml.indexOf('for = "/*"'),
+    toml.indexOf("[[headers]]", toml.indexOf('for = "/*"')));
+  assert.match(general, /style-src 'self'/, "la CSP a changé : ce test doit être revu");
+  assert.ok(!/unsafe-inline/.test(general), "la CSP générale autorise désormais l'inline");
+  /* Et l'exception reste bornée à ce seul chemin : on retire le bloc de
+     l'aperçu, et plus personne ne doit demander l'inline. */
+  const sansApercu = toml.replace(
+    /for = "\/\.netlify\/functions\/apercu-courriel"[\s\S]*?(?=\n\[\[headers\]\]|\n#)/, "");
+  assert.ok(!/unsafe-inline/.test(sansApercu),
+    "une autre règle que l'aperçu des e-mails autorise l'inline");
 
   const scripts = ["site/animateurs/animateurs.js", "site/animateurs/minuteur/minuteur.js",
                    "site/animateurs/kit/kit.js", "site/animateurs/antiseche/antiseche.js"];
@@ -214,10 +227,14 @@ test("l'espace tient en quatre onglets", () => {
   }
 });
 
-test("la page de la fresque mène aux outils de l'atelier", () => {
+/* LA PAGE DE LA FRESQUE N'A QU'UN SUJET. Elle portait en bas des raccourcis
+   vers l'antiseche, le minuteur, le guide et le kit : les onglets y menent
+   deja, et ces blocs faisaient de la page de la fresque une table des matieres
+   de plus. */
+test("la page de la fresque ne porte que la fresque", () => {
   const sommaire = lire("site/animateurs/index.html");
-  for (const cible of ["../guide/?espace=1", "antiseche/", "minuteur/", "kit/"]) {
-    assert.ok(sommaire.includes('href="' + cible + '"'), `la page ne mène pas à ${cible}`);
+  for (const bloc of ["Pendant l'atelier", "Avant l'atelier", "ressource vous manque"]) {
+    assert.ok(!sommaire.includes(bloc), `la page porte encore « ${bloc} »`);
   }
   assert.match(sommaire, /id="fresque-outil"/, "la fresque s'affiche directement");
   assert.ok(!/id="btn-apercu"/.test(sommaire),
@@ -400,4 +417,39 @@ test("une planche incomplete s'arrete au lieu de s'imprimer vide", () => {
   // Un PDF aux cartes vides passerait inapercu jusqu'a l'imprimeur.
   assert.match(g, /function echec\(/);
   assert.match(g, /n'a ni titre ni verso/);
+});
+
+/* AUCUN LIEN DE L'ESPACE NE DOIT MENER DANS LE VIDE.
+
+   La version anglaise de la fresque de reference a ete retiree : deux cartes
+   de /en/facilitators/ pointaient encore dessus, et rien ne l'aurait dit. Une
+   page supprimee laisse toujours des liens derriere elle, et un 404 dans un
+   espace reserve ne remonte par aucun canal : personne n'ecrit pour signaler
+   un lien casse sur une page qu'on lui a dit de ne pas partager.
+
+   On accepte un lien qui mene a un fichier, a un dossier portant un
+   index.html, ou a une adresse que netlify.toml redirige. */
+test("aucun lien interne de l'espace ne mene a une page qui n'existe pas", () => {
+  const toml = lire("netlify.toml");
+  const redirections = [...toml.matchAll(/from\s*=\s*"([^"]+)"/g)]
+    .map((m) => m[1].replace(/\*$/, ""));
+  const morts = [];
+  for (const p of PAGES_ESPACE) {
+    const dossier = path.dirname(path.join(RACINE, p));
+    for (const m of lire(p).matchAll(/\shref="([^"]+)"/g)) {
+      const brut = m[1];
+      if (/^(https?:|mailto:|tel:|#|data:)/.test(brut)) continue;
+      const chemin = brut.split("#")[0].split("?")[0];
+      if (!chemin) continue;
+      const vise = path.resolve(chemin.startsWith("/")
+        ? path.join(RACINE, "site", chemin) : path.join(dossier, chemin));
+      if (fs.existsSync(vise)
+        && (!fs.statSync(vise).isDirectory() || fs.existsSync(path.join(vise, "index.html")))) continue;
+      // Une adresse absolue peut etre servie par une redirection.
+      const absolu = "/" + path.relative(path.join(RACINE, "site"), vise).replace(/\\/g, "/");
+      if (redirections.some((r) => (absolu + "/").startsWith(r))) continue;
+      morts.push(p + " -> " + brut);
+    }
+  }
+  assert.deepEqual(morts, [], "liens morts : " + morts.join(", "));
 });

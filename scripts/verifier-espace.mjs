@@ -62,6 +62,19 @@ const pg = await nav.newPage({ viewport: { width: 1280, height: 900 } });
 const erreursJS = [];
 pg.on("pageerror", (e) => erreursJS.push(e.message));
 
+/* Le service des retours, bouchonne : la page en lit la liste publique, et on
+   veut pouvoir verifier ce qu'elle en fait, y compris le marquage « en attente
+   de relecture » qui distingue un retour relu d'un retour qui ne l'est pas. */
+const RETOURS_BANC = [
+  { cle: "carte:3:a", sujet: "carte", carte: 3, texte: "La 3 et la 6 se confondent.",
+    nom: "Lea", date: Date.now() - 86400000, valide: true, traite: false },
+  { cle: "general:deroule:b", sujet: "deroule", carte: null, texte: "Le lot 3 deborde.",
+    nom: "", date: Date.now() - 3 * 86400000, valide: false, traite: false }
+];
+await pg.route("**/.netlify/functions/commentaires**", (r) => r.fulfill({ status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({ ok: true, compte: {}, retours: RETOURS_BANC }) }));
+
 const ONGLETS = ["Fresque", "Guide", "Antisèche", "Retours"];
 const PAGES = ["/animateurs/", "/animateurs/retours/", "/animateurs/antiseche/",
                "/animateurs/minuteur/", "/animateurs/kit/"];
@@ -90,6 +103,21 @@ const barreGuide = await pg.evaluate(() => {
 });
 t("le guide reprend LES MEMES onglets quand on y arrive depuis l'espace",
   JSON.stringify(barreGuide) === JSON.stringify(ONGLETS), JSON.stringify(barreGuide));
+/* LA MARQUE DE L'ESPACE SUR LE GUIDE AUSSI. Les quatre autres pages la portent
+   dans leur balisage ; le guide est une page publique qu'on rhabille en
+   JavaScript, et il restait seul sans rien qui dise ou l'on est. */
+t("et il annonce lui aussi l'espace animateur·ices",
+  await pg.evaluate(() => {
+    const m = document.querySelector(".entete .marque-espace");
+    return !!m && /animateur/i.test(m.textContent);
+  }));
+/* LA BASCULE CLAIR/SOMBRE SURVIT A LA REECRITURE DE LA BARRE. nav.js la pose
+   dans la barre, espace-nav.js reecrivait cette barre en entier : sur le
+   guide, et lui seul, le bouton de theme disparaissait. */
+t("et la bascule clair/sombre est toujours la",
+  await pg.evaluate(() => !!document.querySelector(".entete .theme-toggle")));
+t("sans marque en double si l'on y revient",
+  await pg.evaluate(() => document.querySelectorAll(".entete .marque-espace").length === 1));
 t("et aucun de ses liens ne mene a une page supprimee",
   await pg.evaluate(() => {
     const n = document.querySelector('nav[aria-label^="Espace"]');
@@ -166,6 +194,28 @@ t("il porte le titre et le verso", !!p.titre && p.verso > 40, p.titre);
 t("et les cartes liees, cliquables", p.liens > 0, String(p.liens));
 t("il ne porte plus de formulaire de commentaire", !p.commentaire);
 
+/* LA ZONE RESTE DANS LA PAGE. Elle sortait sur toute la largeur de la fenetre :
+   une bande de bord a bord au milieu d'une page qui a partout ailleurs une
+   colonne de lecture. La pleine largeur est reservee au plein ecran. */
+console.log("\n--- La fresque reste dans la page ---");
+const large = await pg.evaluate(() => ({
+  zone: document.getElementById("fresque-zone").getBoundingClientRect().width,
+  fenetre: window.innerWidth,
+  colonne: document.querySelector("#plateau-section .wrap").getBoundingClientRect().width
+}));
+t("la zone ne va pas bord a bord", large.zone < large.fenetre - 100,
+  Math.round(large.zone) + " px pour une fenetre de " + large.fenetre);
+t("et tient dans la colonne de la page", large.zone <= large.colonne + 1,
+  Math.round(large.zone) + " pour " + Math.round(large.colonne));
+
+/* ON DOIT VOIR QU'ON A CHANGE DE MAISON : meme logo, meme titre que le site
+   public, seuls les onglets changeaient. */
+t("l'en-tete annonce l'espace animateur·ices",
+  await pg.evaluate(() => {
+    const m = document.querySelector(".entete .marque-espace");
+    return !!m && /animateur/i.test(m.textContent);
+  }));
+
 console.log("\n--- Le plein ecran rend l'ecran a la fresque ---");
 await pg.evaluate(() => { document.getElementById("panneau-fermer").click();
   document.getElementById("plein-ecran").click(); });
@@ -174,7 +224,9 @@ const pe = await pg.evaluate(() => {
   const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
   return { plein: !!document.fullscreenElement,
     cadre: document.getElementById("plateau-cadre").getBoundingClientRect().height,
-    fenetre: window.innerHeight, aide: vis("#barre-aide"), legende: vis(".cle-fleches"), lots: vis("#lots") };
+    fenetre: window.innerHeight, aide: vis("#barre-aide"), legende: vis(".cle-fleches"), lots: vis("#lots"),
+    largeur: Math.round(document.getElementById("fresque-zone").getBoundingClientRect().width),
+    largeurFenetre: window.innerWidth };
 });
 t("la zone passe en plein ecran", pe.plein);
 t("l'aide et la legende se replient", !pe.aide && !pe.legende);
@@ -183,6 +235,31 @@ t("l'aide et la legende se replient", !pe.aide && !pe.legende);
 t("les filtres de lot restent accessibles", pe.lots);
 t("le plateau prend au moins 80 % de l'ecran", pe.cadre / pe.fenetre >= 0.8,
   Math.round(100 * pe.cadre / pe.fenetre) + " %");
+t("la zone prend alors toute la largeur", pe.largeur >= pe.largeurFenetre - 1,
+  pe.largeur + " / " + pe.largeurFenetre);
+
+/* ── ET LE VRAI PLEIN ECRAN ──────────────────────────────────
+   Masquer la legende et l'aide ne suffisait pas : la barre d'outils et les
+   filtres restaient, et c'est ce bandeau-la qu'on demandait a faire
+   disparaitre. Il faut aussi pouvoir le rappeler, sinon on s'enferme devant un
+   groupe. */
+await pg.evaluate(() => document.getElementById("masquer-bandeau").click());
+await pg.waitForTimeout(600);
+const nu = await pg.evaluate(() => {
+  const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== "none"; };
+  return { barre: vis(".barre"), lots: vis("#lots"), rappel: vis("#rappel-bandeau"),
+    cadre: document.getElementById("plateau-cadre").getBoundingClientRect().height,
+    fenetre: window.innerHeight };
+});
+t("la barre d'outils se replie entierement", !nu.barre);
+t("les filtres aussi", !nu.lots);
+t("une pastille permet de la rappeler", nu.rappel);
+t("le plateau prend alors presque tout l'ecran", nu.cadre / nu.fenetre >= 0.93,
+  Math.round(100 * nu.cadre / nu.fenetre) + " %");
+await pg.keyboard.press("b");
+await pg.waitForTimeout(400);
+t("la touche B la ramene",
+  await pg.evaluate(() => getComputedStyle(document.querySelector(".barre")).display !== "none"));
 await pg.evaluate(() => document.exitFullscreen && document.exitFullscreen());
 await pg.waitForTimeout(400);
 
@@ -194,13 +271,50 @@ const r = await pg.evaluate(() => ({
   cartes: document.querySelectorAll("#g-carte option").length,
   jeton: !!document.getElementById("form-jeton"),
   outil: !!document.getElementById("fresque-outil"),
-  liste: !!document.getElementById("retours")
+  /* LA LISTE PUBLIQUE EST REVENUE, SANS LA MODERATION. On lit ce qui a deja
+     ete signale, pour ne pas le redire ; valider ou supprimer reste dans
+     /admin/, et aucun bouton ne doit le laisser croire ici. */
+  publics: document.querySelectorAll("#retours-liste .retour-public").length,
+  attente: document.querySelectorAll("#retours-liste .en-attente").length,
+  nomme: /carte 3/.test(document.getElementById("retours-liste").textContent || ""),
+  moderation: document.querySelectorAll("#retours-publics button").length,
+  colonne: (() => {
+    const h = document.querySelector(".page-tete h1").getBoundingClientRect().left;
+    const f = document.querySelector(".carte-formulaire").getBoundingClientRect().left;
+    return Math.abs(h - f);
+  })()
 }));
 t("les cinq champs demandes sont la", r.champs.length === 5, r.champs.join(","));
 t("les 38 cartes sont proposees, plus « aucune »", r.cartes === 39, String(r.cartes));
 t("plus de fresque sur cette page", !r.outil);
-t("plus de liste de retours : la relecture est dans /admin/", !r.liste);
+t("les retours deja deposes se lisent sur la page", r.publics === 2, String(r.publics));
+t("celui qui n'est pas relu est marque comme tel", r.attente === 1, String(r.attente));
+t("et la carte est nommee, pas seulement numerotee", r.nomme);
+t("aucun bouton de moderation ici : elle reste dans /admin/", r.moderation === 0, String(r.moderation));
+t("le titre et le formulaire partagent le meme bord gauche", r.colonne < 2, r.colonne + " px");
 t("et donc plus de jeton : il n'y a plus rien a moderer ici", !r.jeton);
+
+/* LES PUCES PORTENT TOUJOURS LE NUMERO ET LE TITRE. Le titre n'etait affiche
+   que s'il tenait en vingt-huit signes : une puce sur deux montrait le numero
+   seul, et on ne savait plus laquelle on avait prise. */
+console.log("\n--- Les cartes choisies se lisent ---");
+for (const n of ["3", "27", "6"]) await pg.selectOption("#g-carte", n);
+await pg.waitForTimeout(300);
+const puces = await pg.evaluate(() => {
+  const l = [...document.querySelectorAll(".puce-carte")];
+  const liste = document.getElementById("cartes-choisies").getBoundingClientRect();
+  return { textes: l.map((e) => e.querySelector("span").textContent),
+    infobulles: l.map((e) => e.querySelector("span").title),
+    dedans: l.every((e) => e.getBoundingClientRect().right <= liste.right + 1) };
+});
+t("trois cartes choisies, trois puces", puces.textes.length === 3, puces.textes.join(" | "));
+t("chacune porte son numero ET son titre",
+  puces.textes.every((x) => /^\d+ · \S/.test(x)), puces.textes.join(" | "));
+t("y compris le titre le plus long",
+  /^27 · Enracinement/.test(puces.textes[2] || ""), puces.textes[2]);
+t("l'infobulle garde le titre entier",
+  puces.infobulles.every((x, i) => x === puces.textes[i]));
+t("et aucune puce ne deborde de la liste", puces.dedans);
 
 console.log("\n--- Pas de bande d'une autre teinte autour de l'outil ---");
 await pg.goto(B + "/animateurs/", { waitUntil: "networkidle" });
@@ -241,6 +355,45 @@ t("et la fleche maison a la place de celle du systeme",
    feuille que toutes les pages partagent, a rendu l'antiseche entierement
    blanche a l'impression, et le PDF engendre depuis elle avec. L'empreinte qui
    garde le PDF aligne sur sa page compare le HTML : la panne venait du CSS. */
+/* ── SUR UN TELEPHONE ────────────────────────────────────────
+   Trois pannes que la largeur de bureau cachait : le champ de recherche sortait
+   de la barre, le jeton de moderation occupait le premier ecran avant meme le
+   titre, et le deroule de l'antiseche tenait quatre colonnes dans 350 pixels. */
+/* Sur toutes les pages de l'espace, pas seulement le guide : un bouton qui
+   existe ici et pas la se lit comme une panne. */
+console.log("\n--- La bascule clair/sombre est partout ---");
+for (const u of PAGES) {
+  await pg.goto(B + u, { waitUntil: "networkidle" });
+  await pg.waitForTimeout(500);
+  t("bascule clair/sombre sur " + u,
+    await pg.evaluate(() => !!document.querySelector(".entete .theme-toggle")));
+}
+
+console.log("\n--- Sur un telephone ---");
+const tel = await nav.newPage({ viewport: { width: 390, height: 844 } });
+await tel.goto(B + "/animateurs/", { waitUntil: "networkidle" });
+await tel.waitForTimeout(1200);
+const mob = await tel.evaluate(() => {
+  const i = document.getElementById("recherche").getBoundingClientRect();
+  const b = document.querySelector(".barre").getBoundingClientRect();
+  const h1 = document.querySelector("h1").getBoundingClientRect();
+  const j = document.querySelector(".jeton").getBoundingClientRect();
+  return { dedans: i.right <= b.right + 1, apresTitre: j.top > h1.top,
+    doc: document.documentElement.scrollWidth, vue: window.innerWidth };
+});
+t("le champ de recherche tient dans la barre", mob.dedans, JSON.stringify(mob));
+t("le jeton vient apres le titre, pas avant", mob.apresTitre);
+t("et rien ne deborde en largeur", mob.doc <= mob.vue + 1, mob.doc + " / " + mob.vue);
+await tel.goto(B + "/animateurs/antiseche/", { waitUntil: "networkidle" });
+await tel.waitForTimeout(600);
+t("le deroule de l'antiseche s'empile au lieu de se comprimer",
+  await tel.evaluate(() => {
+    const l = document.querySelector(".as-table tbody tr");
+    return getComputedStyle(l).display === "block"
+      && l.querySelector("td").getBoundingClientRect().width > 200;
+  }));
+await tel.close();
+
 console.log("\n--- Les pages imprimables impriment quelque chose ---");
 for (const [nom, u, mini] of [["l'antiseche", "/animateurs/antiseche/", 1200],
                               ["le guide", "/guide/", 3000],

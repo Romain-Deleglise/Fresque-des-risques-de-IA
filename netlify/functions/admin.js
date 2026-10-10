@@ -34,6 +34,8 @@ const An = require("../../serveur/src/animateurs.js");
 // exactement de la même façon.
 const Ateliers = require("./ateliers.js");
 const mail = require("./lib/mail.js");
+const BILLET = require("./lib/billet.js");
+const APERCUS = require("./lib/apercus.js");
 
 function contacts() { return getStore({ name: "fresque-contacts" }); }
 function retours() { return getStore({ name: "fresque-retours" }); }
@@ -75,40 +77,14 @@ async function listerRetours() {
   out.sort((a, b) => (b.date || 0) - (a.date || 0));
   return out;
 }
-/* Message de relance. Volontairement court et sans reproche : la personne a
-   donné de son temps une fois, elle ne doit rien à personne. On lui dit ce qui
-   a changé depuis et on lui laisse la main -- pas de « on ne vous voit plus ».
-   Un seul lien, celui qui sert : programmer. */
 // L'adresse du site vient de lib/lien.js : celle du DEPLOIEMENT qui envoie,
 // pour qu'un courriel teste sur une preview y ramene au lieu de la production.
 const LIENS = require("./lib/lien.js");
 const LIEN_SITE = LIENS.SITE;
-function relanceAnimateur(mailDest) {
-  const prog = LIEN_SITE + "/devenir-animateur/#programmer";
-  const text = [
-    "Bonjour,",
-    "",
-    "Vous avez animé une Fresque des risques de l'IA il y a quelque temps, merci encore.",
-    "",
-    "La fresque a continué d'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).",
-    "",
-    "Si l'envie vous en dit, programmer le prochain prend deux minutes :",
-    prog,
-    "",
-    "Et si ce n'est pas le moment, ce message n'attend aucune réponse. Nous ne relançons personne plus d'une fois par semestre.",
-    "",
-    "À bientôt,",
-    "L'équipe de la Fresque des risques de l'IA, Pause IA"
-  ].join("\n");
-  const html = [
-    '<p style="margin:0 0 14px;">Bonjour,</p>',
-    '<p style="margin:0 0 14px;">Vous avez animé une Fresque des risques de l\'IA il y a quelque temps, merci encore.</p>',
-    '<p style="margin:0 0 14px;">La fresque a continué d\'évoluer depuis : les cartes ont été corrigées grâce aux retours des animateur·ices, le guide s\'est étoffé, et le site aide maintenant à trouver des participant·es (il annonce votre atelier aux personnes inscrites près de chez vous).</p>',
-    '<p style="margin:0 0 18px;text-align:center;"><a href="' + prog + '" style="display:inline-block;background:#E8811C;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:700;">Programmer un atelier</a></p>',
-    '<p style="margin:0;font-size:13px;color:#6b665e;">Si ce n\'est pas le moment, ce message n\'attend aucune réponse. Nous ne relançons personne plus d\'une fois par semestre.</p>'
-  ].join("");
-  return { text, html: html };
-}
+/* Le message de relance vit dans lib/courriel-relance.js : l'apercu de /admin/
+   le construit comme les autres, et admin.js ne peut pas requerir le catalogue
+   d'apercus s'il porte lui-meme un courriel (dependance circulaire). */
+const relanceAnimateur = require("./lib/courriel-relance.js").relance;
 
 const json = (s, c) => ({ statusCode: s, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(c) });
 
@@ -219,6 +195,15 @@ exports.handler = async (event) => {
         return json(200, { journal: liste, bilan: JOURNAL.bilan(liste, Date.now()),
           parcours: PARCOURS.tous() });
       }
+      /* LE BILLET D'APERCU. Le tableau de bord affiche chaque courriel dans
+         un cadre ; un cadre s'authentifie par son adresse, et la cle n'a rien
+         a faire dans une adresse (historique, journaux). Il demande donc ici,
+         avec sa cle, un laissez-passer de dix minutes qui n'ouvre que les
+         apercus. */
+      if (q.action === "billet-apercu") {
+        return json(200, { billet: BILLET.emettre(process.env.ADMIN_TOKEN || ""),
+          sujets: APERCUS.sujets() });
+      }
       if (q.action === "alertes") return json(200, await resumeAlertes());
       if (q.action === "ateliers") {
         const ateliers = await Ateliers.listerPourAdmin();
@@ -278,7 +263,7 @@ exports.handler = async (event) => {
            après, un plantage entre les deux la ferait relancer deux fois. */
         const marque = await C.marquerRelance(st, m);
         if (!marque) return json(404, { erreur: "Ce contact n'existe pas." });
-        const r = relanceAnimateur(m);
+        const r = relanceAnimateur();
         const env = await mail.envoi({ to: m, subject: "On reprogramme une fresque ?", text: r.text, html: r.html });
         return json(200, { relance: true, envoye: !!env.envoye });
       }

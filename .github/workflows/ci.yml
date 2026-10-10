@@ -170,6 +170,14 @@ jobs:
       - name: Verifier l'edition de la fresque de reference
         run: node scripts/verifier-fresque-edition.mjs
 
+      # L'apercu des courriels de /admin/ : un e-mail est tout en attributs
+      # `style`, que la CSP du site ignore a juste titre. Affiche dans un cadre
+      # qui heriterait de cette politique, il s'afficherait sans mise en forme
+      # et l'on conclurait a tort que le courriel est casse. Le banc sert la
+      # MEME politique que la production, exception comprise.
+      - name: Verifier l'apercu des courriels
+        run: node scripts/verifier-apercu-courriels.mjs
+
       # Les communes suggerees et choisies n'existent qu'apres une frappe :
       # l'audit axe-core, qui regarde les pages au repos, ne les voyait pas. Leur
       # contraste etait de 1,00 en theme sombre, c'est-a-dire invisible.

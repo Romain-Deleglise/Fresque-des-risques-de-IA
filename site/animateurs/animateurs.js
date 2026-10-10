@@ -19,7 +19,10 @@
 (function () {
   'use strict';
 
-  var CARTE_W = 160, CARTE_H = 150;   // remplaces par ref.plan.carte au chargement
+  var CARTE_W = 160, CARTE_H = 150;
+  // Ecart maximal du point de controle d'une fleche, en pixels du plan : la
+  // meme borne que le service (serveur/src/fresque-brouillon.js).
+  var COURBE_MAX = 600;   // remplaces par ref.plan.carte au chargement
   var PLAN_W = 2840, PLAN_H = 1750;   // idem : le fichier fait foi
   var cartes = {};      // n -> carte de cartes.json
   var ref = null;       // fresque de reference
@@ -50,6 +53,8 @@
     repondA: 'What it answers', reponses: 'The answers to it',
     lienAucun: 'No particular card', lienLiees: 'Cards already linked to this one',
     deZoomer: 'Zoom out', zoomer: 'Zoom in', chercherCarte: 'Search for a card',
+    masquerBandeau: 'Hide the bar', montrerBandeau: 'Show the bar',
+    rappelBandeau: 'Show the bar (B)',
     choixVue: 'Choose a view', vueCartes: 'Cards', vueFresque: 'Fresk',
     fermer: 'Close ✕', fermerPanneau: 'Close',
     filtrerLot: 'Filter by batch', provoque: 'leads to', repond: 'answers',
@@ -82,7 +87,12 @@
     nonEnregistre: 'Unsaved changes.',
     quitterEdition: 'Leave edit mode? Changes that have not been saved will be lost.',
     choixLien: 'A link to edit', libelleLien: 'Label', renommerLien: 'Rename',
-    supprimerLien: 'Delete this link', nouveauLien: 'New link',
+    editionTitre: 'Editing the collage', plusDOptions: 'Lists and versions',
+    supprimerLien: 'Delete this link', supprimerCourt: 'Delete', nouveauLien: 'New link',
+    lienIncomplet: 'Drop the line on the target card to create the link.',
+    courbeRendue: 'Link back to its computed path.',
+    courberLien: 'Bend this link',
+    aideCourbe: 'Drag the dot on a selected link to bend it, double-click it to reset.',
     depuis: 'From', versCarte: 'To', ajouterLien: 'Add the link',
     lienAjoute: 'Link added. Give it a label below.',
     lienRenomme: 'Label updated.', lienSupprime: 'Link deleted.',
@@ -108,6 +118,8 @@
     repondA: 'Ce à quoi ça répond', reponses: 'Les réponses proposées',
     lienAucun: 'Aucune carte en particulier', lienLiees: 'Cartes déjà liées à celle-ci',
     deZoomer: 'Dézoomer', zoomer: 'Zoomer', chercherCarte: 'Chercher une carte',
+    masquerBandeau: 'Masquer la barre', montrerBandeau: 'Afficher la barre',
+    rappelBandeau: 'Afficher la barre (B)',
     choixVue: 'Choisir une vue', vueCartes: 'Cartes', vueFresque: 'Fresque',
     fermer: 'Fermer ✕', fermerPanneau: 'Fermer',
     filtrerLot: 'Filtrer par lot', provoque: 'provoque', repond: 'répond à',
@@ -140,7 +152,12 @@
     nonEnregistre: 'Modifications non enregistrées.',
     quitterEdition: 'Quitter le mode édition ? Les modifications non enregistrées seront perdues.',
     choixLien: 'Un lien à modifier', libelleLien: 'Libellé', renommerLien: 'Renommer',
-    supprimerLien: 'Supprimer ce lien', nouveauLien: 'Nouveau lien',
+    editionTitre: 'Modification de la fresque', plusDOptions: 'Listes et versions',
+    supprimerLien: 'Supprimer ce lien', supprimerCourt: 'Supprimer', nouveauLien: 'Nouveau lien',
+    lienIncomplet: 'Relâchez le trait sur la carte d’arrivée pour créer le lien.',
+    courbeRendue: 'Trajet du lien remis au calcul.',
+    courberLien: 'Courber ce lien',
+    aideCourbe: 'Tirez la pastille d’un lien choisi pour le courber, double-cliquez-la pour revenir au trajet calculé.',
     depuis: 'Depuis', versCarte: 'Vers', ajouterLien: 'Ajouter le lien',
     lienAjoute: 'Lien ajouté. Donnez-lui un libellé ci-dessous.',
     lienRenomme: 'Libellé mis à jour.', lienSupprime: 'Lien supprimé.',
@@ -179,12 +196,21 @@
     var h = [];
 
     h.push('<div class="fresque-zone" id="fresque-zone">');
+    /* LA SORTIE, TOUJOURS LA. Replier le bandeau sans moyen de le rappeler
+       enferme qui projette devant un groupe. Discrete au repos, franche des
+       que la souris bouge. */
+    h.push('<button type="button" class="rappel-bandeau" id="rappel-bandeau">↑ '
+      + T.rappelBandeau + '</button>');
     h.push('<div class="barre">');
     h.push('<div class="barre-g">');
     h.push('<button type="button" class="btn-outil" id="zoom-moins" aria-label="' + T.deZoomer + '">−</button>');
     h.push('<span class="zoom-val" id="zoom-val">100&nbsp;%</span>');
     h.push('<button type="button" class="btn-outil" id="zoom-plus" aria-label="' + T.zoomer + '">+</button>');
     h.push('<button type="button" class="btn-outil" id="plein-ecran">' + T.pleinEcran + '</button>');
+    /* REPLIER TOUT LE BANDEAU, et pas seulement l'aide : c'est ce que « vrai
+       plein ecran » veut dire. N'existe qu'en plein ecran (voir la feuille de
+       style) : ailleurs, la page porte sa propre navigation. */
+    h.push('<button type="button" class="btn-outil" id="masquer-bandeau">' + T.masquerBandeau + '</button>');
     h.push('<label class="recherche"><span class="visuellement-cache" id="recherche-label">'
       + T.chercherCarte + '</span><input type="search" id="recherche" placeholder="' + T.chercherCarte
       + '…" aria-labelledby="recherche-label" autocomplete="off"></label>');
@@ -233,7 +259,29 @@
        CSP du site refuse les positions en attribut, et un panneau flottant mal
        place vaut moins qu'une barre qui reste ou on l'a laissee. */
     if (avecEdition) {
+      /* TROIS ACTIONS VISIBLES, LE RESTE REPLIE. La barre alignait douze
+         commandes sur quatre rangs : deux listes pour creer un lien, une
+         troisieme pour en designer un, un champ, quatre boutons, un historique.
+         On ne savait plus par ou commencer, alors que presque tout se fait sur
+         le plateau meme (glisser une carte, tirer sa poignee, cliquer un lien).
+         Ne restent donc ici que les trois decisions qui engagent quelque chose,
+         et les listes descendent dans un depliant pour qui navigue au clavier. */
       h.push('<div class="barre-edition" id="barre-edition" hidden>');
+      h.push('<div class="edition-rang edition-rang-actions">');
+      h.push('<strong class="edition-titre">' + T.editionTitre + '</strong>');
+      h.push('<button type="button" class="btn-outil" id="f-annuler" disabled>' + T.annulerDernier + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
+      h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
+      h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
+      /* RANGE ICI, ET PAS DANS LA BARRE PRINCIPALE. Rien d'imprime ne depend de
+         ce plan : le depot n'est qu'une memoire, il n'y a pas d'urgence a lui
+         reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
+         yeux de qui ne modifie pas la fresque. */
+      h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
+      h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
+      h.push('</div>');
+      h.push('<details class="edition-plus" id="edition-plus">');
+      h.push('<summary>' + T.plusDOptions + '</summary>');
       h.push('<div class="edition-rang">');
       h.push('<strong class="edition-titre">' + T.nouveauLien + '</strong>');
       /* `select-joli` : la meme enveloppe que partout ailleurs sur le site. Elle
@@ -248,21 +296,6 @@
       h.push('</div>');
       h.push('<div class="edition-rang">');
       h.push('<label for="f-choix">' + T.choixLien + '</label><span class="select-joli"><select id="f-choix"></select></span>');
-      h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
-      h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
-      h.push('<button type="button" class="btn-outil" id="f-renommer">' + T.renommerLien + '</button>');
-      h.push('<button type="button" class="btn-outil btn-danger" id="f-supprimer">' + T.supprimerLien + '</button>');
-      h.push('</div>');
-      h.push('<div class="edition-rang">');
-      h.push('<button type="button" class="btn-outil" id="f-annuler" disabled>' + T.annulerDernier + '</button>');
-      h.push('<button type="button" class="btn-outil" id="f-enregistrer">' + T.enregistrerFresque + '</button>');
-      h.push('<button type="button" class="btn-outil" id="f-oublier" hidden>' + T.oublierFresque + '</button>');
-      h.push('<button type="button" class="btn-outil btn-fort" id="f-publier">' + T.publierFresque + '</button>');
-      /* RANGE ICI, ET PAS DANS LA BARRE PRINCIPALE. Rien d'imprime ne depend de
-         ce plan : le depot n'est qu'une memoire, il n'y a pas d'urgence a lui
-         reclamer quoi que ce soit, et ce bouton n'a donc rien a faire sous les
-         yeux de qui ne modifie pas la fresque. */
-      h.push('<button type="button" class="btn-outil" id="f-deposer" hidden>' + T.deposerFresque + '</button>');
       h.push('</div>');
       /* REVENIR EN ARRIERE. Publier ecrasait le plan precedent : une fausse
          manoeuvre sur trente-huit cartes ne se defaisait qu'en les replacant une
@@ -274,8 +307,8 @@
       h.push('<label for="f-versions">' + T.versions + '</label>');
       h.push('<span class="select-joli"><select id="f-versions"></select></span>');
       h.push('<button type="button" class="btn-outil" id="f-charger">' + T.chargerVersion + '</button>');
-      h.push('<p class="etat" id="f-etat" role="status" aria-live="polite"></p>');
       h.push('</div>');
+      h.push('</details>');
       h.push('</div>');
     }
     h.push('<p class="etat" id="chargement" role="status" aria-live="polite">' + T.chargement + '</p>');
@@ -287,7 +320,33 @@
     h.push('<div class="plateau-cadre" id="plateau-cadre"><div class="plateau-sizer" id="plateau-sizer">');
     h.push('<div class="plateau" id="plateau"><svg class="liens" id="liens" aria-hidden="true"></svg>');
     h.push('<div class="cartes" id="cartes"></div><div class="etiquettes" id="etiquettes"></div>');
-    h.push('</div></div></div>');
+    if (avecEdition) {
+      h.push('<button type="button" class="poignee-courbe" id="poignee-courbe" hidden aria-label="'
+        + T.courberLien + '"></button>');
+    }
+    h.push('</div></div>');
+    if (avecEdition) {
+      /* LE LIEN SE MODIFIE LA OU IL EST. Son libelle et sa suppression vivaient
+         en haut de la page, derriere une liste deroulante : on cliquait un
+         trait au milieu du plan, puis on remontait chercher un champ a deux
+         cents pixels de la, sans plus voir lequel on tenait. La bulle se pose
+         au milieu du trait choisi et disparait avec lui. */
+      h.push('<div class="editeur-lien" id="editeur-lien" hidden role="group" aria-labelledby="editeur-lien-titre">');
+      h.push('<div class="editeur-lien-tete">');
+      /* QUEL LIEN TIENT-ON ? Le panneau ne le disait pas : deux traits se
+         croisent, on en designe un, et rien ne confirmait lequel. */
+      h.push('<span class="editeur-lien-titre" id="editeur-lien-titre"></span>');
+      h.push('<button type="button" class="editeur-lien-x" id="f-fermer-lien" aria-label="' + T.fermerPanneau + '">✕</button>');
+      h.push('</div>');
+      h.push('<label for="f-libelle">' + T.libelleLien + '</label>');
+      h.push('<input id="f-libelle" type="text" maxlength="60" autocomplete="off">');
+      h.push('<div class="editeur-lien-actions">');
+      h.push('<button type="button" class="btn-outil btn-fort" id="f-renommer">' + T.renommerLien + '</button>');
+      h.push('<button type="button" class="lien-supprimer" id="f-supprimer" title="' + T.supprimerLien
+        + '" aria-label="' + T.supprimerLien + '">' + T.supprimerCourt + '</button>');
+      h.push('</div></div>');
+    }
+    h.push('</div>');
     // La vue Cartes : une grille, sans zoom ni defilement interne.
     h.push('<div class="grille-cartes" id="grille-cartes" hidden></div>');
     h.push('</div>');
@@ -391,6 +450,22 @@
     return { x: depuis.x + dx * t, y: depuis.y + dy * t };
   }
 
+  /* LE POINT DE CONTROLE D'UNE FLECHE, en un seul endroit : le dessin et la
+     pastille qui le deplace doivent parler du meme point, sinon la pastille se
+     pose a cote du trait qu'elle commande. */
+  function controle(f) {
+    var a = centre(f.de), b = centre(f.vers);
+    if (!a || !b) return null;
+    var p1 = bord(a, b), p2 = bord(b, a);
+    var dx = p2.x - p1.x, dy = p2.y - p1.y;
+    var lg = Math.hypot(dx, dy) || 1;
+    var creux = Math.min(70, lg * 0.09);
+    var cb = f.courbe || {};
+    return { p1: p1, p2: p2,
+      cx: (p1.x + p2.x) / 2 - (dy / lg) * creux + (cb.x || 0),
+      cy: (p1.y + p2.y) / 2 + (dx / lg) * creux + (cb.y || 0) };
+  }
+
   function dessinerLiens() {
     var svg = $('liens');
     svg.setAttribute('viewBox', '0 0 ' + PLAN_W + ' ' + PLAN_H);
@@ -400,9 +475,9 @@
 
     var NS = 'http://www.w3.org/2000/svg';
     ref.tableau.fleches.forEach(function (f) {
-      var a = centre(f.de), b = centre(f.vers);
-      if (!a || !b) return;
-      var p1 = bord(a, b), p2 = bord(b, a);
+      var pc = controle(f);
+      if (!pc) return;
+      var p1 = pc.p1, p2 = pc.p2;
 
       /* TRAITS COURBES. Soixante-cinq droites qui se croisent donnent un
          entrelacs ou l'oeil ne peut plus suivre un seul fil. Une courbe legere,
@@ -410,11 +485,13 @@
          rend chaque lien suivable du depart a l'arrivee. La fleche est de
          longueur constante : la courbure croit avec la distance, sans jamais
          devenir un detour. */
-      var dx = p2.x - p1.x, dy = p2.y - p1.y;
-      var lg = Math.hypot(dx, dy) || 1;
-      var creux = Math.min(70, lg * 0.09);
-      var cx = (p1.x + p2.x) / 2 - (dy / lg) * creux;
-      var cy = (p1.y + p2.y) / 2 + (dx / lg) * creux;
+      /* LE TRAJET SE REGLE A LA MAIN. La courbure automatique separe les traits
+         qui partagent un trajet, mais elle ne sait pas qu'une fleche doit
+         contourner un groupe de cartes ou passer de l'autre cote. `courbe`
+         (voir `controle`) est l'ecart entre le point de controle calcule et
+         celui qu'on a pose : absent, la fleche garde son trajet d'origine, et
+         un plan ecrit avant cette possibilite s'affiche comme avant. */
+      var cx = pc.cx, cy = pc.cy;
 
       // Tangente a l'arrivee d'une quadratique : la direction (p2 - c).
       var ang = Math.atan2(p2.y - cy, p2.x - cx);
@@ -470,6 +547,24 @@
         (g.getAttribute('class') || '') + ' choisi');
       svg.appendChild(g);
     });
+    placerPoignee();
+    placerEditeurLien();
+  }
+
+  /* ON TIRE LE TRAIT PAR LE MILIEU. La pastille a d'abord ete un cercle dans la
+     couche des liens : celle-ci passe SOUS les cartes, et la pastille se
+     retrouvait sous une vignette des que le point de controle tombait dessus,
+     ou l'on attrapait la carte en croyant courber la fleche. Elle vit donc
+     au-dessus du plateau, comme les cartes, et toujours au-dessus d'elles. */
+  function placerPoignee() {
+    var b = $('poignee-courbe');
+    if (!b) return;
+    var l = editionFresque ? fleche(lienChoisi) : null;
+    var pc = l && controle(l);
+    if (!pc) { b.hidden = true; return; }
+    b.hidden = false;
+    b.style.left = Math.round(pc.cx) + 'px';
+    b.style.top = Math.round(pc.cy) + 'px';
   }
 
   // Couleurs des lots, reprises telles quelles du tableau en ligne : un
@@ -791,9 +886,13 @@
        vignette qu'elle sert a designer. */
     $('plateau').style.setProperty('--poignee',
       Math.round(21 * Math.min(2.2, Math.max(1, 0.75 / zoom))) + 'px');
+    $('plateau').style.setProperty('--poignee-courbe',
+      Math.round(18 * Math.min(2.4, Math.max(1, 0.7 / zoom))) + 'px');
     $('plateau-sizer').style.width = (PLAN_W * zoom) + 'px';
     $('plateau-sizer').style.height = (PLAN_H * zoom) + 'px';
     $('zoom-val').textContent = Math.round(zoom * 100) + ' %';
+    placerPoignee();
+    placerEditeurLien();
   }
   /* LA VUE SUIT CE QU'ON A CHOISI. Masquer trois lots sur cinq laissait la
      fresque a son echelle d'origine : un quart d'ecran occupe, le reste vide, et
@@ -870,6 +969,12 @@
          lui : le `click` se produit alors sur le cadre et non sur le trait, et
          le lien ne se selectionnait jamais. */
       if (editionFresque && e.target.closest && e.target.closest('g[data-id]')) return;
+      /* NI SUR LA BULLE DU LIEN. Meme cause, meme effet : `setPointerCapture`
+         sur le cadre reroutait le relacher, le `click` se produisait sur le
+         cadre, et les boutons « Renommer », « Supprimer » et la croix ne
+         faisaient donc strictement rien. */
+      if (e.target.closest && (e.target.closest('.editeur-lien')
+        || e.target.closest('.poignee-courbe'))) return;
       actif = true; x0 = e.clientX; y0 = e.clientY;
       sx = cadre.scrollLeft; sy = cadre.scrollTop;
       cadre.classList.add('attrape');
@@ -1128,13 +1233,56 @@
     majEdition();
   }
 
+  /* LA BULLE SUIT LE TRAIT. Posee une fois pour toutes, elle resterait sur
+     place quand on deplace une carte ou qu'on change d'echelle : on la replace
+     donc a chaque redessin des liens. Le milieu des deux centres suffit, la
+     courbe passe a quelques pixels de la. */
+  function placerEditeurLien() {
+    var ed = $('editeur-lien');
+    if (!ed) return;
+    var l = editionFresque ? fleche(lienChoisi) : null;
+    var a = l && ref.tableau.cartes.filter(function (q) { return q.n === l.de; })[0];
+    var b = l && ref.tableau.cartes.filter(function (q) { return q.n === l.vers; })[0];
+    if (!a || !b) { ed.hidden = true; return; }
+    ed.hidden = false;
+    var titre = $('editeur-lien-titre');
+    if (titre) {
+      var ta = (cartes[l.de] || {}).titre || '', tb = (cartes[l.vers] || {}).titre || '';
+      titre.textContent = l.de + ' → ' + l.vers;
+      titre.title = (ta ? l.de + ' · ' + ta : l.de) + '  →  ' + (tb ? l.vers + ' · ' + tb : l.vers);
+    }
+    /* ON LA RAMENE DANS LE CADRE. Un lien au bord gauche du plan posait la
+       bulle a moitie dehors, et le cadre la coupait : la moitie des champs
+       devenait inatteignable. On borne donc son centre, et on la bascule sous
+       le trait quand il n'y a pas la place au-dessus. */
+    var demi = ed.offsetWidth / 2 || 120;
+    var haut = ed.offsetHeight || 120;
+    /* SUR LE POINT DE CONTROLE, PAS AU MILIEU DES DEUX CARTES. Une fois le
+       lien courbe, les deux ne sont plus au meme endroit : la bulle restait au
+       milieu, par-dessus la pastille qui commande la courbe, et le
+       double-clic qui doit rendre le trajet calcule tombait sur la bulle. La
+       feuille de style la decale assez pour la laisser libre. */
+    var pc = controle(l) || { cx: (a.x + b.x) / 2 + CARTE_W / 2, cy: (a.y + b.y) / 2 + CARTE_H / 2 };
+    var x = pc.cx * zoom;
+    var y = pc.cy * zoom;
+    var large = PLAN_W * zoom;
+    ed.classList.toggle('sous', y < haut + 12);
+    ed.style.left = Math.round(Math.max(demi + 6, Math.min(large - demi - 6, x))) + 'px';
+    ed.style.top = Math.round(y) + 'px';
+  }
+
   /* Designer un lien, a la souris sur le plateau comme au clavier dans la
      liste : un seul chemin, pour que les deux montrent toujours la meme chose. */
   function choisirLien(id, focus) {
     lienChoisi = fleche(id) ? id : null;
     majChoixLien();
     dessinerLiens();
-    if (focus && lienChoisi && $('f-libelle')) $('f-libelle').focus();
+    /* LE FOCUS APRES LE GESTE. Pose pendant le `pointerdown`, il est repris
+       par le navigateur au `mouseup` suivant : on cliquait un lien, le champ
+       s'ouvrait, et la frappe partait dans le vide. */
+    if (focus && lienChoisi && $('f-libelle')) {
+      setTimeout(function () { var c = $('f-libelle'); if (c) c.focus(); }, 0);
+    }
   }
 
   function idLibre() {
@@ -1229,6 +1377,18 @@
     if (t) t.remove();
   }
 
+  /* La carte visee pendant le trace d'un lien. Une classe, pour que la feuille
+     de style decide a quoi cela ressemble. */
+  var visee = null;
+  function viserCarte(n) {
+    if (visee === n) return;
+    var avant = visee != null && document.querySelector('.c-carte[data-n="' + visee + '"]');
+    if (avant) avant.classList.remove('visee');
+    visee = n;
+    var apres = n != null && document.querySelector('.c-carte[data-n="' + n + '"]');
+    if (apres) apres.classList.add('visee');
+  }
+
   function glisserCartes(hote) {
     var el = null, p = null, px0 = 0, py0 = 0, x0 = 0, y0 = 0;
     var versLien = false, bouge = false, memorise = false;
@@ -1254,7 +1414,15 @@
       var dx = e.clientX - x0, dy = e.clientY - y0;
       if (!bouge && Math.abs(dx) + Math.abs(dy) < 4) return;
       bouge = true;
-      if (versLien) { tracer(p, e.clientX, e.clientY); return; }
+      if (versLien) {
+        tracer(p, e.clientX, e.clientY);
+        /* ON VOIT OU LE LIEN VA SE POSER. Sans ce reperage, on lache le trait
+           en esperant avoir vise juste, et rien ne dit si l'arrivee a ete
+           reconnue. */
+        var sous = carteSous(e.clientX, e.clientY);
+        viserCarte(sous != null && sous !== p.n ? sous : null);
+        return;
+      }
       // UN SEUL ETAT MEMORISE POUR TOUT LE GLISSER : une entree par pixel
       // parcouru remplirait la pile et « Annuler » ne reculerait plus que d'un
       // cheveu.
@@ -1266,14 +1434,30 @@
       planifierLiens();
     });
 
-    ['pointerup', 'pointercancel'].forEach(function (ev) {
+    /* ON NE POSE UN LIEN QUE SUR UN GESTE ACHEVE. `pointercancel` arrive quand
+       le navigateur reprend le geste (defilement tactile, fenetre qui perd le
+       focus, gomme de la tablette) : le trait n'a jamais ete relache sur une
+       carte, et pourtant le lien se creait, sur la carte qui se trouvait sous
+       le pointeur a cet instant. */
+    hote.addEventListener('pointercancel', function () {
+      if (versLien) effacerTrace();
+      viserCarte(null);
+      el = null; p = null; versLien = false; bouge = false; memorise = false;
+    });
+
+    ['pointerup'].forEach(function (ev) {
       hote.addEventListener(ev, function (e) {
         if (!el || !p) return;
         if (versLien) {
           effacerTrace();
+          viserCarte(null);
           if (bouge) {
             var n = carteSous(e.clientX, e.clientY);
-            if (n != null) ajouterLien(p.n, n);
+            /* DEUX CARTES, ET DEUX CARTES DIFFERENTES. Relache dans le vide ou
+               sur la carte de depart, le geste n'a pas designe d'arrivee : on
+               n'invente pas celle qui manque. */
+            if (n != null && n !== p.n) ajouterLien(p.n, n);
+            else etatEdition(T.lienIncomplet, true);
           }
         } else if (bouge) {
           dessinerLiens();
@@ -1338,7 +1522,7 @@
     });
     if ($('plateau')) $('plateau').classList.toggle('en-edition', editionFresque);
     if ($('barre-aide')) $('barre-aide').textContent = editionFresque
-      ? T.aideEdition : T.aideLecture;
+      ? T.aideEdition + ' ' + T.aideCourbe : T.aideLecture;
     majSelectsCartes();
     majChoixLien();
     if (editionFresque) chargerVersions();
@@ -1613,6 +1797,42 @@
      fresque. En plein ecran, on ne garde que ce qui sert a regarder (voir
      `.fresque-zone:fullscreen` dans la feuille de style) et le plateau prend la
      place. */
+  /* ── REPLIER LE BANDEAU ─────────────────────────────────────
+     Masquer la legende et l'aide ne suffisait pas : la barre d'outils et les
+     filtres restaient, et c'est ce bandeau-la qu'on demandait a faire
+     disparaitre. Trois sorties pour le rappeler : la pastille, la touche B, et
+     Echap qui quitte le plein ecran comme toujours. */
+  function bandeau(masque) {
+    var z = $('fresque-zone');
+    if (!z) return;
+    z.classList.toggle('sans-bandeau', !!masque);
+    var b = $('masquer-bandeau');
+    if (b) b.textContent = masque ? T.montrerBandeau : T.masquerBandeau;
+    setTimeout(ajuster, 60);
+  }
+  on('masquer-bandeau', 'click', function () {
+    bandeau(!$('fresque-zone').classList.contains('sans-bandeau'));
+  });
+  on('rappel-bandeau', 'click', function () { bandeau(false); });
+  document.addEventListener('keydown', function (e) {
+    if (!document.fullscreenElement) return;
+    if (e.key !== 'b' && e.key !== 'B') return;
+    // Pas pendant une saisie : « b » s'ecrit aussi dans le champ de recherche.
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    bandeau(!$('fresque-zone').classList.contains('sans-bandeau'));
+  });
+  /* La pastille revient en pleine lumiere des que la souris bouge, puis
+     s'efface : on la trouve quand on la cherche, elle ne gene pas sinon. */
+  var minuteurSouris = null;
+  document.addEventListener('mousemove', function () {
+    var z = $('fresque-zone');
+    if (!z || !z.classList.contains('sans-bandeau')) return;
+    z.classList.add('souris-bouge');
+    clearTimeout(minuteurSouris);
+    minuteurSouris = setTimeout(function () { z.classList.remove('souris-bouge'); }, 2200);
+  });
+
   on('plein-ecran', 'click', function () {
     var cible = $('fresque-zone') || $('plateau-section');
     if (document.fullscreenElement) document.exitFullscreen();
@@ -1625,6 +1845,9 @@
   });
   document.addEventListener('fullscreenchange', function () {
     if ($('plein-ecran')) $('plein-ecran').textContent = document.fullscreenElement ? T.quitterPlein : T.pleinEcran;
+    // On ne sort jamais du plein ecran avec un bandeau replie : la page
+    // n'aurait plus ni zoom, ni recherche, ni filtres.
+    if (!document.fullscreenElement) bandeau(false);
     // La hauteur du cadre est calculée d'après la fenêtre : elle vient de
     // changer du tout au tout.
     setTimeout(ajuster, 60);
@@ -1731,13 +1954,76 @@
 
   /* Designer un lien en le cliquant sur le plateau. Hors edition, la couche des
      liens ne recoit pas le pointeur du tout (voir `.liens` et `.touche`). */
+  /* ── COURBER UNE FLECHE ──────────────────────────────────
+     Le trajet etait calcule, et lui seul : deux cartes voisines reliees par un
+     trait qui passe sur une troisieme, et rien a faire. On tire la pastille,
+     la courbe suit ; on la double-clique, elle revient au trajet calcule. */
+  var courbeEnCours = null;
+  on('poignee-courbe', 'pointerdown', function (e) {
+    var fl = editionFresque ? fleche(lienChoisi) : null;
+    if (!fl || e.button) return;
+    {
+      e.preventDefault();
+      memoriser();
+      courbeEnCours = { f: fl, x0: e.clientX, y0: e.clientY,
+        cx: (fl.courbe && fl.courbe.x) || 0, cy: (fl.courbe && fl.courbe.y) || 0,
+        bouge: false };
+      /* LES ECOUTEURS SUR LA FENETRE, PAS SUR LE SVG. La couche des liens ne
+         recoit le pointeur que sur les traits (`pointer-events`) : des que la
+         pastille quitte le dessous du pointeur, le SVG ne voyait plus rien et
+         la courbe s'arretait au premier pixel. La capture ne suffit pas non
+         plus, elle echoue selon le navigateur. */
+      window.addEventListener('pointermove', bougerCourbe);
+      window.addEventListener('pointerup', finirCourbe);
+      window.addEventListener('pointercancel', finirCourbe);
+    }
+  });
   $('liens').addEventListener('pointerdown', function (e) {
     if (!editionFresque) return;
     var g = e.target.closest ? e.target.closest('g[data-id]') : null;
     if (g) choisirLien(g.dataset.id, true);
   });
+  function bougerCourbe(e) {
+    if (!courbeEnCours) return;
+    var d = courbeEnCours;
+    var ex = (e.clientX - d.x0) / zoom, ey = (e.clientY - d.y0) / zoom;
+    if (!d.bouge && Math.abs(ex) + Math.abs(ey) < 3) return;
+    d.bouge = true;
+    // Borne : au-dela, la fleche part a l'autre bout du plan et on ne la
+    // retrouve plus. Le service applique la meme limite.
+    d.f.courbe = { x: borne(d.cx + ex + COURBE_MAX, 2 * COURBE_MAX) - COURBE_MAX,
+      y: borne(d.cy + ey + COURBE_MAX, 2 * COURBE_MAX) - COURBE_MAX };
+    planifierLiens();
+  }
+  function finirCourbe() {
+    window.removeEventListener('pointermove', bougerCourbe);
+    window.removeEventListener('pointerup', finirCourbe);
+    window.removeEventListener('pointercancel', finirCourbe);
+    if (!courbeEnCours) return;
+    if (courbeEnCours.bouge) etatEdition(T.nonEnregistre, false);
+    else histoire.pop();   // un simple clic sur la pastille n'est pas une modification
+    courbeEnCours = null;
+    majEdition();
+  }
+  /* Le double-clic rend le trajet calcule. */
+  on('poignee-courbe', 'dblclick', function () {
+    var fl = editionFresque ? fleche(lienChoisi) : null;
+    if (!fl || !fl.courbe) return;
+    memoriser();
+    delete fl.courbe;
+    dessinerLiens();
+    etatEdition(T.courbeRendue, false);
+  });
 
   on('f-choix', 'change', function () { choisirLien(this.value, false); });
+  on('f-fermer-lien', 'click', function () { choisirLien('', false); });
+  /* ENTREE VALIDE LE LIBELLE. On tape trois mots dans le champ, on attend que
+     ca prenne, et rien ne se passe : il fallait viser « Renommer ». Echap
+     referme la bulle sans rien changer. */
+  on('f-libelle', 'keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); var b = $('f-renommer'); if (b) b.click(); }
+    else if (e.key === 'Escape') { e.preventDefault(); choisirLien('', false); }
+  });
   on('f-ajouter', 'click', function () {
     ajouterLien(+$('f-de').value, +$('f-vers').value);
   });

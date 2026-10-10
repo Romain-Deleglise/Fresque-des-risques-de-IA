@@ -38,14 +38,32 @@
     ["Retours", racine + "animateurs/retours/"]
   ];
 
+  /* LA MARQUE DE L'ESPACE AUSSI. Les quatre autres pages la portent dans leur
+     balisage ; le guide, lui, est une page publique qu'on rhabille ici. Sans
+     elle, on passait de l'espace au guide et le bandeau redevenait celui du
+     site public : rien ne disait plus ou l'on etait. */
+  var entete = nav.parentElement;
+  if (entete && !entete.querySelector(".marque-espace")) {
+    var marque = document.createElement("span");
+    marque.className = "marque-espace";
+    marque.textContent = en ? "Facilitators' space" : "Espace animateur·ices";
+    entete.insertBefore(marque, nav);
+  }
+
   nav.setAttribute("aria-label", en ? "Facilitators' space" : "Espace animateur·ices");
-  nav.textContent = "";
+  /* ON NE VIDE PAS LA BARRE : ON EN REMPLACE LES LIENS. `nav.textContent = ""`
+     emportait aussi la bascule clair/sombre, que nav.js venait d'y poser (les
+     deux scripts sont `defer`, donc nav.js passe en premier). Sur le guide, et
+     la seule, le bouton de theme disparaissait. On ne retire donc que les
+     liens, et les boutons poses par nav.js restent a leur place. */
+  [].slice.call(nav.querySelectorAll("a")).forEach(function (a) { nav.removeChild(a); });
+  var premier = nav.firstChild;
   onglets.forEach(function (o) {
     var a = document.createElement("a");
     a.href = o[1];
     a.textContent = o[0];
     // L'onglet courant est le guide : on le marque, comme sur les autres pages.
     if (o[0] === "Guide") a.setAttribute("aria-current", "page");
-    nav.appendChild(a);
+    nav.insertBefore(a, premier);
   });
 })();

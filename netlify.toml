@@ -128,12 +128,22 @@
   to = "/.netlify/functions/agenda?format=ics"
   status = 200
 
-# La fresque de reference a rejoint l'onglet « Retours » de l'espace
-# animateur·ices : c'est la meme page, a la fois outil de preparation et surface
-# de commentaire. L'ancienne adresse circule dans des courriels deja envoyes.
+# La fresque de reference est l'accueil de l'espace animateur·ices. Elle est
+# passee par /animateurs/reference/, puis par l'onglet « Retours » du temps ou
+# l'on y commentait les cartes ; ces deux adresses circulent dans des courriels
+# deja envoyes, et la seconde menait desormais au formulaire de retour, pas a la
+# fresque.
 [[redirects]]
   from = "/animateurs/reference/*"
-  to = "/animateurs/retours/:splat"
+  to = "/animateurs/"
+  status = 301
+
+# La version anglaise de la fresque de reference portait une copie a la main de
+# l'outil francais, figee depuis, et ne fonctionnait plus. Plutot qu'un second
+# outil a maintenir, l'adresse mene a l'outil francais, qui est a jour.
+[[redirects]]
+  from = "/en/facilitators/reference/*"
+  to = "/animateurs/"
   status = 301
 
 # Ancienne URL de la page « Participer » renommee : redirection permanente.
@@ -186,6 +196,21 @@
     # connect-src : 'self' (fonctions Netlify) + le relais WebSocket des curseurs
     # en direct (temps reel), auto-heberge sur le serveur de dev.
     Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self' wss://curseurs.pauseia.fr; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+# L'APERCU D'UN COURRIEL A BESOIN DES STYLES EN LIGNE, et lui seul. Un
+# courriel n'a pas de feuille de style : tout y est en attribut `style`, c'est
+# la seule chose que lisent les clients de messagerie. La politique du site
+# l'interdit partout, a juste titre ; cette regle-ci ouvre cette porte-la, et
+# rien d'autre : aucun script, aucune requete sortante. `frame-ancestors 'self'`
+# parce que le tableau de bord l'affiche dans un cadre, alors que le reste du
+# site refuse d'etre encadre. Placee APRES la regle generale : a chemin plus
+# precis, derniere regle gagnante.
+[[headers]]
+  for = "/.netlify/functions/apercu-courriel"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
 
 # Cache avec revalidation. IMPORTANT : les fichiers gardent un nom stable
 # (site.css, cartes.js...) sans empreinte de version, donc on NE met PAS

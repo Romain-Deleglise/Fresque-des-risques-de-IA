@@ -826,3 +826,20 @@ a.btn, a.btn:hover { text-decoration: none; }
    suivants : le rappel est donc visible même quand la liste est pleine. */
 .rappel-alertes { margin: 22px auto 0; max-width: 62ch; text-align: center; font-size: 15px; color: var(--gris); background: var(--bg-doux); border: 1px solid var(--ligne); border-radius: 12px; padding: 14px 18px; }
 .rappel-alertes a { font-weight: 600; }
+
+/* ── ON DOIT VOIR QU'ON EST DANS L'ESPACE ANIMATEUR·ICES ─────
+   Il portait exactement le même bandeau que le site public : même logo, même
+   titre, seuls les onglets changeaient. On ne savait pas où l'on était, et on
+   retombait sur le site public sans s'en apercevoir. Une étiquette à côté du
+   titre suffit, et elle reprend l'orange de marque pour se lire d'un coup. */
+.marque-espace {
+  display: inline-flex; align-items: center;
+  margin-left: .6rem; padding: .2rem .6rem;
+  border-radius: 999px; border: 1px solid var(--accent);
+  background: var(--accent-doux); color: var(--accent-txt-fort);
+  font-family: var(--f-ui); font-weight: 700; font-size: .72rem;
+  letter-spacing: .02em; white-space: nowrap;
+}
+/* Sur un écran étroit, le titre et l'étiquette se disputent la place : c'est
+   l'étiquette qui cède, le titre dit déjà de quel site il s'agit. */
+@media (max-width: 720px) { .marque-espace { display: none; } }

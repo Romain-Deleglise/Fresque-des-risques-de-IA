@@ -184,6 +184,18 @@
 @media (max-width: 640px) {
   .plateau-cadre { height: 60vh; }
   .barre { gap: .6rem; }
+  /* LE CHAMP DE RECHERCHE SORTAIT DE LA BARRE. Largeur fixe de 13 rem dans une
+     rangee de 400 pixels : il depassait a droite, moitie coupe. Il prend la
+     ligne entiere, sous les boutons. */
+  .barre-g { flex-wrap: wrap; }
+  .barre .recherche { flex: 1 1 100%; }
+  .barre .recherche input { width: 100%; }
+  /* LE JETON APRES LE TITRE. Premier element de la page sur telephone, il
+     occupait le premier ecran pour une saisie facultative que presque personne
+     ne fait : on arrivait sur « Jeton de moderation » avant de savoir sur
+     quelle page on etait. */
+  .page-tete .wrap { display: flex; flex-direction: column; }
+  .page-tete .jeton { order: 9; justify-content: flex-start; margin: 1rem 0 0; }
 }
 
 /* ── Jeton de modération ────────────────────────────────────── */
@@ -641,12 +653,24 @@
    ET UNE GOUTTIERE. La zone prend toute la largeur, mais son CONTENU ne doit
    pas toucher les bords de l'ecran : sans cette marge, le zoom et les filtres
    se collaient au bord, et paraissaient sortir du cadre. */
-/* `50vw` compte la barre de defilement, pas `50%`. L'ecart valait donc une
-   demi-barre de chaque cote, et la barre d'outils se trouvait rognee a gauche
-   chez qui a une barre visible. On la MESURE (animateurs.js la pose dans
-   --barre-defilement) au lieu de l'ignorer. Elargir le conteneur serait plus
-   simple, mais emporterait le texte de la page hors de sa colonne de lecture. */
-.fresque-zone { margin-inline: calc(50% - 50vw + (var(--barre-defilement, 0px) / 2)); }
+/* LA ZONE RESTE DANS LA PAGE. Elle debordait sur toute la largeur de la
+   fenetre, et c'etait trop : une bande de bord a bord au milieu d'une page qui
+   a, partout ailleurs, une colonne de lecture. Elle est juste un peu plus large
+   que le texte, ce qui suffit a une fresque de 38 cartes sans casser la mise en
+   page. LA PLEINE LARGEUR EST RESERVEE AU PLEIN ECRAN, qui est fait pour ca.
+
+   `50vw` compte la barre de defilement, pas `50%` : d'ou la mesure posee dans
+   --barre-defilement par animateurs.js, gardee ici pour le debordement mesure
+   de la zone elargie. */
+/* AUCUN DEBORD : la zone reste dans la colonne de la page. Elle en sortait sur
+   toute la largeur de la fenetre, et c'etait trop : une bande de bord a bord au
+   milieu d'une page qui a partout ailleurs une colonne de lecture. */
+.fresque-zone { margin-inline: 0; }
+/* Un cadre visible, maintenant que la zone ne va plus bord a bord : sans lui,
+   l'outil flotte au milieu de la page sans qu'on voie ou il commence. */
+.fresque-zone { border: 1px solid var(--ligne); border-radius: 14px; overflow: hidden; }
+.fresque-zone:fullscreen { border: 0; border-radius: 0; }
+
 /* LA GOUTTIERE VA SUR L'EN-TETE, PAS SUR LA ZONE. Posee sur la zone, elle
    eloignait aussi le PLATEAU de son bord droit, et rouvrait les 26 px de vide
    entre le tableau et le panneau qu'on venait de fermer. Le plateau et la
@@ -682,7 +706,24 @@
    quitter. Sauf sur l'accueil, ou il replie l'apercu (classe `apercu-fermer`
    posee par la page). */
 .quitter-plein { display: none; }
-.fresque-zone:fullscreen .quitter-plein { display: inline-flex; }
+/* ET IL DOIT AVOIR L'AIR D'UNE SORTIE. Rendu comme les autres boutons de la
+   barre, il se perdait au bout d'une rangee de commandes d'edition : on ne
+   voyait pas comment sortir du plein ecran. Pastille detachee par un filet,
+   et franchement accentuee au survol. */
+.fresque-zone:fullscreen .quitter-plein {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  margin-left: .55rem; padding: 0 .95rem; min-width: 0;
+  border-radius: 999px; font-weight: 600; letter-spacing: .01em;
+  position: relative;
+}
+.fresque-zone:fullscreen .quitter-plein::before {
+  content: ""; position: absolute; left: -.55rem; top: 20%; bottom: 20%;
+  width: 1px; background: var(--ligne);
+}
+.fresque-zone:fullscreen .quitter-plein:hover,
+.fresque-zone:fullscreen .quitter-plein:focus-visible {
+  background: var(--accent-aplat); border-color: var(--accent-aplat); color: #fff;
+}
 #apercu-fermer { display: inline-flex; }
 
 /* ── SÉLECTEUR DE VUE ────────────────────────────────────────
@@ -839,6 +880,82 @@
 .edition-rang select:focus-visible, .edition-rang input:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px; }
 .edition-rang .etat { margin: 0; }
+/* L'etat pousse les boutons a gauche et se lit au bout du rang : « enregistre »,
+   « non enregistre », c'est la reponse a ce qu'on vient de cliquer. */
+.edition-rang-actions .etat { margin-left: auto; text-align: right; }
+
+/* LE DEPLIANT. Les listes servent au clavier et aux versions anterieures : on
+   ne s'en sert pas a chaque retouche, elles n'ont pas a tenir la moitie de la
+   barre. Replie, il tient sur une ligne. */
+.edition-plus { font-family: var(--f-ui); font-size: .85rem; }
+.edition-plus > summary {
+  cursor: pointer; width: fit-content; padding: .3rem .6rem;
+  border: 1px solid var(--ligne); border-radius: 999px;
+  background: var(--surface); color: var(--gris); font-weight: 600;
+}
+.edition-plus > summary:hover { color: var(--accent-txt); border-color: var(--accent); }
+.edition-plus > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.edition-plus[open] > summary { margin-bottom: .7rem; }
+.edition-plus .edition-rang + .edition-rang { margin-top: .55rem; }
+
+/* ── LA BULLE DE LIEN, SUR LE PLATEAU ────────────────────────
+   Elle se pose au milieu du trait choisi, dans le repere du plateau : elle
+   defile donc avec lui. `translate(-50%, …)` la centre sur le trait et la
+   remonte juste au-dessus, pour ne pas couvrir ce qu'on vient de designer. */
+.editeur-lien {
+  /* Posee au-dessus du point de controle, et assez haut pour laisser la
+     pastille de courbure libre au clic. */
+  position: absolute; z-index: 40; transform: translate(-50%, calc(-100% - 18px));
+  display: flex; flex-direction: column; gap: .4rem;
+  padding: .6rem .7rem; width: 15rem;
+  border: 1px solid var(--ligne); border-radius: 12px;
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .18);
+  font-family: var(--f-ui); font-size: .85rem;
+}
+.editeur-lien[hidden] { display: none; }
+/* Sous le trait quand il n'y a pas la place au-dessus. */
+.editeur-lien.sous { transform: translate(-50%, 18px); }
+.editeur-lien-tete { display: flex; align-items: center; gap: .5rem; }
+.editeur-lien-titre {
+  font-weight: 700; font-size: .78rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gris);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* LA BULLE DESIGNE LE TRAIT QU'ELLE MODIFIE. Posée au-dessus sans rien qui la
+   relie, elle flottait là sans qu'on sache sur quoi elle porte. */
+.editeur-lien::after {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -6px; width: 11px; height: 11px; rotate: 45deg;
+  background: var(--surface);
+  border-right: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne);
+}
+.editeur-lien.sous::after { bottom: auto; top: -6px; rotate: 225deg; }
+.editeur-lien label { font-weight: 600; color: var(--gris); font-size: .8rem; }
+.editeur-lien input {
+  font: inherit; padding: .4rem .55rem; border: 1px solid var(--ligne);
+  border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%;
+}
+.editeur-lien input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.editeur-lien-actions { display: flex; align-items: center; gap: .5rem; margin-top: .15rem; }
+.editeur-lien-actions .btn-outil { min-height: 36px; min-width: 0; font-size: .82rem; padding: 0 .9rem; border-radius: 8px; }
+/* SUPPRIMER N'EST PAS UNE ACTION ORDINAIRE : en texte, a l'ecart du bouton qui
+   valide, pour qu'on ne la clique pas en visant l'autre. */
+.lien-supprimer {
+  margin-left: auto; white-space: nowrap; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: .8rem; color: #c1444e; text-decoration: underline;
+  text-underline-offset: 2px; padding: .3rem .1rem;
+}
+.lien-supprimer:hover { color: #9c2f38; }
+.lien-supprimer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.lien-supprimer:disabled { opacity: .45; cursor: not-allowed; text-decoration: none; }
+.editeur-lien-x {
+  margin-left: auto; flex: 0 0 auto; width: 30px; height: 30px; line-height: 1;
+  border: 1px solid var(--ligne); border-radius: 50%;
+  background: var(--bg); color: var(--gris); cursor: pointer;
+}
+.editeur-lien-x:hover { color: var(--accent-txt); border-color: var(--accent); }
+.editeur-lien-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn-outil.btn-fort { background: var(--accent-aplat); color: var(--sur-accent);
   border-color: transparent; font-weight: 700; }
 .btn-outil.btn-danger { color: #c1444e; }
@@ -921,9 +1038,147 @@
    chose que la fresque. On ne garde que ce qui sert à regarder. */
 .fresque-zone:fullscreen .cle-fleches,
 .fresque-zone:fullscreen .barre-aide,
+.fresque-zone:fullscreen .editeur-lien,
 .fresque-zone:fullscreen .barre-edition,
 .fresque-zone:fullscreen .etat { display: none; }
-/* Les filtres de lot restent : choisir ce qu'on montre est justement ce qu'on
-   fait en plein écran, devant un groupe. Ils se resserrent. */
 .fresque-zone:fullscreen .lots { padding-block: .35rem; }
 .fresque-zone:fullscreen .barre { padding-block: .4rem; }
+
+/* ── ET LE VRAI PLEIN ÉCRAN : PLUS RIEN QUE LA FRESQUE ───────
+   Masquer la légende et l'aide ne suffisait pas : la barre d'outils et les
+   filtres restaient, et c'est précisément ce bandeau du haut qu'on demandait
+   à faire disparaître. Un bouton le replie entièrement.
+
+   IL FAUT POUVOIR LE RAPPELER, sinon on se retrouve enfermé devant un groupe
+   sans savoir comment sortir. Trois sorties : la pastille en haut à droite,
+   qui réapparaît au moindre mouvement de souris, la touche B, et Échap qui
+   quitte le plein écran comme toujours. */
+.fresque-zone:fullscreen.sans-bandeau > .barre,
+.fresque-zone:fullscreen.sans-bandeau > .lots { display: none; }
+
+.rappel-bandeau { display: none; }
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau {
+  display: inline-flex; align-items: center; gap: .4rem;
+  position: absolute; top: .6rem; right: .6rem; z-index: 70;
+  font-family: var(--f-ui); font-size: .82rem; font-weight: 600;
+  padding: .45rem .8rem; border: 1px solid var(--ligne); border-radius: 999px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  /* Discrète tant qu'on ne bouge pas : la fresque est le sujet. Elle revient
+     franche dès que la souris bouge ou qu'on la survole. */
+  opacity: .25; transition: opacity .25s ease;
+}
+.fresque-zone:fullscreen.sans-bandeau.souris-bouge .rappel-bandeau,
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau:hover,
+.fresque-zone:fullscreen.sans-bandeau .rappel-bandeau:focus-visible { opacity: 1; }
+.rappel-bandeau:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Le bouton qui replie le bandeau n'existe qu'en plein écran : ailleurs il n'y
+   a rien à replier, la page porte déjà sa propre navigation. */
+#masquer-bandeau { display: none; }
+.fresque-zone:fullscreen #masquer-bandeau { display: inline-flex; }
+
+/* ── LES CARTES CHOISIES, EN PUCES ───────────────────────────
+   Un retour porte souvent sur deux ou trois cartes à la fois. Sans ces puces,
+   on ne voit pas ce qu'on a déjà pris et on choisit deux fois la même. Elles
+   reprennent la forme des communes choisies sur la page Participer. */
+.puces-cartes { list-style: none; padding: 0; margin: .2rem 0 .8rem;
+  display: flex; flex-wrap: wrap; gap: .45rem; }
+.puce-carte {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--accent-doux); color: var(--accent-txt-fort);
+  border: 1px solid var(--accent); border-radius: 999px;
+  padding: .25rem .3rem .25rem .7rem;
+  font-family: var(--f-ui); font-size: .84rem; font-weight: 600;
+  /* LA PUCE PORTE TOUJOURS LE NUMERO ET LE TITRE : c'est elle qui s'adapte,
+     pas le texte qui disparait. Elle ne depasse pas la largeur du formulaire,
+     et un titre trop long se termine en points de suspension ; l'infobulle le
+     garde entier. La croix, elle, ne retrecit jamais. */
+  max-width: 100%; min-width: 0;
+}
+.puce-carte > span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.puce-carte .puce-x {
+  flex: 0 0 auto; border: 0; background: transparent; color: inherit; cursor: pointer;
+  width: 1.3rem; height: 1.3rem; border-radius: 50%; line-height: 1; font-size: 1rem;
+}
+.puce-carte .puce-x:hover { background: var(--accent); color: var(--sur-accent); }
+.puce-carte .puce-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── LA PAGE RETOURS ─────────────────────────────────────────
+   Le formulaire flottait seul au milieu d'une page vide, avec un bord gauche
+   different de celui du titre. Une carte le pose, et la liste de ce qui a deja
+   ete dit lui repond dessous. */
+.carte-formulaire {
+  border: 1px solid var(--ligne); border-radius: 14px;
+  padding: 1.3rem clamp(1rem, 2.5vw, 1.6rem);
+  background: var(--surface);
+}
+.carte-formulaire .form-retour { margin-top: 0; }
+
+.retours-publics { margin-top: 2.5rem; }
+.retours-publics h2 { margin: 0 0 .3rem; }
+.retours-publics .muted { margin: 0 0 1rem; font-size: .9rem; }
+.retours-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.retour-public {
+  border: 1px solid var(--ligne); border-radius: 12px;
+  padding: .8rem 1rem; background: var(--surface);
+}
+/* EN ATTENTE SE VOIT, SANS DISPARAITRE. Grise au point d'etre illisible, le
+   retour ne servirait a personne ; un filet suffit a dire qu'il n'est pas
+   encore relu. */
+.retour-public.en-attente { border-left: 3px solid var(--accent); }
+.retour-tete {
+  display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap;
+  margin: 0 0 .35rem; font-family: var(--f-ui); font-size: .8rem;
+}
+.retour-sujet { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gris); }
+.retour-date { color: var(--gris-clair); }
+.retour-texte { margin: 0; }
+.retour-pied { margin: .45rem 0 0; font-family: var(--f-ui); font-size: .8rem; color: var(--gris); }
+.retour-attente { color: var(--accent-txt); font-weight: 600; }
+
+/* L'ANTISECHE SUR UN TELEPHONE. Quatre colonnes dans 350 pixels donnaient des
+   mots coupes en deux et une phrase de relance sur dix lignes de trois mots.
+   Sur petit ecran, chaque moment du deroule devient un bloc : le titre, la
+   duree, ce qu'on y fait, la phrase. En-tetes caches a l'oeil, gardes pour les
+   lecteurs d'ecran par la structure du tableau.
+   `screen and` : a l'impression, le tableau reste un tableau, quelle que soit
+   la largeur de la page. */
+@media screen and (max-width: 640px) {
+  .as-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .as-table, .as-table tbody, .as-table tr, .as-table th, .as-table td { display: block; width: auto; }
+  .as-table tr { border-bottom: 1px solid var(--ligne); padding: .7rem 0; }
+  .as-table th, .as-table td { border: 0; padding: .1rem 0; }
+  .as-table tbody th { white-space: normal; margin-bottom: .2rem; }
+  .as-table tbody td:first-of-type {
+    font-family: var(--f-ui); font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--gris); margin-bottom: .25rem;
+  }
+}
+
+/* ── COURBER UNE FLÈCHE, VISER UNE CARTE ─────────────────────
+   Le trajet d'un lien était calculé, et lui seul : deux cartes voisines
+   reliées par un trait qui traverse une troisième, et rien à faire. La
+   pastille se tire ; elle n'apparaît que sur le lien choisi, en édition. */
+/* Au-dessus des cartes : dans la couche des liens, elle passait dessous, et
+   l'on attrapait la vignette en croyant courber la fleche. La taille grandit
+   quand on dezoome, comme la poignee de lien des cartes : a 35 %, 18 pixels de
+   plan n'en font plus que 6 a l'ecran. */
+.poignee-courbe {
+  position: absolute; z-index: 6; padding: 0;
+  width: var(--poignee-courbe, 18px); height: var(--poignee-courbe, 18px);
+  margin-left: calc(var(--poignee-courbe, 18px) / -2);
+  margin-top: calc(var(--poignee-courbe, 18px) / -2);
+  border: 2.5px solid var(--accent); border-radius: 50%;
+  background: var(--surface); cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+}
+.poignee-courbe[hidden] { display: none; }
+.poignee-courbe:hover { background: var(--accent); }
+.poignee-courbe:active { cursor: grabbing; }
+.poignee-courbe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* LA CARTE VISÉE PENDANT LE TRACÉ. Sans ce repère, on lâche le trait en
+   espérant avoir visé juste, et rien ne dit si l'arrivée a été reconnue. */
+.c-carte.visee { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
