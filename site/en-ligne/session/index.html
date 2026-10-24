@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Session · La Fresque des risques de l'IA</title>
-  <meta name="description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participants, un tableau partagé.">
+  <meta name="description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participant·es, un tableau partagé.">
   <link rel="icon" type="image/png" sizes="64x64" href="../../assets/img/social/favicon.png?v=3">
   <link rel="stylesheet" href="../../assets/css/fonts.css">
   <link rel="stylesheet" href="../atelier/board.css">
@@ -13,11 +13,12 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="La Fresque des risques de l'IA">
   <meta property="og:title" content="Session · La Fresque des risques de l'IA">
-  <meta property="og:description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participants, un tableau partagé.">
+  <meta property="og:description" content="Animer La Fresque des risques de l'IA à distance : un animateur, jusqu'à huit participant·es, un tableau partagé.">
   <meta property="og:url" content="https://fresquedesrisquesdelia.org/en-ligne/session/">
-  <meta property="og:image" content="https://fresquedesrisquesdelia.org/assets/img/social/partage.jpg">
+  <meta property="og:image" content="https://fresquedesrisquesdelia.org/assets/img/social/partage-2.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Un atelier de la Fresque des risques de l'IA : des mains posent des cartes sur une grande table.">
   <meta property="og:locale" content="fr_FR">
   <meta property="og:locale:alternate" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
@@ -107,13 +108,29 @@
         <button class="btn" id="z-tout" title="Recadrer sur toute la fresque">Tout voir</button>
       </div>
       <button class="btn" id="btn-annuler" disabled title="Annuler ma dernière action (Ctrl+Z)" aria-keyshortcuts="Control+Z">Annuler</button>
-      <button class="btn" id="btn-export" hidden title="Télécharger le tableau en image">Image ⬇</button>
-      <button class="btn" id="btn-participants" title="Qui est connecté"><span aria-hidden="true">👥</span><span class="pa-txt">Participants</span> <b id="nb-part">0</b></button>
+      <button class="btn" id="btn-participants" title="Qui est connecté"><span aria-hidden="true">👥</span><span class="pa-txt">Participant·es</span> <b id="nb-part">0</b></button>
+      <!-- LEVER LA MAIN, SANS QUITTER LE TABLEAU. En visio, demander la parole
+           oblige a aller chercher la grille des visages : on perd ce qu'on
+           etait en train de faire, et personne ne sait qui a demande en
+           premier. Le bouton dit AUSSI son rang dans la file. -->
+      <button class="btn btn-main" id="btn-main" aria-pressed="false" title="Demander la parole (M)" aria-keyshortcuts="m">
+        <span class="main-ico" aria-hidden="true">✋</span><span class="main-txt">Lever la main</span><b class="main-rang" id="main-rang" hidden></b>
+      </button>
+      <button class="btn" id="btn-rail" aria-expanded="false" title="Conversation et mains levées (C)" aria-keyshortcuts="c">
+        <span aria-hidden="true">💬</span><span class="rail-txt">Conversation</span><b class="rail-pastille" id="rail-pastille" hidden>0</b>
+      </button>
       <button class="btn" id="btn-affichage" aria-haspopup="true" aria-expanded="false" title="Fond, curseurs, plein écran">Affichage</button>
       <div class="menu-aff" id="menu-affichage" hidden>
         <button class="btn tool" id="btn-sombre" aria-pressed="false">Fond noir</button>
         <button class="btn tool" id="btn-curseurs" aria-pressed="true" title="Afficher ou masquer les curseurs des autres">Curseurs des autres</button>
         <button class="btn tool" id="btn-titres" aria-pressed="false" title="Afficher le titre sous chaque carte quand on prend du recul">Titres au dézoom</button>
+        <!-- L'EXPORT NE SE MERITE PLUS. Le bouton n'apparaissait qu'une fois
+             les 38 cartes posees : on ne pouvait pas emporter la trace d'un
+             lot termine, ni montrer un travail en cours. Deux formats, parce
+             qu'ils ne servent pas a la meme chose : le PNG se colle dans un
+             compte rendu, le SVG s'imprime en grand et se retouche. -->
+        <button class="btn" id="btn-export" title="Télécharger le tableau en PNG (image à coller dans un document)">Image PNG ⬇</button>
+        <button class="btn" id="btn-export-svg" title="Télécharger le tableau en SVG (vectoriel : impression en grand, retouche)">Image SVG ⬇</button>
         <button class="btn" id="btn-barres" title="Masquer la barre pour agrandir le tableau">Masquer la barre</button>
         <button class="btn" id="btn-plein">Plein écran</button>
       </div>
@@ -145,15 +162,69 @@
          Le mot « pool » ne subsiste que dans le code (id, classes, ops serveur). -->
     <div class="pool" id="pool" aria-live="polite"></div>
 
-    <!-- Panneau participants -->
+    <!-- Panneau participant·es -->
     <aside class="panneau" id="panneau" hidden>
-      <div class="panneau-tete"><h3>Participants</h3><button class="btn" id="fermer-panneau" aria-label="Fermer">✕</button></div>
+      <div class="panneau-tete"><h3>Participant·es</h3><button class="btn" id="fermer-panneau" aria-label="Fermer">✕</button></div>
       <div class="vocal anim-only">
         <label for="vocal-url">Lien du salon vocal (Discord, Meet…)</label>
         <div class="vocal-ligne"><input id="vocal-url" type="url" placeholder="https://…"><button class="btn" id="btn-vocal">OK</button></div>
       </div>
       <a class="vocal-lien" id="vocal-lien" href="#" target="_blank" rel="noopener" hidden>🎧 Rejoindre le salon vocal</a>
       <ul class="liste-part" id="liste-part"></ul>
+    </aside>
+
+    <!-- LA CONVERSATION ET LA FILE DE PAROLE, en panneau flottant.
+         D'abord posee en colonne fixe a droite, elle mangeait une bande de
+         l'ecran en permanence. Elle se comporte maintenant comme la reserve :
+         on l'ouvre, on la replie, on la deplace ou l'on veut, et sa place est
+         retenue par navigateur. Par defaut a GAUCHE, puisque la reserve tient
+         le coin droit. -->
+    <aside class="causerie" id="causerie" hidden aria-labelledby="causerie-titre">
+      <div class="causerie-tete">
+        <button type="button" class="pool-poignee causerie-poignee" id="causerie-poignee"
+          aria-label="Déplacer la conversation" title="Déplacer la conversation"><span aria-hidden="true">⠿</span></button>
+        <button type="button" class="pool-toggle causerie-toggle" id="causerie-toggle" aria-expanded="true">
+          <span id="causerie-titre">Conversation</span><b class="causerie-pastille" id="causerie-pastille" hidden>0</b>
+        </button>
+        <button type="button" class="pool-act causerie-x" id="causerie-fermer" aria-label="Fermer la conversation" title="Fermer">✕</button>
+      </div>
+
+      <div class="causerie-corps" id="causerie-corps">
+        <section class="rail-mains" id="rail-mains">
+          <div class="rail-sous">
+            <h4 id="mains-titre">Mains levées <b class="mains-nb" id="mains-nb">0</b></h4>
+            <button class="btn mini anim-only" id="mains-vider" hidden>Tout baisser</button>
+          </div>
+          <ol class="mains-liste" id="mains-liste" aria-labelledby="mains-titre"></ol>
+          <p class="rail-vide" id="mains-vide">Personne ne demande la parole.</p>
+        </section>
+
+        <div class="rail-fil" id="chat-fil" role="log" aria-live="polite" aria-labelledby="causerie-titre"></div>
+        <p class="rail-vide rail-vide-chat" id="chat-vide">Un mot à dire sans couper la parole&nbsp;? C'est ici.</p>
+
+        <!-- PARLER SANS ECRIRE. En atelier, l'essentiel de ce qu'on a a dire
+             dans le fil tient en un signe : d'accord, pas d'accord, je ne
+             comprends pas. Trois boutons qui envoient tout de suite valent
+             mieux que trois phrases a taper pendant qu'on anime. -->
+        <div class="rail-vite" id="chat-vite" role="group" aria-label="Réagir en un geste">
+          <button type="button" data-emo="👍" title="D'accord" aria-label="Envoyer : d'accord">👍</button>
+          <button type="button" data-emo="👏" title="Bravo" aria-label="Envoyer : bravo">👏</button>
+          <button type="button" data-emo="❓" title="Question" aria-label="Envoyer : question">❓</button>
+          <button type="button" data-emo="⏳" title="Il me faut un moment" aria-label="Envoyer : il me faut un moment">⏳</button>
+        </div>
+
+        <form class="rail-ecrire" id="chat-form">
+          <label class="sr-only" for="chat-texte">Votre message</label>
+          <button class="rail-emo" id="chat-emo" type="button" aria-expanded="false" aria-controls="chat-palette"
+            title="Ajouter un emoji" aria-label="Ajouter un emoji">☺</button>
+          <textarea id="chat-texte" rows="1" maxlength="240" placeholder="Écrire au groupe…" autocomplete="off"></textarea>
+          <button class="btn primaire ico" id="chat-envoyer" type="submit" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+        <div class="rail-palette" id="chat-palette" hidden role="group" aria-label="Emoji"></div>
+        <p class="rail-etat" id="chat-etat" role="status" aria-live="polite"></p>
+      </div>
     </aside>
 
     <aside class="aide-pop" id="aide-pop" hidden aria-label="Aide">

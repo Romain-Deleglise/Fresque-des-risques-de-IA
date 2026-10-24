@@ -26,7 +26,9 @@
     sessionClose: "The session was closed by the facilitator.",
     cliquezArrivee: "Click the target card.",
     flecheDepart: "Click the source card, then the target card.",
-    flecheDouble: "Double link: source then target.", sensDouble: "Two-way link", texteClic: "Click the board to write.",
+    flecheDouble: "Double link: source then target.", sensDouble: "Two-way link", pointiller: "Dotted line", texteClic: "Click the board to write.",
+    lotNom: { 1: "AI", 2: "Capabilities", 3: "Present risks", 4: "Existential risks", 5: "Responses" },
+    lotMot: "Set",
     animateur: "facilitator", carteN: function (n) { return "card " + n; },
     recues: function (k) { return k + " received"; },
     poser: "Place", glisserPoser: "Drag onto the board", agrandir: "Enlarge", agrandirCarte: "Enlarge the card", libelle: "label…", texteAVenir: "Text coming soon.",
@@ -41,7 +43,7 @@
     coachPool: "Add cards to the shared reserve (your card deck, at the bottom) so the group can place them.",
     coachAttente: "Waiting for the facilitator to fill the reserve…",
     coachPrendre: "Take a card from the reserve and place it on the board.",
-    prendre: "Place on board", retirerPool: "Remove from the reserve", poolTitre: "Reserve",
+    prendre: "Place on board", retirerPool: "Put back in the deck", poolTitre: "Reserve",
     poolReduire: "Smaller cards", poolAgrandir: "Larger cards",
     tailleReduire: "Smaller text", tailleGrossir: "Larger text",
     occupee: "Someone is already taking that card.", occupeePar: function (q) { return q + " is taking this card"; },
@@ -77,6 +79,18 @@
     titresOn: "Titles when zoomed out: shown", titresOff: "Titles when zoomed out: hidden",
     relaisAncien: "Live sharing is running in reduced mode (the relay needs updating).",
     flecheEchap: "Click the target card (Esc cancels).",
+    leverMain: "Raise hand", baisserMain: "Lower hand",
+    mainLevee: function (r) { return "Your hand is up, you are number " + r + "."; },
+    mainBaissee: "Your hand is down.",
+    personneMain: "Nobody is asking to speak.",
+    donnerParole: "Done", donnerParoleAide: "Lower this hand (they have spoken)",
+    chatVide: "Something to say without interrupting? Here.",
+    chatEcrire: "Write to the group…", chatEnvoyer: "Send",
+    chatTropVite: "Easy there: wait a few seconds.",
+    conversation: "Chat", mainsTitre: "Raised hands", toutBaisser: "Lower all",
+    chatEchec: "Message not sent. It stays in the box, try again.",
+    exportPrepare: "Preparing the image…", exportFait: "Image downloaded.",
+    exportVide: "Place at least one card before exporting.",
     coachRelier: "To connect two cards: pick the “Link →” tool, then click one card and another."
   } : {
     prenomManquant: "Indiquez votre prénom.", creation: "Création…", echec: "Échec.",
@@ -95,7 +109,9 @@
     sessionClose: "La session a été close par l'animateur.",
     cliquezArrivee: "Cliquez la carte d'arrivée.",
     flecheDepart: "Cliquez la carte de départ, puis la carte d'arrivée.",
-    flecheDouble: "Lien double : départ puis arrivée.", sensDouble: "Lien à double sens", texteClic: "Cliquez le tableau pour écrire.",
+    flecheDouble: "Lien double : départ puis arrivée.", sensDouble: "Lien à double sens", pointiller: "Trait en pointillé", texteClic: "Cliquez le tableau pour écrire.",
+    lotNom: { 1: "L’IA", 2: "Capacités", 3: "Risques actuels", 4: "Risques existentiels", 5: "Solutions" },
+    lotMot: "Lot",
     animateur: "animateur", carteN: function (n) { return "carte " + n; },
     recues: function (k) { return k + " reçue" + (k > 1 ? "s" : ""); },
     poser: "Poser", glisserPoser: "Glissez sur le tableau", agrandir: "Agrandir", agrandirCarte: "Agrandir la carte", libelle: "libellé…", texteAVenir: "Texte à venir.",
@@ -110,7 +126,7 @@
     coachPool: "Ajoutez des cartes à la réserve commune (votre jeu de cartes, en bas) pour que le groupe les pose.",
     coachAttente: "En attente que l'animateur remplisse la réserve…",
     coachPrendre: "Prenez une carte de la réserve et posez-la sur le tableau.",
-    prendre: "Poser sur le tableau", retirerPool: "Retirer de la réserve", poolTitre: "Réserve",
+    prendre: "Poser sur le tableau", retirerPool: "Remettre dans le jeu de cartes", poolTitre: "Réserve",
     poolReduire: "Cartes plus petites", poolAgrandir: "Cartes plus grandes",
     tailleReduire: "Réduire le texte", tailleGrossir: "Grossir le texte",
     occupee: "Quelqu'un est déjà en train de prendre cette carte.", occupeePar: function (q) { return q + " prend cette carte"; },
@@ -146,6 +162,18 @@
     titresOn: "Titres au dézoom : affichés", titresOff: "Titres au dézoom : masqués",
     relaisAncien: "Partage en direct en mode réduit (le relais doit être mis à jour).",
     flecheEchap: "Cliquez la carte d'arrivée (Échap annule).",
+    leverMain: "Lever la main", baisserMain: "Baisser la main",
+    mainLevee: function (r) { return "Votre main est levée, vous êtes " + (r === 1 ? "le ou la premier·e" : "en " + r + "e position") + "."; },
+    mainBaissee: "Votre main est baissée.",
+    personneMain: "Personne ne demande la parole.",
+    donnerParole: "A parlé", donnerParoleAide: "Baisser cette main (la personne a parlé)",
+    chatVide: "Un mot à dire sans couper la parole ? C'est ici.",
+    chatEcrire: "Écrire au groupe…", chatEnvoyer: "Envoyer",
+    chatTropVite: "Doucement : attendez quelques secondes.",
+    conversation: "Conversation", mainsTitre: "Mains levées", toutBaisser: "Tout baisser",
+    chatEchec: "Message non envoyé. Il reste dans la boîte, réessayez.",
+    exportPrepare: "Préparation de l'image…", exportFait: "Image téléchargée.",
+    exportVide: "Posez au moins une carte avant d'exporter.",
     coachRelier: "Pour relier deux cartes : outil « Lien → », puis cliquez une carte et une autre."
   };
 
@@ -169,6 +197,7 @@
       "#z-tout": "Fit all", "#btn-plein": "Fullscreen", "#btn-affichage": "Display",
       "#btn-rassembler": "Gather",
       "#btn-barres": "Hide the bar", "#btn-barres-show": "Bar ▾", "#btn-partager": "Invite",
+      "#btn-export": "PNG image ⬇", "#btn-export-svg": "SVG image ⬇",
       "#btn-curseurs": "Other people's cursors",
       "#btn-titres": "Titles when zoomed out",
       "#panneau .panneau-tete h3": "Participants",
@@ -181,7 +210,11 @@
       "#ma-libelle": "Your session link:",
       "#ma-copier": "Copy the link", "#ma-mail": "E-mail it to myself",
       ".mobile-avis .ma-fine:nth-of-type(1)": "Then open it on your computer: the session opens on its own, with nothing to type.",
-      "#ma-forcer": "Continue on this screen anyway"
+      "#ma-forcer": "Continue on this screen anyway",
+      "#causerie-titre": "Chat", "#mains-titre": "Raised hands", "#mains-vider": "Lower all",
+      "#mains-vide": "Nobody is asking to speak.",
+      "#chat-vide": "Something to say without interrupting? Here.",
+      ".main-txt": "Raise hand", ".rail-txt": "Chat"
     };
     Object.keys(txt).forEach(function (sel) { var el = document.querySelector(sel); if (el) el.textContent = txt[sel]; });
     var attr = [
@@ -189,6 +222,16 @@
       ["#btn-rassembler", "title", "Invite everyone to come and see what you see"],
       ["#z-moins", "aria-label", "Zoom out"], ["#z-plus", "aria-label", "Zoom in"],
       ["#fermer-panneau", "aria-label", "Close"], ["#modal-close", "aria-label", "Close"],
+      ["#causerie-fermer", "aria-label", "Close the chat"], ["#causerie-poignee", "aria-label", "Move the chat"],
+      ["#chat-emo", "title", "Add an emoji"], ["#chat-emo", "aria-label", "Add an emoji"],
+      ["#chat-vite", "aria-label", "React in one tap"], ["#chat-palette", "aria-label", "Emoji"],
+      ['#chat-vite button[data-emo="👍"]', "title", "Agreed"],
+      ['#chat-vite button[data-emo="👏"]', "title", "Well said"],
+      ['#chat-vite button[data-emo="❓"]', "title", "Question"],
+      ['#chat-vite button[data-emo="⏳"]', "title", "I need a moment"],
+      ["#causerie-poignee", "title", "Move the chat"], ["#chat-texte", "placeholder", "Write to the group…"],
+      ["#chat-envoyer", "aria-label", "Send"], ["#btn-main", "title", "Ask to speak (M)"],
+      ["#btn-rail", "title", "Chat and raised hands (C)"],
       ["#anim-prenom", "placeholder", "First name"], ["#join-prenom", "placeholder", "First name"],
       ['.tool[data-outil="deplacer"]', "title", "Hand: move and pan the board"], ['.tool[data-outil="deplacer"]', "aria-label", "Hand: move and pan the board"],
       ['.tool[data-outil="fleche"]', "title", "Link: click the source card, then the target"], ['.tool[data-outil="fleche"]', "aria-label", "Link two cards"],
@@ -252,7 +295,12 @@
    "btn-participants","panneau","fermer-panneau",
    "btn-barres","btn-barres-show","btn-affichage","menu-affichage","dock","zone-outils","grp-zoom","btn-annuler","btn-rassembler",
    "liste-part","vocal-url","btn-vocal","vocal-lien","visio-top","modal","carte-grande","modal-flip",
-   "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg"].forEach(function (id) {
+   "modal-close","mg-img","mg-num","mg-tit","mg-vtit","mg-verso","mg-vimg",
+   "causerie","causerie-corps","causerie-toggle","causerie-poignee","causerie-fermer",
+   "causerie-pastille","btn-rail","rail-pastille","btn-main","main-rang",
+   "mains-liste","mains-nb","mains-vide","mains-vider",
+   "chat-fil","chat-vide","chat-form","chat-texte","chat-etat",
+   "chat-vite","chat-emo","chat-palette"].forEach(function (id) {
     E[id] = document.getElementById(id);
   });
   traduireStatique();
@@ -355,15 +403,33 @@
     }).catch(function () { E["btn-rejoindre"].disabled = false; lobbyMsg(S.indispo, "err"); });
   }
 
-  // reprise auto si ?s=CODE et jeton stocké
+  /* UN LIEN, UNE SEULE ENTREE.
+     Le lien d'invitation (?s=CODE) designe une session qui EXISTE. La page
+     offrait pourtant les deux colonnes : « Ouvrir une session » a cote de
+     « Rejoindre ». Cliquer la premiere ouvrait une AUTRE session, vide, avec
+     un autre code, pendant que le groupe attendait dans la bonne. C'est ce
+     qu'on nous a signale plusieurs fois, et c'est ce que fait n'importe qui
+     tombant sur deux boutons dont un dit « Ouvrir ».
+     Depuis un lien d'invitation, il n'y a donc qu'une entree : rejoindre.
+     Sauf pour l'animateur·ice qui a ouvert cette session-la : pour elle ou
+     lui, la seule entree est de la ROUVRIR, avec le meme code. */
   (function () {
     var m = new URLSearchParams(location.search).get("s");
-    if (m) { m = m.toUpperCase(); E["join-code"].value = m;
-      var j = jetonTab(m) || jetonAnim(m); // reprise (participant ou animateur)
-      if (j) api("rejoindre", { code: m, jeton: j }).then(function (res) {
-        if (res.d && res.d.jeton) { memoriser(m, res.d.jeton, res.d.role); demarrer(m, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
-      }).catch(function(){});
+    if (!m) return;
+    m = m.toUpperCase();
+    E["join-code"].value = m;
+    var estAnim = !!jetonAnim(m);
+    if (estAnim) {
+      lobbyRole("animateur");
+      codeSouhaite = m;                       // rouvrir CETTE session, pas une autre
+      if (E["anim-code"]) E["anim-code"].value = m;
+    } else {
+      lobbyRole("participant");
     }
+    var j = jetonTab(m) || jetonAnim(m); // reprise (participant ou animateur)
+    if (j) api("rejoindre", { code: m, jeton: j }).then(function (res) {
+      if (res.d && res.d.jeton) { memoriser(m, res.d.jeton, res.d.role); demarrer(m, res.d.jeton, res.d.role, res.d.etat, res.d.moi); }
+    }).catch(function(){});
   })();
 
   // Liens des e-mails : ?ouvrir=CODE (animateur, ouvre/reprend l'atelier reserve),
@@ -407,6 +473,18 @@
     }
     lobbyMsg(S.ouvrirAtelier(o));
     try { E["anim-prenom"].focus(); } catch (e) {}
+  })();
+  /* SANS AUCUN CODE DANS L'ADRESSE, il n'y a rien a rejoindre : la colonne
+     « Rejoindre » n'etait plus qu'un titre et une phrase d'explication, a
+     cote d'un formulaire utilisable. Deux colonnes pour une seule entree :
+     on garde l'explication, on retire la colonne. */
+  (function () {
+    if (document.body.classList.contains("lobby-solo")) return;
+    if (((E["join-code"] && E["join-code"].value) || "").length === 6) return;
+    lobbyRole("animateur");
+    var note = document.getElementById("note-sans-lien");
+    var premiere = document.querySelector("#lobby .lobby-cols > section");
+    if (note && premiere) premiere.appendChild(note);  // l'explication reste lisible
   })();
   majColonneRejoindre();
 
@@ -584,6 +662,8 @@
     rendrePool(vue);
     rendreDeck(vue);
     rendreVocal(vue);
+    rendreMains(vue);
+    rendreChat(vue);
     rendreTableau(vue.tableau);
     rendrePing(vue.ping);
     majCoach();
@@ -901,6 +981,295 @@
   }
 
   var _poolVues = {};   // cartes deja presentes au rendu precedent
+  /* ---------- FILE DE PAROLE ET CONVERSATION -------------------------------
+     POURQUOI ICI ET PAS DANS LA VISIO. Demander la parole en visioconference
+     oblige a quitter le tableau pour la grille des visages : on perd ce qu'on
+     etait en train de faire, et personne ne sait qui a demande en premier. De
+     meme pour une phrase a dire sans couper la parole. Les deux vivent donc a
+     cote du tableau, dans la meme colonne.
+
+     L'ORDRE VIENT DU SERVEUR, jamais de l'horloge d'un navigateur : deux
+     personnes qui levent la main a la meme seconde doivent apparaitre dans le
+     meme ordre pour tout le monde (voir serveur/src/regles.js). */
+  var rail = { ouvert: false, luJusqu: 0, nonLus: 0, sigMains: "", sigChat: "", envoiEnCours: 0 };
+
+  function monId() { return etat.role === "animateur" ? ((etat.vue && etat.vue.animateur && etat.vue.animateur.id) || "a1") : _idMoi; }
+  function maMain(vue) {
+    var id = monId();
+    var l = (vue && vue.mains) || [];
+    for (var i = 0; i < l.length; i++) { if (l[i].id === id) return i + 1; }
+    return 0;
+  }
+
+  function rendreMains(vue) {
+    var mains = (vue && vue.mains) || [];
+    var sig = mains.map(function (m) { return m.id + ":" + m.prenom + ":" + (m.absent ? 1 : 0); }).join(",") + "|" + etat.role;
+    if (sig === rail.sigMains) return; rail.sigMains = sig;
+
+    var ol = E["mains-liste"]; if (!ol) return;
+    ol.innerHTML = "";
+    var moi = monId(), jeSuisAnim = etat.role === "animateur";
+    mains.forEach(function (m, i) {
+      var li = document.createElement("li");
+      li.className = (i === 0 ? "premier" : "") + (m.id === moi ? " moi" : "")
+        + (m.absent ? " absent" : "");
+      /* LE RANG EST UN CHIFFRE. Dans une liste, il faut compter pour savoir
+         qui est troisieme ; ici on le lit. */
+      li.innerHTML = '<span class="main-rang-pastille" aria-hidden="true">' + (i + 1) + '</span>'
+        /* LA MAIN, EN SIGNE. Le rang dit quand on parlera, le signe dit de
+           quoi il s'agit : on reconnait la file de parole sans lire. */
+        + '<span class="main-signe" aria-hidden="true">✋</span>'
+        + '<span class="main-nom">' + esc(m.prenom) + '</span>'
+        /* Une main levee par quelqu'un dont l'onglet s'est ferme reste a sa
+           place : on la signale plutot que de la faire disparaitre, et
+           l'animateur·ice la baisse si besoin. */
+        + (m.absent ? '<span class="main-absent">' + esc(S.horsLigne) + '</span>' : '');
+      /* Chacun·e baisse la sienne ; l'animateur·ice baisse celle de qui vient
+         de parler, ce qui fait avancer la file. */
+      if (jeSuisAnim || m.id === moi) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "main-x";
+        b.textContent = m.id === moi ? S.baisserMain : S.donnerParole;
+        b.title = m.id === moi ? S.baisserMain : S.donnerParoleAide;
+        b.addEventListener("click", function () {
+          if (m.id === moi) agir({ op: "baisserMain" }, null, true);
+          else agir({ op: "baisserMainDe", id: m.id }, null, true);
+        });
+        li.appendChild(b);
+      }
+      ol.appendChild(li);
+    });
+    if (E["mains-vide"]) E["mains-vide"].hidden = mains.length > 0;
+    if (E["mains-nb"]) {
+      E["mains-nb"].textContent = mains.length;
+      E["mains-nb"].classList.toggle("a-du-monde", mains.length > 0);
+    }
+    if (E["mains-vider"]) E["mains-vider"].hidden = !(etat.role === "animateur" && mains.length > 0);
+
+    var rang = maMain(vue);
+    if (E["btn-main"]) {
+      E["btn-main"].setAttribute("aria-pressed", rang ? "true" : "false");
+      var txt = E["btn-main"].querySelector(".main-txt");
+      if (txt) txt.textContent = rang ? S.baisserMain : S.leverMain;
+    }
+    if (E["main-rang"]) {
+      E["main-rang"].hidden = !rang;
+      E["main-rang"].textContent = rang || "";
+    }
+  }
+
+  function heure(ts) {
+    try { return new Date(ts).toLocaleTimeString(EN ? "en-GB" : "fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+    catch (e) { return ""; }
+  }
+
+  function rendreChat(vue) {
+    var fil = (vue && vue.chat) || [];
+    var sig = fil.map(function (m) { return m.id; }).join(",");
+    var hote = E["chat-fil"]; if (!hote) return;
+    if (sig !== rail.sigChat) {
+      rail.sigChat = sig;
+      /* On ne reconstruit qu'au changement, et on garde le defilement en bas :
+         un fil qui remonte tout seul pendant qu'on lit est insupportable. */
+      var enBas = hote.scrollHeight - hote.scrollTop - hote.clientHeight < 40;
+      hote.innerHTML = "";
+      var moi = monId(), precedent = null;
+      fil.forEach(function (m) {
+        var d = document.createElement("div");
+        d.className = "msg" + (m.par === moi ? " moi" : "")
+          + (precedent === m.par ? " suite" : "")
+          + (String(m.id).charAt(0) === "~" ? " envoi" : "");
+        /* UN MESSAGE QUI N'EST QUE DES SIGNES SE LIT EN GRAND : « 👍 » rendu a
+           la taille d'une phrase se perd dans la colonne, alors que c'est
+           justement ce qu'on veut voir d'un coup d'oeil. */
+        var queSignes = !/[\p{L}\p{N}]/u.test(m.texte) && m.texte.length <= 8;
+        d.innerHTML = '<p class="msg-tete"><span class="msg-qui">' + esc(m.prenom)
+          + '</span><span>' + esc(heure(m.ts)) + '</span></p>'
+          + '<p class="msg-corps' + (queSignes ? ' signes' : '') + '">' + esc(m.texte) + '</p>';
+        hote.appendChild(d);
+        precedent = m.par;
+      });
+      if (E["chat-vide"]) E["chat-vide"].hidden = fil.length > 0;
+      if (enBas || !fil.length) hote.scrollTop = hote.scrollHeight;
+    }
+    /* LES NON-LUS. Sans eux, un message passe inapercu quand la barre est
+       fermee, et la conversation ne sert a rien. On ne compte pas les siens. */
+    var moi2 = monId();
+    var nouveaux = fil.filter(function (m) { return m.ts > rail.luJusqu && m.par !== moi2; });
+    if (rail.ouvert && !causReduite) {
+      rail.luJusqu = Date.now();
+      rail.nonLus = 0;
+    } else if (nouveaux.length !== rail.nonLus) {
+      rail.nonLus = nouveaux.length;
+      if (nouveaux.length) flash(nouveaux[nouveaux.length - 1].prenom + " : " + nouveaux[nouveaux.length - 1].texte.slice(0, 60));
+    }
+    majPastilles();
+    /* Le fil qui s'allonge peut changer la hauteur du panneau : sans cela, il
+       finit par deborder du cadre ou flotter a cote de sa place. */
+    placerCauserie();
+  }
+
+  /* LE PANNEAU SE DEPLACE, COMME LA RESERVE. Pose en colonne fixe a droite, il
+     mangeait une bande de l'ecran en permanence, et il se trouvait toujours
+     devant quelque chose. Meme mecanique que la reserve : une poignee, un
+     repli, une position retenue par navigateur. Par defaut en bas a GAUCHE,
+     puisque la reserve tient le coin droit. */
+  var causPos = null;
+  try { causPos = JSON.parse(localStorage.getItem("fresque:causpos") || "null"); } catch (e) { causPos = null; }
+  var causPosChoisie = !!causPos;
+  var causReduite = false;
+  try { causReduite = localStorage.getItem("fresque:causreduite") === "1"; } catch (e) {}
+
+  function placerCauserie() {
+    var z = E.causerie, r = rectScene();
+    if (!z || z.hidden || !r.width) return;
+    var marge = 16;
+    var corps = E["causerie-corps"];
+    if (corps && !causReduite) {
+      var tete = z.querySelector(".causerie-tete");
+      corps.style.maxHeight = Math.max(160, r.height - 2 * marge - ((tete ? tete.offsetHeight : 30) + 22)) + "px";
+    }
+    var w = z.offsetWidth || 300, h = z.offsetHeight || 240;
+    if (!causPosChoisie) causPos = { x: marge, y: r.height - h - marge };
+    var xMax = Math.max(4, r.width - w - 4), yMax = Math.max(4, r.height - h - 4);
+    z.style.left = Math.round(Math.max(4, Math.min(xMax, causPos.x))) + "px";
+    z.style.top = Math.round(Math.max(4, Math.min(yMax, causPos.y))) + "px";
+  }
+  function glisserCauserie(e, poignee) {
+    if (e.button && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    var z = E.causerie;
+    causPosChoisie = true;
+    var d = { mx: e.clientX, my: e.clientY, x: z.offsetLeft, y: z.offsetTop };
+    try { poignee.setPointerCapture(e.pointerId); } catch (x) {}
+    function mv(ev) { causPos = { x: d.x + (ev.clientX - d.mx), y: d.y + (ev.clientY - d.my) }; placerCauserie(); }
+    function fin(ev) {
+      poignee.removeEventListener("pointermove", mv);
+      poignee.removeEventListener("pointerup", fin);
+      poignee.removeEventListener("pointercancel", fin);
+      try { poignee.releasePointerCapture(ev.pointerId); } catch (x) {}
+      causPos = { x: z.offsetLeft, y: z.offsetTop };
+      try { localStorage.setItem("fresque:causpos", JSON.stringify(causPos)); } catch (x) {}
+    }
+    poignee.addEventListener("pointermove", mv);
+    poignee.addEventListener("pointerup", fin);
+    poignee.addEventListener("pointercancel", fin);
+  }
+  function replierCauserie(oui) {
+    causReduite = !!oui;
+    if (E["causerie-corps"]) E["causerie-corps"].hidden = causReduite;
+    if (E["causerie-toggle"]) E["causerie-toggle"].setAttribute("aria-expanded", causReduite ? "false" : "true");
+    if (E.causerie) E.causerie.classList.toggle("repliee", causReduite);
+    try { localStorage.setItem("fresque:causreduite", causReduite ? "1" : "0"); } catch (e) {}
+    placerCauserie();
+  }
+
+  function ouvrirRail(oui) {
+    rail.ouvert = !!oui;
+    if (E.causerie) E.causerie.hidden = !rail.ouvert;
+    if (E["btn-rail"]) E["btn-rail"].setAttribute("aria-expanded", rail.ouvert ? "true" : "false");
+    if (rail.ouvert) {
+      replierCauserie(causReduite);
+      placerCauserie();
+      if (!causReduite) {
+        rail.luJusqu = Date.now(); rail.nonLus = 0;
+        majPastilles();
+        var f = E["chat-fil"]; if (f) f.scrollTop = f.scrollHeight;
+        if (E["chat-texte"]) E["chat-texte"].focus();
+      }
+    }
+    try { localStorage.setItem("rail-ouvert", rail.ouvert ? "1" : "0"); } catch (e) {}
+  }
+  /* Les non-lus se voient a deux endroits : sur le bouton de la barre quand le
+     panneau est ferme, sur son propre en-tete quand il est seulement replie. */
+  function majPastilles() {
+    [E["rail-pastille"], E["causerie-pastille"]].forEach(function (b) {
+      if (!b) return;
+      b.hidden = !rail.nonLus;
+      b.textContent = rail.nonLus > 99 ? "99+" : rail.nonLus;
+    });
+  }
+
+  function basculerMain() {
+    var rang = maMain(etat.vue);
+    agir({ op: rang ? "baisserMain" : "leverMain" }, null, true);
+    flash(rang ? S.mainBaissee : S.mainLevee(((etat.vue && etat.vue.mains) || []).length + 1));
+  }
+
+  function envoyerMessage() {
+    var champ = E["chat-texte"]; if (!champ) return;
+    var texte = champ.value.trim();
+    if (!texte) return;
+    if (E["chat-etat"]) E["chat-etat"].textContent = "";
+    /* LE CHAMP NE SE VIDE QU'A L'ENVOI REUSSI... non : il se vide tout de
+       suite, parce qu'on enchaine, et le texte revient dans la boite si le
+       serveur refuse. Perdre une phrase qu'on vient de taper est pire que la
+       voir revenir. */
+    champ.value = ""; tailleChamp(); ouvrirPalette(false);
+    agir({ op: "envoyerMessage", texte: texte }, function (rep) {
+      if (rep && rep.refus) {
+        if (E["chat-etat"]) E["chat-etat"].textContent = rep.refus.code === "trop_vite" ? S.chatTropVite : (rep.refus.message || S.chatEchec);
+        if (!champ.value) { champ.value = texte; tailleChamp(); }
+      }
+    }, true);
+  }
+
+  // Le champ grandit avec le message, dans la limite fixee par la feuille de
+  // style : trois lignes tapees dans une case d'une ligne, on ne se relit pas.
+  /* ── EMOJI ────────────────────────────────────────────────
+     POURQUOI. Pendant qu'on anime, taper « oui je suis d'accord » coute plus
+     cher que ce que ca rapporte : on ne le fait pas, et le fil reste vide
+     alors que le groupe a des choses a dire. Un signe suffit, et il se lit
+     d'un coup d'oeil dans la colonne.
+
+     PAS DE BIBLIOTHEQUE NI DE CATALOGUE COMPLET : une poignee de signes utiles
+     en atelier, ecrits en clair dans la page. Rien a charger, rien a mettre a
+     jour, et aucune requete sortante (la politique de securite du site les
+     interdit, a juste titre). */
+  var EMOJIS = ["👍", "👎", "👏", "❓", "❗", "✅", "❌", "⏳", "💡", "🙂", "😅", "😮",
+    "🤔", "🙏", "❤️", "🔥", "🎯", "⚠️", "📌", "✋", "🎉", "😴", "🤯", "🧠"];
+
+  function remplirPalette() {
+    var hote = E["chat-palette"];
+    if (!hote || hote.childNodes.length) return;
+    EMOJIS.forEach(function (emo) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = emo;
+      b.setAttribute("aria-label", emo);
+      b.addEventListener("click", function () { insererEmoji(emo); });
+      hote.appendChild(b);
+    });
+  }
+  function ouvrirPalette(oui) {
+    var hote = E["chat-palette"]; if (!hote) return;
+    remplirPalette();
+    hote.hidden = !oui;
+    if (E["chat-emo"]) E["chat-emo"].setAttribute("aria-expanded", oui ? "true" : "false");
+    placerCauserie();
+    /* LA PALETTE PREND DE LA PLACE AU FIL : sans ce rappel, les derniers
+       messages sortaient par le haut au moment ou on ouvre les signes pour y
+       repondre. */
+    var f = E["chat-fil"]; if (f) f.scrollTop = f.scrollHeight;
+  }
+  /* ON INSERE AU CURSEUR, pas a la fin : on ajoute souvent un signe au milieu
+     d'une phrase deja ecrite, et le renvoyer en bout de ligne oblige a tout
+     recommencer. */
+  function insererEmoji(emo) {
+    var c = E["chat-texte"]; if (!c) return;
+    var a = c.selectionStart == null ? c.value.length : c.selectionStart;
+    var b = c.selectionEnd == null ? c.value.length : c.selectionEnd;
+    c.value = c.value.slice(0, a) + emo + c.value.slice(b);
+    var pos = a + emo.length;
+    try { c.setSelectionRange(pos, pos); } catch (e) {}
+    c.focus(); tailleChamp();
+  }
+
+  function tailleChamp() {
+    var c = E["chat-texte"]; if (!c) return;
+    c.style.height = "auto";
+    c.style.height = Math.min(96, c.scrollHeight) + "px";
+  }
+
   function rendrePool(vue) {
     var z = E["pool"]; if (!z) return;
     var pool = vue.pool || [];
@@ -1009,8 +1378,14 @@
       + (verrou ? '<span class="pool-verrou">🔒 ' + esc(par) + '</span>' : '') + '</div>'
       + '<div class="tit">' + esc(c ? c.titre : "") + '</div>'
       + '<div class="pool-actions"><button class="btn primaire" data-a="poser" title="' + esc(S.prendre) + '"' + (verrou ? ' disabled' : '') + '>' + esc(S.poser) + '</button>'
-      + '<button class="btn" data-a="agrandir" title="' + esc(S.agrandirCarte) + '" aria-label="' + esc(S.agrandirCarte) + '">' + esc(S.agrandir) + '</button>'
-      + (anim ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">✕</button>' : '')
+      /* MEME GESTE, MEME SYMBOLE. La carte posee s'agrandit avec « ⤢ » ; celle
+         de la reserve avec un bouton texte « Agrandir ». Deux signes pour la
+         meme action, dans la meme fenetre : on cherche le bon. */
+      + '<button class="btn agr-mini" data-a="agrandir" title="' + esc(S.agrandirCarte) + '" aria-label="' + esc(S.agrandirCarte) + '">⤢</button>'
+      /* ✕ SE LIT « SUPPRIMER ». La carte n'est pas supprimee : elle retourne
+         dans le jeu complet, d'ou on peut la remettre. Le signe et le texte le
+         disent maintenant. */
+      + (anim ? '<button class="pool-x" data-a="retirer" title="' + esc(S.retirerPool) + '" aria-label="' + esc(S.retirerPool) + '">↩</button>' : '')
       + '</div>';
     d.title = verrou ? (S.occupeePar ? S.occupeePar(par) : par) : (c && c.titre ? n + " · " + c.titre : "");
     d.querySelector('[data-a="poser"]').addEventListener("click", function (e) {
@@ -1304,8 +1679,8 @@
     majPlancher();
     assurerRoving();   // au moins une carte reste atteignable a la tabulation
     _premierRendu = false;
-    var exp = document.getElementById("btn-export");
-    if (exp) exp.hidden = !(tab.cartes && tab.cartes.length >= 38);
+    /* L'export ne depend plus du nombre de cartes posees : il vit dans le
+       menu « Affichage » et reste disponible des la premiere carte. */
   }
 
   function creerElCarte(n) {
@@ -1384,12 +1759,42 @@
   }
   // Encadre fixe (haut de la scene) qui affiche le titre de la carte survolee.
   var _survol = null;
+  /* CE QU'ON VEUT SAVOIR EN SURVOLANT UNE CARTE : son numero (c'est par lui
+     qu'on se designe les cartes a voix haute), son titre, et a quelle famille
+     elle appartient. Une seule ligne de texte melangeait les trois ; on les
+     separe, et le numero prend la couleur de son lot, la meme que le filet en
+     haut de la carte et que les pastilles de l'espace animateur·ices. */
   function montrerSurvol(n) {
     var c = etat.cartes[n]; if (!c) return;
     if (!_survol) { _survol = document.getElementById("survol-carte"); }
     if (!_survol) return;
     clearTimeout(_survolT);
-    _survol.textContent = n + " · " + c.titre;
+    var lot = c.lot || 0;
+    var coul = LOT_COULEUR[lot] || "#8a857b";
+    /* PAS D'ATTRIBUT `style=` DANS DU HTML. La politique de securite du site
+       (`style-src 'self'`) les ignore purement et simplement : la couleur du
+       lot serait perdue en production, et invisible ici ou le serveur de test
+       n'envoie aucune politique. On passe donc par le CSSOM. */
+    _survol.textContent = "";
+    var jeton = document.createElement("span");
+    jeton.className = "sv-num"; jeton.textContent = n;
+    jeton.style.background = coul;
+    var bulles = document.createElement("span");
+    bulles.className = "sv-bulles";
+    var titre = document.createElement("span");
+    titre.className = "sv-titre"; titre.textContent = c.titre || "";
+    bulles.appendChild(titre);
+    if (lot && S.lotNom[lot]) {
+      var fam = document.createElement("span");
+      fam.className = "sv-lot";
+      var pastille = document.createElement("i");
+      pastille.style.background = coul;
+      fam.appendChild(pastille);
+      fam.appendChild(document.createTextNode(S.lotMot + " " + lot + " · " + S.lotNom[lot]));
+      bulles.appendChild(fam);
+    }
+    _survol.appendChild(jeton);
+    _survol.appendChild(bulles);
     _survol.hidden = false;
   }
   function masquerSurvol() { clearTimeout(_survolT); if (_survol) _survol.hidden = true; }
@@ -1593,6 +1998,67 @@
   function bord(c, tx, ty) { var dx = tx - c.x, dy = ty - c.y; if (!dx && !dy) return { x: c.x, y: c.y };
     var hw = c.w / 2 + 4, hh = c.h / 2 + 4; var s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
     return { x: c.x + dx * s, y: c.y + dy * s }; }
+  /* ── PLUSIEURS FLECHES SUR LA MEME CARTE ────────────────────────────
+     Trois liens qui arrivent sur une carte depuis des cartes voisines se
+     rejoignaient en un seul point de son bord : trois traits confondus sur
+     leurs derniers pixels, une seule pointe visible, et impossible de dire
+     lequel va ou. On ecarte donc les points d'accroche QUI SE TOUCHENT, en
+     eventail le long du bord, sans deplacer ceux qui sont deja separes :
+     ecarter tout le monde deformerait une fresque lisible pour rien.
+
+     L'ecart est perpendiculaire au trait, donc la fleche garde sa direction.
+     Calcule ici pour l'ecran ET pour l'export : deux calculs separes auraient
+     donne deux fresques differentes. */
+  var ECART_FLECHES = 11;        // pixels du plan entre deux accroches voisines
+  var ANGLE_PROCHE = 0.42;       // ~24 degres : au-dela, les traits se lisent deja
+  function accroches(fleches) {
+    var brut = [], parCarte = {};
+    (fleches || []).forEach(function (f) {
+      var A = centreCarte(f.de), B = centreCarte(f.vers);
+      if (!A || !B) return;
+      var e = { f: f, A: A, B: B, pa: bord(A, B.x, B.y), pb: bord(B, A.x, A.y) };
+      e.angleA = Math.atan2(B.y - A.y, B.x - A.x);
+      e.angleB = Math.atan2(A.y - B.y, A.x - B.x);
+      brut.push(e);
+      (parCarte[f.de] = parCarte[f.de] || []).push({ e: e, bout: "a" });
+      (parCarte[f.vers] = parCarte[f.vers] || []).push({ e: e, bout: "b" });
+    });
+    Object.keys(parCarte).forEach(function (n) {
+      var liste = parCarte[n];
+      if (liste.length < 2) return;
+      liste.forEach(function (x) { x.angle = x.bout === "a" ? x.e.angleA : x.e.angleB; });
+      liste.sort(function (x, y) { return x.angle - y.angle; });
+      /* Groupes d'angles proches. Le tableau est circulaire (-PI et PI sont
+         voisins) : on le parcourt une fois, puis on recolle les deux bouts. */
+      var groupes = [[liste[0]]];
+      for (var i = 1; i < liste.length; i++) {
+        var prec = groupes[groupes.length - 1];
+        if (liste[i].angle - prec[prec.length - 1].angle <= ANGLE_PROCHE) prec.push(liste[i]);
+        else groupes.push([liste[i]]);
+      }
+      if (groupes.length > 1) {
+        var premier = groupes[0], dernier = groupes[groupes.length - 1];
+        if ((premier[0].angle + 2 * Math.PI) - dernier[dernier.length - 1].angle <= ANGLE_PROCHE) {
+          groupes[groupes.length - 1] = dernier.concat(premier);
+          groupes.shift();
+        }
+      }
+      groupes.forEach(function (g) {
+        if (g.length < 2) return;
+        g.forEach(function (x, i) {
+          var d = (i - (g.length - 1) / 2) * ECART_FLECHES;
+          var a = x.angle;
+          var ox = -Math.sin(a) * d, oy = Math.cos(a) * d;   // perpendiculaire au trait
+          var p = x.bout === "a" ? x.e.pa : x.e.pb;
+          p.x += ox; p.y += oy;
+        });
+      });
+    });
+    var out = {};
+    brut.forEach(function (e) { out[e.f.id] = e; });
+    return out;
+  }
+
   // Redessin des fleches coalesce sur une frame d'animation : pendant un
   // glissement, un zoom ou un deplacement, on peut appeler majFleches() a chaque
   // evenement pointeur sans reconstruire le SVG plusieurs fois par frame.
@@ -1634,16 +2100,17 @@
     if (!etat.vue) return;
     preparerFleches();
     var idx = {}, vus = {};
+    var acc = accroches(etat.vue.tableau.fleches);
     (etat.vue.tableau.fleches || []).forEach(function (f) {
-      var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
+      var e = acc[f.id]; if (!e) return;
       var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
-      var pa = bord(A, B.x, B.y), pb = bord(B, A.x, A.y);
+      var pa = e.pa, pb = e.pb;
       var mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2, dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
       var amp = Math.min(20, len * 0.09) * (k % 2 === 0 ? 1 : -1) * (1 + Math.floor(k / 2));
       var nx = -dy / len, ny = dx / len, cxp = mx + nx * amp, cyp = my + ny * amp;
       var d = "M" + pa.x + "," + pa.y + " Q" + cxp + "," + cyp + " " + pb.x + "," + pb.y;
       var sel = etat.sel && etat.sel.type === "fleche" && etat.sel.id === f.id;
-      var cls = "trait" + (f.bidir ? " bidir" : "") + (sel ? " sel" : "");
+      var cls = "trait" + (f.bidir ? " bidir" : "") + (f.pointille ? " pointille" : "") + (sel ? " sel" : "");
       var mk = "url(#" + (sel ? "aho" : (f.bidir ? "ahb" : "ah")) + ")";
 
       var g = _fleNoeuds[f.id];
@@ -1730,6 +2197,20 @@
     E.scene.appendChild(editLib);
     setTimeout(function () { try { editLib.focus(); editLib.select(); } catch (e) {} }, 0);
     croix = boutonCroix("fleche-croix", function () { agir({ op: "supprimerFleche", id: id }); deselect(); });
+    /* PLEIN OU POINTILLE. Un groupe ne met pas la meme chose derriere tous ses
+       liens (« cause », « aggrave », « hypothese ») : le pointille donne une
+       seconde categorie visible de loin, sans vocabulaire a apprendre. */
+    bidir = document.createElement("button");
+    bidir.type = "button"; bidir.className = "fleche-pointille";
+    bidir.setAttribute("aria-pressed", f.pointille ? "true" : "false");
+    bidir.title = S.pointiller; bidir.setAttribute("aria-label", S.pointiller);
+    bidir.innerHTML = '<svg viewBox="0 0 24 10" aria-hidden="true"><line x1="2" y1="5" x2="22" y2="5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="5 4"/></svg>';
+    bidir.addEventListener("click", function (e) {
+      e.stopPropagation();
+      agir({ op: "pointillerFleche", id: id });
+      bidir.setAttribute("aria-pressed", bidir.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    });
+    E.scene.appendChild(bidir);
     // Le sens de la fleche se choisit a la creation (outils « lien » / « lien ↔ »).
     ouvrirCtrlTaille("fleche", id);
     positionnerEditeurs();
@@ -1763,7 +2244,7 @@
       var f = etat.vue.tableau.fleches.find(function (x) { return x.id === etat.sel.id; });
       if (f && f._mid) { var px = etat.panX + f._mid.x * etat.zoom, py = etat.panY + f._mid.y * etat.zoom;
         if (croix) { croix.style.left = px + "px"; croix.style.top = (py - 16) + "px"; }
-        if (bidir) { bidir.style.left = (px - 30) + "px"; bidir.style.top = (py - 16) + "px"; }
+        if (bidir) { bidir.style.left = (px - 32) + "px"; bidir.style.top = (py - 16) + "px"; }
         if (editLib) { editLib.style.left = (px + 14) + "px"; editLib.style.top = (py - 14) + "px"; } }
     } else if (etat.sel && etat.sel.type === "carte" && barreCarte) {
       var c = etat.elCartes[etat.sel.n];
@@ -2177,6 +2658,12 @@
         if (d.dest === "pool" && v.pool.indexOf(n) < 0 && v.pool.length < 8) v.pool.push(n);
         break;
       case "supprimerFleche": tab.fleches = tab.fleches.filter(function (f) { return f.id !== d.id; }); break;
+      case "pointillerFleche": {
+        var fp = tab.fleches.filter(function (x) { return x.id === d.id; })[0];
+        if (!fp) return false;
+        if (fp.pointille) delete fp.pointille; else fp.pointille = true;
+        break;
+      }
       case "supprimerTexte": tab.textes = tab.textes.filter(function (t) { return t.id !== d.id; }); break;
       case "deplacerCarte": {
         var c = tab.cartes.filter(function (x) { return x.n === n; })[0];
@@ -2211,7 +2698,49 @@
         var tt = tab.textes.filter(function (x) { return x.id === d.id; })[0];
         if (!tt) return false; tt.taille = borneTaille(d.taille); break;
       }
+      /* LA MAIN ET LE MESSAGE S'AFFICHENT TOUT DE SUITE. L'aller-retour avec
+         le serveur se compte en secondes : une main qui met deux secondes a
+         se lever, on la releve ; un message qui met deux secondes a
+         apparaitre, on le retape. */
+      case "leverMain": {
+        if (!v.mains) v.mains = [];
+        var idM = monId();
+        if (!v.mains.some(function (m) { return m.id === idM; })) {
+          v.mains.push({ id: idM, prenom: nomMoi(), ts: Date.now() });
+        }
+        break;
+      }
+      case "baisserMain": {
+        var idB = monId();
+        v.mains = (v.mains || []).filter(function (m) { return m.id !== idB; });
+        break;
+      }
+      case "baisserMainDe":
+        v.mains = (v.mains || []).filter(function (m) { return m.id !== d.id; });
+        break;
+      case "viderMains": v.mains = []; break;
+      case "envoyerMessage": {
+        if (!v.chat) v.chat = [];
+        var idC = monId(), txtC = String(d.texte == null ? "" : d.texte).slice(0, 240).trim();
+        if (!txtC) return false;
+        /* ON NE L'AFFICHE PAS DEUX FOIS. Entre l'etat du serveur recu par le
+           relais et notre propre reponse, le message existe des deux cotes :
+           le rejeu des actions en vol le reposerait. */
+        var deja = v.chat.some(function (m) {
+          return m.par === idC && m.texte === txtC && Date.now() - m.ts < 20000;
+        });
+        if (!deja) v.chat.push({ id: "~" + (++seqProv), par: idC, prenom: nomMoi(), texte: txtC, ts: Date.now() });
+        break;
+      }
       default: return false; // rien de visible a anticiper
+    }
+    /* Les mains et le fil ont leur propre rendu : ils ne touchent ni au
+       tableau, ni a la reserve, et les redessiner pour un message serait
+       refaire soixante-cinq fleches a chaque phrase. */
+    if (d.op === "leverMain" || d.op === "baisserMain" || d.op === "baisserMainDe"
+      || d.op === "viderMains" || d.op === "envoyerMessage") {
+      if (!muet) { rendreMains(v); rendreChat(v); }
+      return true;
     }
     if (!muet) { rendrePool(v); rendreDeck(v); rendreTableau(tab); }
     return true;
@@ -2777,7 +3306,13 @@
     el.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'
       + '<path d="' + d + '" fill="none" stroke="#14110d" stroke-width="5.5" stroke-linejoin="round"/>'
       + '<path d="' + d + '" fill="' + coul + '" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>'
-      + '<span class="curseur-nom" style="--c:' + coul + '">' + esc(nom || "") + '</span>';
+      + '<span class="curseur-nom">' + esc(nom || "") + '</span>';
+    /* MEME RAISON QUE CI-DESSUS, et c'est une panne qui vivait la : la couleur
+       passait par un attribut `style=`, que `style-src 'self'` ignore. En
+       production, tous les prenoms portaient donc le meme fond gris de repli,
+       alors que la couleur est ce qui dit QUI est ou. */
+    var etiq = el.querySelector(".curseur-nom");
+    if (etiq) etiq.style.setProperty("--c", coul);
     el.hidden = !curs.montrer;
     return el;
   }
@@ -3251,7 +3786,22 @@
       if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.getAttribute("contenteditable") === "true")) return;
       e.preventDefault(); annulerDerniere(); return;
     }
+    var dansSaisie = (function () {
+      var a = document.activeElement;
+      return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
+        || a.getAttribute("contenteditable") === "true");
+    })();
+    /* DEUX RACCOURCIS POUR CE QU'ON FAIT LE PLUS SOUVENT : demander la parole,
+       et ouvrir la conversation. Jamais pendant une saisie, sinon ecrire
+       « comment » leve la main deux fois. */
+    if (!dansSaisie && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "m" || e.key === "M") { e.preventDefault(); basculerMain(); return; }
+      if (e.key === "c" || e.key === "C") { e.preventDefault(); ouvrirRail(!rail.ouvert); return; }
+    }
     if (e.key !== "Escape") return;
+    if (rail.ouvert && dansSaisie && document.activeElement === E["chat-texte"]) {
+      E["chat-texte"].blur(); return;
+    }
     if (etat.flecheDepart) { annulerFleche(); setOutil("deplacer"); }
     else deselect();
   });
@@ -3271,7 +3821,7 @@
   })();
   // Plein écran : vraie API Fullscreen (masque la barre du navigateur), avec
   // repli sur une classe CSS si l'API n'est pas disponible.
-  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive(); placerPool(); }, 60); }
+  function reflowPlein() { setTimeout(function () { clampPan(); applyView(); dessinerFleches(); dessinerFlechesLive(); placerPool(); placerCauserie(); }, 60); }
   function syncPlein() {
     var actif = !!(document.fullscreenElement || document.webkitFullscreenElement) || document.body.classList.contains("plein-css");
     document.body.classList.toggle("plein", actif);
@@ -3420,7 +3970,9 @@
       });
     }
     var e = document.getElementById("btn-export");
-    if (e) e.addEventListener("click", exporterImage);
+    if (e) e.addEventListener("click", function () { exporterImage("png"); });
+    var es = document.getElementById("btn-export-svg");
+    if (es) es.addEventListener("click", function () { exporterImage("svg"); });
   })();
   // Deck (animateur) : replier / deplier le jeu complet en bas de l'ecran.
   if (E["deck-toggle"] && E["deck"]) {
@@ -3434,6 +3986,43 @@
     });
   }
   if (E["btn-rassembler"]) E["btn-rassembler"].addEventListener("click", envoyerAppelVue);
+  /* ---------- Barre laterale : file de parole et conversation ------------ */
+  if (E["btn-rail"]) E["btn-rail"].addEventListener("click", function () { ouvrirRail(!rail.ouvert); });
+  if (E["causerie-fermer"]) E["causerie-fermer"].addEventListener("click", function () { ouvrirRail(false); });
+  if (E["causerie-toggle"]) E["causerie-toggle"].addEventListener("click", function () { replierCauserie(!causReduite); });
+  if (E["causerie-poignee"]) E["causerie-poignee"].addEventListener("pointerdown", function (e) { glisserCauserie(e, E["causerie-poignee"]); });
+  if (E["chat-emo"]) E["chat-emo"].addEventListener("click", function () {
+    ouvrirPalette(E["chat-palette"] && E["chat-palette"].hidden);
+  });
+  /* UN GESTE, UN MESSAGE. Ces quatre-la partent tout de suite : c'est leur
+     raison d'etre, et passer par le champ de saisie annulerait le gain. */
+  if (E["chat-vite"]) E["chat-vite"].addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-emo]");
+    if (!b) return;
+    agir({ op: "envoyerMessage", texte: b.dataset.emo }, function (rep) {
+      if (rep && rep.refus && E["chat-etat"]) {
+        E["chat-etat"].textContent = rep.refus.code === "trop_vite" ? S.chatTropVite : (rep.refus.message || S.chatEchec);
+      }
+    }, true);
+  });
+  if (E["btn-main"]) E["btn-main"].addEventListener("click", basculerMain);
+  if (E["mains-vider"]) E["mains-vider"].addEventListener("click", function () { agir({ op: "viderMains" }, null, true); });
+  if (E["chat-form"]) E["chat-form"].addEventListener("submit", function (e) { e.preventDefault(); envoyerMessage(); });
+  if (E["chat-texte"]) {
+    E["chat-texte"].addEventListener("input", tailleChamp);
+    /* ENTREE ENVOIE, MAJ+ENTREE va a la ligne : c'est ce que fait toute
+       messagerie, et l'inverse surprend au premier message. */
+    E["chat-texte"].addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyerMessage(); }
+      // Sans cela, la touche M poserait une main levee pendant qu'on ecrit.
+      e.stopPropagation();
+    });
+  }
+  /* La barre rouvre comme on l'a laissee : qui s'en sert s'en sert tout le
+     temps, qui ne s'en sert pas ne doit pas la retrouver ouverte a chaque
+     rechargement. */
+  try { if (localStorage.getItem("rail-ouvert") === "1") ouvrirRail(true); } catch (e) {}
+
   E["btn-participants"].addEventListener("click", function () { E.panneau.hidden = !E.panneau.hidden; });
   E["fermer-panneau"].addEventListener("click", function () { E.panneau.hidden = true; });
   if (E["btn-vocal"]) E["btn-vocal"].addEventListener("click", function () { agir({ op: "definirLienVocal", url: (E["vocal-url"].value || "").trim() }); });
@@ -3505,7 +4094,7 @@
     var reagir = function () {
       oublierDims();   // la hauteur d'un titre peut changer avec la largeur des polices
       majPlancher();   // la zone visible a change : le plancher de zoom aussi
-      placerPool(); clampPan(); applyView(); majFleches();
+      placerPool(); placerCauserie(); clampPan(); applyView(); majFleches();
     };
     // Anti-rebond A RETARDEMENT : la scene se redimensionne par rafales (le jeu
     // de cartes qui se remplit en bas). Un simple debit limite en tete de rafale
@@ -3648,18 +4237,136 @@
       new Promise(function (ok) { setTimeout(function () { ok([]); }, 9000); })
     ]);
   }
-  function exporterImage() {
+  function exporterImage(format) {
     poserLaPlume();
     quandCalme(function () {
       var tab = etat.vue && etat.vue.tableau;
-      if (!tab || !(tab.cartes || []).length) return;
-      flash(EN ? "Preparing the image…" : "Préparation de l'image…");
+      /* ON N'ATTEND PLUS LES TRENTE-HUIT CARTES. Le bouton ne s'affichait
+         qu'une fois la fresque complete : on ne pouvait pas emporter une trace
+         d'un lot termine, ni montrer un travail en cours. Une seule carte
+         suffit a faire une image. */
+      if (!tab || !(tab.cartes || []).length) { flash(S.exportVide); return; }
+      flash(S.exportPrepare);
       chargerImagesExport(tab.cartes).then(function (chargees) {
         var par = {};
         (chargees || []).forEach(function (e) { if (e) par[e.n] = e.img; });
-        dessinerExport(par);
+        if (format === "svg") exporterSVG(par); else dessinerExport(par);
       });
     });
+  }
+
+  /* ── L'EXPORT EN SVG ─────────────────────────────────────────────────
+     Le PNG est une photo : on ne peut ni l'agrandir sans qu'elle bavouille,
+     ni reprendre une fleche dans un outil de dessin. Le SVG garde les traits,
+     les textes et la disposition comme objets : il s'imprime en A0 sans
+     perdre un cheveu, et il s'ouvre dans Inkscape ou Illustrator pour une
+     retouche. Les illustrations des cartes sont des photos, elles : elles y
+     sont donc embarquees telles quelles, et c'est ce qui en fait le poids. */
+  function echapXml(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c];
+    });
+  }
+  function imageEnDonnees(img, w, h) {
+    try {
+      var cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(w * 2)); cv.height = Math.max(1, Math.round(h * 2));
+      var c = cv.getContext("2d");
+      dessinerCover(c, img, 0, 0, cv.width, cv.height);
+      return cv.toDataURL("image/jpeg", 0.82);
+    } catch (e) { return null; }
+  }
+  function lignesSvg(txt, maxCar, maxLignes) {
+    var mots = String(txt || "").split(/\s+/), lignes = [], cur = "";
+    for (var i = 0; i < mots.length; i++) {
+      var essai = cur ? cur + " " + mots[i] : mots[i];
+      if (essai.length > maxCar && cur) { lignes.push(cur); cur = mots[i]; if (lignes.length >= maxLignes) break; }
+      else cur = essai;
+    }
+    if (cur && lignes.length < maxLignes) lignes.push(cur);
+    return lignes;
+  }
+  function exporterSVG(imagesCartes) {
+    var tab = etat.vue && etat.vue.tableau;
+    if (!tab) return;
+    var cartes = tab.cartes || [], textes = tab.textes || [], fleches = tab.fleches || [];
+    var etaitLoin = E.monde.classList.contains("zoom-loin");
+    if (etaitLoin) { E.monde.classList.remove("zoom-loin"); oublierDims(); }
+    var D, parts = [];
+    try {
+      D = disposerExport(cartes, textes, fleches);
+      var fond = document.body.classList.contains("canvas-noir") ? "#14110d" : "#f4f2ec";
+      parts.push('<rect x="' + D.minx + '" y="' + D.miny + '" width="' + D.W + '" height="' + D.H + '" fill="' + fond + '"/>');
+
+      D.traits.forEach(function (tr) {
+        var f = tr.f, coul = f.bidir ? "#F0A860" : "#8a857b";
+        var d = "M" + tr.pa.x + "," + tr.pa.y + " Q" + tr.cx + "," + tr.cy + " " + tr.pb.x + "," + tr.pb.y;
+        parts.push('<path d="' + d + '" fill="none" stroke="' + coul + '" stroke-width="2.2"'
+          + (f.pointille ? ' stroke-dasharray="7 6"' : '') + '/>');
+        parts.push(teteSvg(tr.cx, tr.cy, tr.pb.x, tr.pb.y, coul));
+        if (f.bidir) parts.push(teteSvg(tr.cx, tr.cy, tr.pa.x, tr.pa.y, coul));
+      });
+
+      cartes.forEach(function (cc) {
+        var c = etat.cartes[cc.n], el = etat.elCartes[cc.n];
+        var w = el ? el.offsetWidth : 150, h = el ? el.offsetHeight : 150, visH = Math.round(w / 1.6);
+        var g = ['<g transform="translate(' + cc.x + ',' + cc.y + ')">'];
+        g.push('<rect x="0" y="0" width="' + w + '" height="' + h + '" rx="10" fill="#ffffff" stroke="#e6e2da"/>');
+        var img = imagesCartes && imagesCartes[cc.n];
+        var don = img && img.naturalWidth ? imageEnDonnees(img, w, visH) : null;
+        g.push('<clipPath id="c' + cc.n + '"><rect x="0" y="0" width="' + w + '" height="' + visH + '" rx="10"/></clipPath>');
+        g.push('<rect x="0" y="0" width="' + w + '" height="' + visH + '" rx="10" fill="#14110d"/>');
+        if (don) g.push('<image clip-path="url(#c' + cc.n + ')" x="0" y="0" width="' + w + '" height="' + visH
+          + '" preserveAspectRatio="xMidYMid slice" href="' + don + '"/>');
+        g.push('<rect x="5" y="5" width="21" height="21" rx="5" fill="#E8811C"/>');
+        g.push('<text x="15.5" y="16.5" text-anchor="middle" dominant-baseline="central" font-family="Saira Condensed,sans-serif" font-weight="700" font-size="13" fill="#ffffff">' + cc.n + '</text>');
+        lignesSvg(c ? c.titre : "", Math.max(10, Math.round((w - 16) / 6.1)), 3).forEach(function (l, i) {
+          g.push('<text x="8" y="' + (visH + 17 + i * 15) + '" font-family="Saira Condensed,sans-serif" font-weight="700" font-size="13" fill="#1b1a17">' + echapXml(l) + '</text>');
+        });
+        g.push('</g>');
+        parts.push(g.join(""));
+      });
+
+      D.etiquettes.forEach(function (l) {
+        var larg = l.t.length * 7 + 14;
+        parts.push('<g transform="translate(' + l.x + ',' + l.y + ')">'
+          + '<rect x="' + (-larg / 2) + '" y="-11" width="' + larg + '" height="22" rx="7" fill="#fff7e6" stroke="#e0b378"/>'
+          + '<text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-family="Montserrat,sans-serif" font-weight="600" font-size="13" fill="#8a4200">' + echapXml(l.t) + '</text></g>');
+      });
+
+      textes.forEach(function (t) {
+        if (!t.contenu) return;
+        var el = etat.elTextes[t.id], w = el ? el.offsetWidth : 80, h = el ? el.offsetHeight : 30;
+        var g = ['<g transform="translate(' + t.x + ',' + t.y + ')">'];
+        g.push('<rect x="0" y="0" width="' + w + '" height="' + h + '" rx="6" fill="#fff7e6" stroke="#f0dfbc"/>');
+        lignesSvg(t.contenu, Math.max(8, Math.round((w - 18) / 7)), 6).forEach(function (l, i) {
+          g.push('<text x="9" y="' + (20 + i * 17) + '" font-family="Montserrat,sans-serif" font-weight="500" font-size="14" fill="#1b1a17">' + echapXml(l) + '</text>');
+        });
+        g.push('</g>');
+        parts.push(g.join(""));
+      });
+    } finally {
+      if (etaitLoin) { E.monde.classList.add("zoom-loin"); oublierDims(); majFleches(); }
+    }
+
+    var svg = '<?xml version="1.0" encoding="UTF-8"?>\n'
+      + '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+      + 'width="' + Math.round(D.W) + '" height="' + Math.round(D.H) + '" '
+      + 'viewBox="' + D.minx + ' ' + D.miny + ' ' + D.W + ' ' + D.H + '">\n'
+      + parts.join("\n") + '\n</svg>\n';
+    var blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "fresque-des-risques-de-l-ia.svg";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1000);
+    flash(S.exportFait);
+  }
+  function teteSvg(fromx, fromy, tox, toy, coul) {
+    var a = Math.atan2(toy - fromy, tox - fromx), t = 9;
+    var p1 = (tox) + "," + (toy);
+    var p2 = (tox - Math.cos(a - 0.42) * t) + "," + (toy - Math.sin(a - 0.42) * t);
+    var p3 = (tox - Math.cos(a + 0.42) * t) + "," + (toy - Math.sin(a + 0.42) * t);
+    return '<polygon points="' + p1 + " " + p2 + " " + p3 + '" fill="' + coul + '"/>';
   }
   function dessinerExport(imagesCartes) {
     if (!etat.vue || !etat.vue.tableau) return;
@@ -3681,29 +4388,46 @@
       if (etaitLoin) { E.monde.classList.add("zoom-loin"); oublierDims(); majFleches(); }
     }
   }
-  function dessinerExportSurCanevas(imagesCartes, cartes, textes, fleches) {
+  /* LA DISPOSITION, CALCULEE UNE FOIS POUR LES DEUX EXPORTS. Le PNG et le SVG
+     doivent montrer exactement la meme chose : deux calculs separes auraient
+     diverge au premier reglage de courbure ou de marge. */
+  function disposerExport(cartes, textes, fleches) {
     var pad = 70, minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
     function eng(x, y, w, h) { minx = Math.min(minx, x); miny = Math.min(miny, y); maxx = Math.max(maxx, x + w); maxy = Math.max(maxy, y + h); }
     cartes.forEach(function (c) { var el = etat.elCartes[c.n]; eng(c.x, c.y, el ? el.offsetWidth : 150, el ? el.offsetHeight : 150); });
     textes.forEach(function (t) { var el = etat.elTextes[t.id]; eng(t.x, t.y, el ? el.offsetWidth : 80, el ? el.offsetHeight : 30); });
     minx -= pad; miny -= pad; maxx += pad; maxy += pad;
-    var W = maxx - minx, H = maxy - miny, scale = Math.max(0.5, Math.min(2, 2400 / W));
+    var traits = [], etiquettes = [], idx = {};
+    var acc = accroches(fleches);
+    fleches.forEach(function (f) {
+      var e = acc[f.id]; if (!e) return;
+      var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
+      var pa = e.pa, pb = e.pb;
+      var mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2, dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+      var amp = Math.min(20, len * 0.09) * (k % 2 === 0 ? 1 : -1) * (1 + Math.floor(k / 2));
+      var nx = -dy / len, ny = dx / len;
+      traits.push({ f: f, pa: pa, pb: pb, cx: mx + nx * amp, cy: my + ny * amp });
+      if (f.libelle) etiquettes.push({ x: mx + nx * amp, y: my + ny * amp, t: f.libelle });
+    });
+    return { minx: minx, miny: miny, W: maxx - minx, H: maxy - miny, traits: traits, etiquettes: etiquettes };
+  }
+
+  function dessinerExportSurCanevas(imagesCartes, cartes, textes, fleches) {
+    var D = disposerExport(cartes, textes, fleches);
+    var minx = D.minx, miny = D.miny, W = D.W, H = D.H;
+    var scale = Math.max(0.5, Math.min(2, 2400 / W));
     var cv = document.createElement("canvas"); cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
     var ctx = cv.getContext("2d"); ctx.scale(scale, scale); ctx.translate(-minx, -miny);
     ctx.fillStyle = document.body.classList.contains("canvas-noir") ? "#14110d" : "#f4f2ec"; ctx.fillRect(minx, miny, W, H);
 
-    var idx = {}, etiquettes = [];
-    fleches.forEach(function (f) {
-      var A = centreCarte(f.de), B = centreCarte(f.vers); if (!A || !B) return;
-      var cle = Math.min(f.de, f.vers) + "-" + Math.max(f.de, f.vers); idx[cle] = (idx[cle] || 0); var k = idx[cle]++;
-      var pa = bord(A, B.x, B.y), pb = bord(B, A.x, A.y);
-      var mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2, dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
-      var amp = Math.min(20, len * 0.09) * (k % 2 === 0 ? 1 : -1) * (1 + Math.floor(k / 2));
-      var nx = -dy / len, ny = dx / len, cxp = mx + nx * amp, cyp = my + ny * amp;
+    var etiquettes = D.etiquettes;
+    D.traits.forEach(function (tr) {
+      var f = tr.f;
       ctx.strokeStyle = f.bidir ? "#F0A860" : "#8a857b"; ctx.lineWidth = 2.2; ctx.fillStyle = ctx.strokeStyle;
-      ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.quadraticCurveTo(cxp, cyp, pb.x, pb.y); ctx.stroke();
-      teteFleche(ctx, cxp, cyp, pb.x, pb.y); if (f.bidir) teteFleche(ctx, cxp, cyp, pa.x, pa.y);
-      if (f.libelle) etiquettes.push({ x: cxp, y: cyp, t: f.libelle });
+      ctx.setLineDash(f.pointille ? [7, 6] : []);
+      ctx.beginPath(); ctx.moveTo(tr.pa.x, tr.pa.y); ctx.quadraticCurveTo(tr.cx, tr.cy, tr.pb.x, tr.pb.y); ctx.stroke();
+      ctx.setLineDash([]);
+      teteFleche(ctx, tr.cx, tr.cy, tr.pb.x, tr.pb.y); if (f.bidir) teteFleche(ctx, tr.cx, tr.cy, tr.pa.x, tr.pa.y);
     });
     cartes.forEach(function (cc) {
       var c = etat.cartes[cc.n], el = etat.elCartes[cc.n], x = cc.x, y = cc.y, w = el ? el.offsetWidth : 150, h = el ? el.offsetHeight : 150, visH = Math.round(w / 1.6);
@@ -3744,6 +4468,6 @@
       setTimeout(function () { a.remove(); URL.revokeObjectURL(url); }, 1000);
       deposerImage(cv);
     }, "image/png");
-    flash(EN ? "Image downloaded." : "Image téléchargée.");
+    flash(S.exportFait);
   }
 })();

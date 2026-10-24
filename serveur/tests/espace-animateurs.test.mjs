@@ -194,8 +194,13 @@ test("aucun attribut style= : la CSP du site les ignore", () => {
   assert.ok(!/unsafe-inline/.test(sansApercu),
     "une autre règle que l'aperçu des e-mails autorise l'inline");
 
+  /* LE TABLEAU EN LIGNE EST SOUMIS A LA MEME REGLE, et il s'y est fait
+     prendre : la couleur du prénom au curseur passait par `style="--c:…"`,
+     donc ignorée en production, et tous les prénoms portaient le même gris de
+     repli alors que la couleur est ce qui dit QUI est où. */
   const scripts = ["site/animateurs/animateurs.js", "site/animateurs/minuteur/minuteur.js",
-                   "site/animateurs/kit/kit.js", "site/animateurs/antiseche/antiseche.js"];
+                   "site/animateurs/kit/kit.js", "site/animateurs/antiseche/antiseche.js",
+                   "site/en-ligne/session/session.js", "site/en-ligne/session/index.html"];
   for (const f of [...PAGES_ESPACE, ...scripts]) {
     const src = lire(f).replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
     assert.ok(!/\sstyle\s*=\s*["']/.test(src), `${f} contient un attribut style=`);

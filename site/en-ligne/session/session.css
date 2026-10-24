@@ -87,6 +87,9 @@ body.sans-lien #lobby label[for="join-prenom"],
 body.sans-lien #lobby #join-prenom,
 body.sans-lien #lobby #btn-rejoindre{display:none}
 body:not(.sans-lien) #note-sans-lien{display:none}
+/* Deplacee sous la colonne unique quand il n'y a rien a rejoindre : la
+   colonne « Rejoindre » n'etait plus qu'un titre et cette phrase. */
+body.lobby-animateur.sans-lien #note-sans-lien{display:block}
 .note-sans-lien{margin-top:.2rem}
 
 /* Lobby mono-role (depuis un lien d'e-mail) : une seule colonne. */
@@ -94,3 +97,173 @@ body.lobby-solo .lobby-sep{display:none}
 body.lobby-solo .lobby-cols{grid-template-columns:1fr;max-width:26rem;margin:0 auto}
 body.lobby-participant #lobby .lobby-cols>section:first-of-type{display:none}
 body.lobby-animateur #lobby .lobby-cols>section:last-of-type{display:none}
+
+/* ── CONVERSATION ET FILE DE PAROLE, EN PANNEAU FLOTTANT ─────────────────────
+   Pourquoi dans le tableau et pas dans la visio : basculer vers la grille des
+   visages pour demander la parole ou dire un mot fait perdre ce qu'on était en
+   train de faire, et personne ne sait qui a demandé en premier.
+   Pourquoi flottant : posé en colonne fixe à droite, il mangeait une bande de
+   l'écran en permanence et se trouvait toujours devant quelque chose. Il se
+   comporte donc comme la réserve (poignée, repli, place retenue) et s'ouvre
+   par défaut en bas à gauche, puisque la réserve tient le coin droit. */
+.causerie{position:absolute;left:1rem;top:auto;z-index:21;width:20rem;max-width:calc(100% - 2rem);
+  display:flex;flex-direction:column;gap:.35rem;
+  background:var(--panel);border:1px solid var(--ligne);border-radius:14px;
+  box-shadow:0 12px 34px rgba(27,26,23,.20);padding:.4rem .45rem .5rem}
+.causerie[hidden]{display:none !important}
+.causerie-tete{display:flex;gap:.3rem;align-items:center;flex-wrap:nowrap}
+.causerie-toggle{display:flex;align-items:center;gap:.4rem}
+.causerie-x{line-height:1}
+.causerie-corps{display:flex;flex-direction:column;min-height:0;overflow:hidden;
+  background:var(--surface);border:1px solid var(--ligne);border-radius:10px}
+.causerie-corps[hidden]{display:none}
+.causerie.repliee{width:max-content}
+
+/* La file de parole en haut : c'est elle qu'on regarde quand quelqu'un veut
+   parler, et elle doit rester visible quand le fil défile. */
+.rail-mains{flex:0 0 auto;padding:.55rem .65rem;border-bottom:1px solid var(--ligne);max-height:40%;overflow:auto}
+.rail-sous{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}
+.rail-sous h4{font-family:var(--f-ui);font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--gris);margin:0;display:flex;align-items:center;gap:.4rem}
+.mains-nb{display:none}
+.mains-nb.a-du-monde{display:inline-flex;align-items:center;justify-content:center;
+  min-width:1.2rem;height:1.2rem;padding:0 .3rem;border-radius:999px;
+  background:var(--accent-aplat);color:var(--sur-accent);font-size:.7rem}
+.btn.mini{padding:.2rem .45rem;font-size:.7rem;border-radius:7px}
+
+/* L'ORDRE SE LIT AU PREMIER COUP D'ŒIL : le rang est un chiffre, pas une
+   position dans une liste qu'il faudrait compter. Le premier est accentué,
+   c'est à lui qu'on donne la parole. */
+.mains-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.3rem}
+.mains-liste li{display:flex;align-items:center;gap:.45rem;font-family:var(--f-ui);font-size:.84rem;
+  padding:.3rem .4rem;border-radius:9px;background:var(--doux)}
+.mains-liste li.premier{background:var(--accent-doux)}
+.mains-liste li.moi{outline:2px solid var(--accent);outline-offset:-2px}
+.mains-liste li.absent{opacity:.6}
+.main-rang-pastille{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:1.35rem;height:1.35rem;border-radius:50%;font-size:.73rem;font-weight:700;
+  background:var(--surface);border:1px solid var(--ligne);color:var(--gris)}
+.mains-liste li.premier .main-rang-pastille{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
+.mains-liste .main-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.main-absent{font-family:var(--f-ui);font-size:.64rem;text-transform:uppercase;letter-spacing:.04em;color:var(--gris);flex:0 0 auto}
+.mains-liste .main-x{border:0;background:transparent;color:var(--gris);cursor:pointer;
+  font-size:.72rem;font-family:var(--f-ui);font-weight:600;padding:.15rem .3rem;border-radius:6px;white-space:nowrap}
+.mains-liste .main-x:hover{background:var(--surface);color:var(--accent-txt-fort)}
+
+/* Le fil prend la place qui reste, et colle au bas : le dernier message est
+   celui qu'on veut lire. */
+.rail-fil{flex:1 1 auto;min-height:3rem;overflow:auto;padding:.55rem .65rem;
+  display:flex;flex-direction:column;gap:.45rem}
+.rail-vide{margin:0;padding:0 .65rem .5rem;font-family:var(--f-ui);font-size:.76rem;color:var(--gris)}
+.rail-mains .rail-vide{padding:.15rem 0 0}
+.msg{display:flex;flex-direction:column;gap:.1rem;max-width:94%}
+.msg-tete{display:flex;align-items:baseline;gap:.4rem;font-family:var(--f-ui);font-size:.68rem;color:var(--gris)}
+.msg-qui{font-weight:700;color:var(--ink-doux)}
+.msg-corps{font-family:var(--f-ui);font-size:.84rem;line-height:1.4;color:var(--ink);
+  background:var(--doux);border-radius:12px;padding:.35rem .55rem;overflow-wrap:anywhere}
+/* Les siens à droite, en accent : convention de toutes les messageries. */
+.msg.moi{align-self:flex-end}
+.msg.moi .msg-tete{justify-content:flex-end}
+.msg.moi .msg-corps{background:var(--accent-doux);color:var(--ink)}
+.msg.envoi .msg-corps{opacity:.6}
+/* Deux messages d'affilée de la même personne : on ne répète pas son nom. */
+.msg.suite .msg-tete{display:none}
+.msg.suite{margin-top:-.3rem}
+
+.rail-ecrire{display:flex;align-items:flex-end;gap:.4rem;padding:.5rem .65rem;
+  border-top:1px solid var(--ligne);background:var(--doux)}
+.rail-ecrire textarea{flex:1;min-width:0;resize:none;max-height:5.5rem;
+  font-family:var(--f-ui);font-size:.84rem;line-height:1.35;padding:.45rem .55rem;
+  border:1px solid var(--ligne);border-radius:10px;background:var(--surface);color:var(--ink)}
+.rail-ecrire textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.rail-ecrire .btn.ico{padding:.45rem .5rem}
+.rail-ecrire .btn.ico svg{width:1rem;height:1rem}
+.rail-etat{margin:0;padding:0 .65rem .5rem;font-family:var(--f-ui);font-size:.72rem;color:var(--accent-txt-fort)}
+.rail-etat:empty{display:none}
+
+/* Main levée et messages non lus se voient sans ouvrir le panneau. */
+.btn-main[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
+.main-rang,.rail-pastille,.causerie-pastille{display:inline-flex;align-items:center;justify-content:center;
+  min-width:1.2rem;height:1.2rem;padding:0 .25rem;border-radius:999px;font-size:.7rem}
+.main-rang{background:var(--surface);color:var(--accent-txt-fort)}
+.rail-pastille,.causerie-pastille{background:var(--accent-aplat);color:var(--sur-accent)}
+.rail-pastille[hidden],.main-rang[hidden],.causerie-pastille[hidden]{display:none}
+
+/* Libellé réservé aux lecteurs d'écran (le champ de message porte son intitulé
+   dans le placeholder, qui ne suffit pas : il disparaît dès qu'on tape). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* Main levée par quelqu'un qui semble parti : signalée, jamais retirée (la
+   présence peut être en retard, et une file qui se vide toute seule sous les
+   yeux du groupe est pire qu'un nom à baisser à la main). */
+.mains-liste li.absent{opacity:.6}
+.main-absent{font-family:var(--f-ui);font-size:.68rem;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--gris);flex:0 0 auto}
+
+/* Même symbole d'agrandissement que sur les cartes posées : deux signes pour
+   le même geste dans la même fenêtre, on cherche le bon. */
+.pool-actions .agr-mini{flex:0 0 auto;padding:.25rem .45rem;font-size:.95rem;line-height:1}
+
+/* Trait plein ou pointillé : une seconde catégorie de lien, visible de loin,
+   sans vocabulaire à apprendre (c'est le groupe qui décide ce qu'il en fait). */
+.fleche-pointille{position:absolute;width:26px;height:22px;background:var(--surface);color:var(--accent-txt);
+  border:1px solid var(--ligne);border-radius:11px;display:grid;place-items:center;cursor:pointer;
+  transform:translate(-50%,-50%);z-index:5;padding:0}
+.fleche-pointille svg{width:18px;height:9px}
+.fleche-pointille[aria-pressed="true"]{background:var(--accent-aplat);color:var(--sur-accent);border-color:transparent}
+.fleche-pointille:hover{border-color:var(--accent)}
+/* Le trait lui-même, sur le tableau. */
+#fleches .trait.pointille{stroke-dasharray:7 6}
+
+/* ── SURVOL D'UNE CARTE ──────────────────────────────────────────────────────
+   Trois informations, trois formes. Le numéro est ce par quoi on se désigne
+   les cartes à voix haute : il est gros, dans un jeton à la couleur de son lot
+   (la même que le filet en haut de la carte). Le titre et la famille sont deux
+   bulles distinctes : en une seule ligne, l'œil ne savait pas où s'arrêter. */
+.survol-carte{display:flex;align-items:center;gap:.5rem;background:none;border:0;box-shadow:none;
+  padding:0;max-width:min(90%,34rem);white-space:normal;overflow:visible}
+.survol-carte .sv-num{flex:0 0 auto;display:grid;place-items:center;min-width:2.1rem;height:2.1rem;
+  padding:0 .4rem;border-radius:10px;color:#fff;font-family:var(--f-titre);font-weight:700;font-size:1.25rem;
+  line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.survol-carte .sv-bulles{display:flex;flex-direction:column;align-items:flex-start;gap:.22rem;min-width:0}
+.survol-carte .sv-titre{background:#1b1a17;color:#fff;border-radius:9px;padding:.3rem .62rem;
+  font-family:var(--f-titre);font-weight:700;font-size:.95rem;line-height:1.15;
+  box-shadow:0 6px 18px rgba(0,0,0,.4);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.survol-carte .sv-lot{display:inline-flex;align-items:center;gap:.34rem;background:rgba(27,26,23,.86);
+  color:#f3efe7;border-radius:999px;padding:.16rem .55rem;font-family:var(--f-ui);font-weight:600;
+  font-size:.7rem;letter-spacing:.02em;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.survol-carte .sv-lot i{width:.5rem;height:.5rem;border-radius:50%;flex:0 0 auto}
+
+/* ── EMOJI DANS LA CONVERSATION ──────────────────────────────────────────────
+   Pendant qu'on anime, taper « oui je suis d'accord » coûte plus cher que ce
+   que ça rapporte : on ne le fait pas, et le fil reste vide alors que le
+   groupe a des choses à dire. Quatre signes qui partent en un geste, et une
+   petite palette pour le reste. Rien à charger : les signes sont dans la page. */
+.rail-vite{display:flex;gap:.3rem;padding:.4rem .65rem 0}
+.rail-vite button{flex:0 0 auto;border:1px solid var(--ligne);background:var(--surface);
+  border-radius:999px;width:2rem;height:2rem;font-size:1rem;line-height:1;cursor:pointer;
+  display:grid;place-items:center;padding:0}
+.rail-vite button:hover{border-color:var(--accent);background:var(--accent-doux)}
+.rail-vite button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.rail-emo{flex:0 0 auto;border:1px solid var(--ligne);background:var(--surface);color:var(--gris);
+  border-radius:10px;width:2.1rem;height:2.1rem;font-size:1.05rem;line-height:1;cursor:pointer;
+  display:grid;place-items:center;padding:0}
+.rail-emo:hover{border-color:var(--accent);color:var(--accent-txt-fort)}
+.rail-emo[aria-expanded="true"]{background:var(--accent-doux);border-color:var(--accent);color:var(--accent-txt-fort)}
+.rail-emo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.rail-palette{display:grid;grid-template-columns:repeat(8,1fr);gap:.15rem;
+  padding:.4rem .5rem;border-top:1px solid var(--ligne);background:var(--doux)}
+.rail-palette[hidden]{display:none}
+.rail-palette button{border:0;background:transparent;border-radius:7px;font-size:1.05rem;
+  line-height:1;padding:.25rem 0;cursor:pointer}
+.rail-palette button:hover{background:var(--accent-doux)}
+.rail-palette button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* Un message qui ne contient que des signes se lit mieux en grand. */
+.msg-corps.signes{font-size:1.5rem;line-height:1.15;padding:.2rem .5rem}
+
+/* La main levée, en signe : on reconnaît la file de parole sans lire. */
+.main-signe{flex:0 0 auto;font-size:.9rem;line-height:1}

@@ -527,15 +527,19 @@ exports.handler = async (event) => {
     }
 
     if (d.op === "liste") {
-      const out = [];
+      /* On lit TOUS les ateliers publics, puis on decide lesquels montrer :
+         le complement des passes se compte sur l'ensemble, il ne peut pas se
+         decider atelier par atelier (voir A.pourCalendrier). */
+      const tous = [];
       const { blobs } = await st.list({ prefix: "atelier:" });
       for (const b of blobs) {
         try {
           const res = await st.getWithMetadata(b.key, { type: "json" });
           const a = res && res.data;
-          if (a && a.visibilite === "public" && A.visibleCalendrier(a)) out.push(A.vuePublique(a));
+          if (a && a.visibilite === "public") tous.push(a);
         } catch (e) {}
       }
+      const out = A.pourCalendrier(tous).map(A.vuePublique);
       out.sort((x, y) => A.instantDe(x) - A.instantDe(y));
       return json(200, { ateliers: out });
     }

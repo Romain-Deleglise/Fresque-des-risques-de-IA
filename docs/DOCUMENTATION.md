@@ -592,6 +592,32 @@ Ressenti temps réel (le serveur est décrit en 7.2) :
   l'objet s'appelle toujours `pool` (id, classes, ops serveur) ; seule
   l'interface dit « Réserve ».
 - **Jeu de cartes** (animateur) : les 38 cartes illustrées, une rangée qui défile.
+  Une carte de la réserve y retourne par le bouton « ↩ » (animateur·ice).
+- **Conversation et file de parole** : second panneau flottant, même mécanique
+  que la réserve (poignée, repli, place retenue par navigateur), en bas à
+  **gauche** par défaut. Deux fonctions que la visioconférence couvre mal quand
+  on a le tableau sous les yeux :
+  - **Mains levées** : l'ordre est fixé par le SERVEUR (`s.mains`, voir 7.2),
+    jamais par l'horloge d'un navigateur ; lever deux fois ne fait pas perdre sa
+    place ; le rang s'affiche en chiffre ; l'animateur·ice baisse une main (la
+    file avance) ou vide tout. Raccourci `M`.
+  - **Fil de discussion** : les 40 derniers messages, 240 signes, débit borné
+    côté serveur (3 messages / 5 s). Pastille de non-lus. Raccourci `C`.
+  - **Parler sans écrire** : quatre signes qui partent en un geste
+    (👍 👏 ❓ ⏳) et une palette d'emoji insérée au curseur. Aucune
+    bibliothèque, aucune requête : les signes sont écrits dans la page. Un
+    message qui n'est QUE des signes se rend en grand.
+- **Liens en pointillé** : une seconde catégorie de lien, visible de loin, sans
+  vocabulaire imposé (`pointillerFleche`). Suit dans les deux exports.
+- **Flèches qui partagent une carte** : les points d'accroche se répartissent en
+  éventail sur le bord quand leurs angles sont proches (`accroches()`), sinon
+  trois traits se confondaient sur leurs derniers pixels.
+- **Survol d'une carte** : numéro en gros dans un jeton à la couleur de son lot,
+  titre dans sa bulle, famille (« Lot 2 · Capacités ») dans une seconde.
+- **Export** : dans le menu « Affichage », **PNG** (à coller dans un compte
+  rendu) et **SVG** (vectoriel : impression en grand, retouche). Disponible dès
+  la première carte posée, plus seulement une fois les 38 placées. Les deux
+  partagent le même calcul de disposition (`disposerExport`).
 - **Cadrage** : « Tout voir » encadre le CONTENU (pas les 4400 x 2200 du plan) et
   le centre dans la partie de la scène que le panneau ne masque pas, qui peut
   donc déborder juste assez pour se dégager.

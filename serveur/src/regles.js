@@ -11,6 +11,16 @@ var RESERV_MS = 6000;      // duree d'une reservation de carte (prise en cours) 
 var NB_CARTES = 38;        // cartes jouables 1..38 (la 0 est l'intro, hors jeu)
 var LIMITE_TEXTES = 200, LIMITE_FLECHES = 300;
 var LEN_PRENOM = 24, LEN_TEXTE = 280, LEN_LIBELLE = 40, LEN_VOCAL = 200;
+/* CONVERSATION ET MAINS LEVEES. Deux besoins que la visioconference couvre
+   mal quand on a le tableau sous les yeux : savoir QUI a demande la parole et
+   DANS QUEL ORDRE, et se dire une phrase sans quitter la session.
+   MAX_CHAT : on garde les derniers messages, pas l'historique. Ce n'est pas
+   une messagerie : c'est le fil d'un atelier de trois heures, et l'etat
+   complet voyage a chaque rafraichissement (il doit rester petit).
+   Le debit est borne cote serveur : c'est la seule barriere qui tienne, un
+   client peut toujours etre modifie. */
+var LEN_MESSAGE = 240, MAX_CHAT = 40;
+var FLOOD_FENETRE_MS = 5000, FLOOD_MAX = 3;
 var TAILLE_MIN = -2, TAILLE_MAX = 6;   // pas de taille des notes et libelles
 var PLAN_W = 3200, PLAN_H = 2200;
 
@@ -45,6 +55,13 @@ function creer(prenom, code, lienVocal) {
       reservations: {},   // { n: { par, ts } } : carte en cours de prise par un joueur
       lienVocal: lienVocalValide(lienVocal) ? tronque(lienVocal, LEN_VOCAL) : null,
       tableau: { cartes: [], fleches: [], textes: [] },
+      /* L'ORDRE EST CELUI DU TABLEAU, et c'est le serveur qui le fixe. Deux
+         personnes qui levent la main a la meme seconde ont deux horloges
+         differentes : trier sur un horodatage venu des clients donnerait deux
+         ordres differents selon qui regarde. Ici, premier arrive, premier
+         inscrit, pour tout le monde la meme file. */
+      mains: [],
+      chat: [],
       seq: 1,
       clos: false,
       jetons: {}
@@ -149,13 +166,18 @@ function present(x) { return !!x && x.connecte && (Date.now() - (x.vuLe || 0) < 
 function vue(s) {
   return {
     code: s.code, version: s.version, clos: s.clos, lienVocal: s.lienVocal,
-    animateur: { prenom: s.animateur.prenom, connecte: present(s.animateur) },
+    /* L'identifiant de l'animateur·ice est expose depuis que la file de parole
+       existe : sans lui, le client devait deviner « a1 » pour savoir si la
+       main levee en tete etait la sienne. */
+    animateur: { id: s.animateur.id, prenom: s.animateur.prenom, connecte: present(s.animateur) },
     participants: s.participants.map(function (p) {
       return { id: p.id, prenom: p.prenom, connecte: present(p) };
     }),
     pool: s.pool.slice(),
     reservations: reservationsVue(s),
     tableau: s.tableau,
+    mains: mainsVue(s),
+    chat: (s.chat || []).slice(),
     ping: s.ping || null
   };
 }
@@ -334,6 +356,15 @@ function bidirFleche(s, id) {
   var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
   f.bidir = !f.bidir; bump(s); return { ok: true };
 }
+/* TRAIT PLEIN OU POINTILLE. Un groupe ne met pas la meme chose derriere tous
+   ses liens : « cause », « aggrave », « hypothese ». Le pointille donne une
+   seconde categorie visible de loin, sans ajouter de vocabulaire a apprendre :
+   c'est le groupe qui decide ce qu'il veut en faire. */
+function pointillerFleche(s, id) {
+  var f = s.tableau.fleches.find(function (f) { return f.id === id; }); if (!f) return { refus: {} };
+  if (f.pointille) delete f.pointille; else f.pointille = true;
+  bump(s); return { ok: true, resultat: { pointille: !!f.pointille } };
+}
 function supprimerFleche(s, id) {
   s.tableau.fleches = s.tableau.fleches.filter(function (f) { return f.id !== id; }); bump(s); return { ok: true };
 }
@@ -358,6 +389,84 @@ function supprimerTexte(s, id) {
 }
 // Ping : signale un point du tableau aux autres (cercle qui s'agrandit chez eux).
 // Ephemere : un seul ping courant, les clients l'ignorent apres ~2 s (via ts).
+/* --- Mains levees ---------------------------------------------------------
+   LE PROBLEME. En visioconference avec un tableau partage, on ne voit pas les
+   mains : on parle tous en meme temps, ou personne ne parle. Quitter le
+   tableau pour regarder la grille des visages, c'est perdre ce qu'on etait en
+   train de faire. La file vit donc ici, a cote du tableau.
+
+   ON NE PERD PAS SA PLACE. Lever la main deux fois (un double-clic, un renvoi
+   apres une coupure reseau) ne renvoie pas en fin de file : la seconde demande
+   ne fait rien. Une coupure non plus : la main reste dans la file, seulement
+   masquee tant que la personne n'est pas revenue (voir `mainsVue`). */
+function mainDe(s, id) {
+  return (s.mains || []).filter(function (m) { return m.id === id; })[0] || null;
+}
+function leverMain(s, id, prenom) {
+  if (!s.mains) s.mains = [];
+  if (mainDe(s, id)) return { ok: true };          // deja levee : on garde sa place
+  s.mains.push({ id: id, prenom: tronque(prenom, LEN_PRENOM), ts: Date.now() });
+  bump(s);
+  return { ok: true, resultat: { rang: s.mains.length } };
+}
+function baisserMain(s, id) {
+  if (!s.mains || !mainDe(s, id)) return { ok: true };
+  s.mains = s.mains.filter(function (m) { return m.id !== id; });
+  bump(s);
+  return { ok: true };
+}
+function viderMains(s) {
+  if (!s.mains || !s.mains.length) return { ok: true };
+  s.mains = [];
+  bump(s);
+  return { ok: true };
+}
+/* ON NE RETIRE PAS UNE MAIN PARCE QUE QUELQU'UN SEMBLE ABSENT.
+   La premiere version masquait les mains des personnes qu'elle croyait
+   parties. C'etait faux : la presence ne vit plus dans ce document mais dans
+   son propre magasin (voir netlify/functions/fresque.js), et elle n'est
+   reportee ici que sur le chemin de lecture. Sur le chemin d'une action, tout
+   le monde paraissait absent, et la file se vidait toute seule sous les yeux
+   du groupe. Une main reste donc levee jusqu'a ce qu'on la baisse, ou que
+   l'animateur·ice vide la file ; celle d'une personne donnee pour deconnectee
+   est seulement SIGNALEE, et reste a sa place.
+   Le prenom est relu a chaque projection : quelqu'un qui corrige son prenom ne
+   doit pas rester sous l'ancien dans la file. */
+function mainsVue(s) {
+  var out = [];
+  (s.mains || []).forEach(function (m) {
+    var p = m.id === s.animateur.id ? s.animateur
+      : s.participants.filter(function (x) { return x.id === m.id; })[0];
+    if (!p) return;                       // la personne a quitte la session
+    out.push({ id: m.id, prenom: p.prenom, ts: m.ts, absent: !present(p) });
+  });
+  return out;
+}
+
+/* --- Conversation ---------------------------------------------------------
+   Une barre laterale, pour une phrase qu'on ne veut pas dire a voix haute
+   (« le lien de la visio ? », « je dois partir a 17 h ») sans quitter le
+   tableau. Les derniers messages seulement : c'est un fil d'atelier, pas une
+   messagerie, et l'etat complet voyage a chaque rafraichissement. */
+function envoyerMessage(s, id, prenom, texte) {
+  texte = tronque(texte, LEN_MESSAGE).trim();
+  if (!texte) return { refus: { code: "message_vide", message: "Message vide." } };
+  if (!s.chat) s.chat = [];
+  /* LE DEBIT SE BORNE ICI, PAS DANS LE NAVIGATEUR : un client se modifie, le
+     serveur est l'autorite (B6). Trois messages en cinq secondes suffisent a
+     une conversation et coupent court a qui colle un pave ligne a ligne. */
+  var depuis = Date.now() - FLOOD_FENETRE_MS;
+  var recents = s.chat.filter(function (m) { return m.par === id && m.ts > depuis; });
+  if (recents.length >= FLOOD_MAX) {
+    return { refus: { code: "trop_vite", message: "Doucement : attendez quelques secondes." } };
+  }
+  var msg = { id: "m" + (s.seq++), par: id, prenom: tronque(prenom, LEN_PRENOM), texte: texte, ts: Date.now() };
+  s.chat.push(msg);
+  while (s.chat.length > MAX_CHAT) s.chat.shift();
+  bump(s);
+  return { ok: true, resultat: { id: msg.id } };
+}
+
 function ping(s, x, y, par) {
   s.ping = { x: borne(+x || 0, 0, PLAN_W), y: borne(+y || 0, 0, PLAN_H), par: tronque(par, LEN_PRENOM), ts: Date.now(), id: s.seq++ };
   bump(s); return { ok: true };
@@ -372,6 +481,8 @@ function clore(s) { s.clos = true; bump(s); return { ok: true }; }
 function exclure(s, id) {
   var avant = s.participants.length;
   s.participants = s.participants.filter(function (p) { return p.id !== id; });
+  // Sa main part avec elle : la file ne doit pas garder un nom qui n'est plus la.
+  s.mains = (s.mains || []).filter(function (m) { return m.id !== id; });
   Object.keys(s.jetons).forEach(function (j) { if (s.jetons[j].role === "participant" && s.jetons[j].id === id) delete s.jetons[j]; });
   if (s.participants.length !== avant) bump(s);
   return { ok: true };
@@ -399,7 +510,8 @@ function appliquerVraiment(s, jeton, info, estAnim, moi, d, op) {
 
   // Reservees a l'animateur : gerer le pool, retirer une carte de la table,
   // le lien vocal, clore la session.
-  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, poolVider: 1, poolRemplir: 1, retirerCarte: 1, exclure: 1, definirLienVocal: 1, clore: 1 };
+  var actionsAnim = { poolAjouter: 1, poolRetirer: 1, poolVider: 1, poolRemplir: 1, retirerCarte: 1,
+    exclure: 1, definirLienVocal: 1, clore: 1, baisserMainDe: 1, viderMains: 1 };
   if (actionsAnim[op] && !estAnim) return { refus: { code: "droit_insuffisant", message: "Réservé à l'animateur." } };
 
   switch (op) {
@@ -411,6 +523,15 @@ function appliquerVraiment(s, jeton, info, estAnim, moi, d, op) {
     case "exclure": return exclure(s, d.id);
     case "definirLienVocal": return definirLienVocal(s, d.url);
     case "clore": return clore(s);
+    /* Chacun·e leve et baisse SA main ; l'animateur·ice peut baisser celle
+       d'un·e autre (elle a parle) ou vider la file entre deux sujets. */
+    case "leverMain": return leverMain(s, estAnim ? s.animateur.id : info.id,
+      estAnim ? s.animateur.prenom : (moi && moi.prenom) || "");
+    case "baisserMain": return baisserMain(s, estAnim ? s.animateur.id : info.id);
+    case "baisserMainDe": return baisserMain(s, d.id);
+    case "viderMains": return viderMains(s);
+    case "envoyerMessage": return envoyerMessage(s, estAnim ? s.animateur.id : info.id,
+      estAnim ? s.animateur.prenom : (moi && moi.prenom) || "", d.texte);
     case "ping": return ping(s, d.x, d.y, estAnim ? s.animateur.prenom : (moi && moi.prenom) || ""); // tous
     case "poserCarte": return poserCarte(s, d.n, d.rect, d.pos); // prendre du pool -> table (tous)
     case "reserverPool": return reserverPool(s, d.n, estAnim ? s.animateur.prenom : (moi && moi.prenom) || ""); // debut de prise (tous)
@@ -420,6 +541,7 @@ function appliquerVraiment(s, jeton, info, estAnim, moi, d, op) {
     case "libellerFleche": return libellerFleche(s, d.id, d.libelle);
     case "taillerFleche": return taillerFleche(s, d.id, d.taille);
     case "bidirFleche": return bidirFleche(s, d.id);
+    case "pointillerFleche": return pointillerFleche(s, d.id);
     case "supprimerFleche": return supprimerFleche(s, d.id);
     case "creerTexte": return creerTexte(s, d.x, d.y, d.contenu);
     case "modifierTexte": return modifierTexte(s, d.id, d.contenu);
@@ -434,5 +556,6 @@ module.exports = {
   ALPHABET: ALPHABET, MAX_PARTICIPANTS: MAX_PARTICIPANTS,
   nouveauCode: nouveauCode, jetonAleatoire: jetonAleatoire,
   creer: creer, rejoindre: rejoindre, toucher: toucher, vue: vue, appliquer: appliquer,
-  MAX_POOL: MAX_POOL, NB_CARTES: NB_CARTES
+  MAX_POOL: MAX_POOL, NB_CARTES: NB_CARTES,
+  LEN_MESSAGE: LEN_MESSAGE, MAX_CHAT: MAX_CHAT, FLOOD_MAX: FLOOD_MAX
 };

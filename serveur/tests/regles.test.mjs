@@ -228,5 +228,143 @@ t("sans cle, rien n'est bloque", si.tableau.textes.length === 3);
 for (let k = 0; k < 60; k++) R.appliquer(si, "jA", { op: "ping", x: 10, y: 10, idem: "p" + k });
 t("la memoire des cles reste bornee", si.idem.l.length <= 40);
 
+/* ── MAINS LEVEES ET CONVERSATION ────────────────────────────
+   Ce qui compte ici, c'est l'ORDRE : il doit etre le meme pour tout le monde,
+   et resister a ce qui arrive vraiment en atelier (un double-clic, une
+   coupure reseau, quelqu'un qui part). C'est le serveur qui le fixe, jamais
+   l'horloge d'un navigateur. */
+const cm = R.creer("Léa", "MAINS1");
+const sm = cm.session;
+sm.jetons[cm.jeton] = { role: "animateur", id: cm.idAnim };
+const ma = cm.jeton;
+const mp1 = R.rejoindre(sm, "Ana");
+const mp2 = R.rejoindre(sm, "Bo");
+const mp3 = R.rejoindre(sm, "Cléo");
+
+R.appliquer(sm, mp2.jeton, { op: "leverMain" });
+R.appliquer(sm, mp1.jeton, { op: "leverMain" });
+R.appliquer(sm, mp3.jeton, { op: "leverMain" });
+let v = R.vue(sm);
+t("la file suit l'ordre des demandes",
+  v.mains.map((m) => m.prenom).join(",") === "Bo,Ana,Cléo");
+t("la vue donne le prénom de chaque main", v.mains.every((m) => m.prenom && m.id));
+
+// Lever deux fois (double-clic, renvoi apres coupure) ne coute pas sa place.
+R.appliquer(sm, mp2.jeton, { op: "leverMain" });
+t("lever deux fois ne renvoie pas en fin de file",
+  R.vue(sm).mains.map((m) => m.prenom).join(",") === "Bo,Ana,Cléo");
+
+// Baisser sa main, puis la relever : on repart en fin de file, c'est juste.
+R.appliquer(sm, mp2.jeton, { op: "baisserMain" });
+t("baisser sa main la retire", R.vue(sm).mains.map((m) => m.prenom).join(",") === "Ana,Cléo");
+R.appliquer(sm, mp2.jeton, { op: "leverMain" });
+t("la relever repart en fin de file",
+  R.vue(sm).mains.map((m) => m.prenom).join(",") === "Ana,Cléo,Bo");
+
+// L'animateur·ice donne la parole : il baisse la main de quelqu'un d'autre.
+r = R.appliquer(sm, mp3.jeton, { op: "baisserMainDe", id: mp1.id });
+t("un participant ne baisse pas la main des autres", r.refus && r.refus.code === "droit_insuffisant");
+R.appliquer(sm, ma, { op: "baisserMainDe", id: mp1.id });
+t("l'animateur·ice peut baisser une main", R.vue(sm).mains.map((m) => m.prenom).join(",") === "Cléo,Bo");
+r = R.appliquer(sm, mp1.jeton, { op: "viderMains" });
+t("un participant ne vide pas la file", r.refus && r.refus.code === "droit_insuffisant");
+R.appliquer(sm, ma, { op: "viderMains" });
+t("l'animateur·ice vide la file", R.vue(sm).mains.length === 0);
+
+// L'animateur·ice peut lever la main aussi : c'est une file, pas une hierarchie.
+R.appliquer(sm, ma, { op: "leverMain" });
+t("l'animateur·ice peut lever la main", R.vue(sm).mains.length === 1);
+R.appliquer(sm, ma, { op: "baisserMain" });
+
+/* UNE MAIN NE DISPARAIT PAS PARCE QUE LA PERSONNE SEMBLE ABSENTE.
+   La presence ne vit plus dans ce document mais dans son propre magasin, et
+   elle n'est reportee ici que sur le chemin de LECTURE : sur le chemin d'une
+   action, tout le monde paraissait absent et la file se vidait d'elle-meme.
+   La main reste donc, seulement signalee. */
+R.appliquer(sm, mp1.jeton, { op: "leverMain" });
+R.appliquer(sm, mp2.jeton, { op: "leverMain" });
+const anaMain = sm.participants.find((p) => p.id === mp1.id);
+anaMain.vuLe = Date.now() - 60000;
+t("la main de qui semble absent reste dans la file",
+  R.vue(sm).mains.map((m) => m.prenom).join(",") === "Ana,Bo");
+t("mais elle est signalée comme telle",
+  R.vue(sm).mains[0].absent === true && R.vue(sm).mains[1].absent === false);
+anaMain.vuLe = Date.now();
+t("et le signalement disparaît quand la personne revient",
+  R.vue(sm).mains.every((m) => m.absent === false));
+
+// Exclure quelqu'un emporte sa main.
+R.appliquer(sm, ma, { op: "exclure", id: mp1.id });
+t("exclure quelqu'un retire sa main", R.vue(sm).mains.map((m) => m.prenom).join(",") === "Bo");
+
+// --- Conversation
+r = R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "  bonjour  " });
+t("un message part", r.ok);
+let vc = R.vue(sm);
+t("il est dans le fil", vc.chat.length === 1 && vc.chat[0].texte === "bonjour");
+t("il porte son auteur", vc.chat[0].prenom === "Bo" && vc.chat[0].par === mp2.id);
+r = R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "   " });
+t("un message vide est refusé", r.refus && r.refus.code === "message_vide");
+
+/* LE DEBIT SE BORNE COTE SERVEUR : un client se modifie. */
+R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "deux" });
+R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "trois" });
+r = R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "quatre" });
+t("le quatrième message d'affilée est refusé", r.refus && r.refus.code === "trop_vite");
+r = R.appliquer(sm, ma, { op: "envoyerMessage", texte: "et moi je passe" });
+t("mais la limite est par personne", r.ok);
+
+// Un message trop long est coupé, pas refusé : on ne perd pas ce qui est écrit.
+R.appliquer(sm, mp3.jeton, { op: "envoyerMessage", texte: "x".repeat(400) });
+const long = R.vue(sm).chat.slice(-1)[0];
+t("un message trop long est coupé à la limite", long.texte.length === R.LEN_MESSAGE);
+
+// Le fil reste borné : l'état complet voyage à chaque rafraîchissement.
+for (let i = 0; i < R.MAX_CHAT + 10; i++) {
+  sm.chat.push({ id: "x" + i, par: mp3.id, prenom: "Cléo", texte: "msg " + i, ts: Date.now() });
+  while (sm.chat.length > R.MAX_CHAT) sm.chat.shift();
+}
+t("le fil garde au plus " + R.MAX_CHAT + " messages", R.vue(sm).chat.length === R.MAX_CHAT);
+
+/* UNE SESSION OUVERTE AVANT CES DEUX AJOUTS doit continuer de marcher : son
+   etat enregistre n'a ni `mains` ni `chat`. */
+const vieille = R.creer("Zoé", "VIEUX1").session;
+delete vieille.mains; delete vieille.chat;
+const vj = R.rejoindre(vieille, "Ana");
+t("une session d'avant n'a pas de file", R.vue(vieille).mains.length === 0);
+t("ni de fil", R.vue(vieille).chat.length === 0);
+R.appliquer(vieille, vj.jeton, { op: "leverMain" });
+t("et on peut y lever la main", R.vue(vieille).mains.length === 1);
+R.appliquer(vieille, vj.jeton, { op: "envoyerMessage", texte: "ça marche" });
+t("et y écrire", R.vue(vieille).chat.length === 1);
+
+// Une session close n'accepte plus rien.
+R.appliquer(sm, ma, { op: "clore" });
+r = R.appliquer(sm, mp2.jeton, { op: "envoyerMessage", texte: "encore ?" });
+t("une session close n'accepte plus de message", r.refus && r.refus.code === "session_close");
+
+/* ── TRAIT PLEIN OU POINTILLE ────────────────────────────────
+   Un groupe ne met pas la meme chose derriere tous ses liens. Le pointille
+   donne une seconde categorie, visible de loin, sans vocabulaire a apprendre.
+   Ce qui compte : l'etat bascule, il voyage dans la vue, et un plan qui n'en
+   a pas ne gagne pas un champ au passage (il doit rester celui d'avant). */
+const cp = R.creer("Léa", "POINT1");
+const sp = cp.session;
+sp.jetons[cp.jeton] = { role: "animateur", id: cp.idAnim };
+const jp = R.rejoindre(sp, "Ana");
+R.appliquer(sp, cp.jeton, { op: "poolAjouter", n: 1 });
+R.appliquer(sp, cp.jeton, { op: "poolAjouter", n: 2 });
+R.appliquer(sp, cp.jeton, { op: "poserCarte", n: 1, pos: { x: 200, y: 200 } });
+R.appliquer(sp, cp.jeton, { op: "poserCarte", n: 2, pos: { x: 700, y: 200 } });
+const rf = R.appliquer(sp, cp.jeton, { op: "creerFleche", de: 1, vers: 2 });
+const idf = rf.resultat && rf.resultat.id;
+t("une fleche neuve n'est pas pointillee", !("pointille" in R.vue(sp).tableau.fleches[0]));
+r = R.appliquer(sp, jp.jeton, { op: "pointillerFleche", id: idf });
+t("chacun·e peut passer un lien en pointillé", r.ok && R.vue(sp).tableau.fleches[0].pointille === true);
+r = R.appliquer(sp, jp.jeton, { op: "pointillerFleche", id: idf });
+t("et le repasser en trait plein", r.ok && !("pointille" in R.vue(sp).tableau.fleches[0]));
+r = R.appliquer(sp, jp.jeton, { op: "pointillerFleche", id: "inconnue" });
+t("une fleche inconnue ne casse rien", !!r.refus);
+
 console.log((ko === 0 ? "✅" : "❌") + " Règles : " + ok + " réussis, " + ko + " échoués");
 process.exit(ko === 0 ? 0 : 1);

@@ -186,16 +186,51 @@ function estPasse(a) {
 
 // Les inscriptions restent ouvertes jusqu'a 30 min apres le debut ; au-dela,
 // on ne peut plus se rajouter (mais l'atelier reste affiche, voir ci-dessous).
-function inscriptionOuverte(a) {
+function inscriptionOuverte(a, maintenant) {
   var t = instantDe(a);
-  return isFinite(t) && (Date.now() <= t + LIMITE_INSCRIPTION_MS);
+  return isFinite(t) && ((maintenant || Date.now()) <= t + LIMITE_INSCRIPTION_MS);
 }
+
+// Fenetre pendant laquelle un atelier qui vient d'avoir lieu reste au
+// calendrier : l'historique recent remplit la page et montre que ca tourne.
+var FENETRE_PASSE_MS = 7 * 24 * 60 * 60 * 1000;
 
 // L'atelier reste visible dans le calendrier public jusqu'a 7 jours apres le
 // debut (historique, calendrier mieux rempli), meme si l'inscription est close.
-function visibleCalendrier(a) {
+function visibleCalendrier(a, maintenant) {
   var t = instantDe(a);
-  return isFinite(t) && (Date.now() <= t + 7 * 24 * 60 * 60 * 1000);
+  return isFinite(t) && ((maintenant || Date.now()) <= t + FENETRE_PASSE_MS);
+}
+
+/* COMBIEN D'ATELIERS PASSES MONTRER ?
+
+   La regle etait une duree : tout ce qui a commence depuis moins de sept
+   jours. Elle a un defaut qu'on ne voit qu'apres coup : apres quinze jours
+   calmes, il n'y a plus AUCUN atelier passe, la case « afficher les passes »
+   disparait, et la page donne a lire un projet sans activite. Le nombre
+   d'ateliers montres dependait du calendrier, pas de ce qu'on veut montrer.
+
+   On garde donc les deux : tout ce qui tient dans la fenetre de sept jours,
+   et, s'il en manque, on complete avec les plus recents jusqu'a MIN_PASSES.
+   Avec un plafond d'age : un atelier d'il y a deux ans ne dit pas « c'est
+   vivant », il dit l'inverse. */
+var MIN_PASSES = 6;
+var AGE_MAX_PASSE_MS = 180 * 24 * 60 * 60 * 1000;
+
+function pourCalendrier(liste, maintenant) {
+  var now = maintenant || Date.now();
+  var avenir = [], passes = [];
+  (liste || []).forEach(function (a) {
+    var t = instantDe(a);
+    if (!isFinite(t)) return;
+    if (now <= t + FENETRE_PASSE_MS) avenir.push(a);        // a venir, ou tout juste passe
+    else if (now <= t + AGE_MAX_PASSE_MS) passes.push(a);   // plus ancien, candidat au complement
+  });
+  /* Du plus recent au plus ancien : on complete par le haut. */
+  passes.sort(function (x, y) { return instantDe(y) - instantDe(x); });
+  var dejaPasses = avenir.filter(function (a) { return !inscriptionOuverte(a, now); }).length;
+  var manque = Math.max(0, MIN_PASSES - dejaPasses);
+  return avenir.concat(passes.slice(0, manque));
 }
 
 // Vue publique pour l'onglet Participer : AUCUN e-mail expose.
@@ -235,6 +270,7 @@ module.exports = {
   mailValide: mailValide, urlValide: urlValide, valider: valider, validerInscription: validerInscription,
   annulationAutorisee: annulationAutorisee, validerReprogrammation: validerReprogrammation, retraitParticipant: retraitParticipant,
   estPasse: estPasse, inscriptionOuverte: inscriptionOuverte, visibleCalendrier: visibleCalendrier,
+  pourCalendrier: pourCalendrier, MIN_PASSES: MIN_PASSES,
   instantParis: instantParis, instantDe: instantDe, decalageParis: decalageParis,
   vuePublique: vuePublique, vueConfirmation: vueConfirmation
 };

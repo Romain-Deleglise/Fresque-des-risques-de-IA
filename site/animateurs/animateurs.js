@@ -584,7 +584,11 @@
       el.style.left = p.x + 'px';
       el.style.top = p.y + 'px';
       if (c.lot) el.style.setProperty('--lot', LOT_COULEUR[c.lot] || 'var(--accent)');
-      el.setAttribute('aria-label', c.titre);
+      /* PAS D'`aria-label` ICI. La carte porte deja son numero et son titre en
+         clair : un nom accessible qui ne contient pas le texte visible fait
+         echouer « label-content-name-mismatch » (37 cartes, gravite serieuse),
+         et surtout il casse le pilotage a la voix, ou l'on dit ce qu'on lit.
+         Le contenu du bouton suffit : « 3 Amelioration des capacites ». */
 
       var vis = document.createElement('span');
       vis.className = 'vis';

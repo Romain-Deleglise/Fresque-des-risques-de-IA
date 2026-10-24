@@ -170,6 +170,19 @@ jobs:
       - name: Verifier l'edition de la fresque de reference
         run: node scripts/verifier-fresque-edition.mjs
 
+      # L'entree de la Fresque en ligne : un lien, une seule entree. Le lien
+      # d'invitation proposait « Ouvrir une session » a cote de « Rejoindre »,
+      # et cliquer la premiere ouvrait une AUTRE session, vide, pendant que le
+      # groupe attendait dans la bonne.
+      - name: Verifier l'entree de la Fresque en ligne
+        run: node scripts/verifier-lobby.mjs
+
+      # L'image de partage se refabrique depuis le logo, les polices et une
+      # photo du depot : un binaire depose une fois ne se relit jamais, et
+      # l'ancienne a vieilli sans que personne ne s'en apercoive.
+      - name: Verifier que l'image de partage est generable
+        run: node scripts/generer-partage.mjs --verifier
+
       # L'apercu des courriels de /admin/ : un e-mail est tout en attributs
       # `style`, que la CSP du site ignore a juste titre. Affiche dans un cadre
       # qui heriterait de cette politique, il s'afficherait sans mise en forme

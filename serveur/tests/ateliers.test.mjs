@@ -162,3 +162,58 @@ test("un atelier du soir n'est pas declare passe deux heures trop tot", () => {
     assert.equal(A.estPasse(a), true);
   } finally { Date.now = vrai; }
 });
+
+/* COMBIEN D'ATELIERS PASSES LE CALENDRIER MONTRE-T-IL ?
+
+   La regle etait une duree seule : sept jours. Apres quinze jours calmes, il
+   ne restait AUCUN atelier passe, la case « afficher les passes » disparaissait
+   et la page donnait a lire un projet sans activite. Le nombre montre
+   dependait du calendrier, pas de ce qu'on veut montrer. */
+test("le calendrier garde un stock d'ateliers passés même après une période calme", () => {
+  const maintenant = Date.parse("2026-06-15T12:00:00Z");
+  const jour = 24 * 60 * 60 * 1000;
+  const faire = (il_y_a_jours) => {
+    const d = new Date(maintenant - il_y_a_jours * jour);
+    return { code: "C" + il_y_a_jours, visibilite: "public", mode: "enligne",
+      date: d.toISOString().slice(0, 10), heure: "18:00",
+      quandMs: d.getTime(), maxParticipants: 8, participants: [] };
+  };
+  // Rien depuis trois semaines : l'ancienne règle n'aurait rien montré.
+  const liste = [21, 30, 45, 60, 90, 120, 150, 200].map(faire);
+  const vus = A.pourCalendrier(liste, maintenant);
+  assert.equal(vus.length, A.MIN_PASSES, "on complète jusqu'à " + A.MIN_PASSES);
+
+  // Et on complète par les PLUS RECENTS, pas au hasard.
+  assert.deepEqual(vus.map((a) => a.code), ["C21", "C30", "C45", "C60", "C90", "C120"]);
+
+  // Jamais au-delà du plafond d'âge : un atelier d'il y a deux ans ne dit pas
+  // « c'est vivant », il dit l'inverse.
+  const vieux = [200, 400, 800].map(faire);
+  assert.equal(A.pourCalendrier(vieux, maintenant).length, 0);
+});
+
+test("et il garde tout ce qui vient d'avoir lieu, même au-delà du compte", () => {
+  const maintenant = Date.parse("2026-06-15T12:00:00Z");
+  const jour = 24 * 60 * 60 * 1000;
+  const faire = (h, n) => {
+    const d = new Date(maintenant - h * jour);
+    return { code: "R" + n, visibilite: "public", mode: "enligne",
+      date: d.toISOString().slice(0, 10), heure: "18:00", quandMs: d.getTime(),
+      maxParticipants: 8, participants: [] };
+  };
+  // Dix ateliers dans la fenêtre de sept jours : on les garde tous les dix.
+  const recents = Array.from({ length: 10 }, (_, i) => faire(1 + i * 0.5, i));
+  assert.equal(A.pourCalendrier(recents, maintenant).length, 10);
+});
+
+test("les ateliers à venir ne sont jamais écartés", () => {
+  const maintenant = Date.parse("2026-06-15T12:00:00Z");
+  const jour = 24 * 60 * 60 * 1000;
+  const avenir = [1, 10, 40, 100].map((j) => {
+    const d = new Date(maintenant + j * jour);
+    return { code: "A" + j, visibilite: "public", mode: "enligne",
+      date: d.toISOString().slice(0, 10), heure: "18:00", quandMs: d.getTime(),
+      maxParticipants: 8, participants: [] };
+  });
+  assert.equal(A.pourCalendrier(avenir, maintenant).length, 4);
+});

@@ -104,6 +104,18 @@ const jP = R.rejoindre(S, "Bleu");
 
 const journal = [{ t: 0, s: JSON.parse(JSON.stringify(S)) }];
 const noter = () => journal.push({ t: Date.now(), s: JSON.parse(JSON.stringify(S)) });
+/* Le registre des battements, et son report sur une copie : exactement ce que
+   fait le service reel avant de projeter la vue. */
+const presence = {};
+function avecPresence(s) {
+  const marquer = (x) => {
+    const t = presence[x.id] || 0;
+    if (t > (x.vuLe || 0)) { x.vuLe = t; x.connecte = true; }
+  };
+  marquer(s.animateur);
+  s.participants.forEach(marquer);
+  return s;
+}
 function lirePerime() {
   const lim = Date.now() - RETARD;
   let out = journal[0].s;
@@ -119,12 +131,21 @@ async function servir(route) {
     const o = R.rejoindre(S, d.prenom, d.jeton);
     corps = o && o.refus ? { refus: o.refus } : { jeton: o.jeton, role: o.role, moi: o.id || null, etat: R.vue(S) };
   } else if (d.op === "etat") {
+    /* LA PRESENCE VIT A COTE, COMME EN PRODUCTION. Le vrai service tient les
+       battements dans leur propre magasin et les reporte sur la copie juste
+       avant de projeter la vue (voir presenceToucher dans
+       netlify/functions/fresque.js) : ecrire le document de session pour un
+       simple horodatage faisait reculer le tableau. Sans ce report ici, tout
+       le monde paraissait parti au bout de quinze secondes, et le harnais
+       accusait a tort le code qu'il teste. */
+    const info = S.jetons[d.jeton];
+    if (info) presence[info.role === "animateur" ? S.animateur.id : info.id] = Date.now();
     // Le faux service doit respecter le MEME contrat que le vrai : ne jamais
     // servir un etat plus ancien que celui que le client dit deja avoir. Sans
     // cela on fabrique ici une situation qui n'existe pas en production (un
     // serveur qui fait reculer ses clients en boucle), et le harnais echoue au
     // hasard sur des mesures parfaitement justes.
-    const vu = R.vue(lirePerime());
+    const vu = R.vue(avecPresence(lirePerime()));
     const connue = Math.max(0, +d.version || 0);
     corps = (connue && vu.version < connue) ? { inchange: true, version: connue } : { etat: vu };
   } else if (d.op === "agir") {
@@ -143,7 +164,10 @@ const erreursJS = [];
 async function ouvrir(nom, jeton, role, opts) {
   opts = opts || {};
   const ctx = await nav.newContext({ viewport: { width: 1360, height: 860 },
-    reducedMotion: opts.reduit ? "reduce" : "no-preference" });
+    reducedMotion: opts.reduit ? "reduce" : "no-preference",
+    // L'export (PNG et SVG) passe par un telechargement : sans cela
+    // l'evenement n'arrive jamais et le banc attend dans le vide.
+    acceptDownloads: true });
   const p = await ctx.newPage();
   p.on("pageerror", (e) => erreursJS.push("[" + nom + "] " + e.message));
   p.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource/.test(m.text())) erreursJS.push("[" + nom + "] console: " + m.text()); });
@@ -1040,14 +1064,27 @@ await bloc("Tactile et export", async () => {
     else {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.x, y: c.y, id: 0 }] });
       await dodo(160);
+      /* TROIS INFORMATIONS, TROIS FORMES : le numero (ce par quoi on se designe
+         les cartes a voix haute) dans un jeton a la couleur de son lot, le
+         titre dans sa bulle, la famille dans une autre. Une seule ligne de
+         texte les melangeait. */
       const vu = await T.evaluate(() => {
         const s = document.getElementById("survol-carte");
-        return { cache: s.hidden, txt: s.textContent };
+        const q = (c) => { const e = s.querySelector(c); return e ? e.textContent.trim() : null; };
+        const jeton = s.querySelector(".sv-num");
+        return { cache: s.hidden, num: q(".sv-num"), titre: q(".sv-titre"), lot: q(".sv-lot"),
+          fond: jeton ? getComputedStyle(jeton).backgroundColor : "",
+          taille: jeton ? parseFloat(getComputedStyle(jeton).fontSize) : 0 };
       });
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       t("toucher une carte donne son numero et son titre (pas de survol au doigt)",
-        !vu.cache && vu.txt.indexOf(c.n + " ·") === 0,
-        "encadre " + (vu.cache ? "cache" : "« " + vu.txt + " »") + " pour la carte " + c.n);
+        !vu.cache && vu.num === String(c.n) && !!vu.titre,
+        "encadre " + (vu.cache ? "cache" : JSON.stringify(vu)) + " pour la carte " + c.n);
+      t("le numero est gros et porte la couleur de son lot",
+        vu.taille >= 16 && /^rgb\(/.test(vu.fond || "") && vu.fond !== "rgba(0, 0, 0, 0)",
+        vu.taille + "px " + vu.fond);
+      t("et la famille de la carte est dite a part",
+        !!vu.lot && /lot|set/i.test(vu.lot), String(vu.lot));
     }
   }
 
@@ -1245,6 +1282,294 @@ await bloc("Tactile et export", async () => {
     }
   }
   await ctxT.close();
+});
+
+/* ========================================================================== */
+/* FILE DE PAROLE ET CONVERSATION.
+   Deux fonctions ajoutees parce que basculer vers la visioconference pour
+   demander la parole fait perdre ce qu'on est en train de faire. Ce qui peut
+   casser en silence, et que seul un vrai navigateur montre :
+   - l'ordre de la file differe selon qui regarde (chacun trie sur SON horloge)
+     alors que c'est exactement ce qu'on vient chercher ;
+   - lever la main deux fois, ou un renvoi apres coupure, renvoie en fin de
+     file : on perd sa place sans comprendre pourquoi ;
+   - le message met l'aller-retour du serveur a s'afficher (ici 1,9 s) et l'on
+     croit l'avoir rate, donc on le retape ;
+   - un message arrive barre fermee sans que rien ne le signale. */
+console.log("\n--- File de parole et conversation ---");
+await bloc("Mains levees et conversation", async () => {
+  const C = await ouvrir("participant 2", R.rejoindre(S, "Vert").jeton, "participant");
+  await dodo(RETARD + 700);
+
+  const ouvrirRail = (p) => p.evaluate(() => {
+    const b = document.getElementById("btn-rail");
+    if (b && document.getElementById("causerie").hidden) b.click();
+  });
+  const file = (p) => p.evaluate(() => [...document.querySelectorAll("#mains-liste li")]
+    .map((li) => li.querySelector(".main-nom").textContent.trim()));
+
+  await ouvrirRail(A); await ouvrirRail(B); await ouvrirRail(C);
+
+  /* L'ORDRE EST CELUI DES DEMANDES, et il doit etre le meme partout. On leve
+     la main sur deux postes a 150 ms d'intervalle : des horloges de clients
+     suffiraient a les inverser quelque part. */
+  await C.evaluate(() => document.getElementById("btn-main").click());
+  await dodo(150);
+  await B.evaluate(() => document.getElementById("btn-main").click());
+  await dodo(LATENCE_ECRIT + 1200);
+  const fA = await file(A), fB = await file(B), fC = await file(C);
+  t("la file est dans l'ordre des demandes", fC.join(",") === "Vert,Bleu", fC.join(","));
+  t("et tout le monde voit le meme ordre",
+    fA.join(",") === fC.join(",") && fB.join(",") === fC.join(","),
+    "anim=" + fA.join(",") + " | bleu=" + fB.join(",") + " | vert=" + fC.join(","));
+
+  /* LA MAIN SE VOIT TOUT DE SUITE chez soi : sinon on la releve. */
+  const vuMain = await B.evaluate(async () => {
+    const t0 = performance.now();
+    document.getElementById("btn-main").click();         // baisse
+    document.getElementById("btn-main").click();         // releve
+    for (let i = 0; i < 200; i++) {
+      if (document.getElementById("btn-main").getAttribute("aria-pressed") === "true") return performance.now() - t0;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    return -1;
+  });
+  t("sa propre main se leve sans attendre le serveur", vuMain >= 0 && vuMain < 300,
+    Math.round(vuMain) + " ms");
+  await dodo(LATENCE_ECRIT + 1400);
+
+  /* UN DOUBLE-CLIC REVIENT A L'ETAT DE DEPART. Le bouton est une bascule :
+     deux clics, c'est lever puis baisser (ou l'inverse), et il faut que le
+     second geste soit vraiment pris en compte, chez soi comme chez les autres.
+
+     ON PART D'UN ETAT QU'ON A VU. Ce tableau est eventuellement coherent :
+     agir sur ce qu'on croit savoir, c'est tester la latence plutot que le
+     code. On attend donc de VOIR sa propre main baissee avant de commencer.
+     L'autre cas, le renvoi reseau (deux fois « lever » sans « baisser » entre
+     les deux), ne passe pas par le bouton : il est verifie dans
+     serveur/tests/regles.test.mjs, ou l'on peut emettre l'action deux fois. */
+  const mainVue = (p, valeur) => p.waitForFunction(
+    (v) => document.getElementById("btn-main").getAttribute("aria-pressed") === v,
+    valeur, { timeout: 20000 }).then(() => true, () => false);
+
+  await C.evaluate(() => {
+    if (document.getElementById("btn-main").getAttribute("aria-pressed") === "true") {
+      document.getElementById("btn-main").click();
+    }
+  });
+  t("on voit sa propre main redescendre", await mainVue(C, "false"));
+  await dodo(LATENCE_ECRIT + 1400);
+  const avantDbl = await file(B);
+  await C.evaluate(() => { const b = document.getElementById("btn-main"); b.click(); b.click(); });
+  t("un double-clic rend la main a son etat de depart", await mainVue(C, "false"));
+  await dodo(LATENCE_ECRIT + 1800);
+  t("et la file des autres n'a pas bouge",
+    (await file(B)).join(",") === avantDbl.join(","),
+    "avant " + avantDbl.join(",") + " apres " + (await file(B)).join(","));
+
+  /* L'ANIMATEUR·ICE DONNE LA PAROLE : la file avance pour tout le monde. */
+  const premier = (await file(A))[0];
+  await A.evaluate(() => {
+    const li = document.querySelector("#mains-liste li");
+    const b = li && li.querySelector(".main-x");
+    if (b) b.click();
+  });
+  await dodo(LATENCE_ECRIT + 1400);
+  const apres = await file(B);
+  t("l'animateur·ice fait avancer la file", apres.indexOf(premier) === -1,
+    "premier=" + premier + " reste=" + apres.join(","));
+
+  /* LE MESSAGE S'AFFICHE TOUT DE SUITE chez soi, et vite chez les autres. */
+  const vuMoi = await B.evaluate(async () => {
+    const t0 = performance.now();
+    const c = document.getElementById("chat-texte");
+    c.value = "on peut couper le lot 3 ?";
+    document.getElementById("chat-form").dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    for (let i = 0; i < 200; i++) {
+      if (/lot 3/.test(document.getElementById("chat-fil").textContent || "")) return performance.now() - t0;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    return -1;
+  });
+  t("son propre message s'affiche sans attendre le serveur", vuMoi >= 0 && vuMoi < 300,
+    Math.round(vuMoi) + " ms");
+  await dodo(LATENCE_ECRIT + 1600);
+  t("et il arrive chez les autres",
+    await A.evaluate(() => /lot 3/.test(document.getElementById("chat-fil").textContent || "")));
+  t("une seule fois, pas deux",
+    (await A.evaluate(() => document.querySelectorAll("#chat-fil .msg").length)) === 1,
+    String(await A.evaluate(() => document.querySelectorAll("#chat-fil .msg").length)));
+  t("avec le nom de qui l'a ecrit",
+    await A.evaluate(() => /Bleu/.test(document.querySelector("#chat-fil .msg-qui").textContent || "")));
+
+  /* UN MESSAGE RECU BARRE FERMEE DOIT SE SIGNALER, sinon la conversation ne
+     sert a rien : on ne regarde pas une barre fermee. */
+  await C.evaluate(() => document.getElementById("causerie-fermer").click());
+  await dodo(300);
+  await B.evaluate(() => {
+    document.getElementById("chat-texte").value = "je dois partir a 17 h";
+    document.getElementById("chat-form").dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  });
+  await dodo(LATENCE_ECRIT + 1800);
+  const pastille = await C.evaluate(() => {
+    const b = document.getElementById("rail-pastille");
+    return { vu: !b.hidden, n: b.textContent };
+  });
+  t("un message recu barre fermee allume une pastille", pastille.vu, JSON.stringify(pastille));
+  await C.evaluate(() => document.getElementById("btn-rail").click());
+  await dodo(400);
+  t("et la pastille s'eteint quand on ouvre",
+    await C.evaluate(() => document.getElementById("rail-pastille").hidden));
+
+  /* ON NE TAPE PAS « m » DANS LA CONVERSATION POUR LEVER LA MAIN. */
+  const avantM = await C.evaluate(() => document.getElementById("btn-main").getAttribute("aria-pressed"));
+  await C.evaluate(() => document.getElementById("chat-texte").focus());
+  await C.keyboard.type("comment");
+  await dodo(400);
+  t("ecrire « comment » ne leve pas la main",
+    (await C.evaluate(() => document.getElementById("btn-main").getAttribute("aria-pressed"))) === avantM
+    && (await C.evaluate(() => document.getElementById("chat-texte").value)) === "comment");
+
+  /* PARLER SANS ECRIRE. Pendant qu'on anime, taper « oui je suis d'accord »
+     coute plus cher que ce que ca rapporte : on ne le fait pas, et le fil
+     reste vide alors que le groupe a des choses a dire. */
+  const nbMsg = (p) => p.evaluate(() => document.querySelectorAll("#chat-fil .msg").length);
+  const avantEmo = await nbMsg(B);
+  await C.evaluate(() => document.querySelector('#chat-vite button[data-emo="👍"]').click());
+  await dodo(LATENCE_ECRIT + 1600);
+  t("un signe part en un seul geste", (await nbMsg(B)) === avantEmo + 1,
+    avantEmo + " -> " + (await nbMsg(B)));
+  t("et il se lit en grand, pas noye dans la colonne",
+    await B.evaluate(() => {
+      const m = [...document.querySelectorAll("#chat-fil .msg-corps")].pop();
+      return !!m && m.classList.contains("signes") && parseFloat(getComputedStyle(m).fontSize) >= 18;
+    }));
+
+  /* LA PALETTE INSERE AU CURSEUR, pas en bout de ligne : on ajoute un signe au
+     milieu d'une phrase deja ecrite, et la renvoyer a la fin oblige a tout
+     recommencer. */
+  const insere = await C.evaluate(async () => {
+    const c = document.getElementById("chat-texte");
+    c.value = "deux cartes"; c.focus(); c.setSelectionRange(4, 4);
+    document.getElementById("chat-emo").click();
+    await new Promise((f) => setTimeout(f, 150));
+    const b = document.querySelector("#chat-palette button");
+    const signe = b.textContent;
+    b.click();
+    return { valeur: c.value, attendu: "deux" + signe + " cartes", ouverte: !document.getElementById("chat-palette").hidden };
+  });
+  t("la palette d'emoji s'ouvre", insere.ouverte);
+  t("et le signe s'insere la ou est le curseur", insere.valeur === insere.attendu,
+    insere.valeur + " / " + insere.attendu);
+  await C.evaluate(() => { document.getElementById("chat-texte").value = ""; document.getElementById("chat-emo").click(); });
+
+  /* LA MAIN LEVEE SE RECONNAIT SANS LIRE. */
+  t("chaque main levee porte son signe",
+    await A.evaluate(() => [...document.querySelectorAll("#mains-liste li")]
+      .every((li) => (li.querySelector(".main-signe") || {}).textContent === "✋")));
+
+  /* LE PANNEAU SE REPLIE ET SE DEPLACE, comme la reserve : pose en colonne
+     fixe, il mangeait une bande de l'ecran en permanence et se trouvait
+     toujours devant quelque chose. */
+  const boite = (p) => p.evaluate(() => {
+    const r = document.getElementById("causerie").getBoundingClientRect();
+    return { x: Math.round(r.x), y: Math.round(r.y), h: Math.round(r.height) };
+  });
+  const avantRepli = await boite(C);
+  await C.evaluate(() => document.getElementById("causerie-toggle").click());
+  await dodo(300);
+  t("le panneau se replie", (await boite(C)).h < avantRepli.h / 2,
+    avantRepli.h + " -> " + (await boite(C)).h);
+  await C.evaluate(() => document.getElementById("causerie-toggle").click());
+  await dodo(300);
+  t("et se redeploie", (await boite(C)).h > avantRepli.h / 2);
+  const dep = await C.evaluate(async () => {
+    const po = document.getElementById("causerie-poignee");
+    const r = po.getBoundingClientRect();
+    const o = (x, y) => ({ bubbles: true, clientX: x, clientY: y, pointerId: 11, button: 0 });
+    po.dispatchEvent(new PointerEvent("pointerdown", o(r.x + 5, r.y + 5)));
+    po.dispatchEvent(new PointerEvent("pointermove", o(r.x + 125, r.y - 85)));
+    po.dispatchEvent(new PointerEvent("pointerup", o(r.x + 125, r.y - 85)));
+    await new Promise((f) => setTimeout(f, 120));
+    const z = document.getElementById("causerie").getBoundingClientRect();
+    return { x: Math.round(z.x), y: Math.round(z.y) };
+  });
+  t("et se deplace a la poignee", Math.abs(dep.x - avantRepli.x) > 60,
+    JSON.stringify(avantRepli) + " -> " + JSON.stringify(dep));
+  /* La place choisie est retenue : un panneau qui revient a sa place par
+     defaut a chaque rechargement, on cesse de le deplacer. */
+  t("et la place choisie est retenue",
+    await C.evaluate(() => { try { return !!JSON.parse(localStorage.getItem("fresque:causpos")); } catch (e) { return false; } }));
+
+  /* LE PANNEAU NE COUVRE PAS LE TABLEAU AU POINT DE LE RENDRE INUTILISABLE :
+     il est en surcouche, le tableau garde sa taille. */
+  const place = await C.evaluate(() => {
+    const r = document.getElementById("causerie").getBoundingClientRect();
+    const s = document.getElementById("scene").getBoundingClientRect();
+    return { large: r.width, scene: s.width, dedans: r.right <= s.right + 1 && r.top >= s.top - 1 };
+  });
+  t("le panneau tient dans la scene sans la retailler", place.dedans && place.large > 200,
+    JSON.stringify(place));
+
+  await C.context().close();
+});
+
+/* ========================================================================== */
+/* DEUX FORMATS D'EXPORT, ET SANS ATTENDRE.
+   Le bouton n'apparaissait qu'une fois les 38 cartes posees : on ne pouvait
+   emporter ni la trace d'un lot termine, ni un travail en cours. Et le PNG
+   seul ne suffit pas : il ne s'agrandit pas sans bavouiller et ne se retouche
+   pas. Ce qui peut casser en silence : un SVG qui sort mais ne s'ouvre pas,
+   ou qui perd les illustrations, les fleches ou les pointilles. */
+console.log("\n--- Export PNG et SVG ---");
+await bloc("Export", async () => {
+  t("les deux formats sont dans le menu Affichage, sans condition",
+    await A.evaluate(() => {
+      const m = document.getElementById("menu-affichage");
+      return !!m && !!m.querySelector("#btn-export") && !!m.querySelector("#btn-export-svg");
+    }));
+
+  // Un lien en pointille, pour verifier qu'il voyage jusqu'a l'export.
+  await A.evaluate(() => {
+    const h = document.querySelector("#fleches .hit");
+    if (h) h.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await dodo(400);
+  await A.evaluate(() => { const b = document.querySelector(".fleche-pointille"); if (b) b.click(); });
+  await dodo(LATENCE_ECRIT + 1200);
+  t("un lien peut passer en pointille",
+    await A.evaluate(() => !!document.querySelector("#fleches .trait.pointille")));
+
+  await A.evaluate(() => document.getElementById("btn-affichage").click());
+  const attente = A.waitForEvent("download", { timeout: 40000 });
+  await A.evaluate(() => document.getElementById("btn-export-svg").click());
+  const d = await attente.catch(() => null);
+  t("le SVG se telecharge", !!d && /\.svg$/.test(d.suggestedFilename()), d ? d.suggestedFilename() : "aucun");
+  if (d) {
+    const dest = path.join(RACINE, "scripts", ".export-banc.svg");
+    await d.saveAs(dest);
+    const svg = fs.readFileSync(dest, "utf8");
+    fs.unlinkSync(dest);
+    t("il contient les illustrations des cartes", (svg.match(/<image /g) || []).length > 0,
+      (svg.match(/<image /g) || []).length + " images");
+    t("les fleches y sont des traits, pas des pixels", /<path /.test(svg));
+    t("et le pointille a suivi", /stroke-dasharray/.test(svg));
+    /* UN SVG QUI NE S'OUVRE PAS EST UN FICHIER MORT : on le rend vraiment. */
+    const ctxS = await nav.newContext({ viewport: { width: 900, height: 600 } });
+    const pgS = await ctxS.newPage();
+    const erreurs = [];
+    pgS.on("pageerror", (e) => erreurs.push(e.message));
+    await pgS.setContent('<img src="data:image/svg+xml;base64,' + Buffer.from(svg).toString("base64") + '" id="i">');
+    const bon = await pgS.evaluate(() => new Promise((ok) => {
+      const i = document.getElementById("i");
+      if (i.complete) return ok(i.naturalWidth > 0);
+      i.onload = () => ok(i.naturalWidth > 0);
+      i.onerror = () => ok(false);
+      setTimeout(() => ok(i.naturalWidth > 0), 3000);
+    }));
+    t("et il s'ouvre vraiment comme une image", bon && !erreurs.length, erreurs.join(" | "));
+    await ctxS.close();
+  }
 });
 
 /* ========================================================================== */
